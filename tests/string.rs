@@ -140,3 +140,23 @@ fn test_string_substring() -> Result<(), EvalAltResult> {
 
     Ok(())
 }
+
+#[test]
+fn test_reverse() -> Result<(), EvalAltResult> {
+    let engine = Engine::new();
+
+    assert_eq!(
+        engine.eval::<String>(
+            r#"let x = "\u2764\u2764"; x.reverse()"#
+        )?,
+        "❤❤"
+    );
+    assert_eq!(
+        engine.eval::<String>(
+            r#"let x = "\u2764\u2764\u2764 hello!"; x.reverse()"#
+        )?,
+        "!olleh ❤❤❤"
+    );
+
+    Ok(())
+}
