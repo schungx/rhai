@@ -807,13 +807,16 @@ impl Engine {
             match rhs {
                 // xxx.fn_name(arg_expr_list)
                 Expr::FnCall(fn_name, _, def_val, pos) => {
+                    // TODO: Fix this in parser
+                    assert!(new_val.is_none());
+
                     let mut args: Vec<_> = once(obj)
                         .chain(idx_val.downcast_mut::<Array>().unwrap().iter_mut())
                         .collect();
                     let def_val = def_val.as_deref();
                     // A function call is assumed to have side effects, so the value is changed
                     // TODO - Remove assumption of side effects by checking whether the first parameter is &mut
-                    self.exec_fn_call(fn_lib, fn_name, &mut args, def_val, *pos, 0).map(|v| (v, true))
+                    self.exec_fn_call(fn_lib, fn_name, &mut args, def_val, *pos, 0).map(|v| (v, false))
                 }
                 // {xxx:map}.id = ???
                 Expr::Property(id, pos) if obj.is::<Map>() && new_val.is_some() => {
