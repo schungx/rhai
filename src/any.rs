@@ -151,6 +151,18 @@ impl dyn Variant {
     pub fn is<T: Any>(&self) -> bool {
         TypeId::of::<T>() == self.type_id()
     }
+
+    /// Get a reference of a specific type to the `Variant`.
+    /// Returns `None` if the cast fails.
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        Any::downcast_ref::<T>(self.as_any())
+    }
+
+    /// Get a mutable reference of a specific type to the `Variant`.
+    /// Returns `None` if the cast fails.
+    pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
+        Any::downcast_mut::<T>(self.as_mut_any())
+    }
 }
 
 /// A dynamic type containing any value.

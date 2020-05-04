@@ -76,25 +76,49 @@ pub const FUNC_GETTER: &str = "get$";
 pub const FUNC_SETTER: &str = "set$";
 pub const FUNC_INDEXER: &str = "$index$";
 
-/// A type that encapsulates a mutation target for an expression with side effects.
-enum Target<'a> {
-    /// The target is a mutable reference to a `Dynamic` value somewhere.
-    Ref(&'a mut Dynamic),
-    /// The target is a temporary `Dynamic` value (i.e. the mutation can cause no side effects).
-    Value(Box<Dynamic>),
-    /// The target is a character inside a String.
-    /// This is necessary because directly pointing to a char inside a String is impossible.
-    StringChar(Box<(&'a mut Dynamic, usize, Dynamic)>),
-}
-
-struct Target2<'a> {
+struct Target<'a> {
     // Importing variant breaks other code (really) so we qualify the path.
     ptr: &'a mut dyn any::Variant,
 }
 
-impl Target2<'_> {
-    pub fn clone_into_dynamic(self) -> Dynamic {
-        self.ptr.clone_into_dynamic()
+impl <'a> Target<'a> {
+    pub fn is_map(&self) -> bool {
+        self.ptr.is::<Map>() || self.ptr.downcast_ref::<Dynamic>().map(|d| d.is::<Map>()).unwrap_or(false)
+    }
+
+    pub fn type_name(&self) -> &'static str {
+        // TODO: If we are holding a `Dynamic`, maybe do something custom.
+        self.ptr.type_name()
+    }
+    
+    pub fn as_dynamic(self) -> Result<&'a mut Dynamic, Self> {
+        // Awkward if statement + unecessary unreachable!() to satisfy the borrow checker.
+        if self.ptr.is::<Dynamic>() {
+            return self.ptr.downcast_mut::<Dynamic>().ok_or_else(|| unreachable!())
+        }
+        else {
+            return Err(self)
+        }
+    }
+
+    pub fn into_dynamic(self) -> Dynamic {
+        if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
+            // TODO: Move out.
+            dyn_mut.clone()
+        }
+        else {
+            // TODO: Don't clone?
+            self.ptr.clone_into_dynamic()
+        }
+    }
+
+    pub fn clone_into_dynamic(&self) -> Dynamic {
+        if let Some(dyn_ref) = self.ptr.downcast_ref::<Dynamic>() {
+            dyn_ref.clone()
+        }
+        else {
+            self.ptr.clone_into_dynamic()
+        }    
     }
 
     #[inline(always)]
@@ -107,7 +131,7 @@ impl Target2<'_> {
         }
         else {
             return Err(Box::new(EvalAltResult::ErrorMismatchOutputType(
-                "todo: type_name".into(),
+                self.ptr.type_name().into(),
                 pos,
             )));
         }
@@ -144,66 +168,23 @@ impl Target2<'_> {
                     }
                     else {
                         Err(Box::new(EvalAltResult::ErrorMismatchOutputType(
-                            "todo: type_name".into(),
+                            self.ptr.type_name().into(),
                             pos,
                         )))
                     }
                 }
-            }
-        }
-    }
-}
-
-impl Target<'_> {
-    /// Get the value of the `Target` as a `Dynamic`.
-    pub fn clone_into_dynamic(self) -> Dynamic {
-        match self {
-            Target::Ref(r) => r.clone(),
-            Target::Value(v) => *v,
-            Target::StringChar(s) => s.2,
-        }
-    }
-
-    /// Update the value of the `Target`.
-    pub fn set_value(&mut self, new_val: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
-        match self {
-            Target::Ref(r) => **r = new_val,
-            Target::Value(_) => {
-                return Err(Box::new(EvalAltResult::ErrorAssignmentToUnknownLHS(pos)))
-            }
-            Target::StringChar(x) => match x.0 {
-                Dynamic(Union::Str(s)) => {
-                    // Replace the character at the specified index position
-                    let new_ch = new_val
-                        .as_char()
-                        .map_err(|_| EvalAltResult::ErrorCharMismatch(pos))?;
-
-                    let mut chars: Vec<char> = s.chars().collect();
-                    let ch = chars[x.1];
-
-                    // See if changed - if so, update the String
-                    if ch != new_ch {
-                        chars[x.1] = new_ch;
-                        s.clear();
-                        chars.iter().for_each(|&ch| s.push(ch));
-                    }
+                #[cfg(not(feature = "no_module"))]
+                Union::Module(m) => {
+                    panic!("Setting modules is not supported");
                 }
-                _ => unreachable!(),
-            },
+            }
         }
-
-        Ok(())
     }
 }
 
 impl<'a> From<&'a mut Dynamic> for Target<'a> {
     fn from(value: &'a mut Dynamic) -> Self {
-        Self::Ref(value)
-    }
-}
-impl<T: Into<Dynamic>> From<T> for Target<'_> {
-    fn from(value: T) -> Self {
-        Self::Value(Box::new(value.into()))
+        Target{ ptr: value as &mut dyn any::Variant }
     }
 }
 
@@ -836,13 +817,7 @@ impl Engine {
         op_pos: Position,
         level: usize,
         mut new_val: Option<Dynamic>,
-    ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
-        // Get a reference to the mutation target Dynamic
-        let obj = match target {
-            Target::Ref(r) => r,
-            Target::Value(ref mut r) => r.as_mut(),
-            Target::StringChar(ref mut x) => &mut x.2,
-        };
+    ) -> Result<Dynamic, Box<EvalAltResult>> {
 
         // Pop the last index value
         let mut idx_val = idx_values.pop();
@@ -855,72 +830,117 @@ impl Engine {
                 Expr::Index(idx, idx_rhs, pos) => {
                     let is_index = matches!(rhs, Expr::Index(_,_,_));
 
-                    let indexed_val = self.get_indexed_mut(fn_lib, obj, idx_val, idx.position(), op_pos, false)?;
+                    let indexed_val = self.get_indexed_mut(fn_lib, target, idx_val, idx.position(), op_pos, false)?;
                     self.eval_dot_index_chain_helper(
                         fn_lib, indexed_val, idx_rhs.as_ref(), idx_values, is_index, *pos, level, new_val
                     )
                 }
                 // xxx[rhs] = new_val
                 _ if new_val.is_some() => {
-                    let mut indexed_val = self.get_indexed_mut(fn_lib, obj, idx_val, rhs.position(), op_pos, true)?;
+                    let mut indexed_val = self.get_indexed_mut(fn_lib, target, idx_val, rhs.position(), op_pos, true)?;
                     indexed_val.set_value(new_val.unwrap(), rhs.position())?;
-                    Ok((Default::default(), true))
+                    Ok(().into())
                 }
                 // xxx[rhs]
                 _ => self
-                    .get_indexed_mut(fn_lib, obj, idx_val, rhs.position(), op_pos, false)
-                    .map(|v| (v.clone_into_dynamic(), false))
+                    .get_indexed_mut(fn_lib, target, idx_val, rhs.position(), op_pos, false)
+                    .map(|v| v.into_dynamic())
             }
         } else {
             match rhs {
                 // xxx.fn_name(arg_expr_list)
-                Expr::FnCall(fn_name, None,_, def_val, pos) => {
+                Expr::FnCall(fn_name, None, _, def_val, pos) => {
+                    let mut tmp;
+                    let obj = match target.as_dynamic() {
+                        Ok(ptr) => ptr,
+                        Err(target) => {
+                            // TODO: I really want to be able to pass arbitrary &mut T to methods,
+                            // right now if target is a ptr to T we are only passing an effectively
+                            // immutable Dynamic.
+                            // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
+                            // efficient function because of tmp... without unsafe... possibly I should
+                            // make a macro instead.
+                            // TODO: Chars in strings in are awkward and need some form of special casing.
+                            // (This special casing is possible with a few extra match arms when the current
+                            // target points to a string). Right now mutable methods that try to mutate chars
+                            // in strings end up doing nothing.
+                            // Personally I wouldn't be against forbidding that concept anyways, the proper way
+                            // to deal with chars in strings is probably for the implementor to make a method on
+                            // the string instead of on the char.
+                            tmp = target.clone_into_dynamic();
+                            &mut tmp
+                        }
+                    };
                     let mut args: Vec<_> = once(obj)
                         .chain(idx_val.downcast_mut::<Vec<Dynamic>>().unwrap().iter_mut())
                         .collect();
                     let def_val = def_val.as_deref();
                     // A function call is assumed to have side effects, so the value is changed
                     // TODO - Remove assumption of side effects by checking whether the first parameter is &mut
-                    self.exec_fn_call(fn_lib, fn_name, &mut args, def_val, *pos, 0).map(|v| (v, true))
+                    self.exec_fn_call(fn_lib, fn_name, &mut args, def_val, *pos, 0)
                 }
                 // xxx.module::fn_name(...) - syntax error
                 Expr::FnCall(_,_,_,_,_) => unreachable!(),
                 // {xxx:map}.id = ???
-                #[cfg(not(feature = "no_object"))]
-                Expr::Property(id, pos) if obj.is::<Map>() && new_val.is_some() => {
+                Expr::Property(id, pos) if target.is_map() && new_val.is_some() => {
                     let mut indexed_val =
-                        self.get_indexed_mut(fn_lib, obj, id.to_string().into(), *pos, op_pos, true)?;
-                    indexed_val.set_value(new_val.unwrap(), rhs.position())?;
-                    Ok((Default::default(), true))
+                        self.get_indexed_mut(fn_lib, target, id.to_string().into(), *pos, op_pos, true)?;
+                    indexed_val.set_value(new_val, rhs.position())?;
+                    Ok(().into())
                 }
-                // {xxx:map}.id
-                #[cfg(not(feature = "no_object"))]
-                Expr::Property(id, pos) if obj.is::<Map>() => {
+                Expr::Property(id, pos) if target.is_map() => {
                     let indexed_val =
-                        self.get_indexed_mut(fn_lib, obj, id.to_string().into(), *pos, op_pos, false)?;
-                    Ok((indexed_val.clone_into_dynamic(), false))
+                        self.get_indexed_mut(fn_lib, target, id.to_string().into(), *pos, op_pos, false)?;
+                    Ok(indexed_val.clone_into_dynamic())
                 }
                 // xxx.id = ??? a
                 Expr::Property(id, pos) if new_val.is_some() => {
                     let fn_name = make_setter(id);
+                    let mut tmp;
+                    let obj = match target.as_dynamic() {
+                        Ok(ptr) => ptr,
+                        Err(target) => {
+                            // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
+                            // efficient function because of tmp... without unsafe... possibly I should
+                            // make a macro instead.
+                            // <See other todos on the first version>
+                            eprintln!("Had to clone, setter will fail to mutate the value");
+                            tmp = target.clone_into_dynamic();
+                            &mut tmp
+                        }
+                    };
+                    // TODO: Going along with my function reform, I'd like to see new_val become a Dynamic
+                    // in setters to minimize cloning.
                     let mut args = [obj, new_val.as_mut().unwrap()];
-                    self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0).map(|v| (v, true))
+                    self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0).map(|_| ().into())
                 }
                 // xxx.id
                 Expr::Property(id, pos) => {
                     let fn_name = make_getter(id);
+                    let mut tmp;
+                    let obj = match target.as_dynamic() {
+                        Ok(ptr) => ptr,
+                        Err(target) => {
+                            // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
+                            // efficient function because of tmp... without unsafe... possibly I should
+                            // make a macro instead.
+                            // <See other todos on the first version>
+                            tmp = target.clone_into_dynamic();
+                            &mut tmp
+                        }
+                    };
                     let mut args = [obj];
-                    self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0).map(|v| (v, false))
+                    self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0)
                 }
                 #[cfg(not(feature = "no_object"))]
                 // {xxx:map}.idx_lhs[idx_expr]
                 Expr::Index(dot_lhs, dot_rhs, pos) |
                 // {xxx:map}.dot_lhs.rhs
-                Expr::Dot(dot_lhs, dot_rhs, pos) if obj.is::<Map>() => {
+                Expr::Dot(dot_lhs, dot_rhs, pos) if target.is_map() => {
                     let is_index = matches!(rhs, Expr::Index(_,_,_));
 
                     let indexed_val = if let Expr::Property(id, pos) = dot_lhs.as_ref() {
-                        self.get_indexed_mut(fn_lib, obj, id.to_string().into(), *pos, op_pos, false)?
+                        self.get_indexed_mut(fn_lib, target, id.to_string().into(), *pos, op_pos, false)?
                     } else {
                         // Syntax error
                         return Err(Box::new(EvalAltResult::ErrorDotExpr(
@@ -937,6 +957,18 @@ impl Engine {
                 // xxx.dot_lhs.rhs
                 Expr::Dot(dot_lhs, dot_rhs, pos) => {
                     let is_index = matches!(rhs, Expr::Index(_,_,_));
+                    let mut tmp;
+                    let obj = match target.as_dynamic() {
+                        Ok(ptr) => ptr,
+                        Err(target) => {
+                            // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
+                            // efficient function because of tmp... without unsafe... possibly I should
+                            // make a macro instead.
+                            // <See other todos on the first version>
+                            tmp = target.clone_into_dynamic();
+                            &mut tmp
+                        }
+                    };
                     let mut args = [obj, &mut Default::default()];
 
                     let indexed_val = &mut (if let Expr::Property(id, pos) = dot_lhs.as_ref() {
@@ -949,25 +981,10 @@ impl Engine {
                             rhs.position(),
                         )));
                     });
-                    let (result, may_be_changed) = self.eval_dot_index_chain_helper(
+                    
+                    self.eval_dot_index_chain_helper(
                         fn_lib, indexed_val.into(), dot_rhs, idx_values, is_index, *pos, level, new_val
-                    )?;
-
-                    // Feed the value back via a setter just in case it has been updated
-                    if may_be_changed {
-                        if let Expr::Property(id, pos) = dot_lhs.as_ref() {
-                            let fn_name = make_setter(id);
-                            // Re-use args because the first &mut parameter will not be consumed
-                            args[1] = indexed_val;
-                            self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0).or_else(|err| match *err {
-                                // If there is no setter, no need to feed it back because the property is read-only
-                                EvalAltResult::ErrorDotExpr(_,_) => Ok(Default::default()),
-                                err => Err(Box::new(err))
-                            })?;
-                        }
-                    }
-
-                    Ok((result, may_be_changed))
+                    )
                 }
                 // Syntax error
                 _ => Err(Box::new(EvalAltResult::ErrorDotExpr(
@@ -1017,7 +1034,6 @@ impl Engine {
                 self.eval_dot_index_chain_helper(
                     fn_lib, this_ptr, dot_rhs, idx_values, is_index, op_pos, level, new_val,
                 )
-                .map(|(v, _)| v)
             }
             // {expr}.??? = ??? or {expr}[???] = ???
             expr if new_val.is_some() => {
@@ -1025,14 +1041,12 @@ impl Engine {
                     expr.position(),
                 )));
             }
-            // {expr}.??? or {expr}[???]
             expr => {
-                let val = self.eval_expr(scope, state, fn_lib, expr, level)?;
-                let this_ptr = val.into();
+                let mut val = self.eval_expr(scope, state, fn_lib, expr, level)?;
+                let this_ptr = Target{ ptr: &mut val };
                 self.eval_dot_index_chain_helper(
                     fn_lib, this_ptr, dot_rhs, idx_values, is_index, op_pos, level, new_val,
                 )
-                .map(|(v, _)| v)
             }
         }
     }
@@ -1088,17 +1102,21 @@ impl Engine {
     fn get_indexed_mut<'a>(
         &self,
         fn_lib: &FunctionsLib,
-        val: &'a mut Dynamic,
+        mut target: Target<'a>,
         mut idx: Dynamic,
         idx_pos: Position,
         op_pos: Position,
         create: bool,
     ) -> Result<Target<'a>, Box<EvalAltResult>> {
-        let type_name = self.map_type_name(val.type_name());
+        let type_name = self.map_type_name(target.type_name());
+        // TODO: Not yet needed, but eventually we need to be doing this "properly" checking if
+        // either the target is a dynamic containing an array/map/str. Or if it is directly a pointer
+        // to an array/map/str. Not difficult, just lazy.
+        let val = target.as_dynamic();
 
         match val {
             #[cfg(not(feature = "no_index"))]
-            Dynamic(Union::Array(arr)) => {
+            Ok(Dynamic(Union::Array(arr))) => {
                 // val_array[idx]
                 let index = idx
                     .as_int()
@@ -1120,7 +1138,7 @@ impl Engine {
             }
 
             #[cfg(not(feature = "no_object"))]
-            Dynamic(Union::Map(map)) => {
+            Ok(Dynamic(Union::Map(map))) => {
                 // val_map[idx]
                 let index = idx
                     .take_string()
@@ -1131,51 +1149,34 @@ impl Engine {
                 } else {
                     map.get_mut(&index)
                         .map(Target::from)
-                        .unwrap_or_else(|| Target::from(()))
+                        .ok_or(
+                            Box::new(EvalAltResult::ErrorIndexingType(
+                                "TODO: Create a real index not found error?".into(), 
+                                idx_pos))
+                        )?
                 })
             }
 
             #[cfg(not(feature = "no_index"))]
-            Dynamic(Union::Str(s)) => {
-                // val_string[idx]
-                let index = idx
-                    .as_int()
-                    .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
-
-                if index >= 0 {
-                    let ch = s.chars().nth(index as usize).ok_or_else(|| {
-                        Box::new(EvalAltResult::ErrorStringBounds(
-                            s.chars().count(),
-                            index,
-                            idx_pos,
-                        ))
-                    })?;
-
-                    Ok(Target::StringChar(Box::new((
-                        val,
-                        index as usize,
-                        ch.into(),
-                    ))))
-                } else {
-                    Err(Box::new(EvalAltResult::ErrorStringBounds(
-                        s.chars().count(),
-                        index,
-                        idx_pos,
-                    )))
-                }
+            Ok(Dynamic(Union::Str(_))) => {
+                // TODO: See TODO in method FnCall. Similar issues apply to trying to get/set a char here.
+                // They could easily be special cased, but if we implement index syntax getters and setters
+                // we won't even need to special case it!
+                unimplemented!()
             }
 
             _ => {
-                let args = &mut [val, &mut idx];
-                self.exec_fn_call(fn_lib, FUNC_INDEXER, args, None, op_pos, 0)
-                    .map(|v| v.into())
-                    .map_err(|_| {
-                        Box::new(EvalAltResult::ErrorIndexingType(
-                            // Error - cannot be indexed
-                            type_name.to_string(),
-                            op_pos,
-                        ))
-                    })
+                unimplemented!("Need to return target")
+                // let args = &mut [val, &mut idx];
+                // self.exec_fn_call(fn_lib, FUNC_INDEXER, args, None, op_pos, 0)
+                //     .map(|v| v.into())
+                //     .map_err(|_| {
+                //         Box::new(EvalAltResult::ErrorIndexingType(
+                //             // Error - cannot be indexed
+                //             type_name.to_string(),
+                //             op_pos,
+                //         ))
+                //     })
             }
         }
     }
