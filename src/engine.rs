@@ -1,6 +1,6 @@
 //! Main module defining the script evaluation `Engine`.
 
-use crate::any::{Dynamic, Union};
+use crate::any::{self, Dynamic, Union};
 use crate::calc_fn_hash;
 use crate::error::ParseErrorType;
 use crate::optimize::OptimizationLevel;
@@ -85,6 +85,73 @@ enum Target<'a> {
     /// The target is a character inside a String.
     /// This is necessary because directly pointing to a char inside a String is impossible.
     StringChar(Box<(&'a mut Dynamic, usize, Dynamic)>),
+}
+
+struct Target2<'a> {
+    // Importing variant breaks other code (really) so we qualify the path.
+    ptr: &'a mut dyn any::Variant,
+}
+
+impl Target2<'_> {
+    pub fn clone_into_dynamic(self) -> Dynamic {
+        self.ptr.clone_into_dynamic()
+    }
+
+    #[inline(always)]
+    pub fn set_value<T: any::Variant>(&mut self, value: T, pos: Position) -> Result<(), Box<EvalAltResult>> {
+        if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
+            *dyn_mut = value.into_dynamic();
+        }
+        else if let Some(t_mut) = self.ptr.downcast_mut::<T>() {
+            *t_mut = value;
+        }
+        else {
+            return Err(Box::new(EvalAltResult::ErrorMismatchOutputType(
+                "todo: type_name".into(),
+                pos,
+            )));
+        }
+
+        Ok(())
+    }
+
+    pub fn set_dyn_value(&mut self, new_val: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
+        if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
+            *dyn_mut = new_val;
+            Ok(())
+        }
+        else {
+            match new_val.0 {
+                Union::Unit(()) => self.set_value((), pos),
+                Union::Bool(b) => self.set_value(b, pos),
+                Union::Str(s) => self.set_value(s, pos),
+                Union::Char(c) => self.set_value(c, pos),
+                Union::Int(i) => self.set_value(i, pos),
+                Union::Float(f) => self.set_value(f, pos),
+                Union::Array(a) => self.set_value(a, pos),
+                Union::Map(m) => self.set_value(m, pos),
+                Union::Variant(v) => {
+                    if let Some(var_mut) = self.ptr.downcast_mut::<Box<Box<dyn any::Variant>>>() {
+                        *var_mut = v;
+                        Ok(())
+                    }
+                    else if let Some(var_mut) = self.ptr.downcast_mut::<Box<dyn any::Variant>>() {
+                        *var_mut = *v;
+                        Ok(())
+                    }
+                    else if (*v).try_write(self.ptr) {
+                        Ok(())
+                    }
+                    else {
+                        Err(Box::new(EvalAltResult::ErrorMismatchOutputType(
+                            "todo: type_name".into(),
+                            pos,
+                        )))
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Target<'_> {

@@ -47,6 +47,9 @@ pub trait Variant: Any {
     /// Clone into `Dynamic`.
     fn clone_into_dynamic(&self) -> Dynamic;
 
+    // Try to move ourselves into other
+    fn try_write(self: Box<Self>, other: &mut dyn Variant) -> bool;
+
     /// This trait may only be implemented by `rhai`.
     #[doc(hidden)]
     fn _closed(&self) -> _Private;
@@ -68,6 +71,15 @@ impl<T: Any + Clone> Variant for T {
     }
     fn clone_into_dynamic(&self) -> Dynamic {
         Dynamic::from(self.clone())
+    }
+    fn try_write(self: Box<Self>, other: &mut dyn Variant) -> bool {
+        if let Some(place) = other.downcast_mut::<Self>() {
+            *place = *self;
+            true
+        }
+        else {
+            false
+        }
     }
     fn _closed(&self) -> _Private {
         _Private
@@ -95,6 +107,9 @@ pub trait Variant: Any + Send + Sync {
     /// Clone into `Dynamic`.
     fn clone_into_dynamic(&self) -> Dynamic;
 
+    // Try to move ourselves into other
+    fn try_write(self: Box<Self>, other: &mut Variant) -> bool;
+
     /// This trait may only be implemented by `rhai`.
     #[doc(hidden)]
     fn _closed(&self) -> _Private;
@@ -116,6 +131,15 @@ impl<T: Any + Clone + Send + Sync> Variant for T {
     }
     fn clone_into_dynamic(&self) -> Dynamic {
         Dynamic::from(self.clone())
+    }
+    fn try_write(self: Box<Self>, other: &mut Variant) -> bool {
+        if let Some(place) = other.downcast_mut::<Self>() {
+            *place = *self;
+            true
+        }
+        else {
+            false
+        }
     }
     fn _closed(&self) -> _Private {
         _Private
