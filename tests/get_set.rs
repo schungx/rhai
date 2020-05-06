@@ -12,8 +12,8 @@ fn test_get_set() -> Result<(), Box<EvalAltResult>> {
     }
 
     impl TestStruct {
-        fn get_x(&mut self) -> INT {
-            self.x
+        fn get_mut_x(&mut self) -> &mut INT {
+            &mut self.x
         }
 
         fn set_x(&mut self, new_x: INT) {
@@ -37,7 +37,10 @@ fn test_get_set() -> Result<(), Box<EvalAltResult>> {
 
     engine.register_type::<TestStruct>();
 
-    engine.register_get_set("x", TestStruct::get_x, TestStruct::set_x);
+    engine.register_get_mut("x", TestStruct::get_mut_x);
+    // TODO: Make this redundant
+    engine.register_get("x", |s: &mut TestStruct| *s.get_mut_x());
+    engine.register_set("x", TestStruct::set_x);
     engine.register_get("y", TestStruct::get_y);
     engine.register_fn("add", |value: &mut INT| *value += 41);
     engine.register_fn("new_ts", TestStruct::new);
@@ -82,12 +85,8 @@ fn test_big_get_set() -> Result<(), Box<EvalAltResult>> {
     }
 
     impl TestParent {
-        fn get_child(&mut self) -> TestChild {
-            self.child.clone()
-        }
-
-        fn set_child(&mut self, new_child: TestChild) {
-            self.child = new_child;
+        fn get_mut_child(&mut self) -> &mut TestChild {
+            &mut self.child
         }
 
         fn new() -> TestParent {
@@ -103,7 +102,7 @@ fn test_big_get_set() -> Result<(), Box<EvalAltResult>> {
     engine.register_type_with_name::<TestParent>("TestParent");
 
     engine.register_get_set("x", TestChild::get_x, TestChild::set_x);
-    engine.register_get_set("child", TestParent::get_child, TestParent::set_child);
+    engine.register_get_mut("child", TestParent::get_mut_child);
 
     engine.register_fn("new_tp", TestParent::new);
 

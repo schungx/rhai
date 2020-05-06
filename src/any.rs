@@ -491,7 +491,7 @@ impl Dynamic {
     /// Get a reference of a specific type to the `Dynamic`.
     /// Casting to `Dynamic` just returns a reference to it.
     /// Returns `None` if the cast fails.
-    pub fn downcast_ref<T: Variant + Clone>(&self) -> Option<&T> {
+    pub fn downcast_ref<T: Variant>(&self) -> Option<&T> {
         if TypeId::of::<T>() == TypeId::of::<Dynamic>() {
             return (self as &dyn Any).downcast_ref::<T>();
         }
@@ -517,7 +517,7 @@ impl Dynamic {
     /// Get a mutable reference of a specific type to the `Dynamic`.
     /// Casting to `Dynamic` just returns a mutable reference to it.
     /// Returns `None` if the cast fails.
-    pub fn downcast_mut<T: Variant + Clone>(&mut self) -> Option<&mut T> {
+    pub fn downcast_mut<T: Variant>(&mut self) -> Option<&mut T> {
         if TypeId::of::<T>() == TypeId::of::<Dynamic>() {
             return (self as &mut dyn Any).downcast_mut::<T>();
         }

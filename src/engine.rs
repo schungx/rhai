@@ -1,5 +1,6 @@
 //! Main module defining the script evaluation `Engine`.
 
+use crate::api::ObjectGetMutCallback;
 use crate::any::{self, Dynamic, Union};
 use crate::calc_fn_hash;
 use crate::error::ParseErrorType;
@@ -20,6 +21,7 @@ use crate::stdlib::{
     collections::HashMap,
     format,
     iter::once,
+    marker::PhantomData,
     mem,
     num::NonZeroUsize,
     ops::{Deref, DerefMut},
@@ -40,6 +42,57 @@ pub type Array = Vec<Dynamic>;
 /// Not available under the `no_object` feature.
 #[cfg(not(feature = "no_object"))]
 pub type Map = HashMap<String, Dynamic>;
+
+
+trait ObjectGetMutCallbackAny {
+    fn call_on<'a>(&self, target: Target<'a>) -> Target<'a>;
+}
+
+// This struct is a workaround suggested here:
+// https://github.com/rust-lang/rust/issues/25041
+
+struct Function<F, I, O> {
+    in_p: PhantomData<I>,
+    out_p: PhantomData<O>,
+    function: F
+}
+
+impl <F, I, O> Function<F, I, O> {
+    fn new(function: F) -> Self {
+        Function{
+            function,
+            in_p: PhantomData,
+            out_p: PhantomData,
+        }
+    }
+}
+
+impl<'a, F, T, U> ObjectGetMutCallbackAny for Function<F, T, U>
+    where T: any::Variant, U: any::Variant, F: ObjectGetMutCallback<T, U>
+{
+    fn call_on<'b>(&self, target: Target<'b>) -> Target<'b> {
+        let ptr: &mut T = target.as_mut::<T>().expect("Hash collision maybe?");
+        Target{ ptr: (self.function)(ptr) as &mut dyn any::Variant }
+    }    
+}
+
+// Sticking this here to keep all the crazy type shennagians in the same place.
+impl Engine {
+    #[cfg(not(feature = "no_object"))]
+    pub fn register_get_mut<T, U, F>(&mut self, name: &str, callback: F)
+    where
+        T: any::Variant + Clone,
+        U: any::Variant + Clone,
+        F: ObjectGetMutCallback<T, U> + Clone,
+    {
+        let fn_name = make_mut_getter(name);
+        let hash = calc_fn_hash(&fn_name, std::iter::once(TypeId::of::<T>()));
+
+        let function = Function::new(callback);
+        let dny_any_callback: Box<dyn ObjectGetMutCallbackAny> = Box::new(function) as Box<dyn ObjectGetMutCallbackAny>; 
+        self.mut_getters.insert(hash, dny_any_callback);
+    }
+}
 
 pub type FnCallArgs<'a> = [&'a mut Dynamic];
 
@@ -72,6 +125,7 @@ pub const KEYWORD_DEBUG: &str = "debug";
 pub const KEYWORD_TYPE_OF: &str = "type_of";
 pub const KEYWORD_EVAL: &str = "eval";
 pub const FUNC_TO_STRING: &str = "to_string";
+pub const FUNC_MUT_GETTER: &str = "mut_get$";
 pub const FUNC_GETTER: &str = "get$";
 pub const FUNC_SETTER: &str = "set$";
 pub const FUNC_INDEXER: &str = "$index$";
@@ -90,6 +144,15 @@ impl <'a> Target<'a> {
         // TODO: If we are holding a `Dynamic`, maybe do something custom.
         self.ptr.type_name()
     }
+
+    pub fn contents_type_id(&self) -> TypeId {
+        if let Some(dyn_self) = self.ptr.downcast_ref::<Dynamic>() {
+            Dynamic::type_id(dyn_self)
+        }
+        else {
+            self.ptr.type_id()
+        }
+    }
     
     pub fn as_dynamic(self) -> Result<&'a mut Dynamic, Self> {
         // Awkward if statement + unecessary unreachable!() to satisfy the borrow checker.
@@ -101,14 +164,17 @@ impl <'a> Target<'a> {
         }
     }
 
-    pub fn into_dynamic(self) -> Dynamic {
-        if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
-            // TODO: Move out.
-            dyn_mut.clone()
+    pub fn as_mut<T: any::Variant>(self) -> Option<&'a mut T> {
+        // Awkward if statement + unecessary unreachable!() to satisfy the borrow checker.
+        if self.ptr.is::<Dynamic>() {
+            let dyn_ptr = self.ptr.downcast_mut::<Dynamic>().unwrap_or_else(|| unreachable!());
+            Dynamic::downcast_mut::<T>(dyn_ptr)
+        }
+        else if let Some(t_ptr) = self.ptr.downcast_mut::<T>() {
+            Some(t_ptr)
         }
         else {
-            // TODO: Don't clone?
-            self.ptr.clone_into_dynamic()
+            None
         }
     }
 
@@ -122,7 +188,7 @@ impl <'a> Target<'a> {
     }
 
     #[inline(always)]
-    pub fn set_value<T: any::Variant>(&mut self, value: T, pos: Position) -> Result<(), Box<EvalAltResult>> {
+    pub fn set_value_typed<T: any::Variant>(&mut self, value: T, pos: Position) -> Result<(), Box<EvalAltResult>> {
         if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
             *dyn_mut = value.into_dynamic();
         }
@@ -139,21 +205,21 @@ impl <'a> Target<'a> {
         Ok(())
     }
 
-    pub fn set_dyn_value(&mut self, new_val: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
+    pub fn set_value(&mut self, new_val: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
         if let Some(dyn_mut) = self.ptr.downcast_mut::<Dynamic>() {
             *dyn_mut = new_val;
             Ok(())
         }
         else {
             match new_val.0 {
-                Union::Unit(()) => self.set_value((), pos),
-                Union::Bool(b) => self.set_value(b, pos),
-                Union::Str(s) => self.set_value(s, pos),
-                Union::Char(c) => self.set_value(c, pos),
-                Union::Int(i) => self.set_value(i, pos),
-                Union::Float(f) => self.set_value(f, pos),
-                Union::Array(a) => self.set_value(a, pos),
-                Union::Map(m) => self.set_value(m, pos),
+                Union::Unit(()) => self.set_value_typed((), pos),
+                Union::Bool(b) => self.set_value_typed(b, pos),
+                Union::Str(s) => self.set_value_typed(s, pos),
+                Union::Char(c) => self.set_value_typed(c, pos),
+                Union::Int(i) => self.set_value_typed(i, pos),
+                Union::Float(f) => self.set_value_typed(f, pos),
+                Union::Array(a) => self.set_value_typed(a, pos),
+                Union::Map(m) => self.set_value_typed(m, pos),
                 Union::Variant(v) => {
                     if let Some(var_mut) = self.ptr.downcast_mut::<Box<Box<dyn any::Variant>>>() {
                         *var_mut = v;
@@ -310,6 +376,12 @@ pub struct Engine {
     /// The key of the `HashMap` is a `u64` hash calculated by the function `crate::calc_fn_hash`.
     pub(crate) functions: HashMap<u64, Box<FnAny>>,
 
+    /// A `HashMap` containing all compiled functions known to the engine.
+    ///
+    /// The key of the `HashMap` is a `u64` hash calculated by the function 
+    /// `crate::calc_fn_spec`
+    mut_getters: HashMap<u64, Box<dyn ObjectGetMutCallbackAny>>,
+
     /// A hashmap containing all iterators known to the engine.
     pub(crate) type_iterators: HashMap<TypeId, Box<IteratorFn>>,
 
@@ -349,6 +421,8 @@ impl Default for Engine {
         let mut engine = Self {
             packages: Default::default(),
             functions: HashMap::with_capacity(FUNCTIONS_COUNT),
+            mut_getters: HashMap::new(),
+
             type_iterators: Default::default(),
 
             #[cfg(not(feature = "no_module"))]
@@ -392,6 +466,11 @@ impl Default for Engine {
 /// Make getter function
 pub fn make_getter(id: &str) -> String {
     format!("{}{}", FUNC_GETTER, id)
+}
+
+/// Make mut getter function
+pub fn make_mut_getter(id: &str) -> String {
+    format!("{}{}", FUNC_MUT_GETTER, id)
 }
 
 /// Extract the property name from a getter function name.
@@ -494,12 +573,14 @@ impl Engine {
         Self {
             packages: Default::default(),
             functions: HashMap::with_capacity(FUNCTIONS_COUNT / 2),
+            mut_getters: HashMap::new(),
             type_iterators: Default::default(),
 
             #[cfg(not(feature = "no_module"))]
             module_resolver: None,
 
             type_names: Default::default(),
+
             print: Box::new(|_| {}),
             debug: Box::new(|_| {}),
 
@@ -844,7 +925,7 @@ impl Engine {
                 // xxx[rhs]
                 _ => self
                     .get_indexed_mut(fn_lib, target, idx_val, rhs.position(), op_pos, false)
-                    .map(|v| v.into_dynamic())
+                    .map(|v| v.clone_into_dynamic())
             }
         } else {
             match rhs {
@@ -885,7 +966,7 @@ impl Engine {
                 Expr::Property(id, pos) if target.is_map() && new_val.is_some() => {
                     let mut indexed_val =
                         self.get_indexed_mut(fn_lib, target, id.to_string().into(), *pos, op_pos, true)?;
-                    indexed_val.set_value(new_val, rhs.position())?;
+                    indexed_val.set_value(new_val.unwrap(), rhs.position())?;
                     Ok(().into())
                 }
                 Expr::Property(id, pos) if target.is_map() => {
@@ -904,7 +985,7 @@ impl Engine {
                             // efficient function because of tmp... without unsafe... possibly I should
                             // make a macro instead.
                             // <See other todos on the first version>
-                            eprintln!("Had to clone, setter will fail to mutate the value");
+                            eprintln!("Had to clone {}, setter will fail to mutate the value", id);
                             tmp = target.clone_into_dynamic();
                             &mut tmp
                         }
@@ -957,23 +1038,9 @@ impl Engine {
                 // xxx.dot_lhs.rhs
                 Expr::Dot(dot_lhs, dot_rhs, pos) => {
                     let is_index = matches!(rhs, Expr::Index(_,_,_));
-                    let mut tmp;
-                    let obj = match target.as_dynamic() {
-                        Ok(ptr) => ptr,
-                        Err(target) => {
-                            // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
-                            // efficient function because of tmp... without unsafe... possibly I should
-                            // make a macro instead.
-                            // <See other todos on the first version>
-                            tmp = target.clone_into_dynamic();
-                            &mut tmp
-                        }
-                    };
-                    let mut args = [obj, &mut Default::default()];
 
-                    let indexed_val = &mut (if let Expr::Property(id, pos) = dot_lhs.as_ref() {
-                        let fn_name = make_getter(id);
-                        self.exec_fn_call(fn_lib, &fn_name, &mut args[..1], None, *pos, 0)?
+                    let (id, pos) = &mut (if let Expr::Property(id, pos) = dot_lhs.as_ref() {
+                        (id, pos)
                     } else {
                         // Syntax error
                         return Err(Box::new(EvalAltResult::ErrorDotExpr(
@@ -981,10 +1048,43 @@ impl Engine {
                             rhs.position(),
                         )));
                     });
-                    
-                    self.eval_dot_index_chain_helper(
-                        fn_lib, indexed_val.into(), dot_rhs, idx_values, is_index, *pos, level, new_val
-                    )
+
+                    // Look for a mut_getter first
+                    let fn_spec = calc_fn_hash(&make_mut_getter(id), std::iter::once(target.contents_type_id()));
+                    if let Some(mut_getter) = self.mut_getters.get(&fn_spec) {
+                        let new_target = mut_getter.call_on(target);
+                        self.eval_dot_index_chain_helper(
+                            fn_lib, new_target, dot_rhs, idx_values, is_index,**pos, level, new_val
+                        )
+                    }
+                    else if new_val.is_some() {
+                        // We can't get a pointer to the location we are assigning to.
+                        unimplemented!("Some sort of error here, id: {}", id);
+                    }
+                    else {                        
+                        // Failed to find a mut getter, and we maybe aren't mutating things, so fall back to a getter.
+                        // TODO: Somehow give an error if there is a mutating method at the end of this chain
+                        let mut tmp;
+                        let obj = match target.as_dynamic() {
+                            Ok(ptr) => ptr,
+                            Err(target) => {
+                                // TODO: I seem to be doing this repeatedly, but I can't extract it in to an
+                                // efficient function because of tmp... without unsafe... possibly I should
+                                // make a macro instead.
+                                // <See other todos on the first version>
+                                tmp = target.clone_into_dynamic();
+                                &mut tmp
+                            }
+                        };
+                        let mut args = [obj, &mut Default::default()];
+                        
+                        let fn_name = make_getter(id);
+                        let indexed_val = &mut self.exec_fn_call(fn_lib, &fn_name, &mut args[..1], None, **pos, 0)?;
+    
+                        self.eval_dot_index_chain_helper(
+                            fn_lib, indexed_val.into(), dot_rhs, idx_values, is_index, **pos, level, new_val
+                        )
+                    }
                 }
                 // Syntax error
                 _ => Err(Box::new(EvalAltResult::ErrorDotExpr(
@@ -1109,7 +1209,7 @@ impl Engine {
         create: bool,
     ) -> Result<Target<'a>, Box<EvalAltResult>> {
         let type_name = self.map_type_name(target.type_name());
-        // TODO: Not yet needed, but eventually we need to be doing this "properly" checking if
+        // TODO: For better generality we need to be doing this "properly" checking if
         // either the target is a dynamic containing an array/map/str. Or if it is directly a pointer
         // to an array/map/str. Not difficult, just lazy.
         let val = target.as_dynamic();

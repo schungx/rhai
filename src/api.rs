@@ -1,7 +1,7 @@
 //! Module that defines the extern API of `Engine`.
 
 use crate::any::{Dynamic, Variant};
-use crate::engine::{make_getter, make_setter, Engine, State, FUNC_INDEXER};
+use crate::engine::{make_getter,make_mut_getter, make_setter, Engine, State, FUNC_INDEXER};
 use crate::error::ParseError;
 use crate::fn_call::FuncArgs;
 use crate::fn_register::RegisterFn;
@@ -35,6 +35,16 @@ impl<F: Fn(&mut T) -> U + Send + Sync + 'static, T, U> ObjectGetCallback<T, U> f
 pub trait ObjectGetCallback<T, U>: Fn(&mut T) -> U + 'static {}
 #[cfg(not(feature = "sync"))]
 impl<F: Fn(&mut T) -> U + 'static, T, U> ObjectGetCallback<T, U> for F {}
+
+#[cfg(feature = "sync")]
+pub trait ObjectGetMutCallback<T, U>: Fn(&mut T) -> &mut U + Send + Sync + 'static {}
+#[cfg(feature = "sync")]
+impl<F: Fn(&mut T) -> &mut U + Send + Sync + 'static, T, U> ObjectGetMutCallback<T, U> for F {}
+
+#[cfg(not(feature = "sync"))]
+pub trait ObjectGetMutCallback<T, U>: Fn(&mut T) -> &mut U + 'static {}
+#[cfg(not(feature = "sync"))]
+impl<F: Fn(&mut T) -> &mut U + 'static, T, U> ObjectGetMutCallback<T, U> for F {}
 
 #[cfg(feature = "sync")]
 pub trait ObjectSetCallback<T, U>: Fn(&mut T, U) + Send + Sync + 'static {}
