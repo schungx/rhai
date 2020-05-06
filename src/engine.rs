@@ -990,8 +990,6 @@ impl Engine {
                             &mut tmp
                         }
                     };
-                    // TODO: Going along with my function reform, I'd like to see new_val become a Dynamic
-                    // in setters to minimize cloning.
                     let mut args = [obj, new_val.as_mut().unwrap()];
                     self.exec_fn_call(fn_lib, &fn_name, &mut args, None, *pos, 0).map(|_| ().into())
                 }
