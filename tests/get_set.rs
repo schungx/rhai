@@ -46,7 +46,7 @@ fn test_get_set() -> Result<(), Box<EvalAltResult>> {
     engine.register_fn("new_ts", TestStruct::new);
 
     #[cfg(not(feature = "no_index"))]
-    engine.register_mut_indexer(|value, index| &mut value.array[index as usize]);
+    engine.register_mut_indexer(|value: &mut TestStruct, index: INT| &mut value.array[index as usize]);
 
     assert_eq!(engine.eval::<INT>("let a = new_ts(); a.x = 500; a.x")?, 500);
     assert_eq!(engine.eval::<INT>("let a = new_ts(); a.x.add(); a.x")?, 42);
