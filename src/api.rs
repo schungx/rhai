@@ -57,14 +57,14 @@ pub trait ObjectSetCallback<T, U>: Fn(&mut T, U) + 'static {}
 impl<F: Fn(&mut T, U) + 'static, T, U> ObjectSetCallback<T, U> for F {}
 
 #[cfg(feature = "sync")]
-pub trait ObjectIndexerCallback<T, X, U>: Fn(&mut T, X) -> U + Send + Sync + 'static {}
+pub trait ObjectMutIndexerCallback<T, X, U>: Fn(&'a mut T, X) -> &'a mut U + Send + Sync + 'static {}
 #[cfg(feature = "sync")]
-impl<F: Fn(&mut T, X) -> U + Send + Sync + 'static, T, X, U> ObjectIndexerCallback<T, X, U> for F {}
+impl<F: Fn(&mut T, X) -> &mut U + Send + Sync + 'static, T, X, U> ObjectMutIndexerCallback<T, X, U> for F {}
 
 #[cfg(not(feature = "sync"))]
-pub trait ObjectIndexerCallback<T, X, U>: Fn(&mut T, X) -> U + 'static {}
+pub trait ObjectMutIndexerCallback<T, X, U>: for<'a> Fn(&'a mut T, X) -> &'a mut U + 'static {}
 #[cfg(not(feature = "sync"))]
-impl<F: Fn(&mut T, X) -> U + 'static, T, X, U> ObjectIndexerCallback<T, X, U> for F {}
+impl<F: Fn(&mut T, X) -> &mut U + 'static, T, X, U> ObjectMutIndexerCallback<T, X, U> for F {}
 
 #[cfg(feature = "sync")]
 pub trait IteratorCallback:
@@ -321,54 +321,6 @@ impl Engine {
     {
         self.register_get(name, get_fn);
         self.register_set(name, set_fn);
-    }
-
-    /// Register an indexer function for a registered type with the `Engine`.
-    ///
-    /// The function signature must start with `&mut self` and not `&self`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// #[derive(Clone)]
-    /// struct TestStruct {
-    ///     fields: Vec<i64>
-    /// }
-    ///
-    /// impl TestStruct {
-    ///     fn new() -> Self                { TestStruct { fields: vec![1, 2, 3, 4, 5] } }
-    ///
-    ///     // Even a getter must start with `&mut self` and not `&self`.
-    ///     fn get_field(&mut self, index: i64) -> i64 { self.fields[index as usize] }
-    /// }
-    ///
-    /// # fn main() -> Result<(), Box<rhai::EvalAltResult>> {
-    /// use rhai::{Engine, RegisterFn};
-    ///
-    /// let mut engine = Engine::new();
-    ///
-    /// // Register the custom type.
-    /// engine.register_type::<TestStruct>();
-    ///
-    /// engine.register_fn("new_ts", TestStruct::new);
-    ///
-    /// // Register an indexer.
-    /// engine.register_indexer(TestStruct::get_field);
-    ///
-    /// assert_eq!(engine.eval::<i64>("let a = new_ts(); a[2]")?, 3);
-    /// # Ok(())
-    /// # }
-    /// ```
-    #[cfg(not(feature = "no_object"))]
-    #[cfg(not(feature = "no_index"))]
-    pub fn register_indexer<T, X, U, F>(&mut self, callback: F)
-    where
-        T: Variant + Clone,
-        U: Variant + Clone,
-        X: Variant + Clone,
-        F: ObjectIndexerCallback<T, X, U>,
-    {
-        self.register_fn(FUNC_INDEXER, callback);
     }
 
     /// Compile a string into an `AST`, which can be used later for evaluation.

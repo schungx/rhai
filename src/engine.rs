@@ -1,6 +1,6 @@
 //! Main module defining the script evaluation `Engine`.
 
-use crate::api::ObjectGetMutCallback;
+use crate::api::{ObjectGetMutCallback, ObjectMutIndexerCallback};
 use crate::any::{self, Dynamic, Union};
 use crate::calc_fn_hash;
 use crate::error::ParseErrorType;
@@ -48,6 +48,11 @@ trait ObjectGetMutCallbackAny {
     fn call_on<'a>(&self, target: Target<'a>) -> Target<'a>;
 }
 
+trait ObjectMutIndexerCallbackAny {
+    fn call_on<'a>(&self, target: Target<'a>, index: Dynamic) -> Target<'a>;
+}
+
+
 // This struct is a workaround suggested here:
 // https://github.com/rust-lang/rust/issues/25041
 
@@ -76,6 +81,28 @@ impl<'a, F, T, U> ObjectGetMutCallbackAny for Function<F, T, U>
     }    
 }
 
+impl<'a, F, I, I1, O> ObjectMutIndexerCallbackAny for Function<F, (I, I1), O>
+    where I: any::Variant, I1: any::Variant, O: any::Variant, F: ObjectMutIndexerCallback<I, I1, O>
+{
+    fn call_on<'b>(&self, target: Target<'b>, arg: Dynamic) -> Target<'b> {
+        let ptr: &mut I = target.as_mut::<I>().expect("Hash collision maybe?");
+        let arg: I1 = arg.try_cast().expect("Hash collision maybe?");
+        Target{ ptr: (self.function)(ptr, arg) as &mut dyn any::Variant }
+    }   
+}
+
+macro_rules! maybe_sync(($t:ty) => { $t });
+
+#[cfg(feature = "sync")]
+pub trait MaybeSyncSend:  Sync + Send {}
+#[cfg(feature = "sync")]
+impl <T: Sync + Send + ?Sized> MaybeSyncSend for T {}
+
+#[cfg(not(feature = "sync"))]
+pub trait MaybeSyncSend {}
+#[cfg(not(feature = "sync"))]
+impl <T: ?Sized> MaybeSyncSend for T {}
+
 // Sticking this here to keep all the crazy type shennagians in the same place.
 impl Engine {
     #[cfg(not(feature = "no_object"))]
@@ -91,6 +118,63 @@ impl Engine {
         let function = Function::new(callback);
         let dny_any_callback: Box<dyn ObjectGetMutCallbackAny> = Box::new(function) as Box<dyn ObjectGetMutCallbackAny>; 
         self.mut_getters.insert(hash, dny_any_callback);
+    }
+
+    /// Register an indexer function for a registered type with the `Engine`.
+    ///
+    /// The function signature must start with `&mut self` and not `&self`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// #[derive(Clone)]
+    /// struct TestStruct {
+    ///     fields: Vec<i64>
+    /// }
+    ///
+    /// impl TestStruct {
+    ///     fn new() -> Self                { TestStruct { fields: vec![1, 2, 3, 4, 5] } }
+    ///
+    ///     fn get_field(&mut self, index: i64) -> &mut i64 { &mut self.fields[index as usize] }
+    /// }
+    ///
+    /// # fn main() -> Result<(), Box<rhai::EvalAltResult>> {
+    /// use rhai::{Engine, RegisterFn};
+    ///
+    /// let mut engine = Engine::new();
+    ///
+    /// // Register the custom type.
+    /// engine.register_type::<TestStruct>();
+    ///
+    /// engine.register_fn("new_ts", TestStruct::new);
+    ///
+    /// // Register an indexer.
+    /// engine.register_mut_indexer(TestStruct::get_field);
+    ///
+    /// assert_eq!(engine.eval::<i64>("let a = new_ts(); a[2]")?, 3);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(not(feature = "no_object"))]
+    #[cfg(not(feature = "no_index"))]
+    pub fn register_mut_indexer<T, X, U, F>(&mut self, callback: F)
+    where
+        T: any::Variant + Clone,
+        U: any::Variant + Clone,
+        X: any::Variant + Clone,
+        // F: ObjectMutIndexerCallback<T, X, U>,
+        // F: Fn(&mut T, X) -> &mut U + Send + Sync + 'static,
+        // F: maybe_sync!(MutIndexerFn<T, X, U>)
+        F: Fn(&mut T, X) -> &mut U + MaybeSyncSend + 'static,
+
+    {
+        // TODO: No need to hash the FUNC_INDEXER part... should make a seperate hash function.
+        let types = &[TypeId::of::<T>(), TypeId::of::<U>()];
+        let hash = calc_fn_hash(FUNC_INDEXER, types.iter().cloned());
+        println!("Insert types: {:?}", types);
+        let function = Function::new(callback);
+        let dny_any_callback = Box::new(function) as Box<dyn ObjectMutIndexerCallbackAny>; 
+        self.mut_indexers.insert(hash, dny_any_callback);
     }
 }
 
@@ -136,8 +220,49 @@ struct Target<'a> {
 }
 
 impl <'a> Target<'a> {
+    #[inline(always)]
     pub fn is_map(&self) -> bool {
         self.ptr.is::<Map>() || self.ptr.downcast_ref::<Dynamic>().map(|d| d.is::<Map>()).unwrap_or(false)
+    }
+
+    #[inline(always)]
+    pub fn is_array(&self) -> bool {
+        self.ptr.is::<Array>() || self.ptr.downcast_ref::<Dynamic>().map(|d| d.is::<Array>()).unwrap_or(false)
+    }
+
+    #[inline(always)]
+    pub fn is_string(&self) -> bool {
+        self.ptr.is::<String>() || self.ptr.downcast_ref::<Dynamic>().map(|d| d.is::<String>()).unwrap_or(false)
+    }
+
+    #[inline(always)]
+    pub fn get_map_mut(self) -> Option<&'a mut Map> {
+        if self.ptr.is::<Map>() {
+            return self.ptr.downcast_mut();
+        }
+
+        if let Some(dynamic) = self.ptr.downcast_mut::<Dynamic>() {
+            if let Union::Map(ref mut map) = dynamic.0 {
+                return Some(&mut **map);
+            }
+        }
+
+        None
+    }
+
+    #[inline(always)]
+    pub fn get_array_mut(self) -> Option<&'a mut Array> {
+        if self.ptr.is::<Array>() {
+            return self.ptr.downcast_mut();
+        }
+
+        if let Some(dynamic) = self.ptr.downcast_mut::<Dynamic>() {
+            if let Union::Array(ref mut arr) = dynamic.0 {
+                return Some(&mut **arr);
+            }
+        }
+
+        None
     }
 
     pub fn type_name(&self) -> &'static str {
@@ -376,11 +501,15 @@ pub struct Engine {
     /// The key of the `HashMap` is a `u64` hash calculated by the function `crate::calc_fn_hash`.
     pub(crate) functions: HashMap<u64, Box<FnAny>>,
 
+    // TODO: It's plausible that the various mut function types could be combined into one hash table...
+    // is it more performant?
+
     /// A `HashMap` containing all compiled functions known to the engine.
     ///
     /// The key of the `HashMap` is a `u64` hash calculated by the function 
     /// `crate::calc_fn_spec`
     mut_getters: HashMap<u64, Box<dyn ObjectGetMutCallbackAny>>,
+    mut_indexers: HashMap<u64, Box<dyn ObjectMutIndexerCallbackAny>>,
 
     /// A hashmap containing all iterators known to the engine.
     pub(crate) type_iterators: HashMap<TypeId, Box<IteratorFn>>,
@@ -422,6 +551,7 @@ impl Default for Engine {
             packages: Default::default(),
             functions: HashMap::with_capacity(FUNCTIONS_COUNT),
             mut_getters: HashMap::new(),
+            mut_indexers: HashMap::new(),
 
             type_iterators: Default::default(),
 
@@ -574,6 +704,7 @@ impl Engine {
             packages: Default::default(),
             functions: HashMap::with_capacity(FUNCTIONS_COUNT / 2),
             mut_getters: HashMap::new(),
+            mut_indexers: HashMap::new(),
             type_iterators: Default::default(),
 
             #[cfg(not(feature = "no_module"))]
@@ -1207,75 +1338,64 @@ impl Engine {
         create: bool,
     ) -> Result<Target<'a>, Box<EvalAltResult>> {
         let type_name = self.map_type_name(target.type_name());
-        // TODO: For better generality we need to be doing this "properly" checking if
-        // either the target is a dynamic containing an array/map/str. Or if it is directly a pointer
-        // to an array/map/str. Not difficult, just lazy.
-        let val = target.as_dynamic();
 
-        match val {
-            #[cfg(not(feature = "no_index"))]
-            Ok(Dynamic(Union::Array(arr))) => {
-                // val_array[idx]
-                let index = idx
-                    .as_int()
-                    .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
+        // The is_<type> calls are here to satisfy the borrow checker.
+        // in reality they are redundant with the `get_<type>_mut` calls.
+        // Fortunately the optimizer is almost certainly smart enough to handle
+        // that.
+        if target.is_array() {
+            let arr = target.get_array_mut().unwrap();
+            // val_array[idx]
+            let index = idx
+                .as_int()
+                .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
 
-                let arr_len = arr.len();
+            let arr_len = arr.len();
 
-                if index >= 0 {
-                    arr.get_mut(index as usize)
-                        .map(Target::from)
-                        .ok_or_else(|| {
-                            Box::new(EvalAltResult::ErrorArrayBounds(arr_len, index, idx_pos))
-                        })
-                } else {
-                    Err(Box::new(EvalAltResult::ErrorArrayBounds(
-                        arr_len, index, idx_pos,
-                    )))
-                }
+            if index >= 0 {
+                arr.get_mut(index as usize)
+                    .map(Target::from)
+                    .ok_or_else(|| {
+                        Box::new(EvalAltResult::ErrorArrayBounds(arr_len, index, idx_pos))
+                    })
+            } else {
+                Err(Box::new(EvalAltResult::ErrorArrayBounds(
+                    arr_len, index, idx_pos,
+                )))
             }
+        }
+        else if target.is_map() {
+            let map = target.get_map_mut().unwrap();
+            // val_map[idx]
+            let index = idx
+                .take_string()
+                .map_err(|_| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
 
-            #[cfg(not(feature = "no_object"))]
-            Ok(Dynamic(Union::Map(map))) => {
-                // val_map[idx]
-                let index = idx
-                    .take_string()
-                    .map_err(|_| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
-
-                Ok(if create {
-                    map.entry(index).or_insert(Default::default()).into()
-                } else {
-                    map.get_mut(&index)
-                        .map(Target::from)
-                        .ok_or(
-                            Box::new(EvalAltResult::ErrorIndexingType(
-                                "TODO: Create a real index not found error?".into(), 
-                                idx_pos))
-                        )?
-                })
-            }
-
-            #[cfg(not(feature = "no_index"))]
-            Ok(Dynamic(Union::Str(_))) => {
-                // TODO: See TODO in method FnCall. Similar issues apply to trying to get/set a char here.
-                // They could easily be special cased, but if we implement index syntax getters and setters
-                // we won't even need to special case it!
-                unimplemented!()
-            }
-
-            _ => {
-                unimplemented!("Need to return target")
-                // let args = &mut [val, &mut idx];
-                // self.exec_fn_call(fn_lib, FUNC_INDEXER, args, None, op_pos, 0)
-                //     .map(|v| v.into())
-                //     .map_err(|_| {
-                //         Box::new(EvalAltResult::ErrorIndexingType(
-                //             // Error - cannot be indexed
-                //             type_name.to_string(),
-                //             op_pos,
-                //         ))
-                //     })
-            }
+            Ok(if create {
+                map.entry(index).or_insert(Default::default()).into()
+            } else {
+                map.get_mut(&index)
+                    .map(Target::from)
+                    .ok_or(
+                        Box::new(EvalAltResult::ErrorIndexingType(
+                            "TODO: Create a real index not found error?".into(), 
+                            idx_pos))
+                    )?
+            })
+        }
+        else if target.is_string() {
+            // TODO: See TODO in method FnCall. Similar issues apply to trying to get/set a char here.
+            // They could easily be special cased, but if we implement index syntax getters and setters
+            // we won't even need to special case it!
+            unimplemented!("Strings not yet implemented");
+        }
+        else {
+            let types = &[target.contents_type_id(), idx.type_id()];
+            println!("Get types: {:?}", types);
+            let hash = calc_fn_hash(FUNC_INDEXER, types.iter().cloned());
+            let function = self.mut_indexers.get(&hash)
+                .unwrap_or_else(|| unimplemented!("Return some nice error"));
+            Ok(function.call_on(target, idx))
         }
     }
 

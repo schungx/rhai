@@ -21,6 +21,8 @@ use crate::stdlib::{
     fmt,
     string::String,
     vec::Vec,
+    mem,
+    ptr,
 };
 
 #[cfg(not(feature = "no_std"))]
@@ -37,6 +39,9 @@ pub trait Variant: Any {
 
     /// Convert this `Variant` trait object to `&mut dyn Any`.
     fn as_mut_any(&mut self) -> &mut dyn Any;
+
+    /// Convert this `Variant` trait object to `Box<Any>`
+    fn as_box_any(self: Box<Self>) -> Box<Any>;
 
     /// Get the name of this type.
     fn type_name(&self) -> &'static str;
@@ -62,6 +67,9 @@ impl<T: Any + Clone> Variant for T {
     }
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self as &mut dyn Any
+    }
+    fn as_box_any(self: Box<Self>) -> Box<Any> {
+        self as Box<Any>
     }
     fn type_name(&self) -> &'static str {
         type_name::<T>()
@@ -98,6 +106,9 @@ pub trait Variant: Any + Send + Sync {
     /// Convert this `Variant` trait object to `&mut dyn Any`.
     fn as_mut_any(&mut self) -> &mut dyn Any;
 
+    /// Convert this `Variant` trait object to `Box<Any>`
+    fn as_box_any(self: Box<Self>) -> Box<Any>;
+
     /// Get the name of this type.
     fn type_name(&self) -> &'static str;
 
@@ -122,6 +133,9 @@ impl<T: Any + Clone + Send + Sync> Variant for T {
     }
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self as &mut dyn Any
+    }
+    fn as_box_any(self: Box<Self>) -> Box<Any> {
+        self as Box<Any>
     }
     fn type_name(&self) -> &'static str {
         type_name::<T>()
@@ -320,6 +334,23 @@ impl Default for Dynamic {
     }
 }
 
+// Why is this not built in? I have no clue
+fn try_cast<A: Any, B: Any>(a: A) -> Option<B> {
+    if TypeId::of::<B>() == a.type_id() {
+        // SAFETY: Just checked we have the right type. We explicitly forget the
+        // value immediately after moving out, removing any chance of a destructor
+        // running or value otherwise being used again.
+        unsafe {
+            let ret: B = ptr::read(&a as *const _ as *const B);
+            mem::forget(a);
+            Some(ret)
+        }
+    }
+    else {
+        None
+    }
+} 
+
 /// Cast a Boxed type into another type.
 fn cast_box<X: Variant, T: Variant>(item: Box<X>) -> Result<Box<T>, Box<X>> {
     // Only allow casting to the exact same type
@@ -424,26 +455,35 @@ impl Dynamic {
     ///
     /// assert_eq!(x.try_cast::<u32>().unwrap(), 42);
     /// ```
-    pub fn try_cast<T: Variant + Clone>(self) -> Option<T> {
+    pub fn try_cast<T: Variant>(self) -> Option<T> {
+        // TODO: Potentially support casting to boxed variants as well...
+
         if TypeId::of::<T>() == TypeId::of::<Dynamic>() {
             return cast_box::<_, T>(Box::new(self)).ok().map(|v| *v);
         }
 
         match self.0 {
-            Union::Unit(ref value) => (value as &dyn Any).downcast_ref::<T>().cloned(),
-            Union::Bool(ref value) => (value as &dyn Any).downcast_ref::<T>().cloned(),
-            Union::Str(value) => cast_box::<_, T>(value).ok().map(|v| *v),
-            Union::Char(ref value) => (value as &dyn Any).downcast_ref::<T>().cloned(),
-            Union::Int(ref value) => (value as &dyn Any).downcast_ref::<T>().cloned(),
+            Union::Unit(value) => try_cast(value),
+            Union::Bool(value) => try_cast(value),
+            Union::Char(value) => try_cast(value),
+            Union::Int(value) => try_cast(value),
             #[cfg(not(feature = "no_float"))]
-            Union::Float(ref value) => (value as &dyn Any).downcast_ref::<T>().cloned(),
+            Union::Float(value) => try_cast(value),
+
+            Union::Variant(value) => {
+                let b1: Box<dyn Variant> = *value;
+                let b2: Box<dyn Any> = b1.as_box_any();
+                let b3: Result<Box<T>, _> = b2.downcast();
+                b3.map(|x| Some(*x)).unwrap_or(None)
+            }
+            
+            Union::Str(value) => cast_box::<_, T>(value).ok().map(|v| *v),
             #[cfg(not(feature = "no_index"))]
             Union::Array(value) => cast_box::<_, T>(value).ok().map(|v| *v),
             #[cfg(not(feature = "no_object"))]
             Union::Map(value) => cast_box::<_, T>(value).ok().map(|v| *v),
             #[cfg(not(feature = "no_module"))]
             Union::Module(value) => cast_box::<_, T>(value).ok().map(|v| *v),
-            Union::Variant(value) => value.as_any().downcast_ref::<T>().cloned(),
         }
     }
 
