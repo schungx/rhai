@@ -115,9 +115,13 @@ impl Engine {
         let fn_name = make_mut_getter(name);
         let hash = calc_fn_hash(&fn_name, std::iter::once(TypeId::of::<T>()));
 
-        let function = Function::new(callback);
+        let function = Function::new(callback.clone());
         let dny_any_callback: Box<dyn ObjectGetMutCallbackAny> = Box::new(function) as Box<dyn ObjectGetMutCallbackAny>; 
         self.mut_getters.insert(hash, dny_any_callback);
+
+        let callback_1 = callback.clone();
+        self.register_get(name, move |arg: &mut T| callback_1(arg).clone());
+        self.register_set(name, move |arg: &mut T, val: U| *callback(arg) = val)
     }
 
     /// Register an indexer function for a registered type with the `Engine`.
