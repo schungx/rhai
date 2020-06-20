@@ -1,3 +1,4 @@
 {
-	"rootUrl": "/rhai"
+	"rootUrl": "",
+	"rootUrlX": "/rhai"
 }
