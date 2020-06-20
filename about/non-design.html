@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -148,6 +152,40 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#what-rhai-doesnt-do" id="what-rhai-doesnt-do">What Rhai Doesn't Do</a></h1>
+<p>Rhai's purpose is to provide a dynamic layer over Rust code, in the same spirit of <em>zero cost abstractions</em>.
+It doesn't attempt to be a new language. For example:</p>
+<ul>
+<li>
+<p>No classes.  Well, Rust doesn't either. On the other hand...</p>
+</li>
+<li>
+<p>No traits...  so it is also not Rust. Do your Rusty stuff in Rust.</p>
+</li>
+<li>
+<p>No structures/records - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.
+There is, however, a built-in <a href="/rhai/language/object-maps.html">object map</a> type which is adequate for most uses.</p>
+</li>
+<li>
+<p>No first-class functions - Code your functions in Rust instead, and register them with Rhai.</p>
+</li>
+<li>
+<p>No garbage collection - this should be expected, so...</p>
+</li>
+<li>
+<p>No closures - do your closure magic in Rust instead; <a href="/rhai/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
+</li>
+<li>
+<p>No byte-codes/JIT - Rhai has an AST-walking interpreter which will not win any speed races. The purpose of Rhai is not
+to be extremely <em>fast</em>, but to make it as easy as possible to integrate with native Rust programs.</p>
+</li>
+</ul>
+<p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting advanced language features
+such as classes, inheritance, first-class functions, closures, concurrency, byte-codes, JIT etc.</p>
+<p>Avoid the temptation to write full-fledge program logic entirely in Rhai - that use case is best fulfilled by
+more complete languages such as JS or Lua.</p>
+<p>Therefore, in actual practice, it is usually best to expose a Rust API into Rhai for scripts to call.
+All your core functionalities should be in Rust.
+This is similar to some dynamic languages where most of the core functionalities reside in a C/C++ standard library.</p>
 
                     </main>
 

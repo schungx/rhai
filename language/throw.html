@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -148,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#throw-exception-on-error" id="throw-exception-on-error">Throw Exception on Error</a></h1>
-<p>All of <a href="/engine/hello-world.html"><code>Engine</code></a>'s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
+<p>All of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>'s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
 with <code>EvalAltResult</code> holding error information.</p>
 <p>To deliberately return an error during an evaluation, use the <code>throw</code> keyword.</p>
 <pre><pre class="playpen"><code class="language-rust">

@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -151,8 +155,8 @@
 <p>A <em>module</em> is a single script (or pre-compiled <code>AST</code>) containing global variables and functions.</p>
 <p>The <code>export</code> statement, which can only be at global level, exposes selected variables as members of a module.</p>
 <p>Variables not exported are <em>private</em> and invisible to the outside.</p>
-<p>On the other hand, all functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/engine/call_fn.html"><code>private</code></a> prefix.</p>
-<p>Functions declared <a href="/engine/call_fn.html"><code>private</code></a> are invisible to the outside.</p>
+<p>On the other hand, all functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/rhai/engine/call_fn.html"><code>private</code></a> prefix.</p>
+<p>Functions declared <a href="/rhai/engine/call_fn.html"><code>private</code></a> are invisible to the outside.</p>
 <p>Everything exported from a module is <strong>constant</strong> (<strong>read-only</strong>).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

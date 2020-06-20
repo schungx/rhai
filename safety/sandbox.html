@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -149,8 +153,8 @@
                     <main>
                         <h1><a class="header" href="#sand-boxing---block-access-to-external-data" id="sand-boxing---block-access-to-external-data">Sand-Boxing - Block Access to External Data</a></h1>
 <p>Rhai is <em>sand-boxed</em> so a script can never read from outside its own environment.</p>
-<p>Furthermore, an <a href="/engine/hello-world.html"><code>Engine</code></a> created non-<code>mut</code> cannot mutate any state outside of itself;
-so it is highly recommended that <a href="/engine/hello-world.html"><code>Engine</code></a>'s are created immutable as much as possible.</p>
+<p>Furthermore, an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> created non-<code>mut</code> cannot mutate any state outside of itself;
+so it is highly recommended that <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>'s are created immutable as much as possible.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

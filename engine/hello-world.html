@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -168,7 +172,7 @@ fn main() -&gt; Result&lt;(), Box&lt;EvalAltResult&gt;&gt;
 <h2><a class="header" href="#evaluate-a-script" id="evaluate-a-script">Evaluate a Script</a></h2>
 <p>The type parameter is used to specify the type of the return value, which <em>must</em> match the actual type or an error is returned.
 Rhai is very strict here.</p>
-<p>Use <a href="/language/dynamic.html"><code>Dynamic</code></a> for uncertain return types.</p>
+<p>Use <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> for uncertain return types.</p>
 <p>There are two ways to specify the return type - <em>turbofish</em> notation, or type inference.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

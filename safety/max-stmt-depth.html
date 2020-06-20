@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -153,7 +157,7 @@
 (which should be plenty) when they are at <em>global</em> level, but only a depth of 32
 when they are within function bodies.</p>
 <p>For debug builds, these limits are set further downwards to 32 and 16 respectively.</p>
-<p>That is because it is possible to overflow the <a href="/engine/hello-world.html"><code>Engine</code></a>'s stack when it tries to
+<p>That is because it is possible to overflow the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>'s stack when it tries to
 recursively parse an extremely deeply-nested code stream.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -166,7 +170,7 @@ let a = (1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(...)+1)))))))))));
 <p>There are two limits to set, one for the maximum depth at global level, and the other for function bodies.</p>
 <p>A script exceeding the maximum nesting depths will terminate with a parsing error.
 The malicious <code>AST</code> will not be able to get past parsing in the first place.</p>
-<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+<p>This check can be disabled via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

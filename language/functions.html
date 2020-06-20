@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -148,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#functions" id="functions">Functions</a></h1>
-<p>Rhai supports defining functions in script (unless disabled with <a href="/start/features.html"><code>no_function</code></a>):</p>
+<p>Rhai supports defining functions in script (unless disabled with <a href="/rhai/start/features.html"><code>no_function</code></a>):</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -195,7 +199,7 @@ fn foo() { x }      // &lt;- syntax error: variable 'x' doesn't exist
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#passing-arguments-by-value" id="passing-arguments-by-value">Passing Arguments by Value</a></h2>
-<p>Functions defined in script always take <a href="/language/dynamic.html"><code>Dynamic</code></a> parameters (i.e. the parameter can be of any type).
+<p>Functions defined in script always take <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> parameters (i.e. the parameter can be of any type).
 It is important to remember that all arguments are passed by <em>value</em>, so all functions are <em>pure</em>
 (i.e. they never modify their arguments).</p>
 <p>Any update to an argument will <strong>not</strong> be reflected back to the caller.</p>

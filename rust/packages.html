@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -170,23 +174,23 @@ engine.load_package(package.get()); // load the package manually. 'get' returns 
 <tr><td><code>BasicIteratorPackage</code></td><td>Numeric ranges (e.g. <code>range(1, 10)</code>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>LogicPackage</code></td><td>Logical and comparison operators (e.g. <code>==</code>, <code>&gt;</code>) for numeric types that are not built in (e.g. <code>u16</code>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>BasicStringPackage</code></td><td>Basic string functions (e.g. <code>print</code>, <code>debug</code>, <code>len</code>) that are not built in</td><td align="center">Yes</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicTimePackage</code></td><td>Basic time functions (e.g. <a href="/language/timestamps.html">timestamps</a>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
+<tr><td><code>BasicTimePackage</code></td><td>Basic time functions (e.g. <a href="/rhai/language/timestamps.html">timestamps</a>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>MoreStringPackage</code></td><td>Additional string functions, including converting common types to string</td><td align="center">No</td><td align="center">Yes</td></tr>
 <tr><td><code>BasicMathPackage</code></td><td>Basic math functions (e.g. <code>sin</code>, <code>sqrt</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicArrayPackage</code></td><td>Basic <a href="/language/arrays.html">array</a> functions (not available under <code>no_index</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicMapPackage</code></td><td>Basic <a href="/language/object-maps.html">object map</a> functions (not available under <code>no_object</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>EvalPackage</code></td><td>Disable <a href="/language/eval.html"><code>eval</code></a></td><td align="center">No</td><td align="center">No</td></tr>
+<tr><td><code>BasicArrayPackage</code></td><td>Basic <a href="/rhai/language/arrays.html">array</a> functions (not available under <code>no_index</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
+<tr><td><code>BasicMapPackage</code></td><td>Basic <a href="/rhai/language/object-maps.html">object map</a> functions (not available under <code>no_object</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
+<tr><td><code>EvalPackage</code></td><td>Disable <a href="/rhai/language/eval.html"><code>eval</code></a></td><td align="center">No</td><td align="center">No</td></tr>
 <tr><td><code>CorePackage</code></td><td>Basic essentials</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>StandardPackage</code></td><td>Standard library (default for <code>Engine::new</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
 </tbody></table>
 <p>Packages typically contain Rust functions that are callable within a Rhai script.
 All functions registered in a package is loaded under the <em>global namespace</em> (i.e. they're available without module qualifiers).</p>
-<p>Once a package is created (e.g. via <code>new</code>), it can be <em>shared</em> (via <code>get</code>) among multiple instances of <a href="/engine/hello-world.html"><code>Engine</code></a>,
-even across threads (under <a href="/start/features.html"><code>sync</code></a>). Therefore, a package only has to be created <em>once</em>.</p>
-<p>Packages are actually implemented as <a href="/language/modules.html">modules</a>, so they share a lot of behavior and characteristics.
+<p>Once a package is created (e.g. via <code>new</code>), it can be <em>shared</em> (via <code>get</code>) among multiple instances of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>,
+even across threads (under <a href="/rhai/start/features.html"><code>sync</code></a>). Therefore, a package only has to be created <em>once</em>.</p>
+<p>Packages are actually implemented as <a href="/rhai/language/modules.html">modules</a>, so they share a lot of behavior and characteristics.
 The main difference is that a package loads under the <em>global</em> namespace, while a module loads under its own
-namespace alias specified in an <a href="/language/modules/import.html"><code>import</code></a> statement (see also <a href="/language/modules.html">modules</a>).</p>
-<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
+namespace alias specified in an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement (see also <a href="/rhai/language/modules.html">modules</a>).</p>
+<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
 the <code>import</code> statement).</p>
 <p>Custom packages can also be created.  See the macro <a href="https://docs.rs/rhai/0.13.0/rhai/macro.def_package.html"><code>def_package!</code></a>.</p>
 

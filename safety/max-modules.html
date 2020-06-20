@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -148,11 +152,11 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#maximum-number-of-modules" id="maximum-number-of-modules">Maximum Number of Modules</a></h1>
-<p>Rhai by default does not limit how many <a href="/language/modules.html">modules</a> can be loaded via <a href="/language/modules/import.html"><code>import</code></a> statements.</p>
+<p>Rhai by default does not limit how many <a href="/rhai/language/modules.html">modules</a> can be loaded via <a href="/rhai/language/modules/import.html"><code>import</code></a> statements.</p>
 <p>This can be changed via the <code>Engine::set_max_modules</code> method. Notice that setting the maximum number
 of modules to zero does <em>not</em> indicate unlimited modules, but disallows loading any module altogether.</p>
 <p>A script attempting to load more than the maximum number of modules will terminate with an error result.</p>
-<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance
+<p>This check can be disabled via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance
 (but higher risks as well).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

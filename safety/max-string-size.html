@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -149,11 +153,11 @@
                     <main>
                         <h1><a class="header" href="#maximum-length-of-strings" id="maximum-length-of-strings">Maximum Length of Strings</a></h1>
 <h2><a class="header" href="#limiting-how-long-strings-can-grow" id="limiting-how-long-strings-can-grow">Limiting How Long Strings Can Grow</a></h2>
-<p>Rhai by default does not limit how long a <a href="/language/strings-chars.html">string</a> can be.</p>
+<p>Rhai by default does not limit how long a <a href="/rhai/language/strings-chars.html">string</a> can be.</p>
 <p>This can be changed via the <code>Engine::set_max_string_size</code> method, with zero being unlimited (the default).</p>
 <p>A script attempting to create a string literal longer than the maximum length will terminate with a parse error.</p>
 <p>Any script operation that produces a string longer than the maximum also terminates the script with an error result.</p>
-<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+<p>This check can be disabled via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -153,7 +157,7 @@ except for the <em>last</em> statement in a <em>block</em> (enclosed by '<code>{
 <p>A statement can be used anywhere where an expression is expected. These are called, for lack of a more
 creative name, &quot;statement expressions.&quot;  The <em>last</em> statement of a statement block is <em>always</em> the block's
 return value when used as a statement.
-If the last statement has no return value (e.g. variable definitions, assignments) then it is assumed to be <a href="/language/values-and-types.html"><code>()</code></a>.</p>
+If the last statement has no return value (e.g. variable definitions, assignments) then it is assumed to be <a href="/rhai/language/values-and-types.html"><code>()</code></a>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

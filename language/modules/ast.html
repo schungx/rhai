@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -149,8 +153,8 @@
                     <main>
                         <h1><a class="header" href="#create-a-module-from-an-ast" id="create-a-module-from-an-ast">Create a Module from an AST</a></h1>
 <p>It is easy to convert a pre-compiled <code>AST</code> into a module: just use <code>Module::eval_ast_as_new</code>.</p>
-<p>Don't forget the <a href="/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
-other than non-<a href="/engine/call_fn.html"><code>private</code></a> functions (unless that's intentional).</p>
+<p>Don't forget the <a href="/rhai/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
+other than non-<a href="/rhai/engine/call_fn.html"><code>private</code></a> functions (unless that's intentional).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

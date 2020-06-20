@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -183,7 +187,7 @@ the script should have been terminated due to a type error.</p>
 <p>However, after optimization, the entire <code>if</code> statement is removed (because an access to <code>my_decision</code> produces
 no side-effects), thus the script silently runs to completion without errors.</p>
 <p>It is usually a <em>Very Bad Idea™</em> to depend on a script failing or such kind of subtleties, but if it turns out to be necessary
-(why? I would never guess), turn script optimization off by setting the optimization level to <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::None</code></a>.</p>
+(why? I would never guess), turn script optimization off by setting the optimization level to <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::None</code></a>.</p>
 
                     </main>
 

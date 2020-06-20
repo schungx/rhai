@@ -120,6 +120,10 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         
+                        <a href="https://github.com/jonathandturner/rhai" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
                     </div>
                 </div>
 
@@ -154,13 +158,13 @@ Most features are here to opt-<strong>out</strong> of certain functionalities th
 as well as more control over what a script can (or cannot) do.</p>
 <table><thead><tr><th>Feature</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>unchecked</code></td><td>Disable arithmetic checking (such as over-flows and division by zero), call stack depth limit, operations count limit and modules loading limit. Beware that a bad script may panic the entire system!</td></tr>
-<tr><td><code>sync</code></td><td>Restrict all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="/engine/hello-world.html"><code>Engine</code></a>, <a href="/rust/scope.html"><code>Scope</code></a> and <code>AST</code>, are all <code>Send + Sync</code>.</td></tr>
+<tr><td><code>sync</code></td><td>Restrict all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, <a href="/rhai/rust/scope.html"><code>Scope</code></a> and <code>AST</code>, are all <code>Send + Sync</code>.</td></tr>
 <tr><td><code>no_optimize</code></td><td>Disable the script optimizer.</td></tr>
 <tr><td><code>no_float</code></td><td>Disable floating-point numbers and math.</td></tr>
 <tr><td><code>only_i32</code></td><td>Set the system integer type to <code>i32</code> and disable all other integer types. <code>INT</code> is set to <code>i32</code>.</td></tr>
 <tr><td><code>only_i64</code></td><td>Set the system integer type to <code>i64</code> and disable all other integer types. <code>INT</code> is set to <code>i64</code>.</td></tr>
-<tr><td><code>no_index</code></td><td>Disable <a href="/language/arrays.html">arrays</a> and indexing features.</td></tr>
-<tr><td><code>no_object</code></td><td>Disable support for custom types and <a href="/language/object-maps.html">object maps</a>.</td></tr>
+<tr><td><code>no_index</code></td><td>Disable <a href="/rhai/language/arrays.html">arrays</a> and indexing features.</td></tr>
+<tr><td><code>no_object</code></td><td>Disable support for custom types and <a href="/rhai/language/object-maps.html">object maps</a>.</td></tr>
 <tr><td><code>no_function</code></td><td>Disable script-defined functions.</td></tr>
 <tr><td><code>no_module</code></td><td>Disable loading external modules.</td></tr>
 <tr><td><code>no_std</code></td><td>Build for <code>no-std</code>. Notice that additional dependencies will be pulled in to replace <code>std</code> features.</td></tr>
