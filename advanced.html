@@ -155,10 +155,10 @@
 <p>This section covers advanced features such as:</p>
 <ul>
 <li>
-<p><a href="/engine/optimize.html">Script optimization</a></p>
+<p><a href="/rhai/engine/optimize.html">Script optimization</a></p>
 </li>
 <li>
-<p>The dreaded (or beloved depending on your taste) <a href="/language/eval.html"><code>eval</code></a> statement</p>
+<p>The dreaded (or beloved depending on your taste) <a href="/rhai/language/eval.html"><code>eval</code></a> statement</p>
 </li>
 </ul>
 
@@ -199,21 +199,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

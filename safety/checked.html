@@ -155,7 +155,7 @@
 <p>By default, all arithmetic calculations in Rhai are <em>checked</em>, meaning that the script terminates
 with an error whenever it detects a numeric over-flow/under-flow condition or an invalid
 floating-point operation, instead of crashing the entire system.</p>
-<p>This checking can be turned off via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance
+<p>This checking can be turned off via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance
 (but higher risks as well).</p>
 
                     </main>
@@ -195,21 +195,6 @@ floating-point operation, instead of crashing the entire system.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

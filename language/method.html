@@ -152,10 +152,10 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
-<p>Properties and methods in a Rust custom type registered with the <a href="/engine/hello-world.html"><code>Engine</code></a> can be called just like a regular function in Rust.</p>
+<p>Properties and methods in a Rust custom type registered with the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> can be called just like a regular function in Rust.</p>
 <p>Unlike functions defined in script (for which all arguments are passed by <em>value</em>),
 native Rust functions may mutate the object (or the first argument if called in normal function call style).</p>
-<p>Custom types, properties and methods can be disabled via the <a href="/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Custom types, properties and methods can be disabled via the <a href="/rhai/start/features.html"><code>no_object</code></a> feature.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -213,21 +213,6 @@ array[0].update();  // &lt;- call this method-call style will update 'a'
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

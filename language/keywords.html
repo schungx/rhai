@@ -158,13 +158,13 @@
 <tr><td><code>let</code>, <code>const</code></td><td>Variable declarations</td><td align="center"></td></tr>
 <tr><td><code>if</code>, <code>else</code></td><td>Control flow</td><td align="center"></td></tr>
 <tr><td><code>while</code>, <code>loop</code>, <code>for</code>, <code>in</code>, <code>continue</code>, <code>break</code></td><td>Looping</td><td align="center"></td></tr>
-<tr><td><code>fn</code>, <code>private</code></td><td>Functions</td><td align="center"><a href="/start/features.html"><code>no_function</code></a></td></tr>
+<tr><td><code>fn</code>, <code>private</code></td><td>Functions</td><td align="center"><a href="/rhai/start/features.html"><code>no_function</code></a></td></tr>
 <tr><td><code>return</code></td><td>Return values</td><td align="center"></td></tr>
 <tr><td><code>throw</code></td><td>Return errors</td><td align="center"></td></tr>
-<tr><td><code>import</code>, <code>export</code>, <code>as</code></td><td>Modules</td><td align="center"><a href="/start/features.html"><code>no_module</code></a></td></tr>
+<tr><td><code>import</code>, <code>export</code>, <code>as</code></td><td>Modules</td><td align="center"><a href="/rhai/start/features.html"><code>no_module</code></a></td></tr>
 </tbody></table>
-<p>Keywords cannot be the name of a <a href="/language/functions.html">function</a> or <a href="/language/variables.html">variable</a>, unless the relevant exclusive feature is enabled.
-For example, <code>fn</code> is a valid variable name under <a href="/start/features.html"><code>no_function</code></a>.</p>
+<p>Keywords cannot be the name of a <a href="/rhai/language/functions.html">function</a> or <a href="/rhai/language/variables.html">variable</a>, unless the relevant exclusive feature is enabled.
+For example, <code>fn</code> is a valid variable name under <a href="/rhai/start/features.html"><code>no_function</code></a>.</p>
 
                     </main>
 
@@ -203,21 +203,6 @@ For example, <code>fn</code> is a valid variable name under <a href="/start/feat
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

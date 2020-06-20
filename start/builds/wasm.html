@@ -159,7 +159,7 @@ for the the common WASM environment (i.e. a browser) - and it is called JavaScri
 <p>But anyhow, do it because you <em>can</em>!</p>
 <p>When building for WASM, certain features will not be available, such as the script file API’s and loading modules
 from external script files.</p>
-<p>Also look into <a href="/start/builds/minimal.html">minimal builds</a> to reduce generated WASM size.  As of this version, a typical, full-featured
+<p>Also look into <a href="/rhai/start/builds/minimal.html">minimal builds</a> to reduce generated WASM size.  As of this version, a typical, full-featured
 Rhai scripting engine compiles to a single WASM file less than 200KB gzipped. When excluding features that are
 marginal in WASM environment, the gzipped payload can be further shrunk to 160KB.</p>
 <p>In benchmark tests, a WASM build runs scripts roughly 1.7-2.2x slower than a native optimized release build.</p>
@@ -201,21 +201,6 @@ marginal in WASM environment, the gzipped payload can be further shrunk to 160KB
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#value-conversions" id="value-conversions">Value Conversions</a></h1>
 <p>The <code>to_float</code> function converts a supported number to <code>FLOAT</code> (defaults to <code>f64</code>).</p>
-<p>The <code>to_int</code> function converts a supported number to <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/start/features.html"><code>only_i32</code></a>).</p>
+<p>The <code>to_int</code> function converts a supported number to <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/rhai/start/features.html"><code>only_i32</code></a>).</p>
 <p>That’s it; for other conversions, register custom conversion functions.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -205,21 +205,6 @@ print(&quot;c is '&quot; + c + &quot;' and its code is &quot; + c.to_int());    
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

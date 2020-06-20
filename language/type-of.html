@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#type_of" id="type_of"><code>type_of</code></a></h1>
 <p>The <code>type_of</code> function detects the actual type of a value.</p>
-<p>This is useful because all variables are <a href="/language/dynamic.html"><code>Dynamic</code></a> in nature.</p>
+<p>This is useful because all variables are <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> in nature.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -212,21 +212,6 @@ if type_of(x) == &quot;string&quot; {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

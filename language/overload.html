@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#function-overloading" id="function-overloading">Function Overloading</a></h1>
 <p>Functions defined in script can be <em>overloaded</em> by <em>arity</em> (i.e. they are resolved purely upon the function’s <em>name</em>
-and <em>number</em> of parameters, but not parameter <em>types</em> since all parameters are the same type - <a href="/language/dynamic.html"><code>Dynamic</code></a>).</p>
+and <em>number</em> of parameters, but not parameter <em>types</em> since all parameters are the same type - <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a>).</p>
 <p>New definitions <em>overwrite</em> previous definitions of the same name and number of parameters.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -208,21 +208,6 @@ foo();          // prints &quot;None.&quot;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

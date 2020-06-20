@@ -152,13 +152,13 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#timestamps" id="timestamps"><code>timestamp</code>‘s</a></h1>
-<p>Timestamps are provided by the <a href="/rust/packages.html"><code>BasicTimePackage</code></a> (excluded if using a <a href="/engine/raw.html">raw <code>Engine</code></a>)
+<p>Timestamps are provided by the <a href="/rhai/rust/packages.html"><code>BasicTimePackage</code></a> (excluded if using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>)
 via the <code>timestamp</code> function.</p>
-<p>Timestamps are not available under <a href="/start/features.html"><code>no_std</code></a>.</p>
-<p>The Rust type of a timestamp is <code>std::time::Instant</code> (<a href="https://crates.io/crates/instant"><code>instant::Instant</code></a> in <a href="/start/builds/wasm.html">WASM</a> builds).</p>
-<p><a href="/language/type-of.html"><code>type_of()</code></a> a timestamp returns <code>&quot;timestamp&quot;</code>.</p>
+<p>Timestamps are not available under <a href="/rhai/start/features.html"><code>no_std</code></a>.</p>
+<p>The Rust type of a timestamp is <code>std::time::Instant</code> (<a href="https://crates.io/crates/instant"><code>instant::Instant</code></a> in <a href="/rhai/start/builds/wasm.html">WASM</a> builds).</p>
+<p><a href="/rhai/language/type-of.html"><code>type_of()</code></a> a timestamp returns <code>&quot;timestamp&quot;</code>.</p>
 <h2><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h2>
-<p>The following methods (defined in the <a href="/rust/packages.html"><code>BasicTimePackage</code></a> but excluded if using a <a href="/engine/raw.html">raw <code>Engine</code></a>) operate on timestamps:</p>
+<p>The following methods (defined in the <a href="/rhai/rust/packages.html"><code>BasicTimePackage</code></a> but excluded if using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>) operate on timestamps:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>elapsed</code> method and property</td><td><em>none</em></td><td>returns the number of seconds since the timestamp</td></tr>
 <tr><td><code>-</code> operator</td><td>later timestamp, earlier timestamp</td><td>returns the number of seconds between the two timestamps</td></tr>
@@ -214,21 +214,6 @@ if now.elapsed &gt; 30.0 {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

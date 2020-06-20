@@ -152,9 +152,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#parse-an-object-map-from-json" id="parse-an-object-map-from-json">Parse an Object Map from JSON</a></h1>
-<p>The syntax for an <a href="/language/object-maps.html">object map</a> is extremely similar to JSON, with the exception of <code>null</code> values which can
-technically be mapped to <a href="/language/values-and-types.html"><code>()</code></a>.  A valid JSON string does not start with a hash character <code>#</code> while a
-Rhai <a href="/language/object-maps.html">object map</a> does - that’s the major difference!</p>
+<p>The syntax for an <a href="/rhai/language/object-maps.html">object map</a> is extremely similar to JSON, with the exception of <code>null</code> values which can
+technically be mapped to <a href="/rhai/language/values-and-types.html"><code>()</code></a>.  A valid JSON string does not start with a hash character <code>#</code> while a
+Rhai <a href="/rhai/language/object-maps.html">object map</a> does - that’s the major difference!</p>
 <p>Use the <code>Engine::parse_json</code> method to parse a piece of JSON into an object map:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -188,10 +188,10 @@ result == 3;                            // the object map is successfully used i
 </span></code></pre></pre>
 <h2><a class="header" href="#representation-of-numbers" id="representation-of-numbers">Representation of Numbers</a></h2>
 <p>JSON numbers are all floating-point while Rhai supports integers (<code>INT</code>) and floating-point (<code>FLOAT</code>) if
-the <a href="/start/features.html"><code>no_float</code></a> feature is not used.  Most common generators of JSON data distinguish between
+the <a href="/rhai/start/features.html"><code>no_float</code></a> feature is not used.  Most common generators of JSON data distinguish between
 integer and floating-point values by always serializing a floating-point number with a decimal point
 (i.e. <code>123.0</code> instead of <code>123</code> which is assumed to be an integer).  This style can be used successfully
-with Rhai <a href="/language/object-maps.html">object maps</a>.</p>
+with Rhai <a href="/rhai/language/object-maps.html">object maps</a>.</p>
 
                     </main>
 
@@ -230,21 +230,6 @@ with Rhai <a href="/language/object-maps.html">object maps</a>.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

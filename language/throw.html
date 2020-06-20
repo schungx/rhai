@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#throw-exception-on-error" id="throw-exception-on-error">Throw Exception on Error</a></h1>
-<p>All of <a href="/engine/hello-world.html"><code>Engine</code></a>‘s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
+<p>All of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>‘s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
 with <code>EvalAltResult</code> holding error information.</p>
 <p>To deliberately return an error during an evaluation, use the <code>throw</code> keyword.</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -219,21 +219,6 @@ println!(result);   // prints &quot;Runtime error: 42 is too large! (line 5, pos
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

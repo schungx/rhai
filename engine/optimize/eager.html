@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#eager-function-evaluation-when-using-full-optimization-level" id="eager-function-evaluation-when-using-full-optimization-level">Eager Function Evaluation When Using Full Optimization Level</a></h1>
-<p>When the optimization level is <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, the <a href="/engine/hello-world.html"><code>Engine</code></a> assumes all functions to be <em>pure</em> and will <em>eagerly</em>
+<p>When the optimization level is <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> assumes all functions to be <em>pure</em> and will <em>eagerly</em>
 evaluated all function calls with constant arguments, using the result to replace the call.</p>
 <p>This also applies to all operators (which are implemented as functions).</p>
 <p>For instance, the same example above:</p>
@@ -174,7 +174,7 @@ print(&quot;hello!&quot;);            // &lt;- the above is equivalent to this
 <span class="boring">}
 </span></code></pre></pre>
 <p>Because of the eager evaluation of functions, many constant expressions will be evaluated and replaced by the result.
-This does not happen with <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Simple</code></a> which doesn’t assume all functions to be <em>pure</em>.</p>
+This does not happen with <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Simple</code></a> which doesn’t assume all functions to be <em>pure</em>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -222,21 +222,6 @@ let y = (1&gt;2) || (3&lt;=4);    // &lt;- will be replaced by 'let y = true'
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

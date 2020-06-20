@@ -152,16 +152,16 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#module-resolvers" id="module-resolvers">Module Resolvers</a></h1>
-<p>When encountering an <a href="/language/modules/import.html"><code>import</code></a> statement, Rhai attempts to <em>resolve</em> the module based on the path string.</p>
-<p><em>Module Resolvers</em> are service types that implement the <a href="/rust/traits.html"><code>ModuleResolver</code></a> trait.</p>
+<p>When encountering an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement, Rhai attempts to <em>resolve</em> the module based on the path string.</p>
+<p><em>Module Resolvers</em> are service types that implement the <a href="/rhai/rust/traits.html"><code>ModuleResolver</code></a> trait.</p>
 <p>There are a number of standard resolvers built into Rhai, the default being the <code>FileModuleResolver</code>
 which simply loads a script file based on the path (with <code>.rhai</code> extension attached) and execute it to form a module.</p>
 <p>Built-in module resolvers are grouped under the <code>rhai::module_resolvers</code> module namespace.</p>
 <table><thead><tr><th>Module Resolver</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>FileModuleResolver</code></td><td>The default module resolution service, not available under <a href="/start/features.html"><code>no_std</code></a> or <a href="/start/builds/wasm.html">WASM</a> builds. Loads a script file (based off the current directory) with <code>.rhai</code> extension.<br/>The base directory can be changed via the <code>FileModuleResolver::new_with_path()</code> constructor function.<br/><code>FileModuleResolver::create_module()</code> loads a script file and returns a module.</td></tr>
-<tr><td><code>StaticModuleResolver</code></td><td>Loads modules that are statically added. This can be used under <a href="/start/features.html"><code>no_std</code></a>.</td></tr>
+<tr><td><code>FileModuleResolver</code></td><td>The default module resolution service, not available under <a href="/rhai/start/features.html"><code>no_std</code></a> or <a href="/rhai/start/builds/wasm.html">WASM</a> builds. Loads a script file (based off the current directory) with <code>.rhai</code> extension.<br/>The base directory can be changed via the <code>FileModuleResolver::new_with_path()</code> constructor function.<br/><code>FileModuleResolver::create_module()</code> loads a script file and returns a module.</td></tr>
+<tr><td><code>StaticModuleResolver</code></td><td>Loads modules that are statically added. This can be used under <a href="/rhai/start/features.html"><code>no_std</code></a>.</td></tr>
 </tbody></table>
-<p>An <a href="/engine/hello-world.html"><code>Engine</code></a>‘s module resolver is set via a call to <code>Engine::set_module_resolver</code>:</p>
+<p>An <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>‘s module resolver is set via a call to <code>Engine::set_module_resolver</code>:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -211,21 +211,6 @@ engine.set_module_resolver(None);
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

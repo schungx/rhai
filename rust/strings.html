@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#string-parameters-in-rust-functions" id="string-parameters-in-rust-functions"><code>String</code> Parameters in Rust Functions</a></h1>
 <p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to [<code>ImmutableString</code>]
-which is the type that Rhai uses to represent <a href="/language/strings-chars.html">strings</a> internally.</p>
+which is the type that Rhai uses to represent <a href="/rhai/language/strings-chars.html">strings</a> internally.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -208,21 +208,6 @@ let len = engine.eval::&lt;i64&gt;(&quot;x.len3()&quot;)?;                  // w
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

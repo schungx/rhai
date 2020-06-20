@@ -153,9 +153,9 @@
                     <main>
                         <h1><a class="header" href="#disable-custom-types" id="disable-custom-types">Disable Custom Types</a></h1>
 <p>The custom types API <code>register_type</code>, <code>register_type_with_name</code>, <code>register_get</code>, <code>register_set</code>, <code>register_get_set</code>,
-<code>register_indexer_get</code>, <code>register_indexer_set</code> and <code>register_indexer_get_set</code> are not available under <a href="/start/features.html"><code>no_object</code></a>.</p>
+<code>register_indexer_get</code>, <code>register_indexer_set</code> and <code>register_indexer_get_set</code> are not available under <a href="/rhai/start/features.html"><code>no_object</code></a>.</p>
 <p>The indexers API <code>register_indexer_get</code>, <code>register_indexer_set</code> and <code>register_indexer_get_set</code> are also
-not available under <a href="/start/features.html"><code>no_index</code></a>.</p>
+not available under <a href="/rhai/start/features.html"><code>no_index</code></a>.</p>
 
                     </main>
 
@@ -194,21 +194,6 @@ not available under <a href="/start/features.html"><code>no_index</code></a>.</p
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

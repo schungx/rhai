@@ -154,11 +154,11 @@
                         <h1><a class="header" href="#rust-examples" id="rust-examples">Rust Examples</a></h1>
 <p>A number of examples can be found in the <code>examples</code> folder:</p>
 <table><thead><tr><th>Example</th><th>Description</th></tr></thead><tbody>
-<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/arrays_and_structs.rs"><code>arrays_and_structs</code></a></td><td>shows how to register a custom Rust type and using <a href="/language/arrays.html">arrays</a> on it</td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/arrays_and_structs.rs"><code>arrays_and_structs</code></a></td><td>shows how to register a custom Rust type and using <a href="/rhai/language/arrays.html">arrays</a> on it</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/custom_types_and_methods.rs"><code>custom_types_and_methods</code></a></td><td>shows how to register a custom Rust type and methods for it</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/hello.rs"><code>hello</code></a></td><td>simple example that evaluates an expression and prints the result</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/no_std.rs"><code>no_std</code></a></td><td>example to test out <code>no-std</code> builds</td></tr>
-<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/reuse_scope.rs"><code>reuse_scope</code></a></td><td>evaluates two pieces of code in separate runs, but using a common <a href="/rust/scope.html"><code>Scope</code></a></td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/reuse_scope.rs"><code>reuse_scope</code></a></td><td>evaluates two pieces of code in separate runs, but using a common <a href="/rhai/rust/scope.html"><code>Scope</code></a></td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/rhai_runner.rs"><code>rhai_runner</code></a></td><td>runs each filename passed to it as a Rhai script</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/simple_fn.rs"><code>simple_fn</code></a></td><td>shows how to register a simple function</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/strings.rs"><code>strings</code></a></td><td>shows different ways to register functions taking string arguments</td></tr>
@@ -208,21 +208,6 @@ language features in a standard REPL (<strong>R</strong>ead-<strong>E</strong>va
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

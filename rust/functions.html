@@ -153,9 +153,9 @@
                     <main>
                         <h1><a class="header" href="#register-a-rust-function" id="register-a-rust-function">Register a Rust Function</a></h1>
 <p>Rhai’s scripting engine is very lightweight.  It gets most of its abilities from functions.</p>
-<p>To call these functions, they need to be <em>registered</em> with the <a href="/engine/hello-world.html"><code>Engine</code></a> using <code>Engine::register_fn</code>
+<p>To call these functions, they need to be <em>registered</em> with the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> using <code>Engine::register_fn</code>
 (in the <code>RegisterFn</code> trait) and <code>Engine::register_result_fn</code> (in the <code>RegisterResultFn</code> trait,
-see <a href="/rust/fallible.html">fallible functions</a>).</p>
+see <a href="/rhai/rust/fallible.html">fallible functions</a>).</p>
 <pre><pre class="playpen"><code class="language-rust">use rhai::{Dynamic, Engine, EvalAltResult, ImmutableString};
 use rhai::RegisterFn;                           // use 'RegisterFn' trait for 'register_fn'
 use rhai::RegisterResultFn;                     // use 'RegisterResultFn' trait for 'register_result_fn'
@@ -200,8 +200,8 @@ fn main() -&gt; Result&lt;(), Box&lt;EvalAltResult&gt;&gt;
     Ok(())
 }
 </code></pre></pre>
-<p>To create a <a href="/language/dynamic.html"><code>Dynamic</code></a> value, use the <code>Dynamic::from</code> method.
-<a href="/language/values-and-types.html">Standard types</a> in Rhai can also use <code>into()</code>.</p>
+<p>To create a <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> value, use the <code>Dynamic::from</code> method.
+<a href="/rhai/language/values-and-types.html">Standard types</a> in Rhai can also use <code>into()</code>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -212,7 +212,7 @@ let x = (42_i64).into();                        // 'into()' works for standard t
 let y = Dynamic::from(&quot;hello!&quot;.to_string());    // remember &amp;str is not supported by Rhai
 <span class="boring">}
 </span></code></pre></pre>
-<p>Functions registered with the <a href="/engine/hello-world.html"><code>Engine</code></a> can be <em>overloaded</em> as long as the <em>signature</em> is unique,
+<p>Functions registered with the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> can be <em>overloaded</em> as long as the <em>signature</em> is unique,
 i.e. different functions can have the same name as long as their parameters are of different types
 and/or different number.</p>
 <p>New definitions <em>overwrite</em> previous definitions of the same name and same number/types of parameters.</p>
@@ -254,21 +254,6 @@ and/or different number.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

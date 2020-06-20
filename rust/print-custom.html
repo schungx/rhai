@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#printing-for-custom-types" id="printing-for-custom-types">Printing for Custom Types</a></h1>
-<p>To use custom types for <a href="/language/print-debug.html"><code>print</code></a> and <a href="/language/print-debug.html"><code>debug</code></a>, or convert its value into a <a href="/language/strings-chars.html">string</a>, it is necessary that the following
+<p>To use custom types for <a href="/rhai/language/print-debug.html"><code>print</code></a> and <a href="/rhai/language/print-debug.html"><code>debug</code></a>, or convert its value into a <a href="/rhai/language/strings-chars.html">string</a>, it is necessary that the following
 functions be registered (assuming the custom type is <code>T : Display + Debug</code>):</p>
 <table><thead><tr><th>Function</th><th>Signature</th><th>Typical implementation</th><th>Usage</th></tr></thead><tbody>
 <tr><td><code>to_string</code></td><td>`</td><td>s: &amp;mut T</td><td>-&gt; ImmutableString`</td></tr>
@@ -200,21 +200,6 @@ functions be registered (assuming the custom type is <code>T : Display + Debug</
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

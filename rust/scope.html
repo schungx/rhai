@@ -152,12 +152,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#scope---initializing-and-maintaining-state" id="scope---initializing-and-maintaining-state"><code>Scope</code> - Initializing and Maintaining State</a></h1>
-<p>By default, Rhai treats each <a href="/engine/hello-world.html"><code>Engine</code></a> invocation as a fresh one, persisting only the functions that have been defined
+<p>By default, Rhai treats each <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> invocation as a fresh one, persisting only the functions that have been defined
 but no global state. This gives each evaluation a clean starting slate.</p>
 <p>In order to continue using the same global state from one invocation to the next,
 such a state must be manually created and passed in.</p>
-<p>All <code>Scope</code> variables are <a href="/language/dynamic.html"><code>Dynamic</code></a>, meaning they can store values of any type.</p>
-<p>Under <a href="/start/features.html"><code>sync</code></a>, however, only types that are <code>Send + Sync</code> are supported, and the entire <code>Scope</code> itself
+<p>All <code>Scope</code> variables are <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a>, meaning they can store values of any type.</p>
+<p>Under <a href="/rhai/start/features.html"><code>sync</code></a>, however, only types that are <code>Send + Sync</code> are supported, and the entire <code>Scope</code> itself
 will also be <code>Send + Sync</code>. This is extremely useful in multi-threaded applications.</p>
 <p>In this example, a global state object (a <code>Scope</code>) is created with a few initialized variables,
 then the same state is threaded through multiple invocations:</p>
@@ -238,21 +238,6 @@ fn main() -&gt; Result&lt;(), Box&lt;EvalAltResult&gt;&gt;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

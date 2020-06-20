@@ -153,31 +153,31 @@
                     <main>
                         <h1><a class="header" href="#values-and-types" id="values-and-types">Values and Types</a></h1>
 <p>The following primitive types are supported natively:</p>
-<table><thead><tr><th>Category</th><th>Equivalent Rust types</th><th><a href="/language/type-of.html"><code>type_of()</code></a></th><th><code>to_string()</code></th></tr></thead><tbody>
-<tr><td><strong>Integer number</strong></td><td><code>u8</code>, <code>i8</code>, <code>u16</code>, <code>i16</code>, <br/><code>u32</code>, <code>i32</code> (default for <a href="/start/features.html"><code>only_i32</code></a>),<br/><code>u64</code>, <code>i64</code> <em>(default)</em></td><td><code>&quot;i32&quot;</code>, <code>&quot;u64&quot;</code> etc.</td><td><code>&quot;42&quot;</code>, <code>&quot;123&quot;</code> etc.</td></tr>
-<tr><td><strong>Floating-point number</strong> (disabled with <a href="/start/features.html"><code>no_float</code></a>)</td><td><code>f32</code>, <code>f64</code> <em>(default)</em></td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.4567&quot;</code> etc.</td></tr>
+<table><thead><tr><th>Category</th><th>Equivalent Rust types</th><th><a href="/rhai/language/type-of.html"><code>type_of()</code></a></th><th><code>to_string()</code></th></tr></thead><tbody>
+<tr><td><strong>Integer number</strong></td><td><code>u8</code>, <code>i8</code>, <code>u16</code>, <code>i16</code>, <br/><code>u32</code>, <code>i32</code> (default for <a href="/rhai/start/features.html"><code>only_i32</code></a>),<br/><code>u64</code>, <code>i64</code> <em>(default)</em></td><td><code>&quot;i32&quot;</code>, <code>&quot;u64&quot;</code> etc.</td><td><code>&quot;42&quot;</code>, <code>&quot;123&quot;</code> etc.</td></tr>
+<tr><td><strong>Floating-point number</strong> (disabled with <a href="/rhai/start/features.html"><code>no_float</code></a>)</td><td><code>f32</code>, <code>f64</code> <em>(default)</em></td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.4567&quot;</code> etc.</td></tr>
 <tr><td><strong>Boolean value</strong></td><td><code>bool</code></td><td><code>&quot;bool&quot;</code></td><td><code>&quot;true&quot;</code> or <code>&quot;false&quot;</code></td></tr>
 <tr><td><strong>Unicode character</strong></td><td><code>char</code></td><td><code>&quot;char&quot;</code></td><td><code>&quot;A&quot;</code>, <code>&quot;x&quot;</code> etc.</td></tr>
 <tr><td><strong>Immutable Unicode string</strong></td><td><code>rhai::ImmutableString</code> (implemented as <code>Rc&lt;String&gt;</code> or <code>Arc&lt;String&gt;</code>)</td><td><code>&quot;string&quot;</code></td><td><code>&quot;hello&quot;</code> etc.</td></tr>
-<tr><td><strong>Array</strong> (disabled with <a href="/start/features.html"><code>no_index</code></a>)</td><td><code>rhai::Array</code></td><td><code>&quot;array&quot;</code></td><td><code>&quot;[ ?, ?, ? ]&quot;</code></td></tr>
-<tr><td><strong>Object map</strong> (disabled with <a href="/start/features.html"><code>no_object</code></a>)</td><td><code>rhai::Map</code></td><td><code>&quot;map&quot;</code></td><td><code>#{ &quot;a&quot;: 1, &quot;b&quot;: 2 }</code></td></tr>
-<tr><td><strong>Timestamp</strong> (implemented in the <a href="/rust/packages.html"><code>BasicTimePackage</code></a>, disabled with <a href="/start/features.html"><code>no_std</code></a>)</td><td><code>std::time::Instant</code> (<a href="https://crates.io/crates/instant">instant::Instant</a> if not <a href="/start/builds/wasm.html">WASM</a> build)</td><td><code>&quot;timestamp&quot;</code></td><td><em>not supported</em></td></tr>
+<tr><td><strong>Array</strong> (disabled with <a href="/rhai/start/features.html"><code>no_index</code></a>)</td><td><code>rhai::Array</code></td><td><code>&quot;array&quot;</code></td><td><code>&quot;[ ?, ?, ? ]&quot;</code></td></tr>
+<tr><td><strong>Object map</strong> (disabled with <a href="/rhai/start/features.html"><code>no_object</code></a>)</td><td><code>rhai::Map</code></td><td><code>&quot;map&quot;</code></td><td><code>#{ &quot;a&quot;: 1, &quot;b&quot;: 2 }</code></td></tr>
+<tr><td><strong>Timestamp</strong> (implemented in the <a href="/rhai/rust/packages.html"><code>BasicTimePackage</code></a>, disabled with <a href="/rhai/start/features.html"><code>no_std</code></a>)</td><td><code>std::time::Instant</code> (<a href="https://crates.io/crates/instant">instant::Instant</a> if not <a href="/rhai/start/builds/wasm.html">WASM</a> build)</td><td><code>&quot;timestamp&quot;</code></td><td><em>not supported</em></td></tr>
 <tr><td><strong>Dynamic value</strong> (i.e. can be anything)</td><td><code>rhai::Dynamic</code></td><td><em>the actual type</em></td><td><em>actual value</em></td></tr>
 <tr><td><strong>System integer</strong> (current configuration)</td><td><code>rhai::INT</code> (<code>i32</code> or <code>i64</code>)</td><td><code>&quot;i32&quot;</code> or <code>&quot;i64&quot;</code></td><td><code>&quot;42&quot;</code>, <code>&quot;123&quot;</code> etc.</td></tr>
-<tr><td><strong>System floating-point</strong> (current configuration, disabled with <a href="/start/features.html"><code>no_float</code></a>)</td><td><code>rhai::FLOAT</code> (<code>f32</code> or <code>f64</code>)</td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.456&quot;</code> etc.</td></tr>
+<tr><td><strong>System floating-point</strong> (current configuration, disabled with <a href="/rhai/start/features.html"><code>no_float</code></a>)</td><td><code>rhai::FLOAT</code> (<code>f32</code> or <code>f64</code>)</td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.456&quot;</code> etc.</td></tr>
 <tr><td><strong>Nothing/void/nil/null/Unit</strong> (or whatever it is called)</td><td><code>()</code></td><td><code>&quot;()&quot;</code></td><td><code>&quot;&quot;</code> <em>(empty string)</em></td></tr>
 </tbody></table>
 <p>All types are treated strictly separate by Rhai, meaning that <code>i32</code> and <code>i64</code> and <code>u32</code> are completely different -
 they even cannot be added together. This is very similar to Rust.</p>
 <p>The default integer type is <code>i64</code>. If other integer types are not needed, it is possible to exclude them and make a
-smaller build with the <a href="/start/features.html"><code>only_i64</code></a> feature.</p>
-<p>If only 32-bit integers are needed, enabling the <a href="/start/features.html"><code>only_i32</code></a> feature will remove support for all integer types other than <code>i32</code>, including <code>i64</code>.
+smaller build with the <a href="/rhai/start/features.html"><code>only_i64</code></a> feature.</p>
+<p>If only 32-bit integers are needed, enabling the <a href="/rhai/start/features.html"><code>only_i32</code></a> feature will remove support for all integer types other than <code>i32</code>, including <code>i64</code>.
 This is useful on some 32-bit targets where using 64-bit integers incur a performance penalty.</p>
-<p>If no floating-point is needed or supported, use the <a href="/start/features.html"><code>no_float</code></a> feature to remove it.</p>
-<p><a href="/language/strings-chars.html">Strings</a> in Rhai are <em>immutable</em>, meaning that they can be shared but not modified.  In actual, the <code>ImmutableString</code> type
-is an alias to <code>Rc&lt;String&gt;</code> or <code>Arc&lt;String&gt;</code> (depending on the <a href="/start/features.html"><code>sync</code></a> feature).
+<p>If no floating-point is needed or supported, use the <a href="/rhai/start/features.html"><code>no_float</code></a> feature to remove it.</p>
+<p><a href="/rhai/language/strings-chars.html">Strings</a> in Rhai are <em>immutable</em>, meaning that they can be shared but not modified.  In actual, the <code>ImmutableString</code> type
+is an alias to <code>Rc&lt;String&gt;</code> or <code>Arc&lt;String&gt;</code> (depending on the <a href="/rhai/start/features.html"><code>sync</code></a> feature).
 Any modification done to a Rhai string will cause the string to be cloned and the modifications made to the copy.</p>
-<p>The <code>to_string</code> function converts a standard type into a <a href="/language/strings-chars.html">string</a> for display purposes.</p>
+<p>The <code>to_string</code> function converts a standard type into a <a href="/rhai/language/strings-chars.html">string</a> for display purposes.</p>
 
                     </main>
 
@@ -216,21 +216,6 @@ Any modification done to a Rhai string will cause the string to be cloned and th
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

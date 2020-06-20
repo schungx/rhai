@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#special-builds" id="special-builds">Special Builds</a></h1>
-<p>It is possible to mix-and-match various <a href="/start/features.html">features</a> of the Rhai crate to make
+<p>It is possible to mix-and-match various <a href="/rhai/start/features.html">features</a> of the Rhai crate to make
 specialized builds with specific characteristics and behaviors.</p>
 
                     </main>
@@ -192,21 +192,6 @@ specialized builds with specific characteristics and behaviors.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         
