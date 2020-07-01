@@ -154,7 +154,7 @@
                         <h1><a class="header" href="#script-optimization" id="script-optimization">Script Optimization</a></h1>
 <p>Rhai includes an <em>optimizer</em> that tries to optimize a script after parsing.
 This can reduce resource utilization and increase execution speed.</p>
-<p>Script optimization can be turned off via the <a href="/rhai/start/features.html"><code>no_optimize</code></a> feature.</p>
+<p>Script optimization can be turned off via the <a href="/start/features.html"><code>no_optimize</code></a> feature.</p>
 <h2><a class="header" href="#dead-code-removal" id="dead-code-removal">Dead Code Removal</a></h2>
 <p>For example, in the following:</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -199,8 +199,8 @@ print(&quot;done!&quot;);                             // &lt;- the line above is
 </span></code></pre></pre>
 <p>These are quite effective for template-based machine-generated scripts where certain constant values
 are spliced into the script text in order to turn on/off certain sections.</p>
-<p>For fixed script texts, the constant values can be provided in a user-defined <a href="/rhai/rust/scope.html"><code>Scope</code></a> object
-to the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> for use in compilation and evaluation.</p>
+<p>For fixed script texts, the constant values can be provided in a user-defined <a href="/rust/scope.html"><code>Scope</code></a> object
+to the <a href="/engine/hello-world.html"><code>Engine</code></a> for use in compilation and evaluation.</p>
 <h2><a class="header" href="#watch-out-for-function-calls" id="watch-out-for-function-calls">Watch Out for Function Calls</a></h2>
 <p>Beware, however, that most operators are actually function calls, and those functions can be overridden,
 so they are not optimized away:</p>
@@ -222,7 +222,7 @@ if DECISION == 1 {          // NOT optimized away because you can define
 <span class="boring">}
 </span></code></pre></pre>
 <p>because no operator functions will be run (in order not to trigger side-effects) during the optimization process
-(unless the optimization level is set to <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>).</p>
+(unless the optimization level is set to <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>).</p>
 <p>So, instead, do this:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -244,7 +244,7 @@ if DECISION_1 {
 </span></code></pre></pre>
 <p>In general, boolean constants are most effective for the optimizer to automatically prune
 large <code>if</code>-<code>else</code> branches because they do not depend on operators.</p>
-<p>Alternatively, turn the optimizer to <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.</p>
+<p>Alternatively, turn the optimizer to <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.</p>
 
                     </main>
 
@@ -283,6 +283,21 @@ large <code>if</code>-<code>else</code> branches because they do not depend on o
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

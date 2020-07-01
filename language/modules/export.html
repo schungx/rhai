@@ -152,18 +152,18 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#export-variables-functions-and-sub-modules-in-module" id="export-variables-functions-and-sub-modules-in-module">Export Variables, Functions and Sub-Modules in Module</a></h1>
-<p>A <em>module</em> is a single script (or pre-compiled <a href="/rhai/engine/compile.html"><code>AST</code></a>) containing global variables, functions and sub-modules.</p>
-<p>A module can be created from a script via the <code>Module::eval_ast_as_new</code> method. When given an <a href="/rhai/engine/compile.html"><code>AST</code></a>,
+<p>A <em>module</em> is a single script (or pre-compiled <a href="/engine/compile.html"><code>AST</code></a>) containing global variables, functions and sub-modules.</p>
+<p>A module can be created from a script via the <code>Module::eval_ast_as_new</code> method. When given an <a href="/engine/compile.html"><code>AST</code></a>,
 it is first evaluated, then the following items are exposed as members of the new module:</p>
 <ul>
 <li>
-<p>Global variables - essentially all variables that remain in the <a href="/rhai/rust/scope.html"><code>Scope</code></a> at the end of a script run - that are exported. Variables not exported (via the <code>export</code> statement) remain hidden.</p>
+<p>Global variables - essentially all variables that remain in the <a href="/rust/scope.html"><code>Scope</code></a> at the end of a script run - that are exported. Variables not exported (via the <code>export</code> statement) remain hidden.</p>
 </li>
 <li>
 <p>Functions not specifically marked <code>private</code>.</p>
 </li>
 <li>
-<p>Global modules that remain in the <a href="/rhai/rust/scope.html"><code>Scope</code></a> at the end of a script run.</p>
+<p>Global modules that remain in the <a href="/rust/scope.html"><code>Scope</code></a> at the end of a script run.</p>
 </li>
 </ul>
 <h2><a class="header" href="#global-variables" id="global-variables">Global Variables</a></h2>
@@ -191,8 +191,8 @@ export x as answer;     // the variable 'x' is exported under the alias 'answer'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#functions" id="functions">Functions</a></h2>
-<p>All functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/rhai/engine/call-fn.html"><code>private</code></a> prefix.</p>
-<p>Functions declared <a href="/rhai/engine/call-fn.html"><code>private</code></a> are hidden to the outside.</p>
+<p>All functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/engine/call-fn.html"><code>private</code></a> prefix.</p>
+<p>Functions declared <a href="/engine/call-fn.html"><code>private</code></a> are hidden to the outside.</p>
 <p>Everything exported from a module is <strong>constant</strong> (<strong>read-only</strong>).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -259,6 +259,21 @@ import &quot;hello&quot; as foo;      // exported as sub-module 'foo'
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

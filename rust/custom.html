@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#register-a-custom-type-and-its-methods" id="register-a-custom-type-and-its-methods">Register a Custom Type and its Methods</a></h1>
 <p>Rhai works seamlessly with <em>any</em> complex Rust type.  The type can be registered with the <code>Engine</code>, as below.</p>
-<p>Support for custom types can be turned off via the <a href="/rhai/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Support for custom types can be turned off via the <a href="/start/features.html"><code>no_object</code></a> feature.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -188,7 +188,7 @@ println!(&quot;result: {}&quot;, result.field);           // prints 42
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#register-a-custom-type" id="register-a-custom-type">Register a Custom Type</a></h2>
-<p>A custom type must implement <code>Clone</code> as this allows the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> to pass by value.</p>
+<p>A custom type must implement <code>Clone</code> as this allows the <a href="/engine/hello-world.html"><code>Engine</code></a> to pass by value.</p>
 <p>Notice that the custom type needs to be <em>registered</em> using <code>Engine::register_type</code>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -258,7 +258,7 @@ let result = engine.eval::&lt;i64&gt;(
 println!(&quot;result: {}&quot;, result);                     // prints 1
 <span class="boring">}
 </span></code></pre></pre>
-<p>Under <a href="/rhai/start/features.html"><code>no_object</code></a>, however, the <em>method</em> style of function calls
+<p>Under <a href="/start/features.html"><code>no_object</code></a>, however, the <em>method</em> style of function calls
 (i.e. calling a function as an object-method) is no longer supported.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -267,10 +267,10 @@ println!(&quot;result: {}&quot;, result);                     // prints 1
 let result = engine.eval::&lt;()&gt;(&quot;let x = [1, 2, 3]; x.clear()&quot;)?;
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#a-hrefrhailanguagetype-ofhtmltype_ofa" id="a-hrefrhailanguagetype-ofhtmltype_ofa"><a href="/rhai/language/type-of.html"><code>type_of()</code></a></a></h2>
-<p><a href="/rhai/language/type-of.html"><code>type_of()</code></a> works fine with custom types and returns the name of the type.</p>
+<h2><a class="header" href="#a-hreflanguagetype-ofhtmltype_ofa" id="a-hreflanguagetype-ofhtmltype_ofa"><a href="/language/type-of.html"><code>type_of()</code></a></a></h2>
+<p><a href="/language/type-of.html"><code>type_of()</code></a> works fine with custom types and returns the name of the type.</p>
 <p>If <code>Engine::register_type_with_name</code> is used to register the custom type
-with a special “pretty-print” name, <a href="/rhai/language/type-of.html"><code>type_of()</code></a> will return that name instead.</p>
+with a special “pretty-print” name, <a href="/language/type-of.html"><code>type_of()</code></a> will return that name instead.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -323,6 +323,21 @@ print(x.type_of());                                 // prints &quot;Hello&quot;
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

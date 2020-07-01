@@ -152,9 +152,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#create-a-module-from-rust" id="create-a-module-from-rust">Create a Module from Rust</a></h1>
-<p>To load a custom module (written in Rust) into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, first create a <a href="/rhai/language/modules/index.html"><code>Module</code></a> type,
-add variables/functions into it, then finally push it into a custom <a href="/rhai/rust/scope.html"><code>Scope</code></a>.</p>
-<p>This has the equivalent effect of putting an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement at the beginning of any script run.</p>
+<p>To load a custom module (written in Rust) into an <a href="/engine/hello-world.html"><code>Engine</code></a>, first create a <a href="/language/modules/index.html"><code>Module</code></a> type,
+add variables/functions into it, then finally push it into a custom <a href="/rust/scope.html"><code>Scope</code></a>.</p>
+<p>This has the equivalent effect of putting an <a href="/language/modules/import.html"><code>import</code></a> statement at the beginning of any script run.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -216,6 +216,21 @@ engine.eval_expression_with_scope::&lt;i64&gt;(&amp;scope, &quot;question::inc(q
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

@@ -152,16 +152,16 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#special-support-for-oop-via-object-maps" id="special-support-for-oop-via-object-maps">Special Support for OOP via Object Maps</a></h1>
-<p><a href="/rhai/language/object-maps.html">Object maps</a> can be used to simulate <a href="/rhai/language/oop.html">object-oriented programming (OOP)</a> by storing data
-as properties and methods as properties holding <a href="/rhai/language/fn-ptr.html">function pointers</a>.</p>
-<p>If an <a href="/rhai/language/object-maps.html">object map</a>‘s property holds a <a href="/rhai/language/fn-ptr.html">function pointer</a>, the property can simply be called like
+<p><a href="/language/object-maps.html">Object maps</a> can be used to simulate <a href="/language/oop.html">object-oriented programming (OOP)</a> by storing data
+as properties and methods as properties holding <a href="/language/fn-ptr.html">function pointers</a>.</p>
+<p>If an <a href="/language/object-maps.html">object map</a>‘s property holds a <a href="/language/fn-ptr.html">function pointer</a>, the property can simply be called like
 a normal method in method-call syntax.  This is a <em>short-hand</em> to avoid the more verbose syntax
 of using the <code>call</code> function keyword.</p>
-<p>When a property holding a <a href="/rhai/language/fn-ptr.html">function pointer</a> is called like a method, what happens next depends
+<p>When a property holding a <a href="/language/fn-ptr.html">function pointer</a> is called like a method, what happens next depends
 on whether the target function is a native Rust function or a script-defined function.</p>
 <p>If it is a registered native Rust method function, then it is called directly.</p>
 <p>If it is a script-defined function, the <code>this</code> variable within the function body is bound
-to the <a href="/rhai/language/object-maps.html">object map</a> before the function is called.  There is no way to simulate this behavior
+to the <a href="/language/object-maps.html">object map</a> before the function is called.  There is no way to simulate this behavior
 via a normal function-call syntax because all scripted function arguments are passed by value.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -219,6 +219,21 @@ obj.action.call(obj, 2);                    // this call cannot mutate 'obj'
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

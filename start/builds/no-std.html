@@ -152,8 +152,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#no-std-build" id="no-std-build"><code>no-std</code> Build</a></h1>
-<p>The feature <a href="/rhai/start/features.html"><code>no_std</code></a> automatically converts the scripting engine into a <code>no-std</code> build.</p>
-<p>Usually, a <code>no-std</code> build goes hand-in-hand with <a href="/rhai/start/builds/minimal.html">minimal builds</a> because typical embedded
+<p>The feature <a href="/start/features.html"><code>no_std</code></a> automatically converts the scripting engine into a <code>no-std</code> build.</p>
+<p>Usually, a <code>no-std</code> build goes hand-in-hand with <a href="/start/builds/minimal.html">minimal builds</a> because typical embedded
 hardware (the primary target for <code>no-std</code>) has limited storage.</p>
 
                     </main>
@@ -193,6 +193,21 @@ hardware (the primary target for <code>no-std</code>) has limited storage.</p>
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

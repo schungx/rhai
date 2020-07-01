@@ -167,7 +167,7 @@ One benefit to this is that many more optimization opportunities arise, especial
 </li>
 </ul>
 <h2><a class="header" href="#set-optimization-level" id="set-optimization-level">Set Optimization Level</a></h2>
-<p>An <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>‘s optimization level is set via a call to <code>Engine::set_optimization_level</code>:</p>
+<p>An <a href="/engine/hello-world.html"><code>Engine</code></a>‘s optimization level is set via a call to <code>Engine::set_optimization_level</code>:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -213,6 +213,21 @@ engine.set_optimization_level(rhai::OptimizationLevel::Full);
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

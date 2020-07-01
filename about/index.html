@@ -154,6 +154,8 @@
                         <h1><a class="header" href="#what-is-rhai" id="what-is-rhai">What is Rhai</a></h1>
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
+<p>This Book is for version 0.16.1 of Rhai.</p>
+<p>For the latest development version, see <a href="/vnext/">here</a>.</p>
 
                     </main>
 
@@ -184,6 +186,21 @@ to add scripting to any application.</p>
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

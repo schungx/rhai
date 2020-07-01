@@ -153,11 +153,11 @@
                     <main>
                         <h1><a class="header" href="#re-optimize-an-ast" id="re-optimize-an-ast">Re-Optimize an AST</a></h1>
 <p>Sometimes it is more efficient to store one single, large script with delimited code blocks guarded by
-constant variables.  This script is compiled once to an <a href="/rhai/engine/compile.html"><code>AST</code></a>.</p>
-<p>Then, depending on the execution environment, constants are passed into the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> and the <a href="/rhai/engine/compile.html"><code>AST</code></a>
+constant variables.  This script is compiled once to an <a href="/engine/compile.html"><code>AST</code></a>.</p>
+<p>Then, depending on the execution environment, constants are passed into the <a href="/engine/hello-world.html"><code>Engine</code></a> and the <a href="/engine/compile.html"><code>AST</code></a>
 is <em>re</em>-optimized based on those constants via the <code>Engine::optimize_ast</code> method,
 effectively pruning out unused code sections.</p>
-<p>The final, optimized <a href="/rhai/engine/compile.html"><code>AST</code></a> is then used for evaluations.</p>
+<p>The final, optimized <a href="/engine/compile.html"><code>AST</code></a> is then used for evaluations.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -225,6 +225,21 @@ let new_ast = engine.optimize_ast(&amp;scope, master_ast.clone(), OptimizationLe
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

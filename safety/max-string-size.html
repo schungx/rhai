@@ -153,11 +153,11 @@
                     <main>
                         <h1><a class="header" href="#maximum-length-of-strings" id="maximum-length-of-strings">Maximum Length of Strings</a></h1>
 <h2><a class="header" href="#limiting-how-long-strings-can-grow" id="limiting-how-long-strings-can-grow">Limiting How Long Strings Can Grow</a></h2>
-<p>Rhai by default does not limit how long a <a href="/rhai/language/strings-chars.html">string</a> can be.</p>
+<p>Rhai by default does not limit how long a <a href="/language/strings-chars.html">string</a> can be.</p>
 <p>This can be changed via the <code>Engine::set_max_string_size</code> method, with zero being unlimited (the default).</p>
 <p>A script attempting to create a string literal longer than the maximum length will terminate with a parse error.</p>
 <p>Any script operation that produces a string longer than the maximum also terminates the script with an error result.</p>
-<p>This check can be disabled via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -211,6 +211,21 @@ if both strings are <em>slightly</em> below the maximum length limit, the result
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

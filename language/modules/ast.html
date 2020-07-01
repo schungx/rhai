@@ -152,9 +152,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#create-a-module-from-an-ast" id="create-a-module-from-an-ast">Create a Module from an AST</a></h1>
-<p>It is easy to convert a pre-compiled <a href="/rhai/engine/compile.html"><code>AST</code></a> into a module: just use <code>Module::eval_ast_as_new</code>.</p>
-<p>Don’t forget the <a href="/rhai/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
-other than non-<a href="/rhai/engine/call-fn.html"><code>private</code></a> functions (unless that’s intentional).</p>
+<p>It is easy to convert a pre-compiled <a href="/engine/compile.html"><code>AST</code></a> into a module: just use <code>Module::eval_ast_as_new</code>.</p>
+<p>Don’t forget the <a href="/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
+other than non-<a href="/engine/call-fn.html"><code>private</code></a> functions (unless that’s intentional).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -239,6 +239,21 @@ let module = Module::eval_ast_as_new(Scope::new(), &amp;ast, &amp;engine)?;
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

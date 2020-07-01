@@ -156,7 +156,7 @@
 <p>Rhai by default limits function calls to a maximum depth of 128 levels (16 levels in debug build).</p>
 <p>This limit may be changed via the <code>Engine::set_max_call_levels</code> method.</p>
 <p>A script exceeding the maximum call stack depth will terminate with an error result.</p>
-<p>This check can be disabled via the <a href="/rhai/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -170,7 +170,7 @@ engine.set_max_call_levels(0);  // allow no function calls at all (max depth = z
 <h2><a class="header" href="#setting-maximum-stack-depth" id="setting-maximum-stack-depth">Setting Maximum Stack Depth</a></h2>
 <p>When setting this limit, care must be also taken to the evaluation depth of each <em>statement</em>
 within a function. It is entirely possible for a malicious script to embed a recursive call deep
-inside a nested expression or statement block (see <a href="/rhai/safety/max-stmt-depth.html">maximum statement depth</a>).</p>
+inside a nested expression or statement block (see <a href="/safety/max-stmt-depth.html">maximum statement depth</a>).</p>
 
                     </main>
 
@@ -209,6 +209,21 @@ inside a nested expression or statement block (see <a href="/rhai/safety/max-stm
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

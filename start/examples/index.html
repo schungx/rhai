@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#examples" id="examples">Examples</a></h1>
-<p>Rhai comes with a number of examples showing how to integrate the scripting <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> within
+<p>Rhai comes with a number of examples showing how to integrate the scripting <a href="/engine/hello-world.html"><code>Engine</code></a> within
 a Rust application, as well as a number of sample scripts that showcase different Rhai language features.</p>
 
                     </main>
@@ -192,6 +192,21 @@ a Rust application, as well as a number of sample scripts that showcase differen
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

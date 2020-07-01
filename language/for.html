@@ -152,7 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#for-loop" id="for-loop"><code>for</code> Loop</a></h1>
-<p>Iterating through a range or an <a href="/rhai/language/arrays.html">array</a> is provided by the <code>for</code> ... <code>in</code> loop.</p>
+<p>Iterating through a range or an <a href="/language/arrays.html">array</a> is provided by the <code>for</code> ... <code>in</code> loop.</p>
 <p>Like C, <code>continue</code> can be used to skip to the next iteration, by-passing all following statements;
 <code>break</code> can be used to break out of the loop unconditionally.</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -254,6 +254,21 @@ for val in values(map) {
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

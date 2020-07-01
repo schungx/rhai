@@ -154,22 +154,22 @@
                         <h1><a class="header" href="#arrays" id="arrays">Arrays</a></h1>
 <p>Arrays are first-class citizens in Rhai. Like C, arrays are accessed with zero-based, non-negative integer indices.</p>
 <p>Array literals are built within square brackets ‘<code>[</code>‘ ... ‘<code>]</code>‘ and separated by commas ‘<code>,</code>‘.</p>
-<p>All elements stored in an array are <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a>, and the array can freely grow or shrink with elements added or removed.</p>
+<p>All elements stored in an array are <a href="/language/dynamic.html"><code>Dynamic</code></a>, and the array can freely grow or shrink with elements added or removed.</p>
 <p>The Rust type of a Rhai array is <code>rhai::Array</code>.</p>
-<p><a href="/rhai/language/type-of.html"><code>type_of()</code></a> an array returns <code>&quot;array&quot;</code>.</p>
-<p>Arrays are disabled via the <a href="/rhai/start/features.html"><code>no_index</code></a> feature.</p>
+<p><a href="/language/type-of.html"><code>type_of()</code></a> an array returns <code>&quot;array&quot;</code>.</p>
+<p>Arrays are disabled via the <a href="/start/features.html"><code>no_index</code></a> feature.</p>
 <p>The maximum allowed size of an array can be controlled via <code>Engine::set_max_array_size</code>
-(see <a href="/rhai/safety/max-array-size.html">maximum size of arrays</a>.</p>
+(see <a href="/safety/max-array-size.html">maximum size of arrays</a>.</p>
 <h2><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h2>
-<p>The following methods (mostly defined in the <a href="/rhai/rust/packages/index.html"><code>BasicArrayPackage</code></a> but excluded if using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>) operate on arrays:</p>
+<p>The following methods (mostly defined in the <a href="/rust/packages/index.html"><code>BasicArrayPackage</code></a> but excluded if using a <a href="/engine/raw.html">raw <code>Engine</code></a>) operate on arrays:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>push</code></td><td>element to insert</td><td>inserts an element at the end</td></tr>
 <tr><td><code>+=</code> operator, <code>append</code></td><td>array to append</td><td>concatenates the second array to the end of the first</td></tr>
 <tr><td><code>+</code> operator</td><td>first array, second array</td><td>concatenates the first array with the second</td></tr>
 <tr><td><code>insert</code></td><td>element to insert, position<br/>(beginning if &lt;= 0, end if &gt;= length)</td><td>insert an element at a certain index</td></tr>
-<tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="/rhai/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
-<tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="/rhai/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
-<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it, or returns <a href="/rhai/language/values-and-types.html"><code>()</code></a> if the index is not valid</td></tr>
+<tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
+<tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
+<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it, or returns <a href="/language/values-and-types.html"><code>()</code></a> if the index is not valid</td></tr>
 <tr><td><code>len</code> method and property</td><td><em>none</em></td><td>returns the number of elements</td></tr>
 <tr><td><code>pad</code></td><td>element to pad, target length</td><td>pads the array with an element to at least a specified length</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the array</td></tr>
@@ -299,6 +299,21 @@ y.len == 0;
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         

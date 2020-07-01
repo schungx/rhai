@@ -157,8 +157,8 @@ resources used by a script so that it does not consume more resources that it is
 <p>The most important resources to watch out for are:</p>
 <ul>
 <li>
-<p><strong>Memory</strong>: A malicious script may continuously grow a <a href="/rhai/language/strings-chars.html">string</a>, an <a href="/rhai/language/arrays.html">array</a> or <a href="/rhai/language/object-maps.html">object map</a> until all memory is consumed.</p>
-<p>It may also create a large <a href="/rhai/language/arrays.html">array</a> or <a href="/rhai/language/object-maps.html">object map</a> literal that exhausts all memory during parsing.</p>
+<p><strong>Memory</strong>: A malicious script may continuously grow a <a href="/language/strings-chars.html">string</a>, an <a href="/language/arrays.html">array</a> or <a href="/language/object-maps.html">object map</a> until all memory is consumed.</p>
+<p>It may also create a large <a href="/language/arrays.html">array</a> or <a href="/language/object-maps.html">object map</a> literal that exhausts all memory during parsing.</p>
 </li>
 <li>
 <p><strong>CPU</strong>: A malicious script may run an infinite tight loop that consumes all CPU cycles.</p>
@@ -170,14 +170,14 @@ resources used by a script so that it does not consume more resources that it is
 <p><strong>Stack</strong>: A malicious script may attempt an infinite recursive call that exhausts the call stack.</p>
 <p>Alternatively, it may create a degenerated deep expression with so many levels that the parser exhausts the call stack
 when parsing the expression; or even deeply-nested statement blocks, if nested deep enough.</p>
-<p>Another way to cause a stack overflow is to load a <a href="/rhai/language/modules/import.html">self-referencing module</a>.</p>
+<p>Another way to cause a stack overflow is to load a <a href="/language/modules/import.html">self-referencing module</a>.</p>
 </li>
 <li>
 <p><strong>Overflows</strong>: A malicious script may deliberately cause numeric over-flows and/or under-flows, divide by zero, and/or
 create bad floating-point representations, in order to crash the system.</p>
 </li>
 <li>
-<p><strong>Files</strong>: A malicious script may continuously <a href="/rhai/language/modules/import.html"><code>import</code></a> an external module within an infinite loop,
+<p><strong>Files</strong>: A malicious script may continuously <a href="/language/modules/import.html"><code>import</code></a> an external module within an infinite loop,
 thereby putting heavy load on the file-system (or even the network if the file is not local).</p>
 <p>Even when modules are not created from files, they still typically consume a lot of resources to load.</p>
 </li>
@@ -224,6 +224,21 @@ it is a severe security breach and may put the entire system at risk.</p>
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3001");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         
