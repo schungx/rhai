@@ -155,10 +155,10 @@
 <p>Even if a custom function does not mutate state nor cause side-effects, it may still be <em>volatile</em>,
 i.e. it <em>depends</em> on the external environment and is not <em>pure</em>.</p>
 <p>A perfect example is a function that gets the current time - obviously each run will return a different value!</p>
-<p>The optimizer, when using <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, will <em>merrily assume</em> that all functions are <em>pure</em>,
+<p>The optimizer, when using <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, will <em>merrily assume</em> that all functions are <em>pure</em>,
 so when it finds constant arguments (or none) it eagerly executes the function call and replaces it with the result.</p>
 <p>This causes the script to behave differently from the intended semantics.</p>
-<p>Therefore, <strong>avoid using <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a></strong> if non-<em>pure</em> custom types and/or functions are involved.</p>
+<p>Therefore, <strong>avoid using <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a></strong> if non-<em>pure</em> custom types and/or functions are involved.</p>
 
                     </main>
 

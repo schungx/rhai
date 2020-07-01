@@ -152,35 +152,35 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#object-maps" id="object-maps">Object Maps</a></h1>
-<p>Object maps are hash dictionaries. Properties are all <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> and can be freely added and retrieved.</p>
+<p>Object maps are hash dictionaries. Properties are all <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> and can be freely added and retrieved.</p>
 <p>The Rust type of a Rhai object map is <code>rhai::Map</code>.</p>
-<p><a href="/rhai/language/type-of.html"><code>type_of()</code></a> an object map returns <code>&quot;map&quot;</code>.</p>
-<p>Object maps are disabled via the <a href="/rhai/start/features.html"><code>no_object</code></a> feature.</p>
+<p><a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> an object map returns <code>&quot;map&quot;</code>.</p>
+<p>Object maps are disabled via the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature.</p>
 <p>The maximum allowed size of an object map can be controlled via <code>Engine::set_max_map_size</code>
-(see <a href="/rhai/safety/max-map-size.html">maximum size of object maps</a>).</p>
+(see <a href="/rhai/vnext/safety/max-map-size.html">maximum size of object maps</a>).</p>
 <h2><a class="header" href="#object-map-literals" id="object-map-literals">Object Map Literals</a></h2>
 <p>Object map literals are built within braces ‘<code>#{</code>‘ ... ‘<code>}</code>‘ (<em>name</em> <code>:</code> <em>value</em> syntax similar to Rust)
 and separated by commas ‘<code>,</code>‘.  The property <em>name</em> can be a simple variable name following the same
-naming rules as <a href="/rhai/language/variables.html">variables</a>, or an arbitrary <a href="/rhai/language/strings-chars.html">string</a> literal.</p>
+naming rules as <a href="/rhai/vnext/language/variables.html">variables</a>, or an arbitrary <a href="/rhai/vnext/language/strings-chars.html">string</a> literal.</p>
 <h2><a class="header" href="#access-properties" id="access-properties">Access Properties</a></h2>
 <p>Property values can be accessed via the <em>dot</em> notation (<em>object</em> <code>.</code> <em>property</em>)
 or <em>index</em> notation (<em>object</em> <code>[</code> <em>property</em> <code>]</code>).</p>
-<p>The dot notation allows only property names that follow the same naming rules as <a href="/rhai/language/variables.html">variables</a>.</p>
-<p>The index notation allows setting/getting properties of arbitrary names (even the empty <a href="/rhai/language/strings-chars.html">string</a>).</p>
-<p><strong>Important:</strong> Trying to read a non-existent property returns <a href="/rhai/language/values-and-types.html"><code>()</code></a> instead of causing an error.</p>
+<p>The dot notation allows only property names that follow the same naming rules as <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
+<p>The index notation allows setting/getting properties of arbitrary names (even the empty <a href="/rhai/vnext/language/strings-chars.html">string</a>).</p>
+<p><strong>Important:</strong> Trying to read a non-existent property returns <a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> instead of causing an error.</p>
 <h2><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h2>
-<p>The following methods (defined in the <a href="/rhai/rust/packages/index.html"><code>BasicMapPackage</code></a> but excluded if using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>)
+<p>The following methods (defined in the <a href="/rhai/vnext/rust/packages/index.html"><code>BasicMapPackage</code></a> but excluded if using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>)
 operate on object maps:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>has</code></td><td>property name</td><td>does the object map contain a property of a particular name?</td></tr>
 <tr><td><code>len</code></td><td><em>none</em></td><td>returns the number of properties</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the object map</td></tr>
-<tr><td><code>remove</code></td><td>property name</td><td>removes a certain property and returns it (<a href="/rhai/language/values-and-types.html"><code>()</code></a> if the property does not exist)</td></tr>
+<tr><td><code>remove</code></td><td>property name</td><td>removes a certain property and returns it (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> if the property does not exist)</td></tr>
 <tr><td><code>+=</code> operator, <code>mixin</code></td><td>second object map</td><td>mixes in all the properties of the second object map to the first (values of properties with the same names replace the existing values)</td></tr>
 <tr><td><code>+</code> operator</td><td>first object map, second object map</td><td>merges the first object map with the second</td></tr>
 <tr><td><code>fill_with</code></td><td>second object map</td><td>adds in all properties of the second object map that do not exist in the object map</td></tr>
-<tr><td><code>keys</code></td><td><em>none</em></td><td>returns an <a href="/rhai/language/arrays.html">array</a> of all the property names (in random order), not available under <a href="/rhai/start/features.html"><code>no_index</code></a></td></tr>
-<tr><td><code>values</code></td><td><em>none</em></td><td>returns an <a href="/rhai/language/arrays.html">array</a> of all the property values (in random order), not available under <a href="/rhai/start/features.html"><code>no_index</code></a></td></tr>
+<tr><td><code>keys</code></td><td><em>none</em></td><td>returns an <a href="/rhai/vnext/language/arrays.html">array</a> of all the property names (in random order), not available under <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
+<tr><td><code>values</code></td><td><em>none</em></td><td>returns an <a href="/rhai/vnext/language/arrays.html">array</a> of all the property values (in random order), not available under <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
 </tbody></table>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playpen"><code class="language-rust">

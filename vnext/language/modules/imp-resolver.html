@@ -155,11 +155,11 @@
 <p>For many applications in which Rhai is embedded, it is necessary to customize the way that modules
 are resolved.  For instance, modules may need to be loaded from script texts stored in a database,
 not in the file system.</p>
-<p>A module resolver must implement the trait <a href="/rhai/rust/traits.html"><code>rhai::ModuleResolver</code></a>,
+<p>A module resolver must implement the trait <a href="/rhai/vnext/rust/traits.html"><code>rhai::ModuleResolver</code></a>,
 which contains only one function: <code>resolve</code>.</p>
 <p>When Rhai prepares to load a module, <code>ModuleResolver::resolve</code> is called with the name
-of the <em>module path</em> (i.e. the path specified in the <a href="/rhai/language/modules/import.html"><code>import</code></a> statement). Upon success, it should
-return a <a href="/rhai/language/modules/index.html"><code>Module</code></a>; if the module cannot be load, return <code>EvalAltResult::ErrorModuleNotFound</code>.</p>
+of the <em>module path</em> (i.e. the path specified in the <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement). Upon success, it should
+return a <a href="/rhai/vnext/language/modules/index.html"><code>Module</code></a>; if the module cannot be load, return <code>EvalAltResult::ErrorModuleNotFound</code>.</p>
 <h2><a class="header" href="#example" id="example">Example</a></h2>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

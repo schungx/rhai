@@ -152,14 +152,14 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
-<p>Property <a href="/rhai/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> can be called
+<p>Property <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/vnext/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be called
 just like a regular function.  In fact, like Rust, property getters/setters and object methods
-are registered as regular <a href="/rhai/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
+are registered as regular <a href="/rhai/vnext/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
 <p>Unlike functions defined in script (for which all arguments are passed by <em>value</em>),
 native Rust functions may mutate the object (or the first argument if called in normal function call style).</p>
 <p>However, sometimes it is not as straight-forward, and methods called in function-call style may end up
 not muting the object - see the example below. Therefore, it is best to always use method-call style.</p>
-<p>Custom types, properties and methods can be disabled via the <a href="/rhai/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Custom types, properties and methods can be disabled via the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

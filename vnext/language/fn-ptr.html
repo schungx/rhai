@@ -156,8 +156,8 @@
 In fact, internally a function pointer simply stores the <em>name</em> of the function as a string.</p>
 <p>Call a function pointer using the <code>call</code> method, which needs to be called in method-call style.</p>
 <h2><a class="header" href="#built-in-methods" id="built-in-methods">Built-in methods</a></h2>
-<p>The following standard methods (mostly defined in the <a href="/rhai/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
-using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/language/strings-chars.html">strings</a>:</p>
+<p>The following standard methods (mostly defined in the <a href="/rhai/vnext/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
+using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/vnext/language/strings-chars.html">strings</a>:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>name</code> method and property</td><td><em>none</em></td><td>returns the name of the function encapsulated by the function pointer</td></tr>
 </tbody></table>
@@ -199,9 +199,9 @@ hello.call(0);              // error: function not found - 'hello_world (i64)'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#global-namespace-only" id="global-namespace-only">Global Namespace Only</a></h2>
-<p>Because of their dynamic nature, function pointers cannot refer to functions in a <em>module</em> <a href="/rhai/language/fn-namespaces.html">namespace</a>
-(i.e. functions in <a href="/rhai/language/modules/import.html"><code>import</code></a>-ed modules).  They can only refer to functions within the global <a href="/rhai/language/fn-namespaces.html">namespace</a>.
-See <a href="/rhai/language/fn-namespaces.html">function namespaces</a> for more details.</p>
+<p>Because of their dynamic nature, function pointers cannot refer to functions in a <em>module</em> <a href="/rhai/vnext/language/fn-namespaces.html">namespace</a>
+(i.e. functions in <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a>-ed modules).  They can only refer to functions within the global <a href="/rhai/vnext/language/fn-namespaces.html">namespace</a>.
+See <a href="/rhai/vnext/language/fn-namespaces.html">function namespaces</a> for more details.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {

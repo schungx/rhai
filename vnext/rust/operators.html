@@ -163,11 +163,11 @@ let x = +(a, b);        // &lt;- the above is equivalent to this function call
 <span class="boring">}
 </span></code></pre></pre>
 <p>Similarly, comparison operators including <code>==</code>, <code>!=</code> etc. are all implemented as functions,
-with the stark exception of <code>&amp;&amp;</code> and <code>||</code>. Because they <a href="/rhai/language/logic.html#boolean-operators"><em>short-circuit</em></a>,
+with the stark exception of <code>&amp;&amp;</code> and <code>||</code>. Because they <a href="/rhai/vnext/language/logic.html#boolean-operators"><em>short-circuit</em></a>,
 <code>&amp;&amp;</code> and <code>||</code> are handled specially and <em>not</em> via a function; as a result, overriding them has no effect at all.</p>
 <h2><a class="header" href="#overload-operator-via-rust-function" id="overload-operator-via-rust-function">Overload Operator via Rust Function</a></h2>
 <p>Operator functions cannot be defined as a script function (because operators syntax are not valid function names).</p>
-<p>However, operator functions <em>can</em> be registered to the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> via the methods
+<p>However, operator functions <em>can</em> be registered to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the methods
 <code>Engine::register_fn</code>, <code>Engine::register_result_fn</code> etc.</p>
 <p>When a custom operator function is registered with the same name as an operator, it <em>overrides</em> the built-in version.</p>
 <pre><pre class="playpen"><code class="language-rust">
@@ -197,10 +197,10 @@ let result: i64 = engine.eval(&quot;1 + 1.0&quot;);           // prints 2.0 (nor
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#considerations" id="considerations">Considerations</a></h2>
-<p>Normally, use operator overloading for <a href="/rhai/rust/custom.html">custom types</a> only.</p>
+<p>Normally, use operator overloading for <a href="/rhai/vnext/rust/custom.html">custom types</a> only.</p>
 <p>Be very careful when overriding built-in operators because script authors expect standard operators to behave in a
 consistent and predictable manner, and will be annoyed if a calculation for ‘<code>+</code>‘ turns into a subtraction, for example.</p>
-<p>Operator overloading also impacts script optimization when using <a href="/rhai/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.
+<p>Operator overloading also impacts script optimization when using <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.
 See the [script-optimization] for more details.</p>
 
                     </main>

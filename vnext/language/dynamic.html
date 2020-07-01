@@ -152,9 +152,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#dynamic-values" id="dynamic-values">Dynamic Values</a></h1>
-<p>A <code>Dynamic</code> value can be <em>any</em> type. However, under <a href="/rhai/start/features.html"><code>sync</code></a>, all types must be <code>Send + Sync</code>.</p>
-<h2><a class="header" href="#use-a-hrefrhailanguagetype-ofhtmltype_ofa-to-get-value-type" id="use-a-hrefrhailanguagetype-ofhtmltype_ofa-to-get-value-type">Use <a href="/rhai/language/type-of.html"><code>type_of()</code></a> to Get Value Type</a></h2>
-<p>Because <a href="/rhai/language/type-of.html"><code>type_of()</code></a> a <code>Dynamic</code> value returns the type of the actual value,
+<p>A <code>Dynamic</code> value can be <em>any</em> type. However, under <a href="/rhai/vnext/start/features.html"><code>sync</code></a>, all types must be <code>Send + Sync</code>.</p>
+<h2><a class="header" href="#use-a-hrefrhaivnextlanguagetype-ofhtmltype_ofa-to-get-value-type" id="use-a-hrefrhaivnextlanguagetype-ofhtmltype_ofa-to-get-value-type">Use <a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> to Get Value Type</a></h2>
+<p>Because <a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> a <code>Dynamic</code> value returns the type of the actual value,
 it is usually used to perform type-specific actions based on the actual value’s type.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
@@ -183,8 +183,8 @@ if type_of(mystery) == &quot;i64&quot; {
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#functions-returning-dynamic" id="functions-returning-dynamic">Functions Returning <code>Dynamic</code></a></h2>
-<p>In Rust, sometimes a <code>Dynamic</code> forms part of a returned value - a good example is an <a href="/rhai/language/arrays.html">array</a>
-which contains <code>Dynamic</code> elements, or an <a href="/rhai/language/object-maps.html">object map</a> which contains <code>Dynamic</code> property values.</p>
+<p>In Rust, sometimes a <code>Dynamic</code> forms part of a returned value - a good example is an <a href="/rhai/vnext/language/arrays.html">array</a>
+which contains <code>Dynamic</code> elements, or an <a href="/rhai/vnext/language/object-maps.html">object map</a> which contains <code>Dynamic</code> property values.</p>
 <p>To get the <em>real</em> values, the actual value types <em>must</em> be known in advance.
 There is no easy way for Rust to decide, at run-time, what type the <code>Dynamic</code> value is
 (short of using the <code>type_name</code> function and match against the name).</p>
@@ -226,14 +226,14 @@ match item.type_name() {                        // 'type_name' returns the name 
 <h2><a class="header" href="#conversion-traits" id="conversion-traits">Conversion Traits</a></h2>
 <p>The following conversion traits are implemented for <code>Dynamic</code>:</p>
 <ul>
-<li><code>From&lt;i64&gt;</code> (<code>i32</code> if <a href="/rhai/start/features.html"><code>only_i32</code></a>)</li>
-<li><code>From&lt;f64&gt;</code> (if not <a href="/rhai/start/features.html"><code>no_float</code></a>)</li>
+<li><code>From&lt;i64&gt;</code> (<code>i32</code> if <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a>)</li>
+<li><code>From&lt;f64&gt;</code> (if not <a href="/rhai/vnext/start/features.html"><code>no_float</code></a>)</li>
 <li><code>From&lt;bool&gt;</code></li>
 <li><code>From&lt;rhai::ImmutableString&gt;</code></li>
 <li><code>From&lt;String&gt;</code></li>
 <li><code>From&lt;char&gt;</code></li>
-<li><code>From&lt;Vec&lt;T&gt;&gt;</code> (into an <a href="/rhai/language/arrays.html">array</a>)</li>
-<li><code>From&lt;HashMap&lt;String, T&gt;&gt;</code> (into an <a href="/rhai/language/object-maps.html">object map</a>).</li>
+<li><code>From&lt;Vec&lt;T&gt;&gt;</code> (into an <a href="/rhai/vnext/language/arrays.html">array</a>)</li>
+<li><code>From&lt;HashMap&lt;String, T&gt;&gt;</code> (into an <a href="/rhai/vnext/language/object-maps.html">object map</a>).</li>
 </ul>
 
                     </main>

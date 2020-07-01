@@ -153,28 +153,28 @@
                     <main>
                         <h1><a class="header" href="#function-namespaces" id="function-namespaces">Function Namespaces</a></h1>
 <h2><a class="header" href="#each-function-is-a-separate-compilation-unit" id="each-function-is-a-separate-compilation-unit">Each Function is a Separate Compilation Unit</a></h2>
-<p><a href="/rhai/language/functions.html">Functions</a> in Rhai are <em>pure</em> and they form individual <em>compilation units</em>.
+<p><a href="/rhai/vnext/language/functions.html">Functions</a> in Rhai are <em>pure</em> and they form individual <em>compilation units</em>.
 This means that individual functions can be separated, exported, re-grouped, imported,
 and generally mix-’n-match-ed with other completely unrelated scripts.</p>
-<p>For example, the <code>AST::merge</code> method allows merging all functions in one <a href="/rhai/engine/compile.html"><code>AST</code></a> into another,
+<p>For example, the <code>AST::merge</code> method allows merging all functions in one <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> into another,
 forming a new, combined, group of functions.</p>
 <p>In general, there are two types of <em>namespaces</em> where functions are looked up:</p>
 <table><thead><tr><th>Namespace</th><th>Source</th><th>Lookup method</th><th align="center">How Many</th></tr></thead><tbody>
-<tr><td>Global</td><td><code>Engine::register_XXX</code> API, <a href="/rhai/engine/compile.html"><code>AST</code></a> being evaluated, <a href="/rhai/rust/packages/index.html">packages</a> loaded</td><td>Simple function name</td><td align="center">One</td></tr>
-<tr><td>Module</td><td><a href="/rhai/language/modules/index.html"><code>Module</code></a></td><td>Namespace-qualified function name</td><td align="center">As many as <a href="/rhai/language/modules/import.html"><code>import</code></a>-ed</td></tr>
+<tr><td>Global</td><td><code>Engine::register_XXX</code> API, <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> being evaluated, <a href="/rhai/vnext/rust/packages/index.html">packages</a> loaded</td><td>Simple function name</td><td align="center">One</td></tr>
+<tr><td>Module</td><td><a href="/rhai/vnext/language/modules/index.html"><code>Module</code></a></td><td>Namespace-qualified function name</td><td align="center">As many as <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a>-ed</td></tr>
 </tbody></table>
 <h2><a class="header" href="#global-namespace" id="global-namespace">Global Namespace</a></h2>
-<p>There is one <em>global</em> namespace for every <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, which includes:</p>
+<p>There is one <em>global</em> namespace for every <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, which includes:</p>
 <ul>
 <li>
 <p>All the native Rust functions registered via the <code>Engine::register_XXX</code> API.</p>
 </li>
 <li>
-<p>All the Rust functions defined in <a href="/rhai/rust/packages/index.html">packages</a> that are loaded into the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p>All the Rust functions defined in <a href="/rhai/vnext/rust/packages/index.html">packages</a> that are loaded into the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
 </ul>
-<p>In addition, during evaluation of an <a href="/rhai/engine/compile.html"><code>AST</code></a>, all script-defined functions bundled together within
-the <a href="/rhai/engine/compile.html"><code>AST</code></a> are added to the global namespace and override any existing registered functions of
+<p>In addition, during evaluation of an <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, all script-defined functions bundled together within
+the <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> are added to the global namespace and override any existing registered functions of
 the same names and number of parameters.</p>
 <p>Anywhere in a Rhai script, when a function call is made, it is searched within the global namespace.
 Therefore, function calls in Rhai are <em>late</em> bound - meaning that the function called cannot be
@@ -207,8 +207,8 @@ engine.consume_ast(&amp;ast)?;          // prints 'Boo!'
 </span></code></pre></pre>
 <p>Therefore, care must be taken when <em>cross-calling</em> functions to make sure that the correct
 functions are called.</p>
-<p>The only practical way to ensure that a function is a correct one is to use <a href="/rhai/language/modules/index.html">modules</a> -
-i.e. define the function in a separate module and then <a href="/rhai/language/modules/import.html"><code>import</code></a> it:</p>
+<p>The only practical way to ensure that a function is a correct one is to use <a href="/rhai/vnext/language/modules/index.html">modules</a> -
+i.e. define the function in a separate module and then <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> it:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -226,8 +226,8 @@ script.rhai:
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#module-namespaces" id="module-namespaces">Module Namespaces</a></h2>
-<p><a href="/rhai/language/modules/index.html">Modules</a> can be dynamically loaded into a Rhai script using the <a href="/rhai/language/modules/import.html"><code>import</code></a> keyword.
-When that happens, functions defined within the <a href="/rhai/language/modules/index.html">module</a> can be called with a <em>qualified</em> name.</p>
+<p><a href="/rhai/vnext/language/modules/index.html">Modules</a> can be dynamically loaded into a Rhai script using the <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> keyword.
+When that happens, functions defined within the <a href="/rhai/vnext/language/modules/index.html">module</a> can be called with a <em>qualified</em> name.</p>
 <p>There is a catch, though, if functions in a module script refer to global functions
 defined <em>within the script</em>.  When called later, those functions will be searched in the
 current global namespace and may not be found.</p>
@@ -252,8 +252,8 @@ script.rhai:
 the subsequent call using the <em>namespace-qualified</em> function name fails to find the same function
 ‘<code>message</code>‘ which now essentially becomes <code>g::message</code>.  The call fails as there is no more
 function named ‘<code>message</code>‘ in the global namespace.</p>
-<p>Therefore, when writing functions for a <a href="/rhai/language/modules/index.html">module</a>, make sure that those functions are as <em>pure</em>
-as possible and avoid cross-calling them from each other.  A <a href="/rhai/language/fn-ptr.html">function pointer</a> is a valid technique
+<p>Therefore, when writing functions for a <a href="/rhai/vnext/language/modules/index.html">module</a>, make sure that those functions are as <em>pure</em>
+as possible and avoid cross-calling them from each other.  A <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> is a valid technique
 to call another function within a module-defined function:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

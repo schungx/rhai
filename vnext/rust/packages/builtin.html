@@ -152,20 +152,20 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#built-in-packages" id="built-in-packages">Built-In Packages</a></h1>
-<p><code>Engine::new</code> creates an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> with the <code>StandardPackage</code> loaded.</p>
-<p><code>Engine::new_raw</code> creates an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> with <em>no</em> package loaded.</p>
+<p><code>Engine::new</code> creates an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> with the <code>StandardPackage</code> loaded.</p>
+<p><code>Engine::new_raw</code> creates an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> with <em>no</em> package loaded.</p>
 <table><thead><tr><th>Package</th><th>Description</th><th align="center">In <code>Core</code></th><th align="center">In <code>Standard</code></th></tr></thead><tbody>
 <tr><td><code>ArithmeticPackage</code></td><td>Arithmetic operators (e.g. <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>) for numeric types that are not built in (e.g. <code>u16</code>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>BasicIteratorPackage</code></td><td>Numeric ranges (e.g. <code>range(1, 10)</code>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>LogicPackage</code></td><td>Logical and comparison operators (e.g. <code>==</code>, <code>&gt;</code>) for numeric types that are not built in (e.g. <code>u16</code>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>BasicStringPackage</code></td><td>Basic string functions (e.g. <code>print</code>, <code>debug</code>, <code>len</code>) that are not built in</td><td align="center">Yes</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicTimePackage</code></td><td>Basic time functions (e.g. <a href="/rhai/language/timestamps.html">timestamps</a>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
+<tr><td><code>BasicTimePackage</code></td><td>Basic time functions (e.g. <a href="/rhai/vnext/language/timestamps.html">timestamps</a>)</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>MoreStringPackage</code></td><td>Additional string functions, including converting common types to string</td><td align="center">No</td><td align="center">Yes</td></tr>
 <tr><td><code>BasicMathPackage</code></td><td>Basic math functions (e.g. <code>sin</code>, <code>sqrt</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicArrayPackage</code></td><td>Basic <a href="/rhai/language/arrays.html">array</a> functions (not available under <code>no_index</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicMapPackage</code></td><td>Basic <a href="/rhai/language/object-maps.html">object map</a> functions (not available under <code>no_object</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
-<tr><td><code>BasicFnPackage</code></td><td>Basic methods for <a href="/rhai/language/fn-ptr.html">function pointers</a>.</td><td align="center">Yes</td><td align="center">Yes</td></tr>
-<tr><td><code>EvalPackage</code></td><td>Disable <a href="/rhai/language/eval.html"><code>eval</code></a></td><td align="center">No</td><td align="center">No</td></tr>
+<tr><td><code>BasicArrayPackage</code></td><td>Basic <a href="/rhai/vnext/language/arrays.html">array</a> functions (not available under <code>no_index</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
+<tr><td><code>BasicMapPackage</code></td><td>Basic <a href="/rhai/vnext/language/object-maps.html">object map</a> functions (not available under <code>no_object</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
+<tr><td><code>BasicFnPackage</code></td><td>Basic methods for <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>.</td><td align="center">Yes</td><td align="center">Yes</td></tr>
+<tr><td><code>EvalPackage</code></td><td>Disable <a href="/rhai/vnext/language/eval.html"><code>eval</code></a></td><td align="center">No</td><td align="center">No</td></tr>
 <tr><td><code>CorePackage</code></td><td>Basic essentials</td><td align="center">Yes</td><td align="center">Yes</td></tr>
 <tr><td><code>StandardPackage</code></td><td>Standard library (default for <code>Engine::new</code>)</td><td align="center">No</td><td align="center">Yes</td></tr>
 </tbody></table>

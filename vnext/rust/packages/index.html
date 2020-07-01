@@ -157,8 +157,8 @@
 packages to be used.</p>
 <p>Packages typically contain Rust functions that are callable within a Rhai script.
 All functions registered in a package is loaded under the <em>global namespace</em> (i.e. they’re available without module qualifiers).</p>
-<p>Once a package is created (e.g. via <code>new</code>), it can be <em>shared</em> (via <code>get</code>) among multiple instances of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>,
-even across threads (under <a href="/rhai/start/features.html"><code>sync</code></a>). Therefore, a package only has to be created <em>once</em>.</p>
+<p>Once a package is created (e.g. via <code>new</code>), it can be <em>shared</em> (via <code>get</code>) among multiple instances of <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>,
+even across threads (under <a href="/rhai/vnext/start/features.html"><code>sync</code></a>). Therefore, a package only has to be created <em>once</em>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -173,10 +173,10 @@ engine.load_package(package.get()); // load the package manually. 'get' returns 
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#difference-between-a-package-and-a-module" id="difference-between-a-package-and-a-module">Difference Between a Package and a Module</a></h2>
-<p>Packages are actually implemented as <a href="/rhai/language/modules/index.html">modules</a>, so they share a lot of behavior and characteristics.</p>
+<p>Packages are actually implemented as <a href="/rhai/vnext/language/modules/index.html">modules</a>, so they share a lot of behavior and characteristics.</p>
 <p>The main difference is that a package loads under the <em>global</em> namespace, while a module loads under its own
-namespace alias specified in an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement (see also <a href="/rhai/language/modules/index.html">modules</a>).</p>
-<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
+namespace alias specified in an <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement (see also <a href="/rhai/vnext/language/modules/index.html">modules</a>).</p>
+<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
 the <code>import</code> statement).</p>
 
                     </main>

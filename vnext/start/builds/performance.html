@@ -153,18 +153,18 @@
                     <main>
                         <h1><a class="header" href="#performance-build" id="performance-build">Performance Build</a></h1>
 <h2><a class="header" href="#use-only-one-integer-type" id="use-only-one-integer-type">Use Only One Integer Type</a></h2>
-<p>Some features are for performance.  For example, using <a href="/rhai/start/features.html"><code>only_i32</code></a> or <a href="/rhai/start/features.html"><code>only_i64</code></a> disables all other integer types (such as <code>u16</code>).</p>
+<p>Some features are for performance.  For example, using <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> or <a href="/rhai/vnext/start/features.html"><code>only_i64</code></a> disables all other integer types (such as <code>u16</code>).</p>
 <p>If only a single integer type is needed in scripts - most of the time this is the case - it is best to avoid registering
-lots of functions related to other integer types that will never be used.  As a result, <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> creation will be faster
+lots of functions related to other integer types that will never be used.  As a result, <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> creation will be faster
 because fewer functions need to be loaded.</p>
 <h2><a class="header" href="#use-only-32-bit-numbers" id="use-only-32-bit-numbers">Use Only 32-Bit Numbers</a></h2>
-<p>If only 32-bit integers are needed - again, most of the time this is the case - using <a href="/rhai/start/features.html"><code>only_i32</code></a> disables also <code>i64</code>.</p>
+<p>If only 32-bit integers are needed - again, most of the time this is the case - using <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> disables also <code>i64</code>.</p>
 <p>On 64-bit targets this may not gain much, but on some 32-bit targets this improves performance due to 64-bit arithmetic
 requiring more CPU cycles to complete.</p>
-<h2><a class="header" href="#minimize-size-of-a-hrefrhailanguagedynamichtmldynamica" id="minimize-size-of-a-hrefrhailanguagedynamichtmldynamica">Minimize Size of <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a></a></h2>
-<p>Turning on <a href="/rhai/start/features.html"><code>no_float</code></a>, and <a href="/rhai/start/features.html"><code>only_i32</code></a> makes the key <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
+<h2><a class="header" href="#minimize-size-of-a-hrefrhaivnextlanguagedynamichtmldynamica" id="minimize-size-of-a-hrefrhaivnextlanguagedynamichtmldynamica">Minimize Size of <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a></a></h2>
+<p>Turning on <a href="/rhai/vnext/start/features.html"><code>no_float</code></a>, and <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> makes the key <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
 while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
-<p>Making <a href="/rhai/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
+<p>Making <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
 
                     </main>
 

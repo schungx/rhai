@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#constants" id="constants">Constants</a></h1>
 <p>Constants can be defined using the <code>const</code> keyword and are immutable.</p>
-<p>Constants follow the same naming rules as <a href="/rhai/language/variables.html">variables</a>.</p>
+<p>Constants follow the same naming rules as <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -164,7 +164,7 @@ print(x * 2);       // prints 84
 x = 123;            // &lt;- syntax error: cannot assign to constant
 <span class="boring">}
 </span></code></pre></pre>
-<p>Unlike variables which need not have initial values (default to <a href="/rhai/language/values-and-types.html"><code>()</code></a>),
+<p>Unlike variables which need not have initial values (default to <a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a>),
 constants must be assigned one, and it must be a constant <em>value</em>, not an expression.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

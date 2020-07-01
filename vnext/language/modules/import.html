@@ -198,7 +198,7 @@ for x in range(0, 1000) {
 </span></code></pre></pre>
 <h2><a class="header" href="#recursive-imports" id="recursive-imports">Recursive Imports</a></h2>
 <p>Beware of <em>import cycles</em> - i.e. recursively loading the same module. This is a sure-fire way to
-cause a stack overflow in the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, unless stopped by setting a limit for <a href="/rhai/safety/max-modules.html">maximum number of modules</a>.</p>
+cause a stack overflow in the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, unless stopped by setting a limit for <a href="/rhai/vnext/safety/max-modules.html">maximum number of modules</a>.</p>
 <p>For instance, importing itself always causes an infinite recursion:</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]

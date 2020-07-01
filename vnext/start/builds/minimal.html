@@ -154,7 +154,7 @@
                         <h1><a class="header" href="#minimal-build" id="minimal-build">Minimal Build</a></h1>
 <h2><a class="header" href="#configuration" id="configuration">Configuration</a></h2>
 <p>In order to compile a <em>minimal</em> build - i.e. a build optimized for size - perhaps for <code>no-std</code> embedded targets or for
-compiling to <a href="/rhai/start/builds/wasm.html">WASM</a>, it is essential that the correct linker flags are used in <code>cargo.toml</code>:</p>
+compiling to <a href="/rhai/vnext/start/builds/wasm.html">WASM</a>, it is essential that the correct linker flags are used in <code>cargo.toml</code>:</p>
 <pre><code class="language-toml">[profile.release]
 lto = &quot;fat&quot;         # turn on Link-Time Optimizations
 codegen-units = 1   # trade compile time with maximum optimization
@@ -162,24 +162,24 @@ opt-level = &quot;z&quot;     # optimize for size
 </code></pre>
 <h2><a class="header" href="#use-i32-only" id="use-i32-only">Use <code>i32</code> Only</a></h2>
 <p>For embedded systems that must optimize for code size, the architecture is commonly 32-bit.
-Use <a href="/rhai/start/features.html"><code>only_i32</code></a> to prune away large sections of code implementing functions for other numeric types
+Use <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> to prune away large sections of code implementing functions for other numeric types
 (including <code>i64</code>).</p>
-<p>If, for some reason, 64-bit long integers must be supported, use <a href="/rhai/start/features.html"><code>only_i64</code></a> instead of <a href="/rhai/start/features.html"><code>only_i32</code></a>.</p>
+<p>If, for some reason, 64-bit long integers must be supported, use <a href="/rhai/vnext/start/features.html"><code>only_i64</code></a> instead of <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a>.</p>
 <h2><a class="header" href="#opt-out-of-features" id="opt-out-of-features">Opt-Out of Features</a></h2>
 <p>Opt out of as many features as possible, if they are not needed, to reduce code size because, remember, by default
 all code is compiled in as what a script requires cannot be predicted. If a language feature is not needed,
 omitting them via special features is a prudent strategy to optimize the build for size.</p>
-<p>Omitting arrays (<a href="/rhai/start/features.html"><code>no_index</code></a>) yields the most code-size savings, followed by floating-point support
-(<a href="/rhai/start/features.html"><code>no_float</code></a>), checked arithmetic/script resource limits (<a href="/rhai/start/features.html"><code>unchecked</code></a>) and finally object maps and custom types (<a href="/rhai/start/features.html"><code>no_object</code></a>).</p>
-<p>Where the usage scenario does not call for loading externally-defined modules, use <a href="/rhai/start/features.html"><code>no_module</code></a> to save some bytes.
-Disable script-defined functions (<a href="/rhai/start/features.html"><code>no_function</code></a>) when the feature is not needed.
+<p>Omitting arrays (<a href="/rhai/vnext/start/features.html"><code>no_index</code></a>) yields the most code-size savings, followed by floating-point support
+(<a href="/rhai/vnext/start/features.html"><code>no_float</code></a>), checked arithmetic/script resource limits (<a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>) and finally object maps and custom types (<a href="/rhai/vnext/start/features.html"><code>no_object</code></a>).</p>
+<p>Where the usage scenario does not call for loading externally-defined modules, use <a href="/rhai/vnext/start/features.html"><code>no_module</code></a> to save some bytes.
+Disable script-defined functions (<a href="/rhai/vnext/start/features.html"><code>no_function</code></a>) when the feature is not needed.
 Both of these have little code size savings.</p>
-<h2><a class="header" href="#use-a-raw-a-hrefrhaienginehello-worldhtmlenginea" id="use-a-raw-a-hrefrhaienginehello-worldhtmlenginea">Use a Raw <a href="/rhai/engine/hello-world.html"><code>Engine</code></a></a></h2>
-<p><a href="/rhai/engine/raw.html"><code>Engine::new_raw</code></a> creates a <em>raw</em> engine.
-A <em>raw</em> engine supports, out of the box, only a very <a href="/rhai/engine/raw.html#built-in-operators">restricted set</a>
+<h2><a class="header" href="#use-a-raw-a-hrefrhaivnextenginehello-worldhtmlenginea" id="use-a-raw-a-hrefrhaivnextenginehello-worldhtmlenginea">Use a Raw <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></a></h2>
+<p><a href="/rhai/vnext/engine/raw.html"><code>Engine::new_raw</code></a> creates a <em>raw</em> engine.
+A <em>raw</em> engine supports, out of the box, only a very <a href="/rhai/vnext/engine/raw.html#built-in-operators">restricted set</a>
 of basic arithmetic and logical operators.</p>
-<p>Selectively include other necessary functionalities by loading specific <a href="/rhai/rust/packages/index.html">packages</a> to minimize the footprint.</p>
-<p>Packages are sharable (even across threads via the <a href="/rhai/start/features.html"><code>sync</code></a> feature), so they only have to be created once.</p>
+<p>Selectively include other necessary functionalities by loading specific <a href="/rhai/vnext/rust/packages/index.html">packages</a> to minimize the footprint.</p>
+<p>Packages are sharable (even across threads via the <a href="/rhai/vnext/start/features.html"><code>sync</code></a> feature), so they only have to be created once.</p>
 
                     </main>
 
