@@ -1,5 +1,5 @@
 {
 	"version": "0.16.1",
-	"rootUrl": "",
-	"rootUrlX": "/rhai"
+	"rootUrlX": "",
+	"rootUrl": "/rhai"
 }
