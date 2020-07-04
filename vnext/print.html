@@ -184,7 +184,7 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> buil
 <p>Fairly low compile-time overhead.</p>
 </li>
 <li>
-<p>Fairly efficient evaluation (1 million iterations in 0.4 sec on a single core, 2.3 GHz Linux VM).</p>
+<p>Fairly efficient evaluation (1 million iterations in 0.3 sec on a single core, 2.3 GHz Linux VM).</p>
 </li>
 <li>
 <p>Scripts are <a href="about//rhai/vnext/engine/optimize/index.html">optimized</a> (useful for template-based machine-generated scripts) for repeated evaluations.</p>
@@ -469,6 +469,7 @@ a Rust application, as well as a number of sample scripts that showcase differen
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/no_std.rs"><code>no_std</code></a></td><td>Example to test out <code>no-std</code> builds.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/reuse_scope.rs"><code>reuse_scope</code></a></td><td>Evaluates two pieces of code in separate runs, but using a common <a href="start/examples//rhai/vnext/rust/scope.html"><code>Scope</code></a>.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/rhai_runner.rs"><code>rhai_runner</code></a></td><td>Runs each filename passed to it as a Rhai script.</td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/serde.rs"><code>serde</code></a></td><td>Example to serialize and deserialize Rust types with <a href="https://crates.io/crates/serde"><code>serde</code></a>.<br/>The <a href="start/examples//rhai/vnext/rust/serde.html"><code>serde</code></a> feature is required to run.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/simple_fn.rs"><code>simple_fn</code></a></td><td>Shows how to register a simple function.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/strings.rs"><code>strings</code></a></td><td>Shows different ways to register functions taking string arguments.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/repl.rs"><code>repl</code></a></td><td>A simple REPL, interactively evaluate statements from stdin.</td></tr>
@@ -3527,13 +3528,17 @@ via the <a href="rust//rhai/vnext/start/features.html"><code>serde</code></a> fe
 <p>A <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> can be seamlessly converted to and from a type that implements <code>serde::Serialize</code> and/or
 <code>serde::Deserialize</code>.</p>
 <h2><a class="header" href="#serialization" id="serialization">Serialization</a></h2>
-<p>While it is simple to serialize a Rust type to <code>JSON</code> via <code>serde</code>,
-then use <a href="rust//rhai/vnext/language/json.html"><code>Engine::parse_json</code></a> to convert it into an <a href="rust//rhai/vnext/language/object-maps.html">object map</a>,
-Rhai supports serializing a <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> directly via <code>serde</code> without going through the <code>JSON</code> step.</p>
 <p>The function <code>rhai::ser::to_dynamic</code> automatically converts any Rust type that implements <code>serde::Serialize</code>
 into a <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a>.</p>
+<p>This is usually not necessary because using <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic::from</code></a> is much easier and is essentially
+the same thing.  The only difference is treatment for integer values.  <code>Dynamic::from</code> will keep the different
+integer types intact, while <code>rhai::ser::to_dynamic</code> will convert them all into <a href="rust//rhai/vnext/language/values-and-types.html"><code>INT</code></a>
+(i.e. the system integer type which is <code>i64</code> or <code>i32</code> depending on the <a href="rust//rhai/vnext/start/features.html"><code>only_i32</code></a> feature).</p>
 <p>In particular, Rust <code>struct</code>‘s (or any type that is marked as a <code>serde</code> map) are converted into <a href="rust//rhai/vnext/language/object-maps.html">object maps</a>
 while Rust <code>Vec</code>‘s (or any type that is marked as a <code>serde</code> sequence) are converted into <a href="rust//rhai/vnext/language/arrays.html">arrays</a>.</p>
+<p>While it is also simple to serialize a Rust type to <code>JSON</code> via <code>serde</code>,
+then use <a href="rust//rhai/vnext/language/json.html"><code>Engine::parse_json</code></a> to convert it into an <a href="rust//rhai/vnext/language/object-maps.html">object map</a>,
+<code>rhai::ser::to_dynamic</code> serializes it to <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> directly via <code>serde</code> without going through the <code>JSON</code> step.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
