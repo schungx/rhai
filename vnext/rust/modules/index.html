@@ -153,7 +153,7 @@
                     <main>
                         <h1><a class="header" href="#create-a-module-from-rust" id="create-a-module-from-rust">Create a Module from Rust</a></h1>
 <p>Manually creating a <a href="/rhai/vnext/language/modules/index.html"><code>Module</code></a> is possible via the <code>Module</code> API.</p>
-<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.17.0/rhai/struct.Module.html">documentation</a> online.</p>
+<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.18.0/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the Module Available to the Engine</a></h2>
 <p>In order to <em>use</em> a custom module, there must be a <a href="/rhai/vnext/rust/modules/resolvers.html">module resolver</a>.</p>
 <p>The easiest way is to use, for example, the <a href="/rhai/vnext/rust/modules/resolvers.html"><code>StaticModuleResolver</code></a> to hold such
@@ -226,21 +226,6 @@ engine.eval::&lt;i64&gt;(&amp;scope, r#&quot;import &quot;question&quot; as q; q
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

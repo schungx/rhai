@@ -165,6 +165,13 @@ requiring more CPU cycles to complete.</p>
 <p>Turning on <a href="/rhai/vnext/start/features.html"><code>no_float</code></a>, and <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> makes the key <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
 while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>Making <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
+<h2><a class="header" href="#use-immutablestring" id="use-immutablestring">Use <code>ImmutableString</code></a></h2>
+<p>Internally, Rhai uses <em>immutable</em> <a href="/rhai/vnext/language/strings-chars.html">strings</a> instead of the Rust <code>String</code> type.  This is mainly to avoid excessive
+cloning when passing function arguments.</p>
+<p>The encapsulated immutable string type is <code>ImmutableString</code>.  It is cheap to clone (just an <code>Rc</code> or <code>Arc</code> reference
+count increment depending on the <a href="/rhai/vnext/start/features.html"><code>sync</code></a> feature).</p>
+<p>Therefore, functions taking <code>String</code> parameters should use <code>ImmutableString</code> or <code>&amp;str</code> (which maps to <code>ImmutableString</code>)
+for the best performance with Rhai.</p>
 
                     </main>
 
@@ -203,21 +210,6 @@ while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to ho
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

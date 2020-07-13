@@ -154,6 +154,7 @@
                         <h1><a class="header" href="#custom-type-indexers" id="custom-type-indexers">Custom Type Indexers</a></h1>
 <p>A custom type can also expose an <em>indexer</em> by registering an indexer function.</p>
 <p>A custom type with an indexer function defined can use the bracket ‘<code>[]</code>‘ notation to get a property value.</p>
+<p>Like getters and setters, indexers take a <code>&amp;mut</code> reference to the first parameter.</p>
 <p>Indexers are disabled when the <a href="/rhai/vnext/start/features.html"><code>no_index</code></a> feature is used.</p>
 <p>For efficiency reasons, indexers <strong>cannot</strong> be used to overload (i.e. override) built-in indexing operations for
 <a href="/rhai/vnext/language/arrays.html">arrays</a> and <a href="/rhai/vnext/language/object-maps.html">object maps</a>.</p>
@@ -180,13 +181,12 @@ impl TestStruct {
 
 let mut engine = Engine::new();
 
-engine.register_type::&lt;TestStruct&gt;();
-
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
-
-// Shorthand: engine.register_indexer_get_set(TestStruct::get_field, TestStruct::set_field);
-engine.register_indexer_get(TestStruct::get_field);
-engine.register_indexer_set(TestStruct::set_field);
+engine
+    .register_type::&lt;TestStruct&gt;()
+    .register_fn(&quot;new_ts&quot;, TestStruct::new)
+    // Shorthand: .register_indexer_get_set(TestStruct::get_field, TestStruct::set_field);
+    .register_indexer_get(TestStruct::get_field)
+    .register_indexer_set(TestStruct::set_field);
 
 let result = engine.eval::&lt;i64&gt;(&quot;let a = new_ts(); a[2] = 42; a[2]&quot;)?;
 
@@ -231,21 +231,6 @@ println!(&quot;Answer: {}&quot;, result);                     // prints 42
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -153,6 +153,7 @@
                     <main>
                         <h1><a class="header" href="#custom-type-getters-and-setters" id="custom-type-getters-and-setters">Custom Type Getters and Setters</a></h1>
 <p>A custom type can also expose members by registering <code>get</code> and/or <code>set</code> functions.</p>
+<p>Getters and setters each take a <code>&amp;mut</code> reference to the first parameter.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -180,10 +181,10 @@ impl TestStruct {
 
 let mut engine = Engine::new();
 
-engine.register_type::&lt;TestStruct&gt;();
-
-engine.register_get_set(&quot;xyz&quot;, TestStruct::get_field, TestStruct::set_field);
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
+    engine
+        .register_type::&lt;TestStruct&gt;()
+        .register_get_set(&quot;xyz&quot;, TestStruct::get_field, TestStruct::set_field)
+        .register_fn(&quot;new_ts&quot;, TestStruct::new);
 
 // Return result can be 'String' - Rhai will automatically convert it from 'ImmutableString'
 let result = engine.eval::&lt;String&gt;(r#&quot;let a = new_ts(); a.xyz = &quot;42&quot;; a.xyz&quot;#)?;
@@ -229,21 +230,6 @@ println!(&quot;Answer: {}&quot;, result);                     // prints 42
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

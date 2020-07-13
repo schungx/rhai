@@ -203,7 +203,7 @@ item.is::&lt;i64&gt;() == true;                       // 'is' returns whether a 
 let value = item.cast::&lt;i64&gt;();                 // if the element is 'i64', this succeeds; otherwise it panics
 let value: i64 = item.cast();                   // type can also be inferred
 
-let value = item.try_cast::&lt;i64&gt;().unwrap();    // 'try_cast' does not panic when the cast fails, but returns 'None'
+let value = item.try_cast::&lt;i64&gt;()?;            // 'try_cast' does not panic when the cast fails, but returns 'None'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#type-name" id="type-name">Type Name</a></h2>
@@ -273,21 +273,6 @@ match item.type_name() {                        // 'type_name' returns the name 
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

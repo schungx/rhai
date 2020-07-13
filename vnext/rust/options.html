@@ -162,6 +162,7 @@
 <tr><td><code>set_max_string_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>Set the maximum length (in UTF-8 bytes) for <a href="/rhai/vnext/language/strings-chars.html">strings</a>. See <a href="/rhai/vnext/safety/max-string-size.html">maximum length of strings</a>.</td></tr>
 <tr><td><code>set_max_array_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td><td>Set the maximum size for <a href="/rhai/vnext/language/arrays.html">arrays</a>. See <a href="/rhai/vnext/safety/max-array-size.html">maximum size of arrays</a>.</td></tr>
 <tr><td><code>set_max_map_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="/rhai/vnext/start/features.html"><code>no_object</code></a></td><td>Set the maximum number of properties for <a href="/rhai/vnext/language/object-maps.html">object maps</a>. See <a href="/rhai/vnext/safety/max-map-size.html">maximum size of object maps</a>.</td></tr>
+<tr><td><code>disable_symbol</code></td><td></td><td>Disable a certain keyword or operator. See <a href="/rhai/vnext/engine/disable.html">disable keywords and operators</a>.</td></tr>
 </tbody></table>
 
                     </main>
@@ -201,21 +202,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

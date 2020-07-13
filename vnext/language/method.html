@@ -152,6 +152,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
+<h2><a class="header" href="#first-mut-reference-parameter" id="first-mut-reference-parameter">First <code>&amp;mut</code> Reference Parameter</a></h2>
 <p>Property <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/vnext/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be called
 just like a regular function.  In fact, like Rust, property getters/setters and object methods
 are registered as regular <a href="/rhai/vnext/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
@@ -179,6 +180,15 @@ update(array[0]);   // &lt;- 'array[0]' is an expression returning a calculated 
 array[0].update();  // &lt;- call in method-call style will update 'a'
 <span class="boring">}
 </span></code></pre></pre>
+<h2><a class="header" href="#encouraged-usage" id="encouraged-usage">Encouraged Usage</a></h2>
+<p>Using a <code>&amp;mut</code> first parameter is highly encouraged when using types that are expensive to clone,
+even when the intention is not to mutate that argument, because it avoids cloning that argument value.</p>
+<p>For primary types that are cheap to clone, including <code>ImmutableString</code>, this is not necessary.</p>
+<h2><a class="header" href="#avoid-mut-immutablestring" id="avoid-mut-immutablestring">Avoid <code>&amp;mut ImmutableString</code></a></h2>
+<p><code>ImmutableString</code>, Rhai internal <a href="/rhai/vnext/language/strings-chars.html">string</a> type, is an exception.</p>
+<p><code>ImmutableString</code> is cheap to clone, but expensive to take a mutable reference (because the underlying
+string must be cloned to make a private copy).</p>
+<p>Therefore, avoid using <code>&amp;mut ImmutableString</code> unless the intention is to mutate it.</p>
 
                     </main>
 
@@ -217,21 +227,6 @@ array[0].update();  // &lt;- call in method-call style will update 'a'
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

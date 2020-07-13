@@ -154,14 +154,17 @@
                         <h1><a class="header" href="#strings-and-characters" id="strings-and-characters">Strings and Characters</a></h1>
 <p>String in Rhai contain any text sequence of valid Unicode characters.
 Internally strings are stored in UTF-8 encoding.</p>
-<p>Strings can be built up from other strings and types via the <code>+</code> operator (provided by the <a href="/rhai/vnext/rust/packages/index.html"><code>MoreStringPackage</code></a>
-but excluded if using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>). This is particularly useful when printing output.</p>
+<p>Strings can be built up from other strings and types via the <code>+</code> operator
+(provided by the <a href="/rhai/vnext/rust/packages/index.html"><code>MoreStringPackage</code></a> but excluded if using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>).
+This is particularly useful when printing output.</p>
 <p><a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> a string returns <code>&quot;string&quot;</code>.</p>
 <p>The maximum allowed length of a string can be controlled via <code>Engine::set_max_string_size</code>
 (see <a href="/rhai/vnext/safety/max-string-size.html">maximum length of strings</a>).</p>
 <h2><a class="header" href="#the-immutablestring-type" id="the-immutablestring-type">The <code>ImmutableString</code> Type</a></h2>
 <p>All strings in Rhai are implemented as <code>ImmutableString</code> (see <a href="/rhai/vnext/language/values-and-types.html">standard types</a>).</p>
-<p><code>ImmutableString</code> should be used in place of the standard Rust type <code>String</code> when registering functions.</p>
+<p><code>ImmutableString</code> should be used in place of the standard Rust type <code>String</code> when registering functions
+because using <code>String</code> is very inefficient (the <code>String</code> must always be cloned).</p>
+<p>A alternative is to use <code>&amp;str</code> which maps straight to <code>ImmutableString</code>.</p>
 <h2><a class="header" href="#string-and-character-literals" id="string-and-character-literals">String and Character Literals</a></h2>
 <p>String and character literals follow C-style formatting, with support for Unicode (’<code>\u</code><em>xxxx</em>‘ or ‘<code>\U</code><em>xxxxxxxx</em>‘)
 and hex (’<code>\x</code><em>xx</em>‘) escape sequences.</p>
@@ -186,9 +189,9 @@ but nevertheless there are major differences.</p>
 <p>This is similar to most other languages where strings are internally represented not as UTF-8 but as arrays of multi-byte
 Unicode characters.</p>
 <p>Individual characters within a Rhai string can also be replaced just as if the string is an array of Unicode characters.</p>
-<p>In Rhai, there is also no separate concepts of <code>String</code> and <code>&amp;str</code> as in Rust.</p>
+<p>In Rhai, there are also no separate concepts of <code>String</code> and <code>&amp;str</code> as in Rust.</p>
 <h2><a class="header" href="#immutable-strings" id="immutable-strings">Immutable Strings</a></h2>
-<p>Rhai strings are <em>immutable</em> and can be shared.</p>
+<p>Rhai use <em>immutable</em> strings (type <code>ImmutableString</code>) and can be shared.</p>
 <p>Modifying a Rhai string actually causes it first to be cloned, and then the modification made to the copy.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playpen"><code class="language-rust">
@@ -280,21 +283,6 @@ for ch in record {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

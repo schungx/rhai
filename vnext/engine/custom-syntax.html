@@ -151,7 +151,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#extending-rhai-with-custom-syntax" id="extending-rhai-with-custom-syntax">Extending Rhai with Custom Syntax</a></h1>
+                        <h1><a class="header" href="#extend-rhai-with-custom-syntax" id="extend-rhai-with-custom-syntax">Extend Rhai with Custom Syntax</a></h1>
 <p>For the ultimate advantageous, there is a built-in facility to <em>extend</em> the Rhai language
 with custom-defined <em>syntax</em>.</p>
 <p>But before going off to define the next weird statement type, heed this warning:</p>
@@ -260,7 +260,7 @@ print(hello);   // variable declared by a custom syntax persists!
     state: &amp;mut State,
     lib: &amp;Module,
     this_ptr: &amp;mut Option&lt;&amp;mut Dynamic&gt;,
-    inputs: &amp;[Expr],
+    inputs: &amp;[Expression],
     level: usize
 ) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
 <span class="boring">}
@@ -273,7 +273,7 @@ print(hello);   // variable declared by a custom syntax persists!
 <li><code>state : &amp;mut State</code> - mutable reference to the current evaluation state; <strong>do not touch</strong>.</li>
 <li><code>lib : &amp;Module</code> - reference to the current collection of script-defined functions.</li>
 <li><code>this_ptr : &amp;mut Option&lt;&amp;mut Dynamic&gt;</code> - mutable reference to the current binding of the <code>this</code> pointer; <strong>do not touch</strong>.</li>
-<li><code>inputs : &amp;[Expr]</code> - a list of input expression trees.</li>
+<li><code>inputs : &amp;[Expression]</code> - a list of input expression trees.</li>
 <li><code>level : usize</code> - the current function call level.</li>
 </ul>
 <p>There are a lot of parameters, most of which should not be touched or Bad Things Happen™.
@@ -285,8 +285,8 @@ and statement blocks (`$block$) are provided.</p>
 <p>To access a particular argument, use the following patterns:</p>
 <table><thead><tr><th align="center">Argument type</th><th>Pattern (<code>n</code> = slot in <code>inputs</code>)</th><th align="center">Result type</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center"><code>$ident$</code></td><td><code>inputs[n].get_variable_name().unwrap()</code></td><td align="center"><code>&amp;str</code></td><td>name of a variable</td></tr>
-<tr><td align="center"><code>$expr$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expr</code></td><td>an expression tree</td></tr>
-<tr><td align="center"><code>$block$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expr</code></td><td>an expression tree</td></tr>
+<tr><td align="center"><code>$expr$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expression</code></td><td>an expression tree</td></tr>
+<tr><td align="center"><code>$block$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expression</code></td><td>an expression tree</td></tr>
 </tbody></table>
 <h3><a class="header" href="#evaluate-an-expression-tree" id="evaluate-an-expression-tree">Evaluate an Expression Tree</a></h3>
 <p>Use the <code>engine::eval_expression_tree</code> method to evaluate an expression tree.</p>
@@ -330,7 +330,7 @@ fn implementation_func(
     state: &amp;mut State,
     lib: &amp;Module,
     this_ptr: &amp;mut Option&lt;&amp;mut Dynamic&gt;,
-    inputs: &amp;[Expr],
+    inputs: &amp;[Expression],
     level: usize
 ) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt; {
     let var_name = inputs[0].get_variable_name().unwrap().to_string();
@@ -421,21 +421,6 @@ of what you’re doing.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

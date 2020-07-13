@@ -156,7 +156,7 @@
                         <h1><a class="header" href="#what-is-rhai" id="what-is-rhai">What is Rhai</a></h1>
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
-<p>This Book is for version 0.17.0 of Rhai.</p>
+<p>This Book is for version 0.18.0 of Rhai.</p>
 <p>For the latest development version, see <a href="about//rhai/vnext/vnext/">here</a>.</p>
 <h1><a class="header" href="#features" id="features">Features</a></h1>
 <h2><a class="header" href="#easy" id="easy">Easy</a></h2>
@@ -335,7 +335,7 @@ Scripts can be evaluated directly from the editor.</p>
 <p>The easiest way is to install the Rhai crate from <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>,
 starting by looking up the latest version and adding this line under <code>dependencies</code> in the project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = &quot;0.17.0&quot;    # assuming 0.17.0 is the latest version
+rhai = &quot;0.18.0&quot;    # assuming 0.18.0 is the latest version
 </code></pre>
 <p>Or to automatically use the latest released crate version on <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>:</p>
 <pre><code class="language-toml">[dependencies]
@@ -378,7 +378,7 @@ more control over what a script can (or cannot) do.</p>
 <li><code>no_function</code> (no defining <a href="start//rhai/vnext/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.17.0&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
+rhai = { version = &quot;0.18.0&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
 no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), does not support defining <a href="start//rhai/vnext/language/functions.html">functions</a>
@@ -401,6 +401,13 @@ requiring more CPU cycles to complete.</p>
 <p>Turning on <a href="start/builds//rhai/vnext/start/features.html"><code>no_float</code></a>, and <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> makes the key <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
 while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>Making <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
+<h2><a class="header" href="#use-immutablestring" id="use-immutablestring">Use <code>ImmutableString</code></a></h2>
+<p>Internally, Rhai uses <em>immutable</em> <a href="start/builds//rhai/vnext/language/strings-chars.html">strings</a> instead of the Rust <code>String</code> type.  This is mainly to avoid excessive
+cloning when passing function arguments.</p>
+<p>The encapsulated immutable string type is <code>ImmutableString</code>.  It is cheap to clone (just an <code>Rc</code> or <code>Arc</code> reference
+count increment depending on the <a href="start/builds//rhai/vnext/start/features.html"><code>sync</code></a> feature).</p>
+<p>Therefore, functions taking <code>String</code> parameters should use <code>ImmutableString</code> or <code>&amp;str</code> (which maps to <code>ImmutableString</code>)
+for the best performance with Rhai.</p>
 <h1><a class="header" href="#minimal-build" id="minimal-build">Minimal Build</a></h1>
 <h2><a class="header" href="#configuration" id="configuration">Configuration</a></h2>
 <p>In order to compile a <em>minimal</em> build - i.e. a build optimized for size - perhaps for <code>no-std</code> embedded targets or for
@@ -473,7 +480,7 @@ a Rust application, as well as a number of sample scripts that showcase differen
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/arrays_and_structs.rs"><code>arrays_and_structs</code></a></td><td>Shows how to register a custom Rust type and using <a href="start/examples//rhai/vnext/language/arrays.html">arrays</a> on it.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/custom_types_and_methods.rs"><code>custom_types_and_methods</code></a></td><td>Shows how to register a custom Rust type and methods for it.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/hello.rs"><code>hello</code></a></td><td>Simple example that evaluates an expression and prints the result.</td></tr>
-<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/no_std.rs"><code>no_std</code></a></td><td>Example to test out <code>no-std</code> builds.</td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/no_std.rs"><code>no_std</code></a></td><td>Example to test out <code>no-std</code> builds.</br>The <a href="start/examples//rhai/vnext/start/features.html"><code>no_std</code></a> feature is required to build in <code>no-std</code>.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/reuse_scope.rs"><code>reuse_scope</code></a></td><td>Evaluates two pieces of code in separate runs, but using a common <a href="start/examples//rhai/vnext/rust/scope.html"><code>Scope</code></a>.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/rhai_runner.rs"><code>rhai_runner</code></a></td><td>Runs each filename passed to it as a Rhai script.</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/examples/serde.rs"><code>serde</code></a></td><td>Example to serialize and deserialize Rust types with <a href="https://crates.io/crates/serde"><code>serde</code></a>.<br/>The <a href="start/examples//rhai/vnext/rust/serde.html"><code>serde</code></a> feature is required to run.</td></tr>
@@ -675,7 +682,7 @@ let result = engine.call_fn_dynamic(
                         [ 41_i64.into() ]
              )?;
 
-assert_eq!(value.as_int().unwrap(), 42);
+assert_eq!(value.as_int()?, 42);
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#create-a-rust-anonymous-function-from-a-rhai-function" id="create-a-rust-anonymous-function-from-a-rhai-function">Create a Rust Anonymous Function from a Rhai Function</a></h1>
@@ -797,8 +804,9 @@ fn get_any_value() -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt; {
 
 let mut engine = Engine::new();
 
-engine.register_fn(&quot;add&quot;, add_len);
-engine.register_fn(&quot;add_str&quot;, add_len_str);
+engine
+    .register_fn(&quot;add&quot;, add_len)
+    .register_fn(&quot;add_str&quot;, add_len_str);
 
 let result = engine.eval::&lt;i64&gt;(r#&quot;add(40, &quot;xx&quot;)&quot;#)?;
 
@@ -833,24 +841,42 @@ i.e. different functions can have the same name as long as their parameters are 
 and/or different number.</p>
 <p>New definitions <em>overwrite</em> previous definitions of the same name and same number/types of parameters.</p>
 <h1><a class="header" href="#string-parameters-in-rust-functions" id="string-parameters-in-rust-functions"><code>String</code> Parameters in Rust Functions</a></h1>
-<p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to [<code>ImmutableString</code>]
-which is the type that Rhai uses to represent <a href="rust//rhai/vnext/language/strings-chars.html">strings</a> internally.</p>
+<h2><a class="header" href="#str-maps-to-immutablestring" id="str-maps-to-immutablestring"><code>&amp;str</code> Maps to <code>ImmutableString</code></a></h2>
+<p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to
+<a href="rust//rhai/vnext/language/strings-chars.html"><code>ImmutableString</code></a> which is the type that Rhai uses to represent <a href="rust//rhai/vnext/language/strings-chars.html">strings</a> internally.</p>
+<p>The parameter type <code>String</code> is discouraged because it involves converting an [<code>ImmutableString</code>] into a <code>String</code>.
+Using <code>ImmutableString</code> or <code>&amp;str</code> is much more efficient.
+A common mistake made by novice Rhai users is to register functions with <code>String</code> parameters.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>fn get_len1(s: String) -&gt; i64 { s.len() as i64 }            // &lt;- Rhai will not find this function
+</span>fn get_len1(s: String) -&gt; i64 { s.len() as i64 }            // &lt;- Rhai finds this function, but very inefficient
 fn get_len2(s: &amp;str) -&gt; i64 { s.len() as i64 }              // &lt;- Rhai finds this function fine
 fn get_len3(s: ImmutableString) -&gt; i64 { s.len() as i64 }   // &lt;- the above is equivalent to this
 
-engine.register_fn(&quot;len1&quot;, get_len1);
-engine.register_fn(&quot;len2&quot;, get_len2);
-engine.register_fn(&quot;len3&quot;, get_len3);
+engine
+    .register_fn(&quot;len1&quot;, get_len1)
+    .register_fn(&quot;len2&quot;, get_len2)
+    .register_fn(&quot;len3&quot;, get_len3);
 
 let len = engine.eval::&lt;i64&gt;(&quot;x.len1()&quot;)?;                  // error: function 'len1 (&amp;str | ImmutableString)' not found
 let len = engine.eval::&lt;i64&gt;(&quot;x.len2()&quot;)?;                  // works fine
 let len = engine.eval::&lt;i64&gt;(&quot;x.len3()&quot;)?;                  // works fine
 <span class="boring">}
 </span></code></pre></pre>
+<h2><a class="header" href="#avoid-mut-immutablestring" id="avoid-mut-immutablestring">Avoid <code>&amp;mut ImmutableString</code></a></h2>
+<p>Rhai functions can take a first <code>&amp;mut</code> parameter.  Usually this is a good idea because it avoids
+cloning of the argument (except for primary types where cloning is cheap), so its use is encouraged
+even though there is no intention to ever mutate that argument.</p>
+<p><code>ImmutableString</code> is an exception to this rule.  While <code>ImmutableString</code> is cheap to clone (only
+incrementing a reference count), taking a mutable reference to it involves making a private clone
+of the underlying string because Rhai has no way to find out whether that parameter will be mutated.</p>
+<p>If the <code>ImmutableString</code> is not shared by any other variables, then Rhai just returns a mutable
+reference to it since nobody else is watching! Otherwise a private copy is made first,
+because other reference holders will not expect the <code>ImmutableString</code> to ever change
+(it is supposed to be <em>immutable</em>).</p>
+<p>Therefore, avoid using <code>&amp;mut ImmutableString</code> as the first parameter of a function unless you really
+intend to mutate that string.  Use <code>ImmutableString</code> instead.</p>
 <h1><a class="header" href="#register-a-generic-rust-function" id="register-a-generic-rust-function">Register a Generic Rust Function</a></h1>
 <p>Rust generic functions can be used in Rhai, but separate instances for each concrete type must be registered separately.</p>
 <p>This essentially <em>overloads</em> the function with different parameter types as Rhai does not natively support generics
@@ -868,9 +894,10 @@ fn show_it&lt;T: Display&gt;(x: &amp;mut T) {
 
 let mut engine = Engine::new();
 
-engine.register_fn(&quot;print&quot;, show_it::&lt;i64&gt;);
-engine.register_fn(&quot;print&quot;, show_it::&lt;bool&gt;);
-engine.register_fn(&quot;print&quot;, show_it::&lt;ImmutableString&gt;);
+engine
+    .register_fn(&quot;print&quot;, show_it::&lt;i64&gt;)
+    .register_fn(&quot;print&quot;, show_it::&lt;bool&gt;)
+    .register_fn(&quot;print&quot;, show_it::&lt;ImmutableString&gt;);
 <span class="boring">}
 </span></code></pre></pre>
 <p>The above example shows how to register multiple functions
@@ -1092,7 +1119,7 @@ See the [script-optimization] for more details.</p>
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
 </span>use rhai::{Engine, EvalAltResult};
-use rhai::RegisterFn;
+use rhai::RegisterFn;                       // remember 'RegisterFn' is needed
 
 #[derive(Clone)]
 struct TestStruct {
@@ -1111,14 +1138,14 @@ impl TestStruct {
 
 let mut engine = Engine::new();
 
-engine.register_type::&lt;TestStruct&gt;();
-
-engine.register_fn(&quot;update&quot;, TestStruct::update);
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
+engine
+    .register_type::&lt;TestStruct&gt;()          // most API's can be chained up
+    .register_fn(&quot;update&quot;, TestStruct::update)
+    .register_fn(&quot;new_ts&quot;, TestStruct::new);
 
 let result = engine.eval::&lt;TestStruct&gt;(&quot;let x = new_ts(); x.update(); x&quot;)?;
 
-println!(&quot;result: {}&quot;, result.field);           // prints 42
+println!(&quot;result: {}&quot;, result.field);       // prints 42
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#register-a-custom-type" id="register-a-custom-type">Register a Custom Type</a></h2>
@@ -1133,7 +1160,7 @@ struct TestStruct {
 }
 
 impl TestStruct {
-    fn update(&amp;mut self) {              // methods take &amp;mut as first parameter
+    fn update(&amp;mut self) {      // methods take &amp;mut as first parameter
         self.field += 41;
     }
 
@@ -1154,8 +1181,9 @@ using one of the <code>Engine::register_XXX</code> API.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>engine.register_fn(&quot;update&quot;, TestStruct::update);   // registers 'update(&amp;mut TestStruct)'
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);      // registers 'new()'
+</span>engine
+    .register_fn(&quot;update&quot;, TestStruct::update)  // registers 'update(&amp;mut TestStruct)'
+    .register_fn(&quot;new_ts&quot;, TestStruct::new);    // registers 'new()'
 <span class="boring">}
 </span></code></pre></pre>
 <p><em><strong>Note</strong>: Rhai follows the convention that methods of custom types take a <code>&amp;mut</code> first parameter
@@ -1183,13 +1211,13 @@ This design is similar to Rust.</p>
     ts.field
 }
 
-engine.register_fn(&quot;foo&quot;, foo);                     // register a Rust native function
+engine.register_fn(&quot;foo&quot;, foo);         // register a Rust native function
 
 let result = engine.eval::&lt;i64&gt;(
-    &quot;let x = new_ts(); x.foo()&quot;                     // 'foo' can be called like a method on 'x'
+    &quot;let x = new_ts(); x.foo()&quot;         // 'foo' can be called like a method on 'x'
 )?;
 
-println!(&quot;result: {}&quot;, result);                     // prints 1
+println!(&quot;result: {}&quot;, result);         // prints 1
 <span class="boring">}
 </span></code></pre></pre>
 <p>Under <a href="rust//rhai/vnext/start/features.html"><code>no_object</code></a>, however, the <em>method</em> style of function calls
@@ -1208,19 +1236,24 @@ with a special “pretty-print” name, <a href="rust//rhai/vnext/language/type-
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>engine.register_type::&lt;TestStruct&gt;();
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
+</span>engine
+    .register_type::&lt;TestStruct&gt;()
+    .register_fn(&quot;new_ts&quot;, TestStruct::new);
+
 let x = new_ts();
 x.type_of() == &quot;path::to::module::TestStruct&quot;;
 
-engine.register_type_with_name::&lt;TestStruct&gt;(&quot;Hello&quot;);
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
+engine
+    .register_type_with_name::&lt;TestStruct&gt;(&quot;Hello&quot;)
+    .register_fn(&quot;new_ts&quot;, TestStruct::new);
+
 let x = new_ts();
 x.type_of() == &quot;Hello&quot;;
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#custom-type-getters-and-setters" id="custom-type-getters-and-setters">Custom Type Getters and Setters</a></h1>
 <p>A custom type can also expose members by registering <code>get</code> and/or <code>set</code> functions.</p>
+<p>Getters and setters each take a <code>&amp;mut</code> reference to the first parameter.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -1248,10 +1281,10 @@ impl TestStruct {
 
 let mut engine = Engine::new();
 
-engine.register_type::&lt;TestStruct&gt;();
-
-engine.register_get_set(&quot;xyz&quot;, TestStruct::get_field, TestStruct::set_field);
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
+    engine
+        .register_type::&lt;TestStruct&gt;()
+        .register_get_set(&quot;xyz&quot;, TestStruct::get_field, TestStruct::set_field)
+        .register_fn(&quot;new_ts&quot;, TestStruct::new);
 
 // Return result can be 'String' - Rhai will automatically convert it from 'ImmutableString'
 let result = engine.eval::&lt;String&gt;(r#&quot;let a = new_ts(); a.xyz = &quot;42&quot;; a.xyz&quot;#)?;
@@ -1262,6 +1295,7 @@ println!(&quot;Answer: {}&quot;, result);                     // prints 42
 <h1><a class="header" href="#custom-type-indexers" id="custom-type-indexers">Custom Type Indexers</a></h1>
 <p>A custom type can also expose an <em>indexer</em> by registering an indexer function.</p>
 <p>A custom type with an indexer function defined can use the bracket ‘<code>[]</code>‘ notation to get a property value.</p>
+<p>Like getters and setters, indexers take a <code>&amp;mut</code> reference to the first parameter.</p>
 <p>Indexers are disabled when the <a href="rust//rhai/vnext/start/features.html"><code>no_index</code></a> feature is used.</p>
 <p>For efficiency reasons, indexers <strong>cannot</strong> be used to overload (i.e. override) built-in indexing operations for
 <a href="rust//rhai/vnext/language/arrays.html">arrays</a> and <a href="rust//rhai/vnext/language/object-maps.html">object maps</a>.</p>
@@ -1288,13 +1322,12 @@ impl TestStruct {
 
 let mut engine = Engine::new();
 
-engine.register_type::&lt;TestStruct&gt;();
-
-engine.register_fn(&quot;new_ts&quot;, TestStruct::new);
-
-// Shorthand: engine.register_indexer_get_set(TestStruct::get_field, TestStruct::set_field);
-engine.register_indexer_get(TestStruct::get_field);
-engine.register_indexer_set(TestStruct::set_field);
+engine
+    .register_type::&lt;TestStruct&gt;()
+    .register_fn(&quot;new_ts&quot;, TestStruct::new)
+    // Shorthand: .register_indexer_get_set(TestStruct::get_field, TestStruct::set_field);
+    .register_indexer_get(TestStruct::get_field)
+    .register_indexer_set(TestStruct::set_field);
 
 let result = engine.eval::&lt;i64&gt;(&quot;let a = new_ts(); a[2] = 42; a[2]&quot;)?;
 
@@ -1341,11 +1374,11 @@ let mut scope = Scope::new();
 // Then push (i.e. add) some initialized variables into the state.
 // Remember the system number types in Rhai are i64 (i32 if 'only_i32') ond f64.
 // Better stick to them or it gets hard working with the script.
-scope.push(&quot;y&quot;, 42_i64);
-scope.push(&quot;z&quot;, 999_i64);
-
-// 'set_value' adds a variable when one doesn't exist
-scope.set_value(&quot;s&quot;, &quot;hello, world!&quot;.to_string());  // remember to use 'String', not '&amp;str'
+scope
+    .push(&quot;y&quot;, 42_i64)
+    .push(&quot;z&quot;, 999_i64)
+    .set_value(&quot;s&quot;, &quot;hello, world!&quot;.to_string());   //'set_value' adds a variable when one doesn't exist
+                                                    // remember to use 'String', not '&amp;str'
 
 // First invocation
 engine.eval_with_scope::&lt;()&gt;(&amp;mut scope, r&quot;
@@ -1377,6 +1410,7 @@ assert_eq!(scope.get_value::&lt;i64&gt;(&quot;y&quot;).expect(&quot;variable y s
 <tr><td><code>set_max_string_size</code></td><td><a href="rust//rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>Set the maximum length (in UTF-8 bytes) for <a href="rust//rhai/vnext/language/strings-chars.html">strings</a>. See <a href="rust//rhai/vnext/safety/max-string-size.html">maximum length of strings</a>.</td></tr>
 <tr><td><code>set_max_array_size</code></td><td><a href="rust//rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="rust//rhai/vnext/start/features.html"><code>no_index</code></a></td><td>Set the maximum size for <a href="rust//rhai/vnext/language/arrays.html">arrays</a>. See <a href="rust//rhai/vnext/safety/max-array-size.html">maximum size of arrays</a>.</td></tr>
 <tr><td><code>set_max_map_size</code></td><td><a href="rust//rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="rust//rhai/vnext/start/features.html"><code>no_object</code></a></td><td>Set the maximum number of properties for <a href="rust//rhai/vnext/language/object-maps.html">object maps</a>. See <a href="rust//rhai/vnext/safety/max-map-size.html">maximum size of object maps</a>.</td></tr>
+<tr><td><code>disable_symbol</code></td><td></td><td>Disable a certain keyword or operator. See <a href="rust//rhai/vnext/engine/disable.html">disable keywords and operators</a>.</td></tr>
 </tbody></table>
 <h1><a class="header" href="#rhai-language-reference" id="rhai-language-reference">Rhai Language Reference</a></h1>
 <p>This section outlines the Rhai language.</p>
@@ -1480,7 +1514,7 @@ item.is::&lt;i64&gt;() == true;                       // 'is' returns whether a 
 let value = item.cast::&lt;i64&gt;();                 // if the element is 'i64', this succeeds; otherwise it panics
 let value: i64 = item.cast();                   // type can also be inferred
 
-let value = item.try_cast::&lt;i64&gt;().unwrap();    // 'try_cast' does not panic when the cast fails, but returns 'None'
+let value = item.try_cast::&lt;i64&gt;()?;            // 'try_cast' does not panic when the cast fails, but returns 'None'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#type-name" id="type-name">Type Name</a></h2>
@@ -1638,14 +1672,17 @@ print(&quot;c is '&quot; + c + &quot;' and its code is &quot; + c.to_int());    
 <h1><a class="header" href="#strings-and-characters" id="strings-and-characters">Strings and Characters</a></h1>
 <p>String in Rhai contain any text sequence of valid Unicode characters.
 Internally strings are stored in UTF-8 encoding.</p>
-<p>Strings can be built up from other strings and types via the <code>+</code> operator (provided by the <a href="language//rhai/vnext/rust/packages/index.html"><code>MoreStringPackage</code></a>
-but excluded if using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></a>). This is particularly useful when printing output.</p>
+<p>Strings can be built up from other strings and types via the <code>+</code> operator
+(provided by the <a href="language//rhai/vnext/rust/packages/index.html"><code>MoreStringPackage</code></a> but excluded if using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></a>).
+This is particularly useful when printing output.</p>
 <p><a href="language//rhai/vnext/language/type-of.html"><code>type_of()</code></a> a string returns <code>&quot;string&quot;</code>.</p>
 <p>The maximum allowed length of a string can be controlled via <code>Engine::set_max_string_size</code>
 (see <a href="language//rhai/vnext/safety/max-string-size.html">maximum length of strings</a>).</p>
 <h2><a class="header" href="#the-immutablestring-type" id="the-immutablestring-type">The <code>ImmutableString</code> Type</a></h2>
 <p>All strings in Rhai are implemented as <code>ImmutableString</code> (see <a href="language//rhai/vnext/language/values-and-types.html">standard types</a>).</p>
-<p><code>ImmutableString</code> should be used in place of the standard Rust type <code>String</code> when registering functions.</p>
+<p><code>ImmutableString</code> should be used in place of the standard Rust type <code>String</code> when registering functions
+because using <code>String</code> is very inefficient (the <code>String</code> must always be cloned).</p>
+<p>A alternative is to use <code>&amp;str</code> which maps straight to <code>ImmutableString</code>.</p>
 <h2><a class="header" href="#string-and-character-literals" id="string-and-character-literals">String and Character Literals</a></h2>
 <p>String and character literals follow C-style formatting, with support for Unicode (’<code>\u</code><em>xxxx</em>‘ or ‘<code>\U</code><em>xxxxxxxx</em>‘)
 and hex (’<code>\x</code><em>xx</em>‘) escape sequences.</p>
@@ -1670,9 +1707,9 @@ but nevertheless there are major differences.</p>
 <p>This is similar to most other languages where strings are internally represented not as UTF-8 but as arrays of multi-byte
 Unicode characters.</p>
 <p>Individual characters within a Rhai string can also be replaced just as if the string is an array of Unicode characters.</p>
-<p>In Rhai, there is also no separate concepts of <code>String</code> and <code>&amp;str</code> as in Rust.</p>
+<p>In Rhai, there are also no separate concepts of <code>String</code> and <code>&amp;str</code> as in Rust.</p>
 <h2><a class="header" href="#immutable-strings" id="immutable-strings">Immutable Strings</a></h2>
-<p>Rhai strings are <em>immutable</em> and can be shared.</p>
+<p>Rhai use <em>immutable</em> strings (type <code>ImmutableString</code>) and can be shared.</p>
 <p>Modifying a Rhai string actually causes it first to be cloned, and then the modification made to the copy.</p>
 <h2><a class="header" href="#examples-1" id="examples-1">Examples</a></h2>
 <pre><pre class="playpen"><code class="language-rust">
@@ -2602,6 +2639,7 @@ change();           // &lt;- error: `this` is unbounded
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
+<h2><a class="header" href="#first-mut-reference-parameter" id="first-mut-reference-parameter">First <code>&amp;mut</code> Reference Parameter</a></h2>
 <p>Property <a href="language//rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="language//rhai/vnext/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be called
 just like a regular function.  In fact, like Rust, property getters/setters and object methods
 are registered as regular <a href="language//rhai/vnext/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
@@ -2629,6 +2667,15 @@ update(array[0]);   // &lt;- 'array[0]' is an expression returning a calculated 
 array[0].update();  // &lt;- call in method-call style will update 'a'
 <span class="boring">}
 </span></code></pre></pre>
+<h2><a class="header" href="#encouraged-usage" id="encouraged-usage">Encouraged Usage</a></h2>
+<p>Using a <code>&amp;mut</code> first parameter is highly encouraged when using types that are expensive to clone,
+even when the intention is not to mutate that argument, because it avoids cloning that argument value.</p>
+<p>For primary types that are cheap to clone, including <code>ImmutableString</code>, this is not necessary.</p>
+<h2><a class="header" href="#avoid-mut-immutablestring-1" id="avoid-mut-immutablestring-1">Avoid <code>&amp;mut ImmutableString</code></a></h2>
+<p><code>ImmutableString</code>, Rhai internal <a href="language//rhai/vnext/language/strings-chars.html">string</a> type, is an exception.</p>
+<p><code>ImmutableString</code> is cheap to clone, but expensive to take a mutable reference (because the underlying
+string must be cloned to make a private copy).</p>
+<p>Therefore, avoid using <code>&amp;mut ImmutableString</code> unless the intention is to mutate it.</p>
 <h1><a class="header" href="#function-overloading" id="function-overloading">Function Overloading</a></h1>
 <p><a href="language//rhai/vnext/language/functions.html">Functions</a> defined in script can be <em>overloaded</em> by <em>arity</em> (i.e. they are resolved purely upon the function’s <em>name</em>
 and <em>number</em> of parameters, but not parameter <em>types</em> since all parameters are the same type - <a href="language//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a>).</p>
@@ -3102,7 +3149,7 @@ bar::do_something_else();
 </span></code></pre></pre>
 <h1><a class="header" href="#create-a-module-from-rust" id="create-a-module-from-rust">Create a Module from Rust</a></h1>
 <p>Manually creating a <a href="rust/modules//rhai/vnext/language/modules/index.html"><code>Module</code></a> is possible via the <code>Module</code> API.</p>
-<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.17.0/rhai/struct.Module.html">documentation</a> online.</p>
+<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.18.0/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the Module Available to the Engine</a></h2>
 <p>In order to <em>use</em> a custom module, there must be a <a href="rust/modules//rhai/vnext/rust/modules/resolvers.html">module resolver</a>.</p>
 <p>The easiest way is to use, for example, the <a href="rust/modules//rhai/vnext/rust/modules/resolvers.html"><code>StaticModuleResolver</code></a> to hold such
@@ -4113,9 +4160,9 @@ a normal expression.</p>
 <p>For its evaluation, the callback function will receive the following list of parameters:</p>
 <p><code>exprs[0] = &quot;sum&quot;</code> - math operator<br />
 <code>exprs[1] = &quot;price&quot;</code> - field name<br />
-<code>exprs[2] = Expr(table)</code> - data source<br />
+<code>exprs[2] = Expression(table)</code> - data source<br />
 <code>exprs[3] = &quot;row&quot;</code> - loop variable name<br />
-<code>exprs[4] = Expr(row.wright &gt; 50)</code> - expression</p>
+<code>exprs[4] = Expression(row.wright &gt; 50)</code> - expression</p>
 <p>The other identified, such as <code>&quot;select&quot;</code>, <code>&quot;from&quot;</code>, as as as symbols <code>-&gt;</code> and <code>:</code> are
 parsed in the order defined within the custom syntax.</p>
 <h1><a class="header" href="#disable-certain-keywords-andor-operators" id="disable-certain-keywords-andor-operators">Disable Certain Keywords and/or Operators</a></h1>
@@ -4129,8 +4176,9 @@ to prevent usage of certain language features.</p>
 
 let mut engine = Engine::new();
 
-engine.disable_symbol(&quot;if&quot;);    // disable the 'if' keyword
-engine.disable_symbol(&quot;+=&quot;);    // disable the '+=' operator
+engine
+    .disable_symbol(&quot;if&quot;)       // disable the 'if' keyword
+    .disable_symbol(&quot;+=&quot;);      // disable the '+=' operator
 
 // The following all return parse errors.
 
@@ -4155,12 +4203,12 @@ customized operators performing specific logic.</p>
 
 let mut engine = Engine::new();
 
-// Register a custom operator called 'foo' and give it
-// a precedence of 160 (i.e. between +|- and *|/)
-engine.register_custom_operator(&quot;foo&quot;, 160).unwrap();
-
-// Register the implementation of the customer operator as a function
-engine.register_fn(&quot;foo&quot;, |x: i64, y: i64| (x * y) - (x + y));
+// Register a custom operator named 'foo' and give it a precedence of 160
+// (i.e. between +|- and *|/)
+// Also register the implementation of the customer operator as a function
+engine
+    .register_custom_operator(&quot;foo&quot;, 160)?
+    .register_fn(&quot;foo&quot;, |x: i64, y: i64| (x * y) - (x + y));
 
 // The custom operator can be used in expressions
 let result = engine.eval_expression::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?;
@@ -4200,9 +4248,9 @@ engine.register_custom_operator(&quot;=&gt;&quot;, 30);      // &lt;- error: '=&
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>engine.register_custom_operator(&quot;foo&quot;, 160).unwrap();
-
-engine.register_fn(&quot;foo&quot;, |x: i64| x * x);
+</span>engine
+    .register_custom_operator(&quot;foo&quot;, 160)?
+    .register_fn(&quot;foo&quot;, |x: i64| x * x);
 
 engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: function 'foo (i64, i64)' not found
 <span class="boring">}
@@ -4225,7 +4273,7 @@ engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: functi
 </tbody></table>
 <p>A higher precedence binds more tightly than a lower precedence, so <code>*</code> and <code>/</code> binds before <code>+</code> and <code>-</code> etc.</p>
 <p>When registering a custom operator, the operator’s precedence must also be provided.</p>
-<h1><a class="header" href="#extending-rhai-with-custom-syntax" id="extending-rhai-with-custom-syntax">Extending Rhai with Custom Syntax</a></h1>
+<h1><a class="header" href="#extend-rhai-with-custom-syntax" id="extend-rhai-with-custom-syntax">Extend Rhai with Custom Syntax</a></h1>
 <p>For the ultimate advantageous, there is a built-in facility to <em>extend</em> the Rhai language
 with custom-defined <em>syntax</em>.</p>
 <p>But before going off to define the next weird statement type, heed this warning:</p>
@@ -4334,7 +4382,7 @@ print(hello);   // variable declared by a custom syntax persists!
     state: &amp;mut State,
     lib: &amp;Module,
     this_ptr: &amp;mut Option&lt;&amp;mut Dynamic&gt;,
-    inputs: &amp;[Expr],
+    inputs: &amp;[Expression],
     level: usize
 ) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
 <span class="boring">}
@@ -4347,7 +4395,7 @@ print(hello);   // variable declared by a custom syntax persists!
 <li><code>state : &amp;mut State</code> - mutable reference to the current evaluation state; <strong>do not touch</strong>.</li>
 <li><code>lib : &amp;Module</code> - reference to the current collection of script-defined functions.</li>
 <li><code>this_ptr : &amp;mut Option&lt;&amp;mut Dynamic&gt;</code> - mutable reference to the current binding of the <code>this</code> pointer; <strong>do not touch</strong>.</li>
-<li><code>inputs : &amp;[Expr]</code> - a list of input expression trees.</li>
+<li><code>inputs : &amp;[Expression]</code> - a list of input expression trees.</li>
 <li><code>level : usize</code> - the current function call level.</li>
 </ul>
 <p>There are a lot of parameters, most of which should not be touched or Bad Things Happen™.
@@ -4359,8 +4407,8 @@ and statement blocks (`$block$) are provided.</p>
 <p>To access a particular argument, use the following patterns:</p>
 <table><thead><tr><th align="center">Argument type</th><th>Pattern (<code>n</code> = slot in <code>inputs</code>)</th><th align="center">Result type</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center"><code>$ident$</code></td><td><code>inputs[n].get_variable_name().unwrap()</code></td><td align="center"><code>&amp;str</code></td><td>name of a variable</td></tr>
-<tr><td align="center"><code>$expr$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expr</code></td><td>an expression tree</td></tr>
-<tr><td align="center"><code>$block$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expr</code></td><td>an expression tree</td></tr>
+<tr><td align="center"><code>$expr$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expression</code></td><td>an expression tree</td></tr>
+<tr><td align="center"><code>$block$</code></td><td><code>inputs.get(n).unwrap()</code></td><td align="center"><code>Expression</code></td><td>an expression tree</td></tr>
 </tbody></table>
 <h3><a class="header" href="#evaluate-an-expression-tree" id="evaluate-an-expression-tree">Evaluate an Expression Tree</a></h3>
 <p>Use the <code>engine::eval_expression_tree</code> method to evaluate an expression tree.</p>
@@ -4404,7 +4452,7 @@ fn implementation_func(
     state: &amp;mut State,
     lib: &amp;Module,
     this_ptr: &amp;mut Option&lt;&amp;mut Dynamic&gt;,
-    inputs: &amp;[Expr],
+    inputs: &amp;[Expression],
     level: usize
 ) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt; {
     let var_name = inputs[0].get_variable_name().unwrap().to_string();
@@ -4650,21 +4698,6 @@ engine.load_package(package.get());     // load the package
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

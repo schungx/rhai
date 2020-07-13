@@ -162,8 +162,9 @@ to prevent usage of certain language features.</p>
 
 let mut engine = Engine::new();
 
-engine.disable_symbol(&quot;if&quot;);    // disable the 'if' keyword
-engine.disable_symbol(&quot;+=&quot;);    // disable the '+=' operator
+engine
+    .disable_symbol(&quot;if&quot;)       // disable the 'if' keyword
+    .disable_symbol(&quot;+=&quot;);      // disable the '+=' operator
 
 // The following all return parse errors.
 
@@ -214,21 +215,6 @@ engine.compile(&quot;let x = 40 + 2; x += 1;&quot;)?;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -168,9 +168,10 @@ fn show_it&lt;T: Display&gt;(x: &amp;mut T) {
 
 let mut engine = Engine::new();
 
-engine.register_fn(&quot;print&quot;, show_it::&lt;i64&gt;);
-engine.register_fn(&quot;print&quot;, show_it::&lt;bool&gt;);
-engine.register_fn(&quot;print&quot;, show_it::&lt;ImmutableString&gt;);
+engine
+    .register_fn(&quot;print&quot;, show_it::&lt;i64&gt;)
+    .register_fn(&quot;print&quot;, show_it::&lt;bool&gt;)
+    .register_fn(&quot;print&quot;, show_it::&lt;ImmutableString&gt;);
 <span class="boring">}
 </span></code></pre></pre>
 <p>The above example shows how to register multiple functions
@@ -214,21 +215,6 @@ under the same name.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

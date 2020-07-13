@@ -180,8 +180,9 @@ fn get_any_value() -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt; {
 
 let mut engine = Engine::new();
 
-engine.register_fn(&quot;add&quot;, add_len);
-engine.register_fn(&quot;add_str&quot;, add_len_str);
+engine
+    .register_fn(&quot;add&quot;, add_len)
+    .register_fn(&quot;add_str&quot;, add_len_str);
 
 let result = engine.eval::&lt;i64&gt;(r#&quot;add(40, &quot;xx&quot;)&quot;#)?;
 
@@ -253,21 +254,6 @@ and/or different number.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

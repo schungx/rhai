@@ -203,9 +203,9 @@ a normal expression.</p>
 <p>For its evaluation, the callback function will receive the following list of parameters:</p>
 <p><code>exprs[0] = &quot;sum&quot;</code> - math operator<br />
 <code>exprs[1] = &quot;price&quot;</code> - field name<br />
-<code>exprs[2] = Expr(table)</code> - data source<br />
+<code>exprs[2] = Expression(table)</code> - data source<br />
 <code>exprs[3] = &quot;row&quot;</code> - loop variable name<br />
-<code>exprs[4] = Expr(row.wright &gt; 50)</code> - expression</p>
+<code>exprs[4] = Expression(row.wright &gt; 50)</code> - expression</p>
 <p>The other identified, such as <code>&quot;select&quot;</code>, <code>&quot;from&quot;</code>, as as as symbols <code>-&gt;</code> and <code>:</code> are
 parsed in the order defined within the custom syntax.</p>
 
@@ -246,21 +246,6 @@ parsed in the order defined within the custom syntax.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

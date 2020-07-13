@@ -152,24 +152,42 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#string-parameters-in-rust-functions" id="string-parameters-in-rust-functions"><code>String</code> Parameters in Rust Functions</a></h1>
-<p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to [<code>ImmutableString</code>]
-which is the type that Rhai uses to represent <a href="/rhai/vnext/language/strings-chars.html">strings</a> internally.</p>
+<h2><a class="header" href="#str-maps-to-immutablestring" id="str-maps-to-immutablestring"><code>&amp;str</code> Maps to <code>ImmutableString</code></a></h2>
+<p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to
+<a href="/rhai/vnext/language/strings-chars.html"><code>ImmutableString</code></a> which is the type that Rhai uses to represent <a href="/rhai/vnext/language/strings-chars.html">strings</a> internally.</p>
+<p>The parameter type <code>String</code> is discouraged because it involves converting an [<code>ImmutableString</code>] into a <code>String</code>.
+Using <code>ImmutableString</code> or <code>&amp;str</code> is much more efficient.
+A common mistake made by novice Rhai users is to register functions with <code>String</code> parameters.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>fn get_len1(s: String) -&gt; i64 { s.len() as i64 }            // &lt;- Rhai will not find this function
+</span>fn get_len1(s: String) -&gt; i64 { s.len() as i64 }            // &lt;- Rhai finds this function, but very inefficient
 fn get_len2(s: &amp;str) -&gt; i64 { s.len() as i64 }              // &lt;- Rhai finds this function fine
 fn get_len3(s: ImmutableString) -&gt; i64 { s.len() as i64 }   // &lt;- the above is equivalent to this
 
-engine.register_fn(&quot;len1&quot;, get_len1);
-engine.register_fn(&quot;len2&quot;, get_len2);
-engine.register_fn(&quot;len3&quot;, get_len3);
+engine
+    .register_fn(&quot;len1&quot;, get_len1)
+    .register_fn(&quot;len2&quot;, get_len2)
+    .register_fn(&quot;len3&quot;, get_len3);
 
 let len = engine.eval::&lt;i64&gt;(&quot;x.len1()&quot;)?;                  // error: function 'len1 (&amp;str | ImmutableString)' not found
 let len = engine.eval::&lt;i64&gt;(&quot;x.len2()&quot;)?;                  // works fine
 let len = engine.eval::&lt;i64&gt;(&quot;x.len3()&quot;)?;                  // works fine
 <span class="boring">}
 </span></code></pre></pre>
+<h2><a class="header" href="#avoid-mut-immutablestring" id="avoid-mut-immutablestring">Avoid <code>&amp;mut ImmutableString</code></a></h2>
+<p>Rhai functions can take a first <code>&amp;mut</code> parameter.  Usually this is a good idea because it avoids
+cloning of the argument (except for primary types where cloning is cheap), so its use is encouraged
+even though there is no intention to ever mutate that argument.</p>
+<p><code>ImmutableString</code> is an exception to this rule.  While <code>ImmutableString</code> is cheap to clone (only
+incrementing a reference count), taking a mutable reference to it involves making a private clone
+of the underlying string because Rhai has no way to find out whether that parameter will be mutated.</p>
+<p>If the <code>ImmutableString</code> is not shared by any other variables, then Rhai just returns a mutable
+reference to it since nobody else is watching! Otherwise a private copy is made first,
+because other reference holders will not expect the <code>ImmutableString</code> to ever change
+(it is supposed to be <em>immutable</em>).</p>
+<p>Therefore, avoid using <code>&amp;mut ImmutableString</code> as the first parameter of a function unless you really
+intend to mutate that string.  Use <code>ImmutableString</code> instead.</p>
 
                     </main>
 
@@ -208,21 +226,6 @@ let len = engine.eval::&lt;i64&gt;(&quot;x.len3()&quot;)?;                  // w
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

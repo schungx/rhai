@@ -163,12 +163,12 @@ customized operators performing specific logic.</p>
 
 let mut engine = Engine::new();
 
-// Register a custom operator called 'foo' and give it
-// a precedence of 160 (i.e. between +|- and *|/)
-engine.register_custom_operator(&quot;foo&quot;, 160).unwrap();
-
-// Register the implementation of the customer operator as a function
-engine.register_fn(&quot;foo&quot;, |x: i64, y: i64| (x * y) - (x + y));
+// Register a custom operator named 'foo' and give it a precedence of 160
+// (i.e. between +|- and *|/)
+// Also register the implementation of the customer operator as a function
+engine
+    .register_custom_operator(&quot;foo&quot;, 160)?
+    .register_fn(&quot;foo&quot;, |x: i64, y: i64| (x * y) - (x + y));
 
 // The custom operator can be used in expressions
 let result = engine.eval_expression::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?;
@@ -208,9 +208,9 @@ engine.register_custom_operator(&quot;=&gt;&quot;, 30);      // &lt;- error: '=&
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
-</span>engine.register_custom_operator(&quot;foo&quot;, 160).unwrap();
-
-engine.register_fn(&quot;foo&quot;, |x: i64| x * x);
+</span>engine
+    .register_custom_operator(&quot;foo&quot;, 160)?
+    .register_fn(&quot;foo&quot;, |x: i64| x * x);
 
 engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: function 'foo (i64, i64)' not found
 <span class="boring">}
@@ -271,21 +271,6 @@ engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: functi
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3001");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         
