@@ -1,5 +1,6 @@
 {
-	"version": "0.16.1",
+	"version": "0.17.0",
 	"rootUrlX": "",
-	"rootUrl": "/rhai"
+	"rootUrl": "/rhai",
+	"rootUrlXX": "/rhai/vnext"
 }
