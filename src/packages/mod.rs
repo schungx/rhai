@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 //! Module containing all built-in _packages_ available to Rhai, plus facilities to define custom packages.
 
 use crate::fn_native::{CallableFunction, IteratorFn, Shared};

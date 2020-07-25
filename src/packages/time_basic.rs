@@ -1,12 +1,8 @@
 #![cfg(not(feature = "no_std"))]
 use super::logic::{eq, gt, gte, lt, lte, ne};
-use super::math_basic::MAX_INT;
 
 use crate::def_package;
-use crate::module::FuncReturn;
-use crate::parser::INT;
 use crate::result::EvalAltResult;
-use crate::token::Position;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::stdlib::time::Instant;

@@ -11,7 +11,7 @@ use crate::utils::{ImmutableString, StaticVec};
 use crate::Scope;
 
 use crate::stdlib::{
-    boxed::Box, convert::TryFrom, fmt, mem, rc::Rc, string::String, sync::Arc, vec::Vec,
+    boxed::Box, convert::TryFrom, fmt, mem, rc::Rc, string::String, vec::Vec,
 };
 
 /// Trait that maps to `Send + Sync` only under the `sync` feature.

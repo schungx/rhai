@@ -16,7 +16,6 @@ use crate::stdlib::{
     fmt, format,
     rc::Rc,
     string::{String, ToString},
-    sync::Arc,
 };
 
 /// A general expression evaluation trait object.
