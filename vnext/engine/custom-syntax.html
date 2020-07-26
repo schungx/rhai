@@ -247,13 +247,9 @@ print(hello);   // variable declared by a custom syntax persists!
 <p>Any custom syntax must include an <em>implementation</em> of it.</p>
 <h3><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h3>
 <p>The function signature of an implementation is:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>Fn(engine: &amp;Engine, context: &amp;mut EvalContext, scope: &amp;mut Scope, inputs: &amp;[Expression])
-    -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
-<span class="boring">}
-</span></code></pre></pre>
+<blockquote>
+<p><code>Fn(engine: &amp;Engine, context: &amp;mut EvalContext, scope: &amp;mut Scope, inputs: &amp;[Expression]) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
+</blockquote>
 <p>where:</p>
 <ul>
 <li><code>engine: &amp;Engine</code> - reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>

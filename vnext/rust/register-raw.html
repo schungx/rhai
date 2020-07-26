@@ -197,22 +197,11 @@ can also use <code>Engine</code> facilities (like evaluating a script).</p>
 engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| x += y);
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#shortcuts" id="shortcuts">Shortcuts</a></h2>
-<p>As usual with Rhai, there are shortcuts.  For functions of zero to four parameters, which should be
-the majority, use one of the <code>Engine::register_raw_fn_n</code> (where <code>n = 0..4</code>) methods:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Specify parameter types as generics
-engine.register_raw_fn_2::&lt;i64, i64&gt;(
-    &quot;increment_by&quot;,
-    |engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]| { ... }
-);
-<span class="boring">}
-</span></code></pre></pre>
-<h2><a class="header" href="#closure-signature" id="closure-signature">Closure Signature</a></h2>
-<p>The closure passed to <code>Engine::register_raw_fn</code> takes the following form:</p>
+<h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
+<p>The function signature passed to <code>Engine::register_raw_fn</code> takes the following form:</p>
+<blockquote>
 <p><code>Fn(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]) -&gt; Result&lt;T, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
+</blockquote>
 <p>where:</p>
 <ul>
 <li>
@@ -244,6 +233,10 @@ will be on the cloned copy.</p>
 <p>When there is a mutable reference to the <code>this</code> object (i.e. the first argument),
 there can be no other immutable references to <code>args</code>, otherwise the Rust borrow checker will complain.</p>
 <h2><a class="header" href="#example---passing-a-function-pointer-to-a-rust-function" id="example---passing-a-function-pointer-to-a-rust-function">Example - Passing a Function Pointer to a Rust Function</a></h2>
+<p>The low-level API is useful when there is a need to interact with the scripting <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> within a function.</p>
+<p>The following example registers a function that takes a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> as an argument,
+then calls it within the same <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.  This way, a <em>callback</em> function can be provided
+to a native Rust function.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -266,11 +259,10 @@ engine.register_raw_fn(
         let value = args[2].clone();                            // 3rd argument - function argument
         let this_ptr = args.get_mut(0).unwrap();                // 1st argument - this pointer
 
-        // Use 'call_fn_dynamic' to call the function name.
-        // Pass 'lib' as the current global library of functions.
-        engine.call_fn_dynamic(&amp;mut Scope::new(), lib, fp.fn_name(), Some(this_ptr), [value])?;
-
-        Ok(())
+        // Use 'FnPtr::call_dynamic' to call the function pointer.
+        // Beware, only script-defined functions are supported by 'FnPtr::call_dynamic'.
+        // If it is a native Rust function, directly call it here in Rust instead!
+        fp.call_dynamic(engine, lib, Some(this_ptr), [value])
     },
 );
 

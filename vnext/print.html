@@ -2184,20 +2184,22 @@ if now.elapsed &gt; 30.0 {
 </span></code></pre></pre>
 <h1><a class="header" href="#keywords" id="keywords">Keywords</a></h1>
 <p>The following are reserved keywords in Rhai:</p>
-<table><thead><tr><th>Keywords</th><th>Usage</th><th align="center">Not available under feature</th></tr></thead><tbody>
-<tr><td><code>true</code>, <code>false</code></td><td>Boolean constants</td><td align="center"></td></tr>
-<tr><td><code>let</code>, <code>const</code></td><td>Variable declarations</td><td align="center"></td></tr>
-<tr><td><code>if</code>, <code>else</code></td><td>Control flow</td><td align="center"></td></tr>
-<tr><td><code>while</code>, <code>loop</code>, <code>for</code>, <code>in</code>, <code>continue</code>, <code>break</code></td><td>Looping</td><td align="center"></td></tr>
-<tr><td><code>fn</code>, <code>private</code></td><td>Functions</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_function</code></a></td></tr>
-<tr><td><code>return</code></td><td>Return values</td><td align="center"></td></tr>
-<tr><td><code>throw</code></td><td>throw exceptions</td><td align="center"></td></tr>
-<tr><td><code>import</code>, <code>export</code>, <code>as</code></td><td>Modules</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_module</code></a></td></tr>
-<tr><td><code>Fn</code>, <code>call</code></td><td>Function pointers</td><td align="center"></td></tr>
-<tr><td><code>type_of</code>, <code>print</code>, <code>debug</code>, <code>eval</code></td><td>Special functions</td><td align="center"></td></tr>
+<table><thead><tr><th>Active keywords</th><th>Reserved keywords</th><th>Usage</th><th align="center">Inactive under feature</th></tr></thead><tbody>
+<tr><td><code>true</code>, <code>false</code></td><td></td><td>Boolean constants</td><td align="center"></td></tr>
+<tr><td><code>let</code>, <code>const</code></td><td><code>var</code>, <code>static</code></td><td>Variable declarations</td><td align="center"></td></tr>
+<tr><td><code>if</code>, <code>else</code></td><td><code>then</code>, <code>goto</code>, <code>exit</code></td><td>Control flow</td><td align="center"></td></tr>
+<tr><td></td><td><code>switch</code>, <code>match</code>, <code>case</code></td><td>Matching</td><td align="center"></td></tr>
+<tr><td><code>while</code>, <code>loop</code>, <code>for</code>, <code>in</code>, <code>continue</code>, <code>break</code></td><td><code>do</code>, <code>each</code></td><td>Looping</td><td align="center"></td></tr>
+<tr><td><code>fn</code>, <code>private</code></td><td><code>public</code>, <code>new</code></td><td>Functions</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_function</code></a></td></tr>
+<tr><td><code>return</code></td><td></td><td>Return values</td><td align="center"></td></tr>
+<tr><td><code>throw</code></td><td><code>try</code>, <code>catch</code></td><td>Throw exceptions</td><td align="center"></td></tr>
+<tr><td><code>import</code>, <code>export</code>, <code>as</code></td><td><code>use</code>, <code>with</code>, <code>module</code>, <code>package</code></td><td>Modules/packages</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_module</code></a></td></tr>
+<tr><td><code>Fn</code>, <code>call</code>, <code>curry</code></td><td></td><td>Function pointers</td><td align="center"></td></tr>
+<tr><td></td><td><code>spawn</code>, <code>go</code>, <code>async</code>, <code>await</code>, <code>yield</code></td><td>Threading/async</td><td align="center"></td></tr>
+<tr><td><code>type_of</code>, <code>print</code>, <code>debug</code>, <code>eval</code></td><td></td><td>Special functions</td><td align="center"></td></tr>
+<tr><td></td><td><code>default</code>, <code>void</code>, <code>null</code>, <code>nil</code></td><td>Special values</td><td align="center"></td></tr>
 </tbody></table>
-<p>Keywords cannot be the name of a <a href="language//rhai/vnext/language/functions.html">function</a> or <a href="language//rhai/vnext/language/variables.html">variable</a>, unless the relevant feature is enabled.
-For example, <code>fn</code> is a valid variable name under <a href="language//rhai/vnext/start/features.html"><code>no_function</code></a>.</p>
+<p>Keywords cannot become the name of a <a href="language//rhai/vnext/language/functions.html">function</a> or <a href="language//rhai/vnext/language/variables.html">variable</a>, even when they are disabled.</p>
 <h1><a class="header" href="#statements" id="statements">Statements</a></h1>
 <h2><a class="header" href="#terminated-by-" id="terminated-by-">Terminated by ‘<code>;</code>‘</a></h2>
 <p>Statements are terminated by semicolons ‘<code>;</code>‘ and they are mandatory,
@@ -4199,22 +4201,11 @@ can also use <code>Engine</code> facilities (like evaluating a script).</p>
 engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| x += y);
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#shortcuts" id="shortcuts">Shortcuts</a></h2>
-<p>As usual with Rhai, there are shortcuts.  For functions of zero to four parameters, which should be
-the majority, use one of the <code>Engine::register_raw_fn_n</code> (where <code>n = 0..4</code>) methods:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Specify parameter types as generics
-engine.register_raw_fn_2::&lt;i64, i64&gt;(
-    &quot;increment_by&quot;,
-    |engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]| { ... }
-);
-<span class="boring">}
-</span></code></pre></pre>
-<h2><a class="header" href="#closure-signature" id="closure-signature">Closure Signature</a></h2>
-<p>The closure passed to <code>Engine::register_raw_fn</code> takes the following form:</p>
+<h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
+<p>The function signature passed to <code>Engine::register_raw_fn</code> takes the following form:</p>
+<blockquote>
 <p><code>Fn(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]) -&gt; Result&lt;T, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
+</blockquote>
 <p>where:</p>
 <ul>
 <li>
@@ -4246,6 +4237,10 @@ will be on the cloned copy.</p>
 <p>When there is a mutable reference to the <code>this</code> object (i.e. the first argument),
 there can be no other immutable references to <code>args</code>, otherwise the Rust borrow checker will complain.</p>
 <h2><a class="header" href="#example---passing-a-function-pointer-to-a-rust-function" id="example---passing-a-function-pointer-to-a-rust-function">Example - Passing a Function Pointer to a Rust Function</a></h2>
+<p>The low-level API is useful when there is a need to interact with the scripting <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> within a function.</p>
+<p>The following example registers a function that takes a <a href="rust//rhai/vnext/language/fn-ptr.html">function pointer</a> as an argument,
+then calls it within the same <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.  This way, a <em>callback</em> function can be provided
+to a native Rust function.</p>
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
@@ -4268,11 +4263,10 @@ engine.register_raw_fn(
         let value = args[2].clone();                            // 3rd argument - function argument
         let this_ptr = args.get_mut(0).unwrap();                // 1st argument - this pointer
 
-        // Use 'call_fn_dynamic' to call the function name.
-        // Pass 'lib' as the current global library of functions.
-        engine.call_fn_dynamic(&amp;mut Scope::new(), lib, fp.fn_name(), Some(this_ptr), [value])?;
-
-        Ok(())
+        // Use 'FnPtr::call_dynamic' to call the function pointer.
+        // Beware, only script-defined functions are supported by 'FnPtr::call_dynamic'.
+        // If it is a native Rust function, directly call it here in Rust instead!
+        fp.call_dynamic(engine, lib, Some(this_ptr), [value])
     },
 );
 
@@ -4561,15 +4555,11 @@ print(hello);   // variable declared by a custom syntax persists!
 </span></code></pre></pre>
 <h2><a class="header" href="#step-two---implementation" id="step-two---implementation">Step Two - Implementation</a></h2>
 <p>Any custom syntax must include an <em>implementation</em> of it.</p>
-<h3><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h3>
+<h3><a class="header" href="#function-signature-1" id="function-signature-1">Function Signature</a></h3>
 <p>The function signature of an implementation is:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>Fn(engine: &amp;Engine, context: &amp;mut EvalContext, scope: &amp;mut Scope, inputs: &amp;[Expression])
-    -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
-<span class="boring">}
-</span></code></pre></pre>
+<blockquote>
+<p><code>Fn(engine: &amp;Engine, context: &amp;mut EvalContext, scope: &amp;mut Scope, inputs: &amp;[Expression]) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
+</blockquote>
 <p>where:</p>
 <ul>
 <li><code>engine: &amp;Engine</code> - reference to the current <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
@@ -4765,7 +4755,7 @@ engine.load_package(package.get());     // load the package
 <h1><a class="header" href="#appendix" id="appendix">Appendix</a></h1>
 <p>This section contains miscellaneous reference materials.</p>
 <h1><a class="header" href="#keywords-list" id="keywords-list">Keywords List</a></h1>
-<table><thead><tr><th align="center">Keyword</th><th>Description</th><th align="center">Not available under</th></tr></thead><tbody>
+<table><thead><tr><th align="center">Keyword</th><th>Description</th><th align="center">Inactive under</th></tr></thead><tbody>
 <tr><td align="center"><code>true</code></td><td>Boolean true literal</td><td align="center"></td></tr>
 <tr><td align="center"><code>false</code></td><td>Boolean false literal</td><td align="center"></td></tr>
 <tr><td align="center"><code>let</code></td><td>Variable declaration</td><td align="center"></td></tr>
@@ -4793,6 +4783,36 @@ engine.load_package(package.get());     // load the package
 <tr><td align="center"><code>print</code></td><td>Print value</td><td align="center"></td></tr>
 <tr><td align="center"><code>debug</code></td><td>Print value in debug format</td><td align="center"></td></tr>
 <tr><td align="center"><code>eval</code></td><td>Evaluate script</td><td align="center"></td></tr>
+</tbody></table>
+<h2><a class="header" href="#reserved-keywords" id="reserved-keywords">Reserved Keywords</a></h2>
+<table><thead><tr><th>Keyword</th><th>Potential usage</th></tr></thead><tbody>
+<tr><td><code>var</code></td><td>Variable declaration</td></tr>
+<tr><td><code>static</code></td><td>Variable declaration</td></tr>
+<tr><td><code>do</code></td><td>Looping</td></tr>
+<tr><td><code>each</code></td><td>Looping</td></tr>
+<tr><td><code>then</code></td><td>Control flow</td></tr>
+<tr><td><code>goto</code></td><td>Control flow</td></tr>
+<tr><td><code>exit</code></td><td>Control flow</td></tr>
+<tr><td><code>switch</code></td><td>Matching</td></tr>
+<tr><td><code>match</code></td><td>Matching</td></tr>
+<tr><td><code>case</code></td><td>Matching</td></tr>
+<tr><td><code>public</code></td><td>Function/field access</td></tr>
+<tr><td><code>new</code></td><td>Constructor</td></tr>
+<tr><td><code>try</code></td><td>Trap exception</td></tr>
+<tr><td><code>catch</code></td><td>Catch exception</td></tr>
+<tr><td><code>use</code></td><td>Import namespace</td></tr>
+<tr><td><code>with</code></td><td>Scope</td></tr>
+<tr><td><code>module</code></td><td>Module</td></tr>
+<tr><td><code>package</code></td><td>Package</td></tr>
+<tr><td><code>spawn</code></td><td>Threading</td></tr>
+<tr><td><code>go</code></td><td>Threading</td></tr>
+<tr><td><code>await</code></td><td>Async</td></tr>
+<tr><td><code>async</code></td><td>Async</td></tr>
+<tr><td><code>yield</code></td><td>Async</td></tr>
+<tr><td><code>default</code></td><td>Special value</td></tr>
+<tr><td><code>void</code></td><td>Special value</td></tr>
+<tr><td><code>null</code></td><td>Special value</td></tr>
+<tr><td><code>nil</code></td><td>Special value</td></tr>
 </tbody></table>
 <h1><a class="header" href="#operators-and-symbols" id="operators-and-symbols">Operators and Symbols</a></h1>
 <h2><a class="header" href="#operators" id="operators">Operators</a></h2>
