@@ -1,5 +1,7 @@
 {
 	"version": "0.18.0",
+	"repoHome": "https://github.com/jonathandturner/rhai/blob/master",
+	"repoTree": "https://github.com/jonathandturner/rhai/tree/master",
 	"rootUrlXX": "",
 	"rootUrlX": "/rhai",
 	"rootUrl": "/rhai/vnext"
