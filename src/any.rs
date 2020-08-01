@@ -169,6 +169,7 @@ pub enum Union {
 #[cfg(not(feature = "no_shared"))]
 #[derive(Clone)]
 pub struct SharedCell {
+    //TODO these two values may change in case of Dynamic Shared assertion to a different type
     value_type_id: TypeId,
     value_type_name: &'static str,
     container: SharedMut<Dynamic>,
@@ -850,7 +851,7 @@ impl Dynamic {
     ///
     /// Returns `None` if the cast fails.
     #[inline(always)]
-    fn downcast_ref<T: Variant + Clone>(&self) -> Option<&T> {
+    pub(crate) fn downcast_ref<T: Variant + Clone>(&self) -> Option<&T> {
         let type_id = TypeId::of::<T>();
 
         if type_id == TypeId::of::<INT>() {
@@ -933,7 +934,7 @@ impl Dynamic {
     ///
     /// Returns `None` if the cast fails.
     #[inline(always)]
-    fn downcast_mut<T: Variant + Clone>(&mut self) -> Option<&mut T> {
+    pub(crate) fn downcast_mut<T: Variant + Clone>(&mut self) -> Option<&mut T> {
         let type_id = TypeId::of::<T>();
 
         if type_id == TypeId::of::<INT>() {

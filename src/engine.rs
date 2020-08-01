@@ -33,7 +33,7 @@ use crate::utils::ImmutableString;
 
 #[cfg(not(feature = "no_shared"))]
 #[cfg(not(feature = "no_object"))]
-use crate::any::DynamicWriteLock;
+use crate::any::{DynamicReadLock, DynamicWriteLock};
 
 use crate::stdlib::{
     borrow::Cow,
@@ -133,17 +133,25 @@ pub enum ChainType {
 pub enum Target<'a> {
     /// The target is a mutable reference to a `Dynamic` value somewhere.
     Ref(&'a mut Dynamic),
-    /// The target is a mutable reference to a Shared `Dynamic` value.
-    /// It holds both the access guard and the original shared value.
-    #[cfg(not(feature = "no_shared"))]
-    #[cfg(not(feature = "no_object"))]
-    LockGuard((DynamicWriteLock<'a, Dynamic>, Dynamic)),
     /// The target is a temporary `Dynamic` value (i.e. the mutation can cause no side effects).
     Value(Dynamic),
     /// The target is a character inside a String.
     /// This is necessary because directly pointing to a char inside a String is impossible.
+    /// Format is: string, index, char
     #[cfg(not(feature = "no_index"))]
     StringChar(&'a mut Dynamic, usize, Dynamic),
+    /// The target is an item inside an Array.
+    /// This is necessary because directly pointing to an item inside an Array is impossible for Shared Dynamic.
+    /// Format is: array, index, item
+    #[cfg(not(feature = "no_index"))]
+    #[cfg(not(feature = "no_share"))]
+    ArrayItem(&'a mut Dynamic, Dynamic, Dynamic),
+    /// The target is an entry inside a Map.
+    /// This is necessary because directly pointing to an entry inside a Map is impossible for Shared Dynamic.
+    /// Format is: map, key, create, item
+    #[cfg(not(feature = "no_object"))]
+    #[cfg(not(feature = "no_share"))]
+    MapEntry(&'a mut Dynamic, Dynamic, bool, Dynamic),
 }
 
 #[cfg(any(not(feature = "no_index"), not(feature = "no_object")))]
@@ -152,36 +160,45 @@ impl Target<'_> {
     pub fn is_ref(&self) -> bool {
         match self {
             Self::Ref(_) => true,
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard(_) => true,
             Self::Value(_) => false,
             #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, _) => false,
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, _) => false,
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, _) => false,
         }
     }
     /// Is the `Target` an owned value?
     pub fn is_value(&self) -> bool {
         match self {
             Self::Ref(_) => false,
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard(_) => false,
             Self::Value(_) => true,
             #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, _) => false,
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, _) => false,
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, _) => false,
         }
     }
     /// Is the `Target` a shared value?
     pub fn is_shared(&self) -> bool {
         match self {
             Self::Ref(r) => r.is_shared(),
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard(_) => true,
             Self::Value(r) => r.is_shared(),
             #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, _) => false,
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, item) => item.is_shared(),
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, entry) => entry.is_shared(),
         }
     }
     /// Is the `Target` a specific type?
@@ -189,46 +206,108 @@ impl Target<'_> {
     pub fn is<T: Variant + Clone>(&self) -> bool {
         match self {
             Target::Ref(r) => r.is::<T>(),
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Target::LockGuard((r, _)) => r.is::<T>(),
             Target::Value(r) => r.is::<T>(),
             #[cfg(not(feature = "no_index"))]
             Target::StringChar(_, _, _) => TypeId::of::<T>() == TypeId::of::<char>(),
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, item) => item.is::<T>(),
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, entry) => entry.is::<T>(),
         }
     }
     /// Get the value of the `Target` as a `Dynamic`, cloning a referenced value if necessary.
     pub fn clone_into_dynamic(self) -> Dynamic {
         match self {
             Self::Ref(r) => r.clone(), // Referenced value is cloned
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard((_, orig)) => orig, // Original value is simply taken
             Self::Value(v) => v,       // Owned value is simply taken
             #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, ch) => ch, // Character is taken
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, item) => item, // Item is taken
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, entry) => entry, // Entry is taken
         }
     }
     /// Get a mutable reference from the `Target`.
     pub fn as_mut(&mut self) -> &mut Dynamic {
         match self {
             Self::Ref(r) => *r,
-            #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard((r, _)) => r.deref_mut(),
             Self::Value(ref mut r) => r,
             #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, ref mut r) => r,
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, ref mut item) => item,
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, ref mut entry) => entry,
+        }
+    }
+    /// Get a mutable reference from the `Target`.
+    #[cfg(not(feature = "no_shared"))]
+    pub fn as_mut_lock<T: Variant + Clone>(&mut self) -> Option<DynamicWriteLock<T>> {
+        match self {
+            Self::Ref(r) => r.write_lock::<T>(),
+            Self::Value(ref mut r) => r.write_lock::<T>(),
+            #[cfg(not(feature = "no_index"))]
+            Self::StringChar(_, _, ref mut r) => r.write_lock::<T>(),
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, ref mut item) => item.write_lock::<T>(),
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, ref mut entry) => entry.write_lock::<T>(),
+        }
+    }
+    /// Get am immutable reference from the `Target`.
+    pub fn as_ref(&self) -> &Dynamic {
+        match self {
+            Self::Ref(r) => *r,
+            Self::Value(ref r) => r,
+            #[cfg(not(feature = "no_index"))]
+            Self::StringChar(_, _, ref r) => r,
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, ref item) => item,
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, ref entry) => entry,
+        }
+    }
+    /// Get am immutable reference from the `Target`.
+    #[cfg(not(feature = "no_shared"))]
+    pub fn as_ref_lock<T: Variant + Clone>(&self) -> Option<DynamicReadLock<T>> {
+        match self {
+            Self::Ref(r) => r.read_lock::<T>(),
+            Self::Value(ref r) => r.read_lock::<T>(),
+            #[cfg(not(feature = "no_index"))]
+            Self::StringChar(_, _, ref r) => r.read_lock::<T>(),
+            #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, ref item) => item.read_lock::<T>(),
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, ref entry) => entry.read_lock::<T>(),
         }
     }
     /// Update the value of the `Target`.
     /// Position in `EvalAltResult` is `None` and must be set afterwards.
     pub fn set_value(&mut self, new_val: Dynamic) -> Result<(), Box<EvalAltResult>> {
         match self {
-            Self::Ref(r) => **r = new_val,
+            #[cfg(feature = "no_shared")]
+            Self::Ref(r) => {
+                **r = new_val
+            },
             #[cfg(not(feature = "no_shared"))]
-            #[cfg(not(feature = "no_object"))]
-            Self::LockGuard((r, _)) => **r = new_val,
+            Self::Ref(r) => {
+                let mut lock = r.write_lock::<Dynamic>().unwrap();
+
+                *lock = new_val;
+            },
             Self::Value(_) => {
                 return Err(Box::new(EvalAltResult::ErrorAssignmentToUnknownLHS(
                     Position::none(),
@@ -253,7 +332,68 @@ impl Target<'_> {
                 }
             }
             #[cfg(not(feature = "no_index"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(array, index, _) if array.is::<Array>() => {
+                let index = index
+                    .as_int()
+                    .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(Position::none()))?;
+
+                let mut array_lock = array.write_lock::<Array>().unwrap();
+                let mut array = array_lock.deref_mut();
+
+                let arr_len = array.len();
+
+                if index >= 0 {
+                    let item = array
+                        .get_mut(index as usize)
+                        .ok_or_else(|| {
+                            Box::new(EvalAltResult::ErrorArrayBounds(arr_len, index, Position::none()))
+                        })?;
+
+                    *item = new_val;
+                } else {
+                    return Err(Box::new(EvalAltResult::ErrorArrayBounds(
+                        arr_len, index, Position::none(),
+                    )))
+                }
+            }
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(map, index, _create, _) if map.is::<Map>() => {
+                if *_create {
+                    let index = index
+                        .clone()
+                        .take_immutable_string()
+                        .map_err(|_| EvalAltResult::ErrorStringIndexExpr(Position::none()))?;
+
+                    let mut map_lock = map.write_lock::<Map>().unwrap();
+                    let mut map = map_lock.deref_mut();
+
+                    let _ = map.insert(index, new_val);
+                } else {
+                    let index = index
+                        .read_lock::<ImmutableString>()
+                        .ok_or_else(|| EvalAltResult::ErrorStringIndexExpr(Position::none()))?;
+
+                    let mut map_lock = map.write_lock::<Map>().unwrap();
+                    let mut map = map_lock.deref_mut();
+
+                    if let Some(val) = map.get_mut(&*index) {
+                        *val = new_val;
+                    }
+                }
+            }
+            //TODO this is reachable in case of Dynamic Shared
+            #[cfg(not(feature = "no_index"))]
             Self::StringChar(_, _, _) => unreachable!(),
+            //TODO this is reachable in case of Dynamic Shared
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::ArrayItem(_, _, _) => unreachable!(),
+            //TODO this is reachable in case of Dynamic Shared
+            #[cfg(not(feature = "no_object"))]
+            #[cfg(not(feature = "no_share"))]
+            Self::MapEntry(_, _, _, _) => unreachable!(),
         }
 
         Ok(())
@@ -263,14 +403,6 @@ impl Target<'_> {
 #[cfg(any(not(feature = "no_index"), not(feature = "no_object")))]
 impl<'a> From<&'a mut Dynamic> for Target<'a> {
     fn from(value: &'a mut Dynamic) -> Self {
-        #[cfg(not(feature = "no_shared"))]
-        #[cfg(not(feature = "no_object"))]
-        if value.is_shared() {
-            // Cloning is cheap for a shared value
-            let container = value.clone();
-            return Self::LockGuard((value.write_lock::<Dynamic>().unwrap(), container));
-        }
-
         Self::Ref(value)
     }
 }
@@ -763,6 +895,11 @@ impl Engine {
                         };
 
                         if let Some((must_have_setter, ref mut new_val)) = call_setter {
+                            #[cfg(not(feature = "no_shared"))]
+                            let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+                            #[cfg(not(feature = "no_shared"))]
+                            let args = &mut [obj_lock.deref_mut(), &mut idx_val2, new_val];
+                            #[cfg(feature = "no_shared")]
                             let args = &mut [target.as_mut(), &mut idx_val2, new_val];
 
                             match self.exec_fn_call(
@@ -825,7 +962,14 @@ impl Engine {
                     // xxx.id = ???
                     Expr::Property(x) if _new_val.is_some() => {
                         let ((_, _, setter), pos) = x.as_ref();
+
+                        #[cfg(not(feature = "no_shared"))]
+                        let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+                        #[cfg(not(feature = "no_shared"))]
+                        let mut args = [obj_lock.deref_mut(), _new_val.as_mut().unwrap()];
+                        #[cfg(feature = "no_shared")]
                         let mut args = [target.as_mut(), _new_val.as_mut().unwrap()];
+
                         self.exec_fn_call(
                             state, lib, setter, 0, &mut args, is_ref, true, false, None, None,
                             level,
@@ -836,7 +980,14 @@ impl Engine {
                     // xxx.id
                     Expr::Property(x) => {
                         let ((_, getter, _), pos) = x.as_ref();
+
+                        #[cfg(not(feature = "no_shared"))]
+                        let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+                        #[cfg(not(feature = "no_shared"))]
+                        let mut args = [obj_lock.deref_mut()];
+                        #[cfg(feature = "no_shared")]
                         let mut args = [target.as_mut()];
+
                         self.exec_fn_call(
                             state, lib, getter, 0, &mut args, is_ref, true, false, None, None,
                             level,
@@ -885,7 +1036,14 @@ impl Engine {
                             // xxx.prop[expr] | xxx.prop.expr
                             Expr::Property(p) => {
                                 let ((_, getter, setter), pos) = p.as_ref();
+
+                                #[cfg(not(feature = "no_shared"))]
+                                let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+                                #[cfg(not(feature = "no_shared"))]
+                                let arg_values = &mut [obj_lock.deref_mut(), &mut Default::default()];
+                                #[cfg(feature = "no_shared")]
                                 let arg_values = &mut [target.as_mut(), &mut Default::default()];
+
                                 let args = &mut arg_values[..1];
                                 let (mut val, updated) = self
                                     .exec_fn_call(
@@ -1133,94 +1291,246 @@ impl Engine {
         #[cfg(not(feature = "no_object"))]
         let is_ref = target.is_ref();
 
-        let val = target.as_mut();
+        // #[cfg(not(feature = "no_shared"))]
+        // let mut val_lock = target.as_mut_lock::<Dynamic>().unwrap();
+        // #[cfg(not(feature = "no_shared"))]
+        // let val = val_lock.deref_mut();
 
-        match val {
+        if cfg!(feature = "no_shared") {
+            let val = target.as_mut();
+
+            match val {
+                #[cfg(not(feature = "no_index"))]
+                Dynamic(Union::Array(arr)) => {
+                    // val_array[idx]
+                    Self::get_indexed_array_mut(arr, _idx, idx_pos)
+                }
+
+                #[cfg(not(feature = "no_object"))]
+                Dynamic(Union::Map(map)) => {
+                    // val_map[idx]
+                    Self::get_indexed_map_mut(map, _idx, idx_pos, _create)
+                }
+
+                #[cfg(not(feature = "no_index"))]
+                Dynamic(Union::Str(ref s)) => {
+                    // val_string[idx]
+                    let (offset, ch) = Self::get_indexed_str_mut(s, _idx, idx_pos)?;
+                    Ok(Target::StringChar(val, offset, ch))
+                }
+
+                #[cfg(not(feature = "no_object"))]
+                #[cfg(not(feature = "no_index"))]
+                _ => {
+                    self.get_indexed_custom(val, state, _lib, _idx, is_ref, _level)
+                }
+
+                #[cfg(any(feature = "no_index", feature = "no_object"))]
+                _ => Err(Box::new(EvalAltResult::ErrorIndexingType(
+                    self.map_type_name(val.type_name()).into(),
+                    Position::none(),
+                ))),
+            }
+        } else {
             #[cfg(not(feature = "no_index"))]
-            Dynamic(Union::Array(arr)) => {
-                // val_array[idx]
-                let index = _idx
-                    .as_int()
-                    .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
-
-                let arr_len = arr.len();
-
-                if index >= 0 {
-                    arr.get_mut(index as usize)
-                        .map(Target::from)
-                        .ok_or_else(|| {
-                            Box::new(EvalAltResult::ErrorArrayBounds(arr_len, index, idx_pos))
-                        })
+            if target.is::<Array>() {
+                if !target.is_shared() && !_idx.is_shared() {
+                    if let Dynamic(Union::Array(arr)) = target.as_mut() {
+                        // non-shared variation of val_array[idx]
+                        return Self::get_indexed_array_mut(arr, _idx, idx_pos);
+                    } else {
+                        unreachable!()
+                    }
                 } else {
-                    Err(Box::new(EvalAltResult::ErrorArrayBounds(
-                        arr_len, index, idx_pos,
-                    )))
+                    // shared variation of val_array[idx]
+
+                    let item = {
+                        let index = _idx
+                            .as_int()
+                            .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
+
+                        let arr_lock = target.as_ref_lock::<Array>().unwrap();
+                        let arr = &*arr_lock;
+                        let arr_len = arr.len();
+
+                        if index < 0 || index as usize >= arr_len {
+                            return Err(Box::new(EvalAltResult::ErrorArrayBounds(
+                                arr_len as usize, index, idx_pos,
+                            )))
+                        }
+
+                        arr.get(index as usize).unwrap().clone()
+                    };
+
+                    return Ok(Target::ArrayItem(target.as_mut(), _idx, item));
                 }
             }
 
             #[cfg(not(feature = "no_object"))]
-            Dynamic(Union::Map(map)) => {
-                // val_map[idx]
-                Ok(if _create {
-                    let index = _idx
-                        .take_immutable_string()
-                        .map_err(|_| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
-
-                    map.entry(index).or_insert(Default::default()).into()
+            if target.is::<Map>() {
+                if !target.is_shared() && !_idx.is_shared() {
+                    if let Dynamic(Union::Map(map)) = target.as_mut() {
+                        // non-shared variation of val_map[idx]
+                        return Self::get_indexed_map_mut(map, _idx, idx_pos, _create)
+                    } else {
+                        unreachable!()
+                    }
                 } else {
-                    let index = _idx
-                        .read_lock::<ImmutableString>()
-                        .ok_or_else(|| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
+                    // shared variation of val_map[idx]
 
-                    map.get_mut(&*index)
-                        .map(Target::from)
-                        .unwrap_or_else(|| Target::from(()))
-                })
-            }
+                    let item = {
+                        let index_lock = _idx
+                            .read_lock::<ImmutableString>()
+                            .ok_or_else(|| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
+                        let index = &*index_lock;
 
-            #[cfg(not(feature = "no_index"))]
-            Dynamic(Union::Str(s)) => {
-                // val_string[idx]
-                let chars_len = s.chars().count();
-                let index = _idx
-                    .as_int()
-                    .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
+                        let mut map_lock = target.as_mut_lock::<Map>().unwrap();
+                        let mut map = &mut *map_lock;
 
-                if index >= 0 {
-                    let offset = index as usize;
-                    let ch = s.chars().nth(offset).ok_or_else(|| {
-                        Box::new(EvalAltResult::ErrorStringBounds(chars_len, index, idx_pos))
-                    })?;
-                    Ok(Target::StringChar(val, offset, ch.into()))
-                } else {
-                    Err(Box::new(EvalAltResult::ErrorStringBounds(
-                        chars_len, index, idx_pos,
-                    )))
+                        if _create {
+                            map.entry(index.clone()).or_insert(Default::default()).clone()
+                        } else {
+                            map
+                                .get(index)
+                                .cloned()
+                                .unwrap_or_else(|| Default::default())
+                        }
+                    };
+
+                    return Ok(Target::MapEntry(target.as_mut(), _idx, _create, item));
                 }
             }
 
-            #[cfg(not(feature = "no_object"))]
             #[cfg(not(feature = "no_index"))]
-            _ => {
-                let type_name = val.type_name();
-                let args = &mut [val, &mut _idx];
-                self.exec_fn_call(
-                    state, _lib, FN_IDX_GET, 0, args, is_ref, true, false, None, None, _level,
-                )
-                .map(|(v, _)| v.into())
-                .map_err(|err| match *err {
-                    EvalAltResult::ErrorFunctionNotFound(_, _) => Box::new(
-                        EvalAltResult::ErrorIndexingType(type_name.into(), Position::none()),
-                    ),
-                    _ => err,
-                })
+            if target.is::<ImmutableString>() {
+                if !target.is_shared() && !_idx.is_shared() {
+                    if let Dynamic(Union::Str(s)) = target.as_mut() {
+                        // non-shared variation of val_string[idx]
+                        let (offset, ch) = Self::get_indexed_str_mut(s, _idx, idx_pos)?;
+                        return Ok(Target::StringChar(target.as_mut(), offset, ch))
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    // shared variation of val_string[idx]
+
+                    let (offset, ch) = {
+                        let s = &*target.as_ref_lock::<ImmutableString>().unwrap();
+                        Self::get_indexed_str_mut(s, _idx, idx_pos)?
+                    };
+
+                    return Ok(Target::StringChar(target.as_mut(), offset, ch));
+                }
             }
 
-            #[cfg(any(feature = "no_index", feature = "no_object"))]
-            _ => Err(Box::new(EvalAltResult::ErrorIndexingType(
-                self.map_type_name(val.type_name()).into(),
-                Position::none(),
-            ))),
+            //TODO implement other cases
+            unreachable!();
+        }
+    }
+
+    // Non-shared variant of a custom index
+    #[cfg(not(feature = "no_index"))]
+    #[inline(always)]
+    fn get_indexed_custom<'a>(
+        &self,
+        val: &'a mut Dynamic,
+        state: &mut State,
+        _lib: &Module,
+        mut _idx: Dynamic,
+        is_ref: bool,
+        _level: usize
+    ) -> Result<Target<'a>, Box<EvalAltResult>> {
+        let type_name = val.type_name();
+        let args = &mut [val, &mut _idx];
+        self.exec_fn_call(
+            state, _lib, FN_IDX_GET, 0, args, is_ref, true, false, None, None, _level,
+        )
+        .map(|(v, _)| v.into())
+        .map_err(|err| match *err {
+            EvalAltResult::ErrorFunctionNotFound(_, _) => Box::new(
+                EvalAltResult::ErrorIndexingType(type_name.into(), Position::none()),
+            ),
+            _ => err,
+        })
+    }
+
+    // Non-shared variant of an array index
+    #[cfg(not(feature = "no_index"))]
+    #[inline(always)]
+    fn get_indexed_array_mut(
+        arr: &mut Box<Array>,
+        mut _idx: Dynamic,
+        idx_pos: Position,
+    ) -> Result<Target, Box<EvalAltResult>> {
+        let index = _idx
+            .as_int()
+            .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
+
+        let arr_len = arr.len();
+
+        if index >= 0 {
+            arr.get_mut(index as usize)
+                .map(Target::from)
+                .ok_or_else(|| {
+                    Box::new(EvalAltResult::ErrorArrayBounds(arr_len, index, idx_pos))
+                })
+        } else {
+            Err(Box::new(EvalAltResult::ErrorArrayBounds(
+                arr_len, index, idx_pos,
+            )))
+        }
+    }
+
+    // Non-shared variant of a map index
+    #[cfg(not(feature = "no_object"))]
+    #[inline(always)]
+    fn get_indexed_map_mut(
+        map: &mut Box<Map>,
+        mut _idx: Dynamic,
+        idx_pos: Position,
+        _create: bool,
+    ) -> Result<Target, Box<EvalAltResult>> {
+        Ok(if _create {
+            let index = _idx
+                .take_immutable_string()
+                .map_err(|_| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
+
+            map.entry(index).or_insert(Default::default()).into()
+        } else {
+            let index = _idx
+                .downcast_ref::<ImmutableString>()
+                .ok_or_else(|| EvalAltResult::ErrorStringIndexExpr(idx_pos))?;
+
+            map
+                .get_mut(index)
+                .map(Target::from)
+                .unwrap_or_else(|| Target::from(()))
+        })
+    }
+
+    // Non-shared variant of a string index
+    #[cfg(not(feature = "no_index"))]
+    #[inline(always)]
+    fn get_indexed_str_mut(
+        s: &ImmutableString,
+        mut _idx: Dynamic,
+        idx_pos: Position,
+    ) -> Result<(usize, Dynamic), Box<EvalAltResult>> {
+        let chars_len = s.chars().count();
+        let index = _idx
+            .as_int()
+            .map_err(|_| EvalAltResult::ErrorNumericIndexExpr(idx_pos))?;
+
+        if index >= 0 {
+            let offset = index as usize;
+            let ch = s.chars().nth(offset).ok_or_else(|| {
+                Box::new(EvalAltResult::ErrorStringBounds(chars_len, index, idx_pos))
+            })?;
+            Ok((offset, ch.into()))
+        } else {
+            Err(Box::new(EvalAltResult::ErrorStringBounds(
+                chars_len, index, idx_pos,
+            )))
         }
     }
 

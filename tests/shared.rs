@@ -271,3 +271,21 @@ fn test_shared() -> Result<(), Box<EvalAltResult>> {
 
     Ok(())
 }
+
+#[test]
+fn test_shared_refs() -> Result<(), Box<EvalAltResult>> {
+    let mut engine = Engine::new();
+
+    assert_eq!(
+        engine.eval::<INT>(r"
+            let x = shared(42);
+
+            x = x;
+
+            x
+        ")?,
+        42
+    );
+
+    Ok(())
+}

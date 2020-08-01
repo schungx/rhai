@@ -14,7 +14,7 @@ use crate::optimize::OptimizationLevel;
 use crate::parser::{Expr, ImmutableString, AST, INT};
 use crate::result::EvalAltResult;
 use crate::scope::Scope;
-use crate::stdlib::ops::Deref;
+use crate::stdlib::ops::{Deref, DerefMut};
 use crate::token::Position;
 use crate::utils::StaticVec;
 
@@ -594,13 +594,16 @@ impl Engine {
         let is_value = target.is_value();
 
         // Get a reference to the mutation target Dynamic
-        let obj = target.as_mut();
         let mut idx = idx_val.cast::<StaticVec<Dynamic>>();
         let mut _fn_name = name;
 
-        let (result, updated) = if _fn_name == KEYWORD_FN_PTR_CALL && obj.is::<FnPtr>() {
+        let (result, updated) = if _fn_name == KEYWORD_FN_PTR_CALL && target.is::<FnPtr>() {
             // FnPtr call
-            let fn_ptr = obj.read_lock::<FnPtr>().unwrap();
+            #[cfg(not(feature = "no_shared"))]
+            let fn_ptr = target.as_ref_lock::<FnPtr>().unwrap();
+            #[cfg(feature = "no_shared")]
+            let fn_ptr = target.as_ref().downcast_ref::<FnPtr>().unwrap();
+
             let mut curry = fn_ptr.curry().iter().cloned().collect::<StaticVec<_>>();
             // Redirect function name
             let fn_name = fn_ptr.fn_name();
@@ -633,6 +636,14 @@ impl Engine {
             } else {
                 calc_fn_hash(empty(), &fn_name, curry.len() + idx.len(), empty())
             };
+
+            #[cfg(not(feature = "no_shared"))]
+            let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+            #[cfg(not(feature = "no_shared"))]
+            let mut obj = obj_lock.deref_mut();
+            #[cfg(feature = "no_shared")]
+            let mut obj = target.as_mut();
+
             // Replace the first argument with the object pointer, adding the curried arguments
             let mut arg_values = once(obj)
                 .chain(curry.iter_mut())
@@ -644,9 +655,12 @@ impl Engine {
             self.exec_fn_call(
                 state, lib, &fn_name, hash, args, is_ref, true, pub_only, None, def_val, level,
             )
-        } else if _fn_name == KEYWORD_FN_PTR_CURRY && obj.is::<FnPtr>() {
+        } else if _fn_name == KEYWORD_FN_PTR_CURRY && target.is::<FnPtr>() {
             // Curry call
-            let fn_ptr = obj.read_lock::<FnPtr>().unwrap();
+            #[cfg(not(feature = "no_shared"))]
+            let fn_ptr = target.as_ref_lock::<FnPtr>().unwrap();
+            #[cfg(feature = "no_shared")]
+            let fn_ptr = target.as_ref().downcast_ref::<FnPtr>().unwrap();
             Ok((
                 FnPtr::new_unchecked(
                     fn_ptr.get_fn_name().clone(),
@@ -668,10 +682,10 @@ impl Engine {
             Ok((target.is_shared().into(), false))
         } else if cfg!(not(feature = "no_shared")) && _fn_name == KEYWORD_SHARED && idx.is_empty() {
             // take call
-            Ok((obj.clone().into_shared(), false))
+            Ok((target.as_ref_lock::<Dynamic>().unwrap().deref().clone().into_shared(), false))
         } else if cfg!(not(feature = "no_shared")) && _fn_name == KEYWORD_TAKE && idx.is_empty() {
             // take call
-            Ok((obj.clone_inner_data::<Dynamic>().unwrap(), false))
+            Ok((target.as_ref_lock::<Dynamic>().unwrap().deref().clone_inner_data::<Dynamic>().unwrap(), false))
         } else {
             #[cfg(not(feature = "no_object"))]
             let redirected;
@@ -679,21 +693,35 @@ impl Engine {
 
             // Check if it is a map method call in OOP style
             #[cfg(not(feature = "no_object"))]
-            if let Some(map) = obj.read_lock::<Map>() {
-                if let Some(val) = map.get(_fn_name) {
-                    if let Some(f) = val.read_lock::<FnPtr>() {
-                        // Remap the function name
-                        redirected = f.get_fn_name().clone();
-                        _fn_name = &redirected;
-                        // Recalculate the hash based on the new function name
-                        _hash = calc_fn_hash(empty(), _fn_name, idx.len(), empty());
+            {
+                #[cfg(not(feature = "no_shared"))]
+                let map = target.as_ref_lock::<Map>();
+                #[cfg(feature = "no_shared")]
+                let map = target.as_ref().downcast_ref::<Map>();
+
+                if let Some(map) = map {
+                    if let Some(val) = map.get(_fn_name) {
+                        if let Some(f) = val.read_lock::<FnPtr>() {
+                            // Remap the function name
+                            redirected = f.get_fn_name().clone();
+                            _fn_name = &redirected;
+                            // Recalculate the hash based on the new function name
+                            _hash = calc_fn_hash(empty(), _fn_name, idx.len(), empty());
+                        }
                     }
-                }
-            };
+                };
+            }
 
             if native {
                 _hash = 0;
             }
+
+            #[cfg(not(feature = "no_shared"))]
+            let mut obj_lock = target.as_mut_lock::<Dynamic>().unwrap();
+            #[cfg(not(feature = "no_shared"))]
+            let mut obj = obj_lock.deref_mut();
+            #[cfg(feature = "no_shared")]
+            let mut obj = target.as_mut();
 
             // Attached object pointer in front of the arguments
             let mut arg_values = once(obj).chain(idx.iter_mut()).collect::<StaticVec<_>>();
@@ -706,7 +734,10 @@ impl Engine {
 
         // Feed the changed temp value back
         if updated && !is_ref && !is_value {
-            let new_val = target.as_mut().clone();
+            #[cfg(not(feature = "no_shared"))]
+            let new_val = target.as_ref_lock::<Dynamic>().unwrap().deref().clone();
+            #[cfg(feature = "no_shared")]
+            let new_val = target.as_ref().clone();
             target.set_value(new_val)?;
         }
 
