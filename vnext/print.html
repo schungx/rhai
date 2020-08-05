@@ -157,7 +157,7 @@
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
 <h2><a class="header" href="#versions" id="versions">Versions</a></h2>
-<p>This Book is for version <strong>0.18.0</strong> of Rhai.</p>
+<p>This Book is for version <strong>0.19.0</strong> of Rhai.</p>
 <p>For the latest development version, see <a href="about//rhai/vnext/vnext/">here</a>.</p>
 <h1><a class="header" href="#features" id="features">Features</a></h1>
 <h2><a class="header" href="#easy" id="easy">Easy</a></h2>
@@ -361,7 +361,7 @@ Scripts can be evaluated directly from the editor.</p>
 <p>The easiest way is to install the Rhai crate from <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>,
 starting by looking up the latest version and adding this line under <code>dependencies</code> in the project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = &quot;0.18.0&quot;    # assuming 0.18.0 is the latest version
+rhai = &quot;0.19.0&quot;    # assuming 0.19.0 is the latest version
 </code></pre>
 <p>Or to automatically use the latest released crate version on <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>:</p>
 <pre><code class="language-toml">[dependencies]
@@ -406,7 +406,7 @@ more control over what a script can (or cannot) do.</p>
 <li><code>no_function</code> (no defining <a href="start//rhai/vnext/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.18.0&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
+rhai = { version = &quot;0.19.0&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
 no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="start//rhai/vnext/language/functions.html">functions</a>
@@ -416,8 +416,8 @@ nor loading external <a href="start//rhai/vnext/language/modules/index.html">mod
 <p>It is possible to mix-and-match various <a href="start/builds//rhai/vnext/start/features.html">features</a> of the Rhai crate to make
 specialized builds with specific characteristics and behaviors.</p>
 <h1><a class="header" href="#performance-build" id="performance-build">Performance Build</a></h1>
-<h2><a class="header" href="#use-only-one-integer-type" id="use-only-one-integer-type">Use Only One Integer Type</a></h2>
 <p>Some features are for performance.  For example, using <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> or <a href="start/builds//rhai/vnext/start/features.html"><code>only_i64</code></a> disables all other integer types (such as <code>u16</code>).</p>
+<h2><a class="header" href="#use-only-one-integer-type" id="use-only-one-integer-type">Use Only One Integer Type</a></h2>
 <p>If only a single integer type is needed in scripts - most of the time this is the case - it is best to avoid registering
 lots of functions related to other integer types that will never be used.  As a result, <a href="start/builds//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> creation will be faster
 because fewer functions need to be loaded.</p>
@@ -425,7 +425,7 @@ because fewer functions need to be loaded.</p>
 <p>If only 32-bit integers are needed - again, most of the time this is the case - using <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> disables also <code>i64</code>.</p>
 <p>On 64-bit targets this may not gain much, but on some 32-bit targets this improves performance due to 64-bit arithmetic
 requiring more CPU cycles to complete.</p>
-<h2><a class="header" href="#minimize-size-of-a-hrefstartbuildsrhaivnextlanguagedynamichtmldynamica" id="minimize-size-of-a-hrefstartbuildsrhaivnextlanguagedynamichtmldynamica">Minimize Size of <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a></a></h2>
+<h2><a class="header" href="#minimize-size-of-dynamic" id="minimize-size-of-dynamic">Minimize Size of <code>Dynamic</code></a></h2>
 <p>Turning on <a href="start/builds//rhai/vnext/start/features.html"><code>no_float</code></a>, and <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> makes the key <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
 while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>Making <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
@@ -436,6 +436,12 @@ cloning when passing function arguments.</p>
 It is cheap to clone, but expensive to modify (a new copy of the string must be made in order to change it).</p>
 <p>Therefore, functions taking <code>String</code> parameters should use <code>ImmutableString</code> or <code>&amp;str</code> (which maps to <code>ImmutableString</code>)
 for the best performance with Rhai.</p>
+<h2><a class="header" href="#disable-closures" id="disable-closures">Disable Closures</a></h2>
+<p>Support for <a href="start/builds//rhai/vnext/language/fn-closure.html">closures</a>, including capturing shared values, adds material overhead to script evaluation.</p>
+<p>This is because every data access must be checked whether it is a shared value, and if so, take a read
+or write lock before reading it.</p>
+<p>Use <a href="start/builds//rhai/vnext/start/features.html"><code>no_closure</code></a> to disable closure and capturing support and optimize the hot path
+because there is no need to take locks for shared data.</p>
 <h1><a class="header" href="#minimal-build" id="minimal-build">Minimal Build</a></h1>
 <h2><a class="header" href="#configuration" id="configuration">Configuration</a></h2>
 <p>In order to compile a <em>minimal</em> build - i.e. a build optimized for size - perhaps for <code>no-std</code> embedded targets or for
@@ -457,8 +463,8 @@ If a language feature will never be needed, omitting it is a prudent strategy to
 <p>Omitting arrays (<a href="start/builds//rhai/vnext/start/features.html"><code>no_index</code></a>) yields the most code-size savings, followed by floating-point support
 (<a href="start/builds//rhai/vnext/start/features.html"><code>no_float</code></a>), checked arithmetic/script resource limits (<a href="start/builds//rhai/vnext/start/features.html"><code>unchecked</code></a>) and finally object maps and custom types (<a href="start/builds//rhai/vnext/start/features.html"><code>no_object</code></a>).</p>
 <p>Where the usage scenario does not call for loading externally-defined modules, use <a href="start/builds//rhai/vnext/start/features.html"><code>no_module</code></a> to save some bytes.
-Disable script-defined functions (<a href="start/builds//rhai/vnext/start/features.html"><code>no_function</code></a>) when the feature is not needed.
-Both of these have little code size savings.</p>
+Disable script-defined functions (<a href="start/builds//rhai/vnext/start/features.html"><code>no_function</code></a>) and possibly closures (<a href="start/builds//rhai/vnext/start/features.html"><code>no_closure</code></a>) when the features are not needed.
+Both of these have some code size savings but not much.</p>
 <h2><a class="header" href="#use-a-raw-a-hrefstartbuildsrhaivnextenginehello-worldhtmlenginea" id="use-a-raw-a-hrefstartbuildsrhaivnextenginehello-worldhtmlenginea">Use a Raw <a href="start/builds//rhai/vnext/engine/hello-world.html"><code>Engine</code></a></a></h2>
 <p><a href="start/builds//rhai/vnext/engine/raw.html"><code>Engine::new_raw</code></a> creates a <em>raw</em> engine.
 A <em>raw</em> engine supports, out of the box, only a very <a href="start/builds//rhai/vnext/engine/raw.html#built-in-operators">restricted set</a>
@@ -551,7 +557,7 @@ cargo +nightly build --release
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/function_decl3.rhai"><code>function_decl3.rhai</code></a></td><td>A <a href="start/examples//rhai/vnext/language/functions.html">function</a> with many parameters</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/if1.rhai"><code>if1.rhai</code></a></td><td><a href="start/examples//rhai/vnext/language/if.html"><code>if</code></a> example</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/loop.rhai"><code>loop.rhai</code></a></td><td>Count-down <a href="start/examples//rhai/vnext/language/loop.html"><code>loop</code></a> in Rhai, emulating a <code>do</code> .. <code>while</code> loop</td></tr>
-<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/oop.rhai"><code>oop.rhai</code></a></td><td>Simulate <a href="start/examples//rhai/vnext/language/oop.html">object-oriented programming (OOP)</a></td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/oop.rhai"><code>oop.rhai</code></a></td><td>Simulate <a href="start/examples//rhai/vnext/language/oop.html">object-oriented programming (OOP)</a> with <a href="start/examples//rhai/vnext/language/fn-closure.html">closures</a></td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op1.rhai"><code>op1.rhai</code></a></td><td>Just simple addition</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op2.rhai"><code>op2.rhai</code></a></td><td>Simple addition and multiplication</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op3.rhai"><code>op3.rhai</code></a></td><td>Change evaluation order with parenthesis</td></tr>
@@ -3538,7 +3544,7 @@ bar::do_something_else();
 </span></code></pre></pre>
 <h1><a class="header" href="#create-a-module-from-rust" id="create-a-module-from-rust">Create a Module from Rust</a></h1>
 <p>Manually creating a <a href="rust/modules//rhai/vnext/language/modules/index.html"><code>Module</code></a> is possible via the <code>Module</code> API.</p>
-<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.18.0/rhai/struct.Module.html">documentation</a> online.</p>
+<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.0/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the Module Available to the Engine</a></h2>
 <p>In order to <em>use</em> a custom module, there must be a <a href="rust/modules//rhai/vnext/rust/modules/resolvers.html">module resolver</a>.</p>
 <p>The easiest way is to use, for example, the <a href="rust/modules//rhai/vnext/rust/modules/resolvers.html"><code>StaticModuleResolver</code></a> to hold such

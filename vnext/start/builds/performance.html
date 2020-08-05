@@ -152,8 +152,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#performance-build" id="performance-build">Performance Build</a></h1>
-<h2><a class="header" href="#use-only-one-integer-type" id="use-only-one-integer-type">Use Only One Integer Type</a></h2>
 <p>Some features are for performance.  For example, using <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> or <a href="/rhai/vnext/start/features.html"><code>only_i64</code></a> disables all other integer types (such as <code>u16</code>).</p>
+<h2><a class="header" href="#use-only-one-integer-type" id="use-only-one-integer-type">Use Only One Integer Type</a></h2>
 <p>If only a single integer type is needed in scripts - most of the time this is the case - it is best to avoid registering
 lots of functions related to other integer types that will never be used.  As a result, <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> creation will be faster
 because fewer functions need to be loaded.</p>
@@ -161,7 +161,7 @@ because fewer functions need to be loaded.</p>
 <p>If only 32-bit integers are needed - again, most of the time this is the case - using <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> disables also <code>i64</code>.</p>
 <p>On 64-bit targets this may not gain much, but on some 32-bit targets this improves performance due to 64-bit arithmetic
 requiring more CPU cycles to complete.</p>
-<h2><a class="header" href="#minimize-size-of-a-hrefrhaivnextlanguagedynamichtmldynamica" id="minimize-size-of-a-hrefrhaivnextlanguagedynamichtmldynamica">Minimize Size of <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a></a></h2>
+<h2><a class="header" href="#minimize-size-of-dynamic" id="minimize-size-of-dynamic">Minimize Size of <code>Dynamic</code></a></h2>
 <p>Turning on <a href="/rhai/vnext/start/features.html"><code>no_float</code></a>, and <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> makes the key <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes small on 32-bit targets
 while normally it can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>Making <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> small helps performance due to better cache efficiency.</p>
@@ -172,6 +172,12 @@ cloning when passing function arguments.</p>
 It is cheap to clone, but expensive to modify (a new copy of the string must be made in order to change it).</p>
 <p>Therefore, functions taking <code>String</code> parameters should use <code>ImmutableString</code> or <code>&amp;str</code> (which maps to <code>ImmutableString</code>)
 for the best performance with Rhai.</p>
+<h2><a class="header" href="#disable-closures" id="disable-closures">Disable Closures</a></h2>
+<p>Support for <a href="/rhai/vnext/language/fn-closure.html">closures</a>, including capturing shared values, adds material overhead to script evaluation.</p>
+<p>This is because every data access must be checked whether it is a shared value, and if so, take a read
+or write lock before reading it.</p>
+<p>Use <a href="/rhai/vnext/start/features.html"><code>no_closure</code></a> to disable closure and capturing support and optimize the hot path
+because there is no need to take locks for shared data.</p>
 
                     </main>
 

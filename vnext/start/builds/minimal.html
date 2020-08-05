@@ -172,8 +172,8 @@ If a language feature will never be needed, omitting it is a prudent strategy to
 <p>Omitting arrays (<a href="/rhai/vnext/start/features.html"><code>no_index</code></a>) yields the most code-size savings, followed by floating-point support
 (<a href="/rhai/vnext/start/features.html"><code>no_float</code></a>), checked arithmetic/script resource limits (<a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>) and finally object maps and custom types (<a href="/rhai/vnext/start/features.html"><code>no_object</code></a>).</p>
 <p>Where the usage scenario does not call for loading externally-defined modules, use <a href="/rhai/vnext/start/features.html"><code>no_module</code></a> to save some bytes.
-Disable script-defined functions (<a href="/rhai/vnext/start/features.html"><code>no_function</code></a>) when the feature is not needed.
-Both of these have little code size savings.</p>
+Disable script-defined functions (<a href="/rhai/vnext/start/features.html"><code>no_function</code></a>) and possibly closures (<a href="/rhai/vnext/start/features.html"><code>no_closure</code></a>) when the features are not needed.
+Both of these have some code size savings but not much.</p>
 <h2><a class="header" href="#use-a-raw-a-hrefrhaivnextenginehello-worldhtmlenginea" id="use-a-raw-a-hrefrhaivnextenginehello-worldhtmlenginea">Use a Raw <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></a></h2>
 <p><a href="/rhai/vnext/engine/raw.html"><code>Engine::new_raw</code></a> creates a <em>raw</em> engine.
 A <em>raw</em> engine supports, out of the box, only a very <a href="/rhai/vnext/engine/raw.html#built-in-operators">restricted set</a>
