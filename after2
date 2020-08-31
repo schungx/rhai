@@ -1,0 +1,92 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 4 tests
+test bench_engine_new          ... bench:     270,796 ns/iter (+/- 163,005)
+test bench_engine_new_raw      ... bench:         127 ns/iter (+/- 37)
+test bench_engine_new_raw_core ... bench:         116 ns/iter (+/- 17)
+test bench_engine_register_fn  ... bench:         686 ns/iter (+/- 98)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+
+
+running 5 tests
+test bench_eval_array_large_get ... bench:       5,335 ns/iter (+/- 857)
+test bench_eval_array_large_set ... bench:       5,377 ns/iter (+/- 1,169)
+test bench_eval_array_loop      ... bench:  11,977,420 ns/iter (+/- 2,849,135)
+test bench_eval_array_small_get ... bench:       1,364 ns/iter (+/- 336)
+test bench_eval_array_small_set ... bench:       1,423 ns/iter (+/- 392)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 5 measured; 0 filtered out
+
+
+running 10 tests
+test bench_eval_call                        ... bench:      25,542 ns/iter (+/- 3,857)
+test bench_eval_call_expression             ... bench:      22,280 ns/iter (+/- 7,409)
+test bench_eval_expression_number_literal   ... bench:         504 ns/iter (+/- 124)
+test bench_eval_expression_number_operators ... bench:         900 ns/iter (+/- 161)
+test bench_eval_expression_optimized_full   ... bench:          79 ns/iter (+/- 9)
+test bench_eval_expression_optimized_simple ... bench:       1,689 ns/iter (+/- 336)
+test bench_eval_expression_single           ... bench:          81 ns/iter (+/- 33)
+test bench_eval_loop_number                 ... bench:   2,791,545 ns/iter (+/- 659,356)
+test bench_eval_loop_strings_build          ... bench:   6,643,560 ns/iter (+/- 960,421)
+test bench_eval_loop_strings_no_build       ... bench:   4,167,810 ns/iter (+/- 757,966)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 10 measured; 0 filtered out
+
+
+running 4 tests
+test bench_eval_map_large_get ... bench:       5,228 ns/iter (+/- 1,004)
+test bench_eval_map_large_set ... bench:       5,349 ns/iter (+/- 1,131)
+test bench_eval_map_small_get ... bench:         883 ns/iter (+/- 225)
+test bench_eval_map_small_set ... bench:         941 ns/iter (+/- 199)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+
+
+running 4 tests
+test bench_eval_scope_complex  ... bench:       1,636 ns/iter (+/- 309)
+test bench_eval_scope_longer   ... bench:       1,366 ns/iter (+/- 324)
+test bench_eval_scope_multiple ... bench:         474 ns/iter (+/- 65)
+test bench_eval_scope_single   ... bench:         463 ns/iter (+/- 95)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+
+
+running 4 tests
+test bench_type_field              ... bench:         308 ns/iter (+/- 45)
+test bench_type_method             ... bench:         623 ns/iter (+/- 126)
+test bench_type_method_nested      ... bench:       1,268 ns/iter (+/- 206)
+test bench_type_method_with_params ... bench:         762 ns/iter (+/- 121)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 4 measured; 0 filtered out
+
+
+running 2 tests
+test bench_iterations_1000      ... bench:     745,382 ns/iter (+/- 514,413)
+test bench_iterations_fibonacci ... bench:  36,177,550 ns/iter (+/- 3,412,849)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured; 0 filtered out
+
+
+running 8 tests
+test bench_parse_array           ... bench:       4,849 ns/iter (+/- 1,017)
+test bench_parse_full            ... bench:      19,914 ns/iter (+/- 4,005)
+test bench_parse_map             ... bench:       6,712 ns/iter (+/- 1,003)
+test bench_parse_optimize_full   ... bench:      24,635 ns/iter (+/- 3,717)
+test bench_parse_optimize_simple ... bench:      23,257 ns/iter (+/- 5,889)
+test bench_parse_primes          ... bench:      59,927 ns/iter (+/- 27,040)
+test bench_parse_simple          ... bench:       4,277 ns/iter (+/- 1,036)
+test bench_parse_single          ... bench:         756 ns/iter (+/- 142)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 8 measured; 0 filtered out
+
+
+running 1 test
+test bench_eval_primes ... bench:   2,432,607 ns/iter (+/- 515,800)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 1 measured; 0 filtered out
+
