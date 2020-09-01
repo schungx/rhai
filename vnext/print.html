@@ -1580,33 +1580,26 @@ def_package!(rhai:MyPackage:&quot;My own personal super package&quot;, module, {
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#plugins" id="plugins">Plugins</a></h1>
-<p>Rhai contains a robust <em>plugin</em> system that greatly simplifies registration of custom functions.</p>
-<p>Instead of the large <code>Engine::register_XXX</code> API, and the parallel <code>Module::set_fn_XXX</code> API,
-a <em>plugin</em> simplifies the work of creating and registering multiple functions into an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
-<p>Plugins are processed via a set of procedural macros under the <code>rhai::plugins</code> module.</p>
-<h1><a class="header" href="#create-a-plugin-module" id="create-a-plugin-module">Create a Plugin Module</a></h1>
-<p>The core of creating a plugin <a href="plugins//rhai/vnext/language/modules/index.html">module</a> is the <code>#[export_module]</code> attribute.</p>
-<p>When applied on a module definition, <code>#[export_module]</code> automatically generates Rhai-acceptable
-functions from all <code>pub</code> functions defined within.</p>
-<p>The resulting module can then be loaded into an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> as a normal <a href="plugins//rhai/vnext/language/modules/index.html">module</a>,
-or as a <a href="plugins//rhai/vnext/rust/packages/create.html">custom package</a>.</p>
-<h2><a class="header" href="#macros" id="macros">Macros</a></h2>
-<table><thead><tr><th>Macro</th><th>Apply to</th><th>Behavior</th></tr></thead><tbody>
-<tr><td><code>#[export_module]</code></td><td>Rust module</td><td>Export all <code>pub</code> functions</td></tr>
-<tr><td><code>#[rhai_fn(skip)]</code></td><td>Function in Rust module</td><td>Do not export this function</td></tr>
-<tr><td><code>#[rhai_fn(return_raw)]</code></td><td><code>pub</code> function in Rust module returning <code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td><td>Specify that this is a fallible function</td></tr>
-<tr><td><code>#[rhai_fn(name = &quot;...&quot;)]</code></td><td><code>pub</code> function in Rust module</td><td>Register function under specific name</td></tr>
-<tr><td><code>#[rhai_fn(get = &quot;...&quot;)]</code></td><td><code>pub</code> function in Rust module (first parameter must be <code>&amp;mut</code>)</td><td>Register a property getter under specific name</td></tr>
-<tr><td><code>#[rhai_fn(set = &quot;...&quot;)]</code></td><td><code>pub</code> function in Rust module (first parameter must be <code>&amp;mut</code>)</td><td>Register a property setter under specific name</td></tr>
-<tr><td><code>#[rhai_fn(index_get]</code></td><td><code>pub</code> function in Rust module (first parameter must be <code>&amp;mut</code>)</td><td>Register a index getter</td></tr>
-<tr><td><code>#[rhai_fn(index_set)]</code></td><td><code>pub</code> function in Rust module (first parameter must be <code>&amp;mut</code>)</td><td>Register a index setter</td></tr>
-<tr><td><code>#[rhai_mod(name = &quot;...&quot;)]</code></td><td><code>pub</code> sub-module in Rust module</td><td>Export the sub-module under specific name</td></tr>
-<tr><td><code>exported_module!</code></td><td>Rust module name</td><td>Create a <a href="plugins//rhai/vnext/language/modules/index.html">module</a> containing exported functions</td></tr>
-</tbody></table>
-<h2><a class="header" href="#export_module-and-exported_module" id="export_module-and-exported_module"><code>#[export_module]</code> and <code>exported_module!</code></a></h2>
-<p>Apply <code>#[export_module]</code> onto a standard module to convert all <code>pub</code> functions
-into Rhai plugin functions.</p>
-<pre><pre class="playground"><code class="language-rust">use rhai::plugins::*;       // import macros
+<p>Rhai contains a robust <em>plugin</em> system that greatly simplifies registration of custom
+functionality.</p>
+<p>Instead of using the large <code>Engine::register_XXX</code> API or the parallel <code>Module::set_fn_XXX</code> API,
+a <em>plugin</em> simplifies the work of creating and registering new functionality in an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p>Plugins are processed via a set of procedural macros under the <code>rhai::plugins</code> module. These
+allow registering Rust functions directly in the Engine, or adding Rust modules as packages.</p>
+<h1><a class="header" href="#exporting-a-rust-module-to-rhai" id="exporting-a-rust-module-to-rhai">Exporting a Rust Module to Rhai</a></h1>
+<p>When applied to a Rust module, the <code>#[export_module]</code> attribute will generate the necessary
+code and metadata to allow Rhai access to its public (i.e. marked <code>pub</code>) functions. This code
+is exactly what would need to be written by hand to achieve the same goal, and is custom fit
+to each exported item.</p>
+<p>This Rust module can then either be loaded into an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> as a normal <a href="plugins//rhai/vnext/language/modules/index.html">module</a> or
+registered as a <a href="plugins//rhai/vnext/rust/packages/create.html">custom package</a>. This is done by using the <code>exported_module!</code> macro.</p>
+<h2><a class="header" href="#usingexport_module-and-exported_module" id="usingexport_module-and-exported_module">Using<code>#[export_module]</code> and <code>exported_module!</code></a></h2>
+<p>Apply <code>#[export_module]</code> onto a Rust module to convert all <code>pub</code> functions into Rhai plugin
+functions.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rhai::plugins::*;       // a &quot;prelude&quot; import for macros
 
 #[export_module]
 mod my_module {
@@ -1627,21 +1620,21 @@ mod my_module {
         42
     }
 }
-
-fn main() {
+<span class="boring">}
+</span></code></pre></pre>
+<p>In order to load this into an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, use the <code>load_package</code> method on the exported module:</p>
+<pre><pre class="playground"><code class="language-rust">fn main() {
     let mut engine = Engine::new();
 
-    // 'exported_module!' creates the plugin module.
+    // The macro call creates the Rhai module.
     let module = exported_module!(my_module);
 
-    // A module can simply be loaded as a custom package.
+    // A module can simply be loaded, registering all public its contents.
     engine.load_package(module);
 }
 </code></pre></pre>
-<p>The above automatically defines a plugin module named <code>my_module</code> which can be converted into
-a Rhai <a href="plugins//rhai/vnext/language/modules/index.html">module</a> via <code>exported_module!</code>.  The functions contained within the module definition
-(i.e. <code>greet</code>, <code>get_num</code> and <code>increment</code>) are automatically registered into the <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> when
-<code>Engine::load_package</code> is called.</p>
+<p>The functions contained within the module definition (i.e. <code>greet</code>, <code>get_num</code> and <code>increment</code>)
+are automatically registered into the <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> when <code>Engine::load_package</code> is called.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1658,13 +1651,48 @@ increment(x);
 x == 43;
 <span class="boring">}
 </span></code></pre></pre>
+<p>Registering this as a custom package is almost the same, except that a module resolver must
+point to the module, rather than being loaded directly. See the <a href="plugins//rhai/vnext/language/modules/index.html">module</a> section for more
+information.</p>
+<h2><a class="header" href="#function-overloading-and-operators" id="function-overloading-and-operators">Function Overloading and Operators</a></h2>
+<p>Operators and overloaded functions can be specified via applying the <code>#[rhai_fn(name = &quot;...&quot;)]</code>
+attribute to individual functions.</p>
+<p>The text string given as the <code>name</code> parameter to <code>#[rhai_fn]</code> is used to register the function with
+the <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, disregarding the actual name of the function.</p>
+<p>With <code>#[rhai_fn(name = &quot;...&quot;)]</code>, multiple functions may be registered under the same name in Rhai, so long as they have different parameters.</p>
+<p>Operators (which require function names that are not valid for Rust) can also be registered this way.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rhai::plugins::*;       // a &quot;prelude&quot; import for macros
+
+#[export_module]
+mod my_module {
+    // This is the '+' operator for 'MyType'.
+    #[rhai_fn(name = &quot;+&quot;)]
+    pub fn add(obj: &amp;mut MyType, value: i64) {
+        obj.prop += value;
+    }
+    // This function is 'calc (i64)'.
+    #[rhai_fn(name = &quot;calc&quot;)]
+    pub fn calc_with_default(num: i64) -&gt; i64 {
+        ...
+    }
+    // This function is 'calc (i64, bool)'.
+    #[rhai_fn(name = &quot;calc&quot;)]
+    pub fn calc_with_option(num: i64, option: bool) -&gt; i64 {
+        ...
+    }
+}
+<span class="boring">}
+</span></code></pre></pre>
 <h2><a class="header" href="#getters-setters-and-indexers" id="getters-setters-and-indexers">Getters, Setters and Indexers</a></h2>
 <p>Functions can be marked as <a href="plugins//rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="plugins//rhai/vnext/rust/indexers.html">indexers</a> for <a href="plugins//rhai/vnext/rust/custom.html">custom types</a> via the <code>#[rhai_fn]</code>
 attribute, which is applied on a function level.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::plugins::*;       // import macros
+</span>use rhai::plugins::*;       // a &quot;prelude&quot; import for macros
 
 #[export_module]
 mod my_module {
@@ -1688,41 +1716,9 @@ mod my_module {
         obj.list[index]
     }
     // This is an index setter for 'MyType'.
-    #[rhai_fn(index_get)]
+    #[rhai_fn(index_set)]
     pub fn get_index(obj: &amp;mut MyType, index: i64, state: bool) {
         obj.list[index] = state;
-    }
-}
-<span class="boring">}
-</span></code></pre></pre>
-<h2><a class="header" href="#function-overloading-and-operators" id="function-overloading-and-operators">Function Overloading and Operators</a></h2>
-<p>Operators and overloaded functions can be specified via <code>#[rhai_fn(name = &quot;...&quot;)]</code> applied upon
-individual functions.</p>
-<p>The text string given as the <code>name</code> parameter to <code>#[rhai_fn]</code> is used to register the function with
-the <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, disregarding the actual name of the function.</p>
-<p>With <code>#[rhai_fn(name = &quot;...&quot;)]</code>, multiple functions may be registered under the same name in Rhai.</p>
-<p>Operators (which require function names that are not valid for Rust) can also be registered this way.</p>
-<pre><pre class="playground"><code class="language-rust">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use rhai::plugins::*;       // import macros
-
-#[export_module]
-mod my_module {
-    // This is the '+' operator for 'MyType'.
-    #[rhai_fn(name = &quot;+&quot;)]
-    pub fn add(obj: &amp;mut MyType, value: i64) {
-        obj.prop += value;
-    }
-    // This function is 'calc (i64)'.
-    #[rhai_fn(name = &quot;calc&quot;)]
-    pub fn calc_with_default(num: i64) -&gt; i64 {
-        ...
-    }
-    // This function is 'calc (i64, bool)'.
-    #[rhai_fn(name = &quot;calc&quot;)]
-    pub fn calc_with_option(num: i64, option: bool) -&gt; i64 {
-        ...
     }
 }
 <span class="boring">}
@@ -1735,7 +1731,7 @@ have the appropriate return type.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::plugins::*;       // import macros
+</span>use rhai::plugins::*;       // a &quot;prelude&quot; import for macros
 
 #[export_module]
 mod my_module {
@@ -1752,15 +1748,26 @@ mod my_module {
 }
 <span class="boring">}
 </span></code></pre></pre>
-<h1><a class="header" href="#create-a-plugin-function" id="create-a-plugin-function">Create a Plugin Function</a></h1>
+<h2><a class="header" href="#inner-attributes" id="inner-attributes">Inner Attributes</a></h2>
+<p>As shown above, inner attributes can be applied to inner items to tweak the export process. <code>#[rhai_fn]</code> is applied to functions, and <code>#[rhai_mod]</code> is applied to inner modules.</p>
+<p>Here is the complete list of parameters currently supported:</p>
+<table><thead><tr><th>Attribute</th><th>Use with</th><th>Apply to</th><th>Behavior</th></tr></thead><tbody>
+<tr><td><code>skip</code></td><td><code>#[rhai_fn]</code>  <code>#[rhai_mod]</code></td><td>Function or submodule</td><td>Do not export this item</td></tr>
+<tr><td><code>name = &quot;...&quot;</code></td><td><code>#[rhai_fn]</code>  <code>#[rhai_mod]</code></td><td><code>pub</code> item</td><td>Register under the specified name</td></tr>
+<tr><td><code>get = &quot;...&quot;</code></td><td><code>#[rhai_fn]</code></td><td>function with <code>&amp;mut</code> first parameter</td><td>Register a getter for the named property</td></tr>
+<tr><td><code>set = &quot;...&quot;</code></td><td><code>#[rhai_fn]</code></td><td>function with <code>&amp;mut</code> first parameter</td><td>Register a setter for the named property</td></tr>
+<tr><td><code>index_get</code></td><td><code>#[rhai_fn]</code></td><td>function with <code>&amp;mut</code> first parameter</td><td>Register an index getter</td></tr>
+<tr><td><code>index_set</code></td><td><code>#[rhai_fn]</code></td><td>function with <code>&amp;mut</code> first parameter</td><td>Register an index setter</td></tr>
+<tr><td><code>return_raw</code></td><td><code>#[rhai_fn]</code></td><td>function returning <code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td><td>Mark this as a <a href="plugins//rhai/vnext/rust/fallible.html">fallible function</a></td></tr>
+</tbody></table>
+<h1><a class="header" href="#exporting-a-rust-function-to-rhai" id="exporting-a-rust-function-to-rhai">Exporting a Rust Function to Rhai</a></h1>
 <p>Sometimes only a few ad hoc functions are required and it is simpler to register
 individual functions instead of a full-blown <a href="plugins//rhai/vnext/plugins/module.html">plugin module</a>.</p>
-<h2><a class="header" href="#macros-1" id="macros-1">Macros</a></h2>
+<h2><a class="header" href="#macros" id="macros">Macros</a></h2>
 <table><thead><tr><th>Macro</th><th>Apply to</th><th>Behavior</th></tr></thead><tbody>
-<tr><td><code>#[export_fn]</code></td><td>Rust function defined in module</td><td>Export the function</td></tr>
-<tr><td><code>#[rhai_fn(return_raw)]</code></td><td>Rust function returning <code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td><td>Specify that this is a fallible function</td></tr>
-<tr><td><code>register_exported_fn!</code></td><td><a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> instance, register name, function name</td><td>Register function with the <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> under specific name</td></tr>
-<tr><td><code>set_exported_fn!</code></td><td><a href="plugins//rhai/vnext/language/modules/index.html"><code>Module</code></a>, register name, function name</td><td>Register function with the <a href="plugins//rhai/vnext/language/modules/index.html"><code>Module</code></a> under specific name</td></tr>
+<tr><td><code>#[export_fn]</code></td><td>Rust function defined in a Rust module</td><td>Export the function</td></tr>
+<tr><td><code>register_exported_fn!</code></td><td><a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> instance, register name string, use path to function</td><td>Register function into an <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> under specific name</td></tr>
+<tr><td><code>set_exported_fn!</code></td><td><a href="plugins//rhai/vnext/language/modules/index.html"><code>Module</code></a> instance, register name string, use path to function</td><td>Register function into an <a href="plugins//rhai/vnext/language/modules/index.html"><code>Module</code></a> under specific name</td></tr>
 </tbody></table>
 <h2><a class="header" href="#export_fn-and-register_exported_fn" id="export_fn-and-register_exported_fn"><code>#[export_fn]</code> and <code>register_exported_fn!</code></a></h2>
 <p>Apply <code>#[export_fn]</code> onto a function defined at <em>module level</em> to convert it into a Rhai plugin function.</p>

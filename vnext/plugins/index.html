@@ -164,10 +164,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#plugins" id="plugins">Plugins</a></h1>
-<p>Rhai contains a robust <em>plugin</em> system that greatly simplifies registration of custom functions.</p>
-<p>Instead of the large <code>Engine::register_XXX</code> API, and the parallel <code>Module::set_fn_XXX</code> API,
-a <em>plugin</em> simplifies the work of creating and registering multiple functions into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
-<p>Plugins are processed via a set of procedural macros under the <code>rhai::plugins</code> module.</p>
+<p>Rhai contains a robust <em>plugin</em> system that greatly simplifies registration of custom
+functionality.</p>
+<p>Instead of using the large <code>Engine::register_XXX</code> API or the parallel <code>Module::set_fn_XXX</code> API,
+a <em>plugin</em> simplifies the work of creating and registering new functionality in an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p>Plugins are processed via a set of procedural macros under the <code>rhai::plugins</code> module. These
+allow registering Rust functions directly in the Engine, or adding Rust modules as packages.</p>
 
                     </main>
 
