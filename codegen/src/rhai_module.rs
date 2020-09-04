@@ -67,12 +67,12 @@ pub(crate) fn generate_body(
             &format!("{}_token", function.name().to_string()),
             function.name().span(),
         );
-        let reg_name = function
+        let reg_names = function
             .params()
             .name
             .clone()
-            .unwrap_or_else(|| function.name().to_string());
-        let fn_literal = syn::LitStr::new(&reg_name, proc_macro2::Span::call_site());
+            .unwrap_or_else(|| vec![function.name().to_string()]);
+
         let fn_input_types: Vec<syn::Expr> = function
             .arg_list()
             .map(|fnarg| match fnarg {
@@ -110,13 +110,17 @@ pub(crate) fn generate_body(
             })
             .collect();
 
-        set_fn_stmts.push(
-            syn::parse2::<syn::Stmt>(quote! {
-                m.set_fn(#fn_literal, FnAccess::Public, &[#(#fn_input_types),*],
-                         CallableFunction::from_plugin(#fn_token_name()));
-            })
-            .unwrap(),
-        );
+        for reg_name in reg_names {
+            let fn_literal = syn::LitStr::new(&reg_name, proc_macro2::Span::call_site());
+
+            set_fn_stmts.push(
+                syn::parse2::<syn::Stmt>(quote! {
+                    m.set_fn(#fn_literal, FnAccess::Public, &[#(#fn_input_types),*],
+                             CallableFunction::from_plugin(#fn_token_name()));
+                })
+                .unwrap(),
+            );
+        }
 
         gen_fn_tokens.push(quote! {
             #[allow(non_camel_case_types)]
@@ -155,29 +159,33 @@ pub(crate) fn check_rename_collisions(fns: &Vec<ExportedFn>) -> Result<(), syn::
     let mut renames = HashMap::<String, proc_macro2::Span>::new();
     let mut names = HashMap::<String, proc_macro2::Span>::new();
     for itemfn in fns.iter() {
-        if let Some(ref name) = itemfn.params().name {
-            let current_span = itemfn.params().span.as_ref().unwrap();
-            let key = itemfn.arg_list().fold(name.clone(), |mut argstr, fnarg| {
-                let type_string: String = match fnarg {
-                    syn::FnArg::Receiver(_) => unimplemented!("receiver rhai_fns not implemented"),
-                    syn::FnArg::Typed(syn::PatType { ref ty, .. }) => {
-                        ty.as_ref().to_token_stream().to_string()
-                    }
-                };
-                argstr.push('.');
-                argstr.push_str(&type_string);
-                argstr
-            });
-            if let Some(other_span) = renames.insert(key, *current_span) {
-                let mut err = syn::Error::new(
-                    *current_span,
-                    format!("duplicate Rhai signature for '{}'", &name),
-                );
-                err.combine(syn::Error::new(
-                    other_span,
-                    format!("duplicated function renamed '{}'", &name),
-                ));
-                return Err(err);
+        if let Some(ref names) = itemfn.params().name {
+            for name in names {
+                let current_span = itemfn.params().span.as_ref().unwrap();
+                let key = itemfn.arg_list().fold(name.clone(), |mut argstr, fnarg| {
+                    let type_string: String = match fnarg {
+                        syn::FnArg::Receiver(_) => {
+                            unimplemented!("receiver rhai_fns not implemented")
+                        }
+                        syn::FnArg::Typed(syn::PatType { ref ty, .. }) => {
+                            ty.as_ref().to_token_stream().to_string()
+                        }
+                    };
+                    argstr.push('.');
+                    argstr.push_str(&type_string);
+                    argstr
+                });
+                if let Some(other_span) = renames.insert(key, *current_span) {
+                    let mut err = syn::Error::new(
+                        *current_span,
+                        format!("duplicate Rhai signature for '{}'", &name),
+                    );
+                    err.combine(syn::Error::new(
+                        other_span,
+                        format!("duplicated function renamed '{}'", &name),
+                    ));
+                    return Err(err);
+                }
             }
         } else {
             let ident = itemfn.name();
