@@ -19,7 +19,7 @@ use crate::attrs::{ExportInfo, ExportScope, ExportedParams};
 
 #[derive(Debug, Default)]
 pub(crate) struct ExportedFnParams {
-    pub name: Option<String>,
+    pub name: Option<Vec<String>>,
     pub return_raw: bool,
     pub skip: bool,
     pub span: Option<proc_macro2::Span>,
@@ -55,11 +55,12 @@ impl ExportedParams for ExportedFnParams {
         Default::default()
     }
 
-    fn from_info(
-        info: crate::attrs::ExportInfo,
-    ) -> syn::Result<Self> {
-        let ExportInfo { item_span: span, items: attrs } = info;
-        let mut name = None;
+    fn from_info(info: crate::attrs::ExportInfo) -> syn::Result<Self> {
+        let ExportInfo {
+            item_span: span,
+            items: attrs,
+        } = info;
+        let mut name = Vec::new();
         let mut return_raw = false;
         let mut skip = false;
         for attr in attrs {
@@ -73,15 +74,15 @@ impl ExportedParams for ExportedFnParams {
                             "Rhai function names may not contain dot",
                         ));
                     }
-                    name = Some(s.value())
+                    name.push(s.value())
                 }
-                ("get", Some(s)) => name = Some(make_getter(&s.value())),
-                ("set", Some(s)) => name = Some(make_setter(&s.value())),
+                ("get", Some(s)) => name.push(make_getter(&s.value())),
+                ("set", Some(s)) => name.push(make_setter(&s.value())),
                 ("get", None) | ("set", None) | ("name", None) => {
                     return Err(syn::Error::new(key.span(), "requires value"))
                 }
-                ("index_get", None) => name = Some(FN_IDX_GET.to_string()),
-                ("index_set", None) => name = Some(FN_IDX_SET.to_string()),
+                ("index_get", None) => name.push(FN_IDX_GET.to_string()),
+                ("index_set", None) => name.push(FN_IDX_SET.to_string()),
                 ("return_raw", None) => return_raw = true,
                 ("index_get", Some(s)) | ("index_set", Some(s)) | ("return_raw", Some(s)) => {
                     return Err(syn::Error::new(s.span(), "extraneous value"))
@@ -98,7 +99,7 @@ impl ExportedParams for ExportedFnParams {
         }
 
         Ok(ExportedFnParams {
-            name,
+            name: if name.is_empty() { None } else { Some(name) },
             return_raw,
             skip,
             span: Some(span),
@@ -260,7 +261,7 @@ impl ExportedFn {
 
     pub(crate) fn exported_name<'n>(&'n self) -> Cow<'n, str> {
         if let Some(ref name) = self.params.name {
-            Cow::Borrowed(name.as_str())
+            Cow::Borrowed(name.last().unwrap().as_str())
         } else {
             Cow::Owned(self.signature.ident.to_string())
         }
@@ -346,7 +347,9 @@ impl ExportedFn {
             })
             .collect();
 
-        let return_span = self.return_type().map(|r| r.span())
+        let return_span = self
+            .return_type()
+            .map(|r| r.span())
             .unwrap_or_else(|| proc_macro2::Span::call_site());
         if !self.params.return_raw {
             quote_spanned! { return_span=>
@@ -393,11 +396,10 @@ impl ExportedFn {
 
     pub fn generate_impl(&self, on_type_name: &str) -> proc_macro2::TokenStream {
         let sig_name = self.name().clone();
-        let name = self
-            .params
-            .name
-            .clone()
-            .unwrap_or_else(|| self.name().to_string());
+        let name = self.params.name.as_ref().map_or_else(
+            || self.name().to_string(),
+            |names| names.last().unwrap().clone(),
+        );
 
         let arg_count = self.arg_count();
         let is_method_call = self.mutable_receiver();
@@ -518,7 +520,9 @@ impl ExportedFn {
         // Handle "raw returns", aka cases where the result is a dynamic or an error.
         //
         // This allows skipping the Dynamic::from wrap.
-        let return_span = self.return_type().map(|r| r.span())
+        let return_span = self
+            .return_type()
+            .map(|r| r.span())
             .unwrap_or_else(|| proc_macro2::Span::call_site());
         let return_expr = if !self.params.return_raw {
             quote_spanned! { return_span=>
