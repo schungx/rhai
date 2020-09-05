@@ -222,6 +222,73 @@ fn duplicate_fn_rename_test() -> Result<(), Box<EvalAltResult>> {
     Ok(())
 }
 
+mod multiple_fn_rename {
+    use rhai::plugin::*;
+    #[export_module]
+    pub mod my_adds {
+        use rhai::{FLOAT, INT};
+
+        pub fn get_mystic_number() -> FLOAT {
+            42.0
+        }
+        #[rhai_fn(name = "add", name = "+", name = "add_together")]
+        pub fn add_float(f1: FLOAT, f2: FLOAT) -> FLOAT {
+            f1 + f2 * 2.0
+        }
+
+        #[rhai_fn(name = "add", name = "+", name = "add_together")]
+        pub fn add_int(i1: INT, i2: INT) -> INT {
+            i1 + i2 * 2
+        }
+
+        #[rhai_fn(name = "prop", get = "prop")]
+        pub fn get_prop(x: FLOAT) -> FLOAT {
+            x * 2.0
+        }
+
+        #[rhai_fn(name = "idx", index_get)]
+        pub fn index(x: FLOAT, i: INT) -> FLOAT {
+            x + (i as FLOAT)
+        }
+    }
+}
+
+#[test]
+fn multiple_fn_rename_test() -> Result<(), Box<EvalAltResult>> {
+    let mut engine = Engine::new();
+    let m = rhai::exported_module!(crate::multiple_fn_rename::my_adds);
+    engine.load_package(m);
+
+    let output_array = engine.eval::<Array>(
+        r#"
+       let fx = get_mystic_number();
+       let fy1 = add(fx, 1.0);
+       let fy2 = add_together(fx, 1.0);
+       let fy3 = fx + 1.0;
+       let p1 = fx.prop;
+       let p2 = prop(fx);
+       let idx1 = fx[1];
+       let idx2 = idx(fx, 1);
+       let ix = 42;
+       let iy1 = add(ix, 1);
+       let iy2 = add_together(ix, 1);
+       let iy3 = ix + 1;
+       [fy1, fy2, fy3, iy1, iy2, iy3, p1, p2, idx1, idx2]
+       "#,
+    )?;
+    assert_eq!(&output_array[0].as_float().unwrap(), &44.0);
+    assert_eq!(&output_array[1].as_float().unwrap(), &44.0);
+    assert_eq!(&output_array[2].as_float().unwrap(), &44.0);
+    assert_eq!(&output_array[3].as_int().unwrap(), &44);
+    assert_eq!(&output_array[4].as_int().unwrap(), &44);
+    assert_eq!(&output_array[5].as_int().unwrap(), &44);
+    assert_eq!(&output_array[6].as_float().unwrap(), &84.0);
+    assert_eq!(&output_array[7].as_float().unwrap(), &84.0);
+    assert_eq!(&output_array[8].as_float().unwrap(), &43.0);
+    assert_eq!(&output_array[9].as_float().unwrap(), &43.0);
+    Ok(())
+}
+
 mod export_by_prefix {
     use rhai::plugin::*;
     #[export_module(export_prefix = "foo_")]
