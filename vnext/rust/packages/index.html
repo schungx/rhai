@@ -171,7 +171,7 @@ packages to be used.</p>
 All functions registered in a package is loaded under the <em>global namespace</em>
 (i.e. they’re available without module qualifiers).</p>
 <p>Once a package is created (e.g. via <code>Package::new</code>), it can be <em>shared</em> (via <code>Package::get</code>)
-among multiple instances of <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, even across threads (under <a href="/rhai/vnext/start/features.html"><code>sync</code></a>).
+among multiple instances of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, even across threads (under <a href="/rhai/start/features.html"><code>sync</code></a>).
 Therefore, a package only has to be created <em>once</em>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -187,16 +187,16 @@ engine.load_package(package.get()); // load the package manually. 'get' returns 
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#difference-between-a-package-and-a-module" id="difference-between-a-package-and-a-module">Difference Between a Package and a Module</a></h2>
-<p>Packages are internally implemented as <a href="/rhai/vnext/language/modules/index.html">modules</a>, so they share a lot of behavior and characteristics.</p>
+<p>Packages are internally implemented as <a href="/rhai/language/modules/index.html">modules</a>, so they share a lot of behavior and characteristics.</p>
 <p>The main difference is that a package loads under the <em>global</em> namespace, while a module loads under its own
-namespace alias specified in an <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement (see also <a href="/rhai/vnext/language/modules/index.html">modules</a>).</p>
-<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
+namespace alias specified in an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement (see also <a href="/rhai/language/modules/index.html">modules</a>).</p>
+<p>A package is <em>static</em> (i.e. pre-loaded into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>), while a module is <em>dynamic</em> (i.e. loaded with
 the <code>import</code> statement).</p>
 <p>Sub-modules in a package are <em>flattened</em>, meaning that functions from them must be pulled up to the root level.
 In other words, there can be no sub-modules in a package, and everything should reside in one, flat namespace.</p>
 <p>Only functions matter for a package.  Constant variables registered in a package are ignored.</p>
 <h2><a class="header" href="#load-a-module-as-a-package" id="load-a-module-as-a-package">Load a Module as a Package</a></h2>
-<p>Stand-alone <a href="/rhai/vnext/language/modules/index.html">modules</a> can be loaded directly into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> as a package via the same <code>Engine::load_package</code> API.</p>
+<p>Stand-alone <a href="/rhai/language/modules/index.html">modules</a> can be loaded directly into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> as a package via the same <code>Engine::load_package</code> API.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -208,8 +208,8 @@ In other words, there can be no sub-modules in a package, and everything should 
 engine.load_package(module);
 <span class="boring">}
 </span></code></pre></pre>
-<p><a href="/rhai/vnext/language/modules/index.html">Modules</a>, however, are not <em>shared</em>, so use a <a href="/rhai/vnext/rust/packages/create.html">custom package</a> if it must be shared among multiple
-instances of <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p><a href="/rhai/language/modules/index.html">Modules</a>, however, are not <em>shared</em>, so use a <a href="/rhai/rust/packages/create.html">custom package</a> if it must be shared among multiple
+instances of <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>.</p>
 
                     </main>
 

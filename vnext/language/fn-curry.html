@@ -164,10 +164,10 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#function-pointer-currying" id="function-pointer-currying">Function Pointer Currying</a></h1>
-<p>It is possible to <em>curry</em> a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> by providing partial (or all) arguments.</p>
-<p>Currying is done via the <code>curry</code> keyword and produces a new <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> which carries
+<p>It is possible to <em>curry</em> a <a href="/rhai/language/fn-ptr.html">function pointer</a> by providing partial (or all) arguments.</p>
+<p>Currying is done via the <code>curry</code> keyword and produces a new <a href="/rhai/language/fn-ptr.html">function pointer</a> which carries
 the curried arguments.</p>
-<p>When the curried <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> is called, the curried arguments are inserted starting from the left.
+<p>When the curried <a href="/rhai/language/fn-ptr.html">function pointer</a> is called, the curried arguments are inserted starting from the left.
 The actual call arguments should be reduced by the number of curried arguments.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -190,9 +190,9 @@ curried.call(2) == 42;          // &lt;- de-sugars to 'func.call(21, 2)'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#automatic-currying" id="automatic-currying">Automatic Currying</a></h2>
-<p><a href="/rhai/vnext/language/fn-anon.html">Anonymous functions</a> defined via a closure syntax <em>capture</em> external variables
+<p><a href="/rhai/language/fn-anon.html">Anonymous functions</a> defined via a closure syntax <em>capture</em> external variables
 that are not shadowed inside the function’s scope.</p>
-<p>This is accomplished via <a href="/rhai/vnext/language/fn-closure.html">automatic currying</a>.</p>
+<p>This is accomplished via <a href="/rhai/language/fn-closure.html">automatic currying</a>.</p>
 
                     </main>
 

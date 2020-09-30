@@ -171,7 +171,7 @@ with custom-defined <em>syntax</em>.</p>
 <p>Stick with standard language syntax as much as possible.</p>
 <p>Having to learn Rhai is bad enough, no sane user would ever want to learn <em>yet</em> another
 obscure language syntax just to do something.</p>
-<p>Try to use <a href="/rhai/vnext/engine/custom-op.html">custom operators</a> first.  Defining a custom syntax should be considered a <em>last resort</em>.</p>
+<p>Try to use <a href="/rhai/engine/custom-op.html">custom operators</a> first.  Defining a custom syntax should be considered a <em>last resort</em>.</p>
 <h2><a class="header" href="#where-this-might-be-useful" id="where-this-might-be-useful">Where This Might Be Useful</a></h2>
 <ul>
 <li>
@@ -192,16 +192,16 @@ obscure language syntax just to do something.</p>
 <p>These symbol types can be used:</p>
 <ul>
 <li>
-<p>Standard <a href="/rhai/vnext/appendix/keywords.html">keywords</a></p>
+<p>Standard <a href="/rhai/appendix/keywords.html">keywords</a></p>
 </li>
 <li>
-<p>Standard <a href="/rhai/vnext/appendix/operators.html#operators">operators</a>.</p>
+<p>Standard <a href="/rhai/appendix/operators.html#operators">operators</a>.</p>
 </li>
 <li>
-<p>Reserved <a href="/rhai/vnext/appendix/operators.html#symbols">symbols</a>.</p>
+<p>Reserved <a href="/rhai/appendix/operators.html#symbols">symbols</a>.</p>
 </li>
 <li>
-<p>Identifiers following the <a href="/rhai/vnext/language/variables.html">variable</a> naming rules.</p>
+<p>Identifiers following the <a href="/rhai/language/variables.html">variable</a> naming rules.</p>
 </li>
 <li>
 <p><code>$expr$</code> - any valid expression, statement or statement block.</p>
@@ -210,16 +210,16 @@ obscure language syntax just to do something.</p>
 <p><code>$block$</code> - any valid statement block (i.e. must be enclosed by <code>'{'</code> .. <code>'}'</code>).</p>
 </li>
 <li>
-<p><code>$ident$</code> - any <a href="/rhai/vnext/language/variables.html">variable</a> name.</p>
+<p><code>$ident$</code> - any <a href="/rhai/language/variables.html">variable</a> name.</p>
 </li>
 </ul>
 <h3><a class="header" href="#the-first-symbol-must-be-a-keyword" id="the-first-symbol-must-be-a-keyword">The First Symbol Must be a Keyword</a></h3>
 <p>There is no specific limit on the combination and sequencing of each symbol type,
 except the <em>first</em> symbol which must be a custom keyword that follows the naming rules
-of <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
-<p>The first symbol also cannot be a reserved <a href="/rhai/vnext/appendix/keywords.html">keyword</a>, unless that keyword
-has been <a href="/rhai/vnext/engine/disable.html">disabled</a>.</p>
-<p>In other words, any valid identifier that is not an active <a href="/rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
+of <a href="/rhai/language/variables.html">variables</a>.</p>
+<p>The first symbol also cannot be a reserved <a href="/rhai/appendix/keywords.html">keyword</a>, unless that keyword
+has been <a href="/rhai/engine/disable.html">disabled</a>.</p>
+<p>In other words, any valid identifier that is not an active <a href="/rhai/appendix/keywords.html">keyword</a> will work fine.</p>
 <h3><a class="header" href="#the-first-symbol-must-be-unique" id="the-first-symbol-must-be-unique">The First Symbol Must be Unique</a></h3>
 <p>Rhai uses the <em>first</em> symbol as a clue to parse custom syntax.</p>
 <p>Therefore, at any one time, there can only be <em>one</em> custom syntax starting with each unique symbol.</p>
@@ -235,7 +235,7 @@ has been <a href="/rhai/vnext/engine/disable.html">disabled</a>.</p>
 <table><thead><tr><th align="center">Position</th><th align="center">Input</th><th align="center">Symbol</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center">1</td><td align="center"></td><td align="center"><code>exec</code></td><td>custom keyword</td></tr>
 <tr><td align="center">2</td><td align="center">1</td><td align="center"><code>$ident$</code></td><td>a variable name</td></tr>
-<tr><td align="center">3</td><td align="center"></td><td align="center"><code>&lt;-</code></td><td>the left-arrow symbol (which is a <a href="/rhai/vnext/appendix/operators.html#symbols">reserved symbol</a> in Rhai).</td></tr>
+<tr><td align="center">3</td><td align="center"></td><td align="center"><code>&lt;-</code></td><td>the left-arrow symbol (which is a <a href="/rhai/appendix/operators.html#symbols">reserved symbol</a> in Rhai).</td></tr>
 <tr><td align="center">4</td><td align="center">2</td><td align="center"><code>$expr$</code></td><td>an expression, which may be enclosed with <code>{</code> .. <code>}</code>, or not.</td></tr>
 <tr><td align="center">5</td><td align="center"></td><td align="center"><code>:</code></td><td>the colon symbol</td></tr>
 <tr><td align="center">6</td><td align="center">3</td><td align="center"><code>$block$</code></td><td>a statement block, which must be enclosed with <code>{</code> .. <code>}</code>.</td></tr>
@@ -264,14 +264,14 @@ print(hello);   // variable declared by a custom syntax persists!
 </blockquote>
 <p>where:</p>
 <ul>
-<li><code>engine: &amp;Engine</code> - reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
+<li><code>engine: &amp;Engine</code> - reference to the current <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>.</li>
 <li><code>context: &amp;mut EvalContext</code> - mutable reference to the current evaluation <em>context</em>; <strong>do not touch</strong>.</li>
-<li><code>scope: &amp;mut Scope</code> - mutable reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to it.</li>
+<li><code>scope: &amp;mut Scope</code> - mutable reference to the current <a href="/rhai/engine/scope.html"><code>Scope</code></a>; variables can be added to it.</li>
 <li><code>inputs: &amp;[Expression]</code> - a list of input expression trees.</li>
 </ul>
 <h4><a class="header" href="#warning---larks-vomit" id="warning---larks-vomit">WARNING - Lark’s Vomit</a></h4>
 <p>The <code>context</code> parameter contains the evaluation <em>context</em> and should not be touched or Bad Things Happen™.
-It should simply be passed straight-through the the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
+It should simply be passed straight-through the the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>.</p>
 <h3><a class="header" href="#access-arguments" id="access-arguments">Access Arguments</a></h3>
 <p>The most important argument is <code>inputs</code> where the matched identifiers (<code>$ident$</code>), expressions/statements (<code>$expr$</code>)
 and statement blocks (`$block$) are provided.</p>
@@ -292,7 +292,7 @@ let result = engine.eval_expression_tree(context, scope, expr)?;
 </span></code></pre></pre>
 <h3><a class="header" href="#declare-variables" id="declare-variables">Declare Variables</a></h3>
 <p>New variables maybe declared (usually with a variable name that is passed in via `$ident$).</p>
-<p>It can simply be pushed into the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+<p>It can simply be pushed into the <a href="/rhai/engine/scope.html"><code>Scope</code></a>.</p>
 <p>However, beware that all new variables must be declared <em>prior</em> to evaluating any expression tree.
 In other words, any <code>Scope::push</code> calls must come <em>before</em> any <code>Engine::eval_expression_tree</code> calls.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -358,7 +358,7 @@ engine.register_custom_syntax(
 <h2><a class="header" href="#step-four---disable-unneeded-statement-types" id="step-four---disable-unneeded-statement-types">Step Four - Disable Unneeded Statement Types</a></h2>
 <p>When a DSL needs a custom syntax, most likely than not it is extremely specialized.
 Therefore, many statement types actually may not make sense under the same usage scenario.</p>
-<p>So, while at it, better <a href="/rhai/vnext/engine/disable.html">disable</a> those built-in keywords
+<p>So, while at it, better <a href="/rhai/engine/disable.html">disable</a> those built-in keywords
 and operators that should not be used by the user.  The would leave only the bare minimum
 language surface exposed, together with the custom syntax that is tailor-designed for
 the scenario.</p>

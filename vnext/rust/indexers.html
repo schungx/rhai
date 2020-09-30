@@ -170,9 +170,9 @@
 <p><em>object</em> <code>[</code> <em>index</em> <code>]</code></p>
 </blockquote>
 <p>Like getters and setters, indexers take a <code>&amp;mut</code> reference to the first parameter.</p>
-<p>Indexers are disabled when the <a href="/rhai/vnext/start/features.html"><code>no_index</code></a> feature is used.</p>
+<p>Indexers are disabled when the <a href="/rhai/start/features.html"><code>no_index</code></a> feature is used.</p>
 <table><thead><tr><th><code>Engine</code> API</th><th>Description</th><th align="center">Return Value of Function</th></tr></thead><tbody>
-<tr><td><code>register_indexer_get</code></td><td>register an index getter</td><td align="center"><em>any</em></td></tr>
+<tr><td><code>register_indexer_get</code></td><td>register an index getter</td><td align="center"><em>any</em> <code>T: Clone</code></td></tr>
 <tr><td><code>register_indexer_set</code></td><td>register an index setter</td><td align="center"><em>none</em></td></tr>
 <tr><td><code>register_indexer_get_set</code></td><td>short-hand to register both an index getter and a setter</td><td align="center"><em>none</em></td></tr>
 <tr><td><code>register_indexer_get_result</code></td><td>register an index getter</td><td align="center"><code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td></tr>
@@ -180,8 +180,8 @@
 </tbody></table>
 <h2><a class="header" href="#cannot-override-arrays-object-maps-and-strings" id="cannot-override-arrays-object-maps-and-strings">Cannot Override Arrays, Object Maps and Strings</a></h2>
 <p>For efficiency reasons, indexers <strong>cannot</strong> be used to overload (i.e. override)
-built-in indexing operations for <a href="/rhai/vnext/language/arrays.html">arrays</a>, <a href="/rhai/vnext/language/object-maps.html">object maps</a> and <a href="/rhai/vnext/language/strings-chars.html">strings</a>.</p>
-<p>Attempting to register indexers for an <a href="/rhai/vnext/language/arrays.html">array</a>, <a href="/rhai/vnext/language/object-maps.html">object map</a> or <a href="/rhai/vnext/language/strings-chars.html">string</a> panics.</p>
+built-in indexing operations for <a href="/rhai/language/arrays.html">arrays</a>, <a href="/rhai/language/object-maps.html">object maps</a> and <a href="/rhai/language/strings-chars.html">strings</a>.</p>
+<p>Attempting to register indexers for an <a href="/rhai/language/arrays.html">array</a>, <a href="/rhai/language/object-maps.html">object map</a> or <a href="/rhai/language/strings-chars.html">string</a> panics.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]

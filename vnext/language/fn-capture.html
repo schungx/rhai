@@ -171,7 +171,7 @@ access to the calling environment.</p>
 it raises an evaluation error.</p>
 <p>It is possible, through a special syntax, to capture the calling scope - i.e. the scope
 that makes the function call - and access variables defined there.</p>
-<p>Capturing can be disabled via the <a href="/rhai/vnext/start/features.html"><code>no_closure</code></a> feature.</p>
+<p>Capturing can be disabled via the <a href="/rhai/start/features.html"><code>no_closure</code></a> feature.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -202,8 +202,8 @@ f.call!(41);            // &lt;- syntax error: capturing is not allowed in metho
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#no-mutations" id="no-mutations">No Mutations</a></h2>
-<p>Variables in the calling scope are captured as copies.
-Changes to them do not reflect back to the calling scope.</p>
+<p>Variables in the calling scope are captured as cloned copies.
+Changes to them do <strong>not</strong> reflect back to the calling scope.</p>
 <p>Rhai functions remain <em>pure</em> in the sense that they can never mutate their environment.</p>
 <h2><a class="header" href="#caveat-emptor" id="caveat-emptor">Caveat Emptor</a></h2>
 <p>Functions relying on the calling scope is often a <em>Very Bad Idea™</em> because it makes code

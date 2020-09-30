@@ -166,18 +166,18 @@
                         <h1><a class="header" href="#custom-type-getters-and-setters" id="custom-type-getters-and-setters">Custom Type Getters and Setters</a></h1>
 <p>A custom type can also expose members by registering <code>get</code> and/or <code>set</code> functions.</p>
 <p>Getters and setters each take a <code>&amp;mut</code> reference to the first parameter.</p>
-<p>Getters and setters are disabled when the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature is used.</p>
+<p>Getters and setters are disabled when the <a href="/rhai/start/features.html"><code>no_object</code></a> feature is used.</p>
 <table><thead><tr><th><code>Engine</code> API</th><th>Description</th><th align="center">Return Value of Function</th></tr></thead><tbody>
-<tr><td><code>register_get</code></td><td>register a getter</td><td align="center"><em>any</em></td></tr>
+<tr><td><code>register_get</code></td><td>register a getter</td><td align="center"><em>any</em> <code>T: Clone</code></td></tr>
 <tr><td><code>register_set</code></td><td>register a setter</td><td align="center"><em>none</em></td></tr>
 <tr><td><code>register_get_set</code></td><td>short-hand to register both a getter and a setter</td><td align="center"><em>none</em></td></tr>
 <tr><td><code>register_get_result</code></td><td>register a getter</td><td align="center"><code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td></tr>
 <tr><td><code>register_set_result</code></td><td>register a setter</td><td align="center"><code>Result&lt;(), Box&lt;EvalAltResult&gt;&gt;</code></td></tr>
 </tbody></table>
 <h2><a class="header" href="#cannot-override-object-maps" id="cannot-override-object-maps">Cannot Override Object Maps</a></h2>
-<p>Getters and setters are only intended for <a href="/rhai/vnext/rust/custom.html">custom types</a>.</p>
-<p>Any getter or setter function registered for <a href="/rhai/vnext/language/object-maps.html">object maps</a> is simply ignored because
-the get/set calls will be interpreted as properties on the <a href="/rhai/vnext/language/object-maps.html">object maps</a>.</p>
+<p>Getters and setters are only intended for <a href="/rhai/rust/custom.html">custom types</a>.</p>
+<p>Any getter or setter function registered for <a href="/rhai/language/object-maps.html">object maps</a> is simply ignored because
+the get/set calls will be interpreted as properties on the <a href="/rhai/language/object-maps.html">object maps</a>.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]

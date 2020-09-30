@@ -167,9 +167,10 @@
 <p>A number of traits, under the <code>rhai::</code> module namespace, provide additional functionalities.</p>
 <table><thead><tr><th>Trait</th><th>Description</th><th>Methods</th></tr></thead><tbody>
 <tr><td><code>RegisterFn</code></td><td>trait for registering functions</td><td><code>register_fn</code></td></tr>
-<tr><td><code>RegisterResultFn</code></td><td>trait for registering fallible functions returning <code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></td><td><code>register_result_fn</code></td></tr>
+<tr><td><code>RegisterResultFn</code></td><td>trait for registering <a href="/rhai/rust/fallible.html">fallible functions</a></td><td><code>register_result_fn</code></td></tr>
 <tr><td><code>Func</code></td><td>trait for creating Rust closures from script</td><td><code>create_from_ast</code>, <code>create_from_script</code></td></tr>
-<tr><td><code>ModuleResolver</code></td><td>trait implemented by module resolution services</td><td><code>resolve</code></td></tr>
+<tr><td><code>ModuleResolver</code></td><td>trait implemented by <a href="/rhai/rust/modules/resolvers.html">module resolution</a> services</td><td><code>resolve</code></td></tr>
+<tr><td><code>plugin::PluginFunction</code></td><td>trait implemented by <a href="/rhai/plugins/index.html">plugin</a> functions</td><td><code>call</code>, <code>is_method_call</code>, <code>is_variadic</code>, <code>clone_boxed</code>, <code>input_types</code></td></tr>
 </tbody></table>
 
                     </main>

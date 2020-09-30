@@ -175,35 +175,46 @@ It doesn’t attempt to be a new language. For example:</p>
 </li>
 <li>
 <p>No structures/records - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
-<p>There is, however, a built-in <a href="/rhai/vnext/language/object-maps.html">object map</a> type which is adequate for most uses.
-It is possible to simulate <a href="/rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>
-in <a href="/rhai/vnext/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
+<p>There is, however, a built-in <a href="/rhai/language/object-maps.html">object map</a> type which is adequate for most uses.
+It is possible to simulate <a href="/rhai/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="/rhai/language/fn-ptr.html">function pointers</a>
+or <a href="/rhai/language/fn-closure.html">closures</a> in <a href="/rhai/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
 </li>
 <li>
 <p>No first-class functions - Code your functions in Rust instead, and register them with Rhai.</p>
-<p>There is, however, support for simple <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a> to allow runtime dispatch by function name.</p>
+<p>There is, however, support for simple <a href="/rhai/language/fn-ptr.html">function pointers</a> to allow runtime dispatch by function name.</p>
 </li>
 <li>
 <p>No garbage collection - this should be expected, so...</p>
 </li>
 <li>
-<p>No closures - do your closure magic in Rust instead; <a href="/rhai/vnext/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
-<p>But you can <a href="/rhai/vnext/language/fn-curry.html">curry</a> a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> with arguments to simulate it somewhat.</p>
+<p>No first-class closures - do your closure magic in Rust instead: <a href="/rhai/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
+<p>There is, however, support for simulated <a href="/rhai/language/fn-closure.html">closures</a> via <a href="/rhai/language/fn-curry.html">currying</a> a <a href="/rhai/language/fn-ptr.html">function pointer</a> with
+captured shared variables.</p>
 </li>
 <li>
-<p>No byte-codes/JIT - Rhai has an AST-walking interpreter which will not win any speed races. The purpose of Rhai is not
-to be extremely <em>fast</em>, but to make it as easy as possible to integrate with native Rust applications.</p>
+<p>No byte-codes/JIT - Rhai has an AST-walking interpreter which will not win any speed races.
+The purpose of Rhai is not to be extremely <em>fast</em>, but to make it as easy as possible to
+integrate with native Rust applications.</p>
+</li>
+<li>
+<p>No formal language grammar - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
+for statements and a Pratt parser for expressions.</p>
+<p>This lack of formalism allows the parser itself to be exposed as a service in order to support
+<a href="/rhai/engine/disable.html">disabling keywords/operators</a>, adding <a href="/rhai/engine/custom-op.html">custom operators</a>,
+and defining <a href="/rhai/engine/custom-syntax.html">custom syntax</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#do-not-write-the-next-4d-vr-game-in-rhai" id="do-not-write-the-next-4d-vr-game-in-rhai">Do Not Write The Next 4D VR Game in Rhai</a></h2>
-<p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting advanced language features
-such as classes, inheritance, first-class functions, closures, concurrency, byte-codes, JIT etc.</p>
-<p>Avoid the temptation to write full-fledge application logic entirely in Rhai - that use case is best fulfilled by
-more complete languages such as JavaScript or Lua.</p>
+<p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting
+advanced language features such as classes, inheritance, first-class functions, closures,
+concurrency, byte-codes VM, JIT etc.</p>
+<p>Avoid the temptation to write full-fledge application logic entirely in Rhai -
+that use case is best fulfilled by more complete languages such as JavaScript or Lua.</p>
 <h2><a class="header" href="#thin-dynamic-wrapper-layer-over-rust-code" id="thin-dynamic-wrapper-layer-over-rust-code">Thin Dynamic Wrapper Layer Over Rust Code</a></h2>
 <p>In actual practice, it is usually best to expose a Rust API into Rhai for scripts to call.</p>
 <p>All the core functionalities should be written in Rust, with Rhai being the dynamic <em>control</em> layer.</p>
-<p>This is similar to some dynamic languages where most of the core functionalities reside in a C/C++ standard library.</p>
+<p>This is similar to some dynamic languages where most of the core functionalities reside in a C/C++
+standard library.</p>
 <p>Another similar scenario is a web front-end driving back-end services written in a systems language.
 In this case, JavaScript takes the role of Rhai while the back-end language, well... it can actually also be Rust.
 Except that Rhai integrates with Rust <em>much</em> more tightly, removing the need for interfaces such

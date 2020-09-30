@@ -166,9 +166,9 @@
                         <h1><a class="header" href="#manually-create-a-custom-package" id="manually-create-a-custom-package">Manually Create a Custom Package</a></h1>
 <p>Sometimes specific functionalities are needed, so custom packages can be created.</p>
 <p>A custom package is a convenient means to gather up a number of functions for later use.
-An <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> only needs to <code>Engine::load_package</code> the custom package once to gain access
+An <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> only needs to <code>Engine::load_package</code> the custom package once to gain access
 to the entire set of functions within.</p>
-<p>Loading a package into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> is functionally equivalent to calling <code>Engine::register_fn</code> etc.
+<p>Loading a package into an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> is functionally equivalent to calling <code>Engine::register_fn</code> etc.
 on <em>each</em> of the functions inside the package.  But because packages are <em>shared</em>, loading an existing
 package is <em>much</em> cheaper than registering all the functions one by one.</p>
 <p>The macro <code>rhai::def_package!</code> can be used to create a new custom package.</p>
@@ -185,7 +185,7 @@ package is <em>much</em> cheaper than registering all the functions one by one.<
 <p><code>description</code> - doc comment for the package.</p>
 </li>
 <li>
-<p><code>variable</code> - a variable name holding a reference to the <a href="/rhai/vnext/language/modules/index.html">module</a> that is to form the package.</p>
+<p><code>variable</code> - a variable name holding a reference to the <a href="/rhai/language/modules/index.html">module</a> that is to form the package.</p>
 </li>
 <li>
 <p><code>block</code> - a code block that initializes the package.</p>
@@ -219,13 +219,13 @@ def_package!(rhai:MyPackage:&quot;My own personal super package&quot;, module, {
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#create-a-custom-package-from-a-plugin-module" id="create-a-custom-package-from-a-plugin-module">Create a Custom Package from a Plugin Module</a></h2>
-<p>By far the easiest way to create a custom module is to call <code>rhai::plugins::combine_with_exported_module!</code>
-from within <code>rhai::def_package!</code> which simply merges in all the functions defined within a <a href="/rhai/vnext/plugins/module.html">plugin module</a>.</p>
+<p>By far the easiest way to create a custom module is to call <code>rhai::plugin::combine_with_exported_module!</code>
+from within <code>rhai::def_package!</code> which simply merges in all the functions defined within a <a href="/rhai/plugins/module.html">plugin module</a>.</p>
 <p>In fact, this exactly is how Rhai’s built-in packages, such as <code>BasicMathPackage</code>, are implemented.</p>
-<p>Because of the specific requirements of a <a href="/rhai/vnext/rust/packages/index.html">package</a>, all sub-modules are <em>flattened</em>
+<p>Because of the specific requirements of a <a href="/rhai/rust/packages/index.html">package</a>, all sub-modules are <em>flattened</em>
 (i.e. all functions defined within sub-modules are pulled up and registered at the top level instead)
 and so there will not be any sub-modules added to the package.</p>
-<p>Variables in the <a href="/rhai/vnext/plugins/module.html">plugin module</a> are ignored.</p>
+<p>Variables in the <a href="/rhai/plugins/module.html">plugin module</a> are ignored.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -270,8 +270,8 @@ def_package!(rhai:MyPackage:&quot;My own personal super package&quot;, module, {
     //
     // The sub-module 'my_sub_module' is flattened and its functions registered at the top level.
     //
-    // The text string name in the middle parameter can be anything and is reserved for future use;
-    // it is recommended to be an ID string that uniquely identifies the module.
+    // The text string name in the second parameter can be anything and is reserved for future use;
+    // it is recommended to be an ID string that uniquely identifies the plugin module.
     //
     // The constant variable, 'MY_NUMBER', is ignored.
     //

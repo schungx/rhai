@@ -171,8 +171,8 @@ immediately thrown away right after the call.</p>
 <p>Needless to say, it is <em>extremely</em> inefficient to use <code>String</code> parameters.</p>
 <h2><a class="header" href="#str-maps-to-immutablestring" id="str-maps-to-immutablestring"><code>&amp;str</code> Maps to <code>ImmutableString</code></a></h2>
 <p>Rust functions accepting parameters of <code>String</code> should use <code>&amp;str</code> instead because it maps directly to
-<a href="/rhai/vnext/language/strings-chars.html"><code>ImmutableString</code></a> which is the type that Rhai uses to represent <a href="/rhai/vnext/language/strings-chars.html">strings</a> internally.</p>
-<p>The parameter type <code>String</code> involves always converting an <a href="/rhai/vnext/language/strings-chars.html"><code>ImmutableString</code></a> into a <code>String</code>
+<a href="/rhai/language/strings-chars.html"><code>ImmutableString</code></a> which is the type that Rhai uses to represent <a href="/rhai/language/strings-chars.html">strings</a> internally.</p>
+<p>The parameter type <code>String</code> involves always converting an <a href="/rhai/language/strings-chars.html"><code>ImmutableString</code></a> into a <code>String</code>
 which mandates cloning it.</p>
 <p>Using <code>ImmutableString</code> or <code>&amp;str</code> is much more efficient.
 A common mistake made by novice Rhai users is to register functions with <code>String</code> parameters.</p>

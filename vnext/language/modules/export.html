@@ -191,8 +191,8 @@ export x as answer;     // the variable 'x' is exported under the alias 'answer'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#export-functions" id="export-functions">Export Functions</a></h2>
-<p>All functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/rhai/vnext/engine/call-fn.html"><code>private</code></a> prefix.</p>
-<p>Functions declared <a href="/rhai/vnext/engine/call-fn.html"><code>private</code></a> are hidden to the outside.</p>
+<p>All functions are automatically exported, <em>unless</em> it is explicitly opt-out with the <a href="/rhai/engine/call-fn.html"><code>private</code></a> prefix.</p>
+<p>Functions declared <a href="/rhai/engine/call-fn.html"><code>private</code></a> are hidden to the outside.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -203,7 +203,7 @@ fn inc(x) { x + 1 }     // script-defined function - default public
 private fn foo() {}     // private function - hidden
 <span class="boring">}
 </span></code></pre></pre>
-<p><a href="/rhai/vnext/engine/call-fn.html"><code>private</code></a> functions are commonly called to initialize the module.
+<p><a href="/rhai/engine/call-fn.html"><code>private</code></a> functions are commonly called to initialize the module.
 They cannot be called apart from this.</p>
 <h2><a class="header" href="#sub-modules" id="sub-modules">Sub-Modules</a></h2>
 <p>All loaded modules are automatically exported as sub-modules.</p>

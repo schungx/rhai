@@ -164,16 +164,16 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#printing-for-custom-types" id="printing-for-custom-types">Printing for Custom Types</a></h1>
-<p>To use custom types for <a href="/rhai/vnext/language/print-debug.html"><code>print</code></a> and <a href="/rhai/vnext/language/print-debug.html"><code>debug</code></a>, or convert its value into a <a href="/rhai/vnext/language/strings-chars.html">string</a>,
+<p>To use custom types for <a href="/rhai/language/print-debug.html"><code>print</code></a> and <a href="/rhai/language/print-debug.html"><code>debug</code></a>, or convert its value into a <a href="/rhai/language/strings-chars.html">string</a>,
 it is necessary that the following functions be registered (assuming the custom type
 is <code>T : Display + Debug</code>):</p>
 <table><thead><tr><th>Function</th><th>Signature</th><th>Typical implementation</th><th>Usage</th></tr></thead><tbody>
-<tr><td><code>to_string</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>s.to_string().into()</code></td><td>converts the custom type into a <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
-<tr><td><code>print</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>s.to_string().into()</code></td><td>converts the custom type into a <a href="/rhai/vnext/language/strings-chars.html">string</a> for the <a href="/rhai/vnext/language/print-debug.html"><code>print</code></a> statement</td></tr>
-<tr><td><code>debug</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>format!(&quot;{:?}&quot;, s).into()</code></td><td>converts the custom type into a <a href="/rhai/vnext/language/strings-chars.html">string</a> for the <a href="/rhai/vnext/language/print-debug.html"><code>debug</code></a> statement</td></tr>
-<tr><td><code>+</code></td><td><code>|s1: ImmutableString, s: T| -&gt; ImmutableString</code></td><td><code>s1 + s</code></td><td>appends the custom type to another <a href="/rhai/vnext/language/strings-chars.html">string</a>, for <code>print(&quot;Answer: &quot; + type);</code> usage</td></tr>
-<tr><td><code>+</code></td><td><code>|s: T, s2: ImmutableString| -&gt; ImmutableString</code></td><td><code>s.to_string().push_str(&amp;s2).into();</code></td><td>appends another <a href="/rhai/vnext/language/strings-chars.html">string</a> to the custom type, for <code>print(type + &quot; is the answer&quot;);</code> usage</td></tr>
-<tr><td><code>+=</code></td><td><code>|s1: &amp;mut ImmutableString, s: T|</code></td><td><code>s1 += s.to_string()</code></td><td>appends the custom type to an existing <a href="/rhai/vnext/language/strings-chars.html">string</a>, for <code>s += type;</code> usage</td></tr>
+<tr><td><code>to_string</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>s.to_string().into()</code></td><td>converts the custom type into a <a href="/rhai/language/strings-chars.html">string</a></td></tr>
+<tr><td><code>print</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>s.to_string().into()</code></td><td>converts the custom type into a <a href="/rhai/language/strings-chars.html">string</a> for the <a href="/rhai/language/print-debug.html"><code>print</code></a> statement</td></tr>
+<tr><td><code>debug</code></td><td><code>|s: &amp;mut T| -&gt; ImmutableString</code></td><td><code>format!(&quot;{:?}&quot;, s).into()</code></td><td>converts the custom type into a <a href="/rhai/language/strings-chars.html">string</a> for the <a href="/rhai/language/print-debug.html"><code>debug</code></a> statement</td></tr>
+<tr><td><code>+</code></td><td><code>|s1: ImmutableString, s: T| -&gt; ImmutableString</code></td><td><code>s1 + s</code></td><td>appends the custom type to another <a href="/rhai/language/strings-chars.html">string</a>, for <code>print(&quot;Answer: &quot; + type);</code> usage</td></tr>
+<tr><td><code>+</code></td><td><code>|s: T, s2: ImmutableString| -&gt; ImmutableString</code></td><td><code>s.to_string().push_str(&amp;s2).into();</code></td><td>appends another <a href="/rhai/language/strings-chars.html">string</a> to the custom type, for <code>print(type + &quot; is the answer&quot;);</code> usage</td></tr>
+<tr><td><code>+=</code></td><td><code>|s1: &amp;mut ImmutableString, s: T|</code></td><td><code>s1 += s.to_string()</code></td><td>appends the custom type to an existing <a href="/rhai/language/strings-chars.html">string</a>, for <code>s += type;</code> usage</td></tr>
 </tbody></table>
 
                     </main>

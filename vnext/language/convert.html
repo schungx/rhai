@@ -166,7 +166,7 @@
                         <h1><a class="header" href="#value-conversions" id="value-conversions">Value Conversions</a></h1>
 <h2><a class="header" href="#convert-between-integer-and-floating-point" id="convert-between-integer-and-floating-point">Convert Between Integer and Floating-Point</a></h2>
 <p>The <code>to_float</code> function converts a supported number to <code>FLOAT</code> (defaults to <code>f64</code>).</p>
-<p>The <code>to_int</code> function converts a supported number to <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a>).</p>
+<p>The <code>to_int</code> function converts a supported number to <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/rhai/start/features.html"><code>only_i32</code></a>).</p>
 <p>That’s it; for other conversions, register custom conversion functions.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -185,9 +185,9 @@ print(&quot;c is '&quot; + c + &quot;' and its code is &quot; + c.to_int());    
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#parse-string-into-number" id="parse-string-into-number">Parse String into Number</a></h2>
-<p>The <code>parse_float</code> function converts a <a href="/rhai/vnext/language/strings-chars.html">string</a> into a <code>FLOAT</code> (defaults to <code>f64</code>).</p>
-<p>The <code>parse_int</code> function converts a <a href="/rhai/vnext/language/strings-chars.html">string</a> into an <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a>).
-An optional radix (2-36) can be provided to parse the <a href="/rhai/vnext/language/strings-chars.html">string</a> into a number of the specified radix.</p>
+<p>The <code>parse_float</code> function converts a <a href="/rhai/language/strings-chars.html">string</a> into a <code>FLOAT</code> (defaults to <code>f64</code>).</p>
+<p>The <code>parse_int</code> function converts a <a href="/rhai/language/strings-chars.html">string</a> into an <code>INT</code> (<code>i32</code> or <code>i64</code> depending on <a href="/rhai/start/features.html"><code>only_i32</code></a>).
+An optional radix (2-36) can be provided to parse the <a href="/rhai/language/strings-chars.html">string</a> into a number of the specified radix.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

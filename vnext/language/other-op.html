@@ -194,7 +194,7 @@ number ^= 0x00ff;       // number = number ^ 0x00ff;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#the-flexible-" id="the-flexible-">The Flexible <code>+=</code></a></h2>
-<p>The <code>+=</code> operator can also be used to build <a href="/rhai/vnext/language/strings-chars.html">strings</a>:</p>
+<p>The <code>+=</code> operator can also be used to build <a href="/rhai/language/strings-chars.html">strings</a>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -205,7 +205,7 @@ my_str += 12345;
 my_str == &quot;abcABC12345&quot;
 <span class="boring">}
 </span></code></pre></pre>
-<p>It may also be used to concatenate <a href="/rhai/vnext/language/arrays.html">arrays</a>:</p>
+<p>It may also be used to concatenate <a href="/rhai/language/arrays.html">arrays</a>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -215,7 +215,7 @@ my_array += [4, 5];
 my_array == [1, 2, 3, 4, 5];
 <span class="boring">}
 </span></code></pre></pre>
-<p>or mix two <a href="/rhai/vnext/language/object-maps.html">object maps</a> together:</p>
+<p>or mix two <a href="/rhai/language/object-maps.html">object maps</a> together:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

@@ -166,21 +166,21 @@
                         <h1><a class="header" href="#object-oriented-programming-oop" id="object-oriented-programming-oop">Object-Oriented Programming (OOP)</a></h1>
 <p>Rhai does not have <em>objects</em> per se, but it is possible to <em>simulate</em> object-oriented programming.</p>
 <h2><a class="header" href="#use-object-maps-to-simulate-oop" id="use-object-maps-to-simulate-oop">Use Object Maps to Simulate OOP</a></h2>
-<p>Rhai’s <a href="/rhai/vnext/language/object-maps.html">object maps</a> has <a href="/rhai/vnext/language/object-maps-oop.html">special support for OOP</a>.</p>
+<p>Rhai’s <a href="/rhai/language/object-maps.html">object maps</a> has <a href="/rhai/language/object-maps-oop.html">special support for OOP</a>.</p>
 <table><thead><tr><th>Rhai concept</th><th align="center">Maps to OOP</th></tr></thead><tbody>
-<tr><td><a href="/rhai/vnext/language/object-maps.html">Object maps</a></td><td align="center">objects</td></tr>
-<tr><td><a href="/rhai/vnext/language/object-maps.html">Object map</a> properties holding values</td><td align="center">properties</td></tr>
-<tr><td><a href="/rhai/vnext/language/object-maps.html">Object map</a> properties that hold <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a></td><td align="center">methods</td></tr>
+<tr><td><a href="/rhai/language/object-maps.html">Object maps</a></td><td align="center">objects</td></tr>
+<tr><td><a href="/rhai/language/object-maps.html">Object map</a> properties holding values</td><td align="center">properties</td></tr>
+<tr><td><a href="/rhai/language/object-maps.html">Object map</a> properties that hold <a href="/rhai/language/fn-ptr.html">function pointers</a></td><td align="center">methods</td></tr>
 </tbody></table>
-<p>When a property of an <a href="/rhai/vnext/language/object-maps.html">object map</a> is called like a method function, and if it happens to hold
-a valid <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> (perhaps defined via an <a href="/rhai/vnext/language/fn-anon.html">anonymous function</a> or more commonly as a <a href="/rhai/vnext/language/fn-closure.html">closure</a>),
-then the call will be dispatched to the actual function with <code>this</code> binding to the <a href="/rhai/vnext/language/object-maps.html">object map</a> itself.</p>
+<p>When a property of an <a href="/rhai/language/object-maps.html">object map</a> is called like a method function, and if it happens to hold
+a valid <a href="/rhai/language/fn-ptr.html">function pointer</a> (perhaps defined via an <a href="/rhai/language/fn-anon.html">anonymous function</a> or more commonly as a <a href="/rhai/language/fn-closure.html">closure</a>),
+then the call will be dispatched to the actual function with <code>this</code> binding to the <a href="/rhai/language/object-maps.html">object map</a> itself.</p>
 <h2><a class="header" href="#use-closures-to-define-methods" id="use-closures-to-define-methods">Use Closures to Define Methods</a></h2>
-<p><a href="/rhai/vnext/language/fn-anon.html">Anonymous functions</a> or <a href="/rhai/vnext/language/fn-closure.html">closures</a> defined as values for <a href="/rhai/vnext/language/object-maps.html">object map</a> properties take on
+<p><a href="/rhai/language/fn-anon.html">Anonymous functions</a> or <a href="/rhai/language/fn-closure.html">closures</a> defined as values for <a href="/rhai/language/object-maps.html">object map</a> properties take on
 a syntactic shape that resembles very closely that of class methods in an OOP language.</p>
-<p>Closures also <em><a href="/rhai/vnext/language/fn-closure.html">capture</a></em> variables from the defining environment, which is a very
-common OOP pattern.  Capturing is accomplished via a feature called <em><a href="/rhai/vnext/language/fn-closure.html">automatic currying</a></em> and
-can be turned off via the <a href="/rhai/vnext/start/features.html"><code>no_closure</code></a> feature.</p>
+<p>Closures also <em><a href="/rhai/language/fn-closure.html">capture</a></em> variables from the defining environment, which is a very
+common OOP pattern.  Capturing is accomplished via a feature called <em><a href="/rhai/language/fn-closure.html">automatic currying</a></em> and
+can be turned off via the <a href="/rhai/start/features.html"><code>no_closure</code></a> feature.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]

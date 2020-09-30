@@ -171,19 +171,19 @@ Notice that this deviates from Rust norm where features are <em>additive</em>.</
 more control over what a script can (or cannot) do.</p>
 <table><thead><tr><th>Feature</th><th align="center">Additive?</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>unchecked</code></td><td align="center">no</td><td>disables arithmetic checking (such as over-flows and division by zero), call stack depth limit, operations count limit and modules loading limit.<br/>Beware that a bad script may panic the entire system!</td></tr>
-<tr><td><code>sync</code></td><td align="center">no</td><td>restricts all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> and <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, are all <code>Send + Sync</code></td></tr>
-<tr><td><code>no_optimize</code></td><td align="center">no</td><td>disables <a href="/rhai/vnext/engine/optimize/index.html">script optimization</a></td></tr>
+<tr><td><code>sync</code></td><td align="center">no</td><td>restricts all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>, <a href="/rhai/engine/scope.html"><code>Scope</code></a> and <a href="/rhai/engine/compile.html"><code>AST</code></a>, are all <code>Send + Sync</code></td></tr>
+<tr><td><code>no_optimize</code></td><td align="center">no</td><td>disables <a href="/rhai/engine/optimize/index.html">script optimization</a></td></tr>
 <tr><td><code>no_float</code></td><td align="center">no</td><td>disables floating-point numbers and math</td></tr>
 <tr><td><code>only_i32</code></td><td align="center">no</td><td>sets the system integer type to <code>i32</code> and disable all other integer types. <code>INT</code> is set to <code>i32</code></td></tr>
 <tr><td><code>only_i64</code></td><td align="center">no</td><td>sets the system integer type to <code>i64</code> and disable all other integer types. <code>INT</code> is set to <code>i64</code></td></tr>
-<tr><td><code>no_index</code></td><td align="center">no</td><td>disables <a href="/rhai/vnext/language/arrays.html">arrays</a> and indexing features</td></tr>
-<tr><td><code>no_object</code></td><td align="center">no</td><td>disables support for <a href="/rhai/vnext/rust/custom.html">custom types</a> and <a href="/rhai/vnext/language/object-maps.html">object maps</a></td></tr>
-<tr><td><code>no_function</code></td><td align="center">no</td><td>disables script-defined <a href="/rhai/vnext/language/functions.html">functions</a></td></tr>
-<tr><td><code>no_module</code></td><td align="center">no</td><td>disables loading external <a href="/rhai/vnext/language/modules/index.html">modules</a></td></tr>
-<tr><td><code>no_closure</code></td><td align="center">no</td><td>disables <a href="/rhai/vnext/language/fn-closure.html">capturing</a> external variables in <a href="/rhai/vnext/language/fn-anon.html">anonymous functions</a> to simulate <em>closures</em>, or <a href="/rhai/vnext/language/fn-capture.html">capturing the calling scope</a> in function calls</td></tr>
+<tr><td><code>no_index</code></td><td align="center">no</td><td>disables <a href="/rhai/language/arrays.html">arrays</a> and indexing features</td></tr>
+<tr><td><code>no_object</code></td><td align="center">no</td><td>disables support for <a href="/rhai/rust/custom.html">custom types</a> and <a href="/rhai/language/object-maps.html">object maps</a></td></tr>
+<tr><td><code>no_function</code></td><td align="center">no</td><td>disables script-defined <a href="/rhai/language/functions.html">functions</a></td></tr>
+<tr><td><code>no_module</code></td><td align="center">no</td><td>disables loading external <a href="/rhai/language/modules/index.html">modules</a></td></tr>
+<tr><td><code>no_closure</code></td><td align="center">no</td><td>disables <a href="/rhai/language/fn-closure.html">capturing</a> external variables in <a href="/rhai/language/fn-anon.html">anonymous functions</a> to simulate <em>closures</em>, or <a href="/rhai/language/fn-capture.html">capturing the calling scope</a> in function calls</td></tr>
 <tr><td><code>no_std</code></td><td align="center">no</td><td>builds for <code>no-std</code> (implies <code>no_closure</code>). Notice that additional dependencies will be pulled in to replace <code>std</code> features</td></tr>
 <tr><td><code>serde</code></td><td align="center">yes</td><td>enables serialization/deserialization via <code>serde</code>. Notice that the <a href="https://crates.io/crates/serde"><code>serde</code></a> crate will be pulled in together with its dependencies</td></tr>
-<tr><td><code>internals</code></td><td align="center">yes</td><td>exposes internal data structures (e.g. <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> nodes). Beware that Rhai internals are volatile and may change from version to version</td></tr>
+<tr><td><code>internals</code></td><td align="center">yes</td><td>exposes internal data structures (e.g. <a href="/rhai/engine/compile.html"><code>AST</code></a> nodes). Beware that Rhai internals are volatile and may change from version to version</td></tr>
 <tr><td><code>unicode-xid-ident</code></td><td align="center">no</td><td>allows <a href="http://www.unicode.org/reports/tr31/">Unicode Standard Annex #31</a> as identifiers</td></tr>
 </tbody></table>
 <h2><a class="header" href="#example" id="example">Example</a></h2>
@@ -193,21 +193,21 @@ more control over what a script can (or cannot) do.</p>
 <li><code>unchecked</code> (disable all checking - should not be used with untrusted user scripts)</li>
 <li><code>only_i32</code> (only 32-bit signed integers)</li>
 <li><code>no_float</code> (no floating point numbers)</li>
-<li><code>no_module</code> (no loading external <a href="/rhai/vnext/language/modules/index.html">modules</a>)</li>
-<li><code>no_function</code> (no defining <a href="/rhai/vnext/language/functions.html">functions</a>)</li>
+<li><code>no_module</code> (no loading external <a href="/rhai/language/modules/index.html">modules</a>)</li>
+<li><code>no_function</code> (no defining <a href="/rhai/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
 rhai = { version = &quot;0.19.0&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
-no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="/rhai/vnext/language/functions.html">functions</a>
-nor loading external <a href="/rhai/vnext/language/modules/index.html">modules</a>.</p>
+no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="/rhai/language/functions.html">functions</a>
+nor loading external <a href="/rhai/language/modules/index.html">modules</a>.</p>
 <p>This configuration is perfect for an expression parser in a 32-bit embedded system without floating-point hardware.</p>
 <h2><a class="header" href="#caveat---features-are-not-additive" id="caveat---features-are-not-additive">Caveat - Features Are Not Additive</a></h2>
 <p>Most Rhai features are not strictly <em>additive</em> - i.e. they do not only add optional functionalities.</p>
 <p>In fact, most features are <em>subtractive</em> - i.e. they <em>remove</em> functionalities.</p>
 <p>There is a reason for this design, because the <em>lack</em> of a language feature by itself is a feature.</p>
-<p>See <a href="/rhai/vnext/patterns/multiple.html">here</a> for more details.</p>
+<p>See <a href="/rhai/patterns/multiple.html">here</a> for more details.</p>
 
                     </main>
 

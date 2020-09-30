@@ -168,10 +168,11 @@
 In fact, internally a function pointer simply stores the <em>name</em> of the function as a string.</p>
 <p>Call a function pointer using the <code>call</code> method.</p>
 <h2><a class="header" href="#built-in-methods" id="built-in-methods">Built-in methods</a></h2>
-<p>The following standard methods (mostly defined in the <a href="/rhai/vnext/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
-using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/vnext/language/strings-chars.html">strings</a>:</p>
+<p>The following standard methods (mostly defined in the <a href="/rhai/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
+using a <a href="/rhai/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/language/strings-chars.html">strings</a>:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>name</code> method and property</td><td><em>none</em></td><td>returns the name of the function encapsulated by the function pointer</td></tr>
+<tr><td><code>call</code></td><td><em>arguments</em></td><td>calls the function matching the function pointer’s name with the <em>arguments</em></td></tr>
 </tbody></table>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
@@ -211,9 +212,9 @@ hello.call(0);              // error: function not found - 'hello_world (i64)'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#global-namespace-only" id="global-namespace-only">Global Namespace Only</a></h2>
-<p>Because of their dynamic nature, function pointers cannot refer to functions in <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a>-ed <a href="/rhai/vnext/language/modules/index.html">modules</a>.
-They can only refer to functions within the global <a href="/rhai/vnext/language/fn-namespaces.html">namespace</a>.
-See <a href="/rhai/vnext/language/fn-namespaces.html">function namespaces</a> for more details.</p>
+<p>Because of their dynamic nature, function pointers cannot refer to functions in <a href="/rhai/language/modules/import.html"><code>import</code></a>-ed <a href="/rhai/language/modules/index.html">modules</a>.
+They can only refer to functions within the global <a href="/rhai/language/fn-namespaces.html">namespace</a>.
+See <a href="/rhai/language/fn-namespaces.html">function namespaces</a> for more details.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -288,7 +289,9 @@ to a function call while binding the object in the method call to the <code>this
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn add(x) { this += x; }    // define function which uses 'this'
+</span>fn add(x) {                 // define function which uses 'this'
+    this += x;
+}
 
 let func = Fn(&quot;add&quot;);       // function pointer to 'add'
 
@@ -307,7 +310,7 @@ x == 42;
 </span></code></pre></pre>
 <p>Beware that this only works for <em>method-call</em> style.  Normal function-call style cannot bind
 the <code>this</code> pointer (for syntactic reasons).</p>
-<p>Therefore, obviously, binding the <code>this</code> pointer is unsupported under <a href="/rhai/vnext/start/features.html"><code>no_object</code></a>.</p>
+<p>Therefore, obviously, binding the <code>this</code> pointer is unsupported under <a href="/rhai/start/features.html"><code>no_object</code></a>.</p>
 
                     </main>
 

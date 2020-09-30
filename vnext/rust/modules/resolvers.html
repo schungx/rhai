@@ -164,15 +164,15 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#module-resolvers" id="module-resolvers">Module Resolvers</a></h1>
-<p>When encountering an <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement, Rhai attempts to <em>resolve</em> the module based on the path string.</p>
-<p><em>Module Resolvers</em> are service types that implement the <a href="/rhai/vnext/rust/traits.html"><code>ModuleResolver</code></a> trait.</p>
+<p>When encountering an <a href="/rhai/language/modules/import.html"><code>import</code></a> statement, Rhai attempts to <em>resolve</em> the module based on the path string.</p>
+<p><em>Module Resolvers</em> are service types that implement the <a href="/rhai/rust/traits.html"><code>ModuleResolver</code></a> trait.</p>
 <h2><a class="header" href="#built-in-module-resolvers" id="built-in-module-resolvers">Built-In Module Resolvers</a></h2>
 <p>There are a number of standard resolvers built into Rhai, the default being the <code>FileModuleResolver</code>
 which simply loads a script file based on the path (with <code>.rhai</code> extension attached)
 and execute it to form a module.</p>
 <p>Built-in module resolvers are grouped under the <code>rhai::module_resolvers</code> module namespace.</p>
 <h2><a class="header" href="#filemoduleresolver-default" id="filemoduleresolver-default"><code>FileModuleResolver</code> (default)</a></h2>
-<p>The <em>default</em> module resolution service, not available for <a href="/rhai/vnext/start/features.html"><code>no_std</code></a> or <a href="/rhai/vnext/start/builds/wasm.html">WASM</a> builds.
+<p>The <em>default</em> module resolution service, not available for <a href="/rhai/start/features.html"><code>no_std</code></a> or <a href="/rhai/start/builds/wasm.html">WASM</a> builds.
 Loads a script file (based off the current directory) with <code>.rhai</code> extension.</p>
 <p>All functions in the <em>global</em> namespace, plus all those defined in the same module,
 are <em>merged</em> into a <em>unified</em> namespace.</p>
@@ -202,7 +202,7 @@ m::greet(|| main_message());        // works - function in global
 <p><code>FileModuleResolver::create_module</code> loads a script file and returns a module.</p>
 <h2><a class="header" href="#globalfilemoduleresolver" id="globalfilemoduleresolver"><code>GlobalFileModuleResolver</code></a></h2>
 <p>A simpler but more efficient version of <code>FileModuleResolver</code>, intended for short utility modules.
-Not available for <a href="/rhai/vnext/start/features.html"><code>no_std</code></a> or <a href="/rhai/vnext/start/builds/wasm.html">WASM</a> builds.
+Not available for <a href="/rhai/start/features.html"><code>no_std</code></a> or <a href="/rhai/start/builds/wasm.html">WASM</a> builds.
 Loads a script file (based off the current directory) with <code>.rhai</code> extension.</p>
 <p>All functions are assumed <strong>independent</strong> and <em>cannot</em> cross-call each other.
 Functions are searched <em>only</em> in the <em>global</em> namespace.</p>
@@ -239,7 +239,7 @@ m::greet();                     // works because 'main_message' exists in
 <p>The base directory can be changed via the <code>FileModuleResolver::new_with_path</code> constructor function.</p>
 <p><code>GlobalFileModuleResolver::create_module</code> loads a script file and returns a module.</p>
 <h2><a class="header" href="#staticmoduleresolver" id="staticmoduleresolver"><code>StaticModuleResolver</code></a></h2>
-<p>Loads modules that are statically added. This can be used under <a href="/rhai/vnext/start/features.html"><code>no_std</code></a>.</p>
+<p>Loads modules that are statically added. This can be used under <a href="/rhai/start/features.html"><code>no_std</code></a>.</p>
 <p>Functions are searched in the <em>global</em> namespace by default.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -256,7 +256,7 @@ resolver.insert(&quot;my_module&quot;, module);
 <p>A collection of module resolvers. Modules will be resolved from each resolver in sequential order.</p>
 <p>This is useful when multiple types of modules are needed simultaneously.</p>
 <h2><a class="header" href="#set-into-engine" id="set-into-engine">Set into <code>Engine</code></a></h2>
-<p>An <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>‘s module resolver is set via a call to <code>Engine::set_module_resolver</code>:</p>
+<p>An <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>‘s module resolver is set via a call to <code>Engine::set_module_resolver</code>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

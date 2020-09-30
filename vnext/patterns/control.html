@@ -182,10 +182,10 @@
 <p>Expose a Control API.</p>
 </li>
 <li>
-<p>Leverage <a href="/rhai/vnext/rust/functions.html#function-overloading">function overloading</a> to simplify the API design.</p>
+<p>Leverage <a href="/rhai/rust/functions.html#function-overloading">function overloading</a> to simplify the API design.</p>
 </li>
 <li>
-<p>Since Rhai is <em><a href="/rhai/vnext/safety/sandbox.html">sand-boxed</a></em>, it cannot mutate the environment.  To perform external actions via an API, the actual system must be wrapped in a <code>RefCell</code> (or <code>RwLock</code>/<code>Mutex</code> for <a href="/rhai/vnext/start/features.html"><code>sync</code></a>) and shared to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p>Since Rhai is <em><a href="/rhai/safety/sandbox.html">sand-boxed</a></em>, it cannot mutate the environment.  To perform external actions via an API, the actual system must be wrapped in a <code>RefCell</code> (or <code>RwLock</code>/<code>Mutex</code> for <a href="/rhai/start/features.html"><code>sync</code></a>) and shared to the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
@@ -194,8 +194,8 @@ wrapping the system in a shared, interior-mutated object.</p>
 <p>This is one way which does not involve exposing the data structures of the external system,
 but only through exposing an abstract API primarily made up of functions.</p>
 <p>Use this when the API is relatively simple and clean, and the number of functions is small enough.</p>
-<p>For a complex API involving lots of functions, or an API that is object-based,
-use the <a href="/rhai/vnext/patterns/singleton.html">Singleton Command Object</a> pattern instead.</p>
+<p>For a complex API involving lots of functions, or an API that has a clear object structure,
+use the <a href="/rhai/patterns/singleton.html">Singleton Command Object</a> pattern instead.</p>
 <h3><a class="header" href="#functional-api" id="functional-api">Functional API</a></h3>
 <p>Assume that a system provides the following functional API:</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -217,13 +217,21 @@ impl EnergizerBunny {
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let bunny: Rc&lt;RefCell&lt;EnergizerBunny&gt;&gt; = Rc::new(RefCell::(EnergizerBunny::new()));
+</span>pub type SharedBunny = Rc&lt;RefCell&lt;EnergizerBunny&gt;&gt;;
+<span class="boring">}
+</span></code></pre></pre>
+<p>Note: Use <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> or <code>Arc&lt;RwLock&lt;T&gt;&gt;</code> when using the <a href="/rhai/start/features.html"><code>sync</code></a> feature because the function
+must then be <code>Send + Sync</code>.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let bunny: SharedBunny = Rc::new(RefCell::(EnergizerBunny::new()));
 <span class="boring">}
 </span></code></pre></pre>
 <h3><a class="header" href="#register-control-api" id="register-control-api">Register Control API</a></h3>
 <p>The trick to building a Control API is to clone the shared API object and
-move it into each function registration as a closure.</p>
-<p>It is not possible to use a <a href="/rhai/vnext/plugins/module.html">plugin module</a> to achieve this, so each function must
+move it into each function registration via a closure.</p>
+<p>Therefore, it is not possible to use a <a href="/rhai/plugins/module.html">plugin module</a> to achieve this, and each function must
 be registered one after another.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]

@@ -164,20 +164,20 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#special-support-for-oop-via-object-maps" id="special-support-for-oop-via-object-maps">Special Support for OOP via Object Maps</a></h1>
-<p><a href="/rhai/vnext/language/object-maps.html">Object maps</a> can be used to simulate <a href="/rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing data
-as properties and methods as properties holding <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>.</p>
-<p>If an <a href="/rhai/vnext/language/object-maps.html">object map</a>‘s property holds a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a>, the property can simply be called like
+<p><a href="/rhai/language/object-maps.html">Object maps</a> can be used to simulate <a href="/rhai/patterns/oop.html">object-oriented programming (OOP)</a> by storing data
+as properties and methods as properties holding <a href="/rhai/language/fn-ptr.html">function pointers</a>.</p>
+<p>If an <a href="/rhai/language/object-maps.html">object map</a>‘s property holds a <a href="/rhai/language/fn-ptr.html">function pointer</a>, the property can simply be called like
 a normal method in method-call syntax.  This is a <em>short-hand</em> to avoid the more verbose syntax
 of using the <code>call</code> function keyword.</p>
-<p>When a property holding a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> or a <a href="/rhai/vnext/language/fn-closure.html">closure</a> is called like a method,
+<p>When a property holding a <a href="/rhai/language/fn-ptr.html">function pointer</a> or a <a href="/rhai/language/fn-closure.html">closure</a> is called like a method,
 what happens next depends on whether the target function is a native Rust function or
 a script-defined function.</p>
 <ul>
 <li>
-<p>If it is a registered native Rust function, it is called directly in <em>method-call</em> style with the <a href="/rhai/vnext/language/object-maps.html">object map</a> inserted as the first argument.</p>
+<p>If it is a registered native Rust function, it is called directly in <em>method-call</em> style with the <a href="/rhai/language/object-maps.html">object map</a> inserted as the first argument.</p>
 </li>
 <li>
-<p>If it is a script-defined function, the <code>this</code> variable within the function body is bound to the <a href="/rhai/vnext/language/object-maps.html">object map</a> before the function is called.</p>
+<p>If it is a script-defined function, the <code>this</code> variable within the function body is bound to the <a href="/rhai/language/object-maps.html">object map</a> before the function is called.</p>
 </li>
 </ul>
 <pre><pre class="playground"><code class="language-rust">

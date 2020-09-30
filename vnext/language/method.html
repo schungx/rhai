@@ -165,14 +165,14 @@
                     <main>
                         <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
 <h2><a class="header" href="#first-mut-parameter" id="first-mut-parameter">First <code>&amp;mut</code> Parameter</a></h2>
-<p>Property <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/vnext/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be called
+<p>Property <a href="/rhai/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> can be called
 just like a regular function.  In fact, like Rust, property getters/setters and object methods
-are registered as regular <a href="/rhai/vnext/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
+are registered as regular <a href="/rhai/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
 <p>Unlike functions defined in script (for which all arguments are passed by <em>value</em>),
 native Rust functions may mutate the object (or the first argument if called in normal function call style).</p>
 <p>However, sometimes it is not as straight-forward, and methods called in function-call style may end up
 not muting the object - see the example below. Therefore, it is best to always use method-call style.</p>
-<p>Custom types, properties and methods can be disabled via the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Custom types, properties and methods can be disabled via the <a href="/rhai/start/features.html"><code>no_object</code></a> feature.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -193,22 +193,51 @@ array[0].update();  // &lt;- call in method-call style will update 'a'
 <span class="boring">}
 </span></code></pre></pre>
 <p><strong>IMPORTANT: Rhai does NOT support normal references (i.e. <code>&amp;T</code>) as parameters.</strong></p>
-<h2><a class="header" href="#number-of-parameters" id="number-of-parameters">Number of Parameters</a></h2>
-<p>Native Rust methods registered with an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> take <em>one additional parameter</em> more than
+<h2><a class="header" href="#number-of-parameters-in-methods" id="number-of-parameters-in-methods">Number of Parameters in Methods</a></h2>
+<p>Native Rust methods registered with an <a href="/rhai/engine/hello-world.html"><code>Engine</code></a> take <em>one additional parameter</em> more than
 an equivalent method coded in script, where the object is accessed via the <code>this</code> pointer instead.</p>
 <p>The following table illustrates the differences:</p>
 <table><thead><tr><th align="center">Function type</th><th align="center">Parameters</th><th align="center">Object reference</th><th align="center">Function signature</th></tr></thead><tbody>
 <tr><td align="center">Native Rust</td><td align="center"><em>N</em> + 1</td><td align="center">first <code>&amp;mut T</code> parameter</td><td align="center"><code>Fn(obj: &amp;mut T, x: U, y: V)</code></td></tr>
 <tr><td align="center">Rhai script</td><td align="center"><em>N</em></td><td align="center"><code>this</code> (of type <code>&amp;mut T</code>)</td><td align="center"><code>Fn(x: U, y: V)</code></td></tr>
 </tbody></table>
-<h2><a class="header" href="#mut-is-efficient-except-for-immutablestring" id="mut-is-efficient-except-for-immutablestring"><code>&amp;mut</code> is Efficient, Except for <code>ImmutableString</code></a></h2>
+<h2><a class="header" href="#mut-is-efficient-except-for-mut-immutablestring" id="mut-is-efficient-except-for-mut-immutablestring"><code>&amp;mut</code> is Efficient, Except for <code>&amp;mut ImmutableString</code></a></h2>
 <p>Using a <code>&amp;mut</code> first parameter is highly encouraged when using types that are expensive to clone,
 even when the intention is not to mutate that argument, because it avoids cloning that argument value.</p>
-<p>For example, the <code>len</code> method of an <a href="/rhai/vnext/language/arrays.html">array</a> has the signature: <code>Fn(&amp;mut Array) -&gt; INT</code>.
-The array itself is not modified in any way, but using a <code>&amp;mut</code> parameter avoids a cloning that would
-otherwise have happened if the signature were <code>Fn(Array) -&gt; INT</code>.</p>
+<p>Even when a function is never intended to be a method - for example an operator,
+it is still sometimes beneficial to make it method-like (i.e. with a first <code>&amp;mut</code> parameter)
+if the first parameter is not modified.</p>
+<p>For types that are expensive to clone (remember, all function calls are passed cloned
+copies of argument values), this may result in a significant performance boost.</p>
 <p>For primary types that are cheap to clone (e.g. those that implement <code>Copy</code>), including <code>ImmutableString</code>,
 this is not necessary.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// This is a type that is very expensive to clone.
+#[derive(Debug, Clone)]
+struct VeryComplexType { ... }
+
+// Calculate some value by adding 'VeryComplexType' with an integer number.
+fn do_add(obj: &amp;VeryComplexType, offset: i64) -&gt; i64 {
+    ...
+}
+
+engine
+    .register_type::&lt;VeryComplexType&gt;()
+    .register_fn(&quot;+&quot;, add_pure /* or  add_method*/);
+
+// Very expensive to call, as the 'VeryComplexType' is cloned before each call.
+fn add_pure(obj: VeryComplexType, offset: i64) -&gt; i64 {
+    do_add(obj, offset)
+}
+
+// Efficient to call, as only a reference to the 'VeryComplexType' is passed.
+fn add_method(obj: &amp;mut VeryComplexType, offset: i64) -&gt; i64 {
+    do_add(obj, offset)
+}
+<span class="boring">}
+</span></code></pre></pre>
 
                     </main>
 
