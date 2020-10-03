@@ -37724,7 +37724,7 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_module_merged",
+            "name": "bench_eval_module",
             "value": 2043,
             "range": "± 202",
             "unit": "ns/iter"
@@ -38012,7 +38012,7 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_module_merged",
+            "name": "bench_eval_module",
             "value": 1728,
             "range": "± 331",
             "unit": "ns/iter"
