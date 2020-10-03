@@ -37730,12 +37730,6 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_module_unmerged",
-            "value": 1677,
-            "range": "± 100",
-            "unit": "ns/iter"
-          },
-          {
             "name": "bench_eval_scope_complex",
             "value": 865,
             "range": "± 48",
@@ -38021,12 +38015,6 @@ window.BENCHMARK_DATA = {
             "name": "bench_eval_module_merged",
             "value": 1728,
             "range": "± 331",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_module_unmerged",
-            "value": 1513,
-            "range": "± 211",
             "unit": "ns/iter"
           },
           {
