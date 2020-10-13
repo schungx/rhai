@@ -201,8 +201,8 @@
 </span>let mut engine = Engine::new();
 
 // Create shared data provider.
-// Assume that Provider::get(&amp;str) -&gt; Option&lt;value&gt; gets a system constant.
-let provider: Arc&lt;Provider&gt; = get_data_provider();
+// Assume that SystemValuesProvider::get(&amp;str) -&gt; Option&lt;value&gt; gets a value.
+let provider = Arc::new(SystemValuesProvider::new());
 
 // Clone the shared provider
 let db = provider.clone();

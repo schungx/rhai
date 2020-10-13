@@ -204,6 +204,9 @@ came across a copy of <em>Catcher in the Rye</em> in a restaurant.  The rest was
 <p>Very few additional dependencies - right now only <a href="https://crates.io/crates/smallvec/"><code>smallvec</code></a> plus crates for procedural macros;
 for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and <code>WASM</code> builds, a number of additional dependencies are pulled in to provide for missing functionalities.</p>
 </li>
+<li>
+<p><a href="about//rhai/vnext/plugins/index.html">Plugins</a> system powered by procedural macros simplifies custom API development.</p>
+</li>
 </ul>
 <h2><a class="header" href="#fast" id="fast">Fast</a></h2>
 <ul>
@@ -236,6 +239,9 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and 
 </li>
 <li>
 <p>Some support for <a href="about//rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a>.</p>
+</li>
+<li>
+<p>Hook into variables access via <a href="about//rhai/vnext/engine/var.html">variable resolver</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#safe" id="safe">Safe</a></h2>
@@ -271,14 +277,10 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and 
 <p>Supports <a href="about/targets.html">most build targets</a> including <code>no-std</code> and <a href="about//rhai/vnext/start/builds/wasm.html">WASM</a>.</p>
 </li>
 <li>
-<p><a href="about//rhai/vnext/plugins/index.html">Plugins</a> system powered by procedural macros simplifies custom API development.</p>
-</li>
-<li>
 <p>Surgically <a href="about//rhai/vnext/engine/disable.html">disable keywords and operators</a> to restrict the language.</p>
 </li>
 <li>
-<p>Use as a <a href="about//rhai/vnext/engine/dsl.html">DSL</a> by <a href="about//rhai/vnext/engine/disable.html">disabling keywords/operators</a>, <a href="about//rhai/vnext/engine/custom-op.html">custom operators</a>
-and extending the language with <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
+<p>Use as a <a href="about//rhai/vnext/engine/dsl.html">DSL</a> by defining <a href="about//rhai/vnext/engine/custom-op.html">custom operators</a> and/or extending the language with <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
 </li>
 </ul>
 <h1><a class="header" href="#supported-targets-and-builds" id="supported-targets-and-builds">Supported Targets and Builds</a></h1>
@@ -307,7 +309,7 @@ It doesn’t attempt to be a new language. For example:</p>
 <p>No traits...  so it is also not Rust. Do your Rusty stuff in Rust.</p>
 </li>
 <li>
-<p>No structures/records - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
+<p>No structures/records/tuples - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
 <p>There is, however, a built-in <a href="about//rhai/vnext/language/object-maps.html">object map</a> type which is adequate for most uses.
 It is possible to simulate <a href="about//rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="about//rhai/vnext/language/fn-ptr.html">function pointers</a>
 or <a href="about//rhai/vnext/language/fn-closure.html">closures</a> in <a href="about//rhai/vnext/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
@@ -331,7 +333,7 @@ integrate with native Rust applications.</p>
 </li>
 <li>
 <p>No formal language grammar - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
-for statements and a Pratt parser for expressions.</p>
+for statements, and a hand-coded Pratt parser for expressions.</p>
 <p>This lack of formalism allows the parser itself to be exposed as a service in order to support
 <a href="about//rhai/vnext/engine/disable.html">disabling keywords/operators</a>, adding <a href="about//rhai/vnext/engine/custom-op.html">custom operators</a>,
 and defining <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
@@ -339,8 +341,8 @@ and defining <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax
 </ul>
 <h2><a class="header" href="#do-not-write-the-next-4d-vr-game-in-rhai" id="do-not-write-the-next-4d-vr-game-in-rhai">Do Not Write The Next 4D VR Game in Rhai</a></h2>
 <p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting
-advanced language features such as classes, inheritance, first-class functions, closures,
-concurrency, byte-codes VM, JIT etc.</p>
+advanced language features such as classes, inheritance, interfaces, generics,
+first-class functions/closures, pattern matching, concurrency, byte-codes VM, JIT etc.</p>
 <p>Avoid the temptation to write full-fledge application logic entirely in Rhai -
 that use case is best fulfilled by more complete languages such as JavaScript or Lua.</p>
 <h2><a class="header" href="#thin-dynamic-wrapper-layer-over-rust-code" id="thin-dynamic-wrapper-layer-over-rust-code">Thin Dynamic Wrapper Layer Over Rust Code</a></h2>
@@ -1469,7 +1471,7 @@ println!(&quot;Answer: {}&quot;, result);                     // prints 42
 <h1><a class="header" href="#printing-for-custom-types" id="printing-for-custom-types">Printing for Custom Types</a></h1>
 <p>To use custom types for <a href="rust//rhai/vnext/language/print-debug.html"><code>print</code></a> and <a href="rust//rhai/vnext/language/print-debug.html"><code>debug</code></a>, or convert its value into a <a href="rust//rhai/vnext/language/strings-chars.html">string</a>,
 it is necessary that the following functions be registered (assuming the custom type
-is <code>T : Display + Debug</code>):</p>
+is <code>T: Display + Debug</code>):</p>
 <table><thead><tr><th>Function</th><th>Signature</th><th>Typical implementation</th><th>Usage</th></tr></thead><tbody>
 <tr><td><code>to_string</code></td><td><code>|x: &amp;mut T| -&gt; String</code></td><td><code>x.to_string()</code></td><td>converts the custom type into a <a href="rust//rhai/vnext/language/strings-chars.html">string</a></td></tr>
 <tr><td><code>print</code></td><td><code>|x: &amp;mut T| -&gt; String</code></td><td><code>x.to_string()</code></td><td>converts the custom type into a <a href="rust//rhai/vnext/language/strings-chars.html">string</a> for the <a href="rust//rhai/vnext/language/print-debug.html"><code>print</code></a> statement</td></tr>
@@ -3035,12 +3037,20 @@ full_name.len == 0;
 <tr><td><code>insert</code></td><td>1) element to insert<br/>2) position (beginning if &lt;= 0, end if &gt;= length)</td><td>inserts an element at a certain index</td></tr>
 <tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
 <tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
-<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it, or returns <a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if the index is not valid</td></tr>
+<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if the index is not valid)</td></tr>
 <tr><td><code>reverse</code></td><td><em>none</em></td><td>reverses the array</td></tr>
 <tr><td><code>len</code> method and property</td><td><em>none</em></td><td>returns the number of elements</td></tr>
 <tr><td><code>pad</code></td><td>1) target length<br/>2) element to pad</td><td>pads the array with an element to at least a specified length</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the array</td></tr>
 <tr><td><code>truncate</code></td><td>target length</td><td>cuts off the array at exactly a specified length (discarding all subsequent elements)</td></tr>
+<tr><td><code>splice</code></td><td>1) start position (beginning if &lt;= 0, end if &gt;= length),<br/>2) number of items to remove (none if &lt;= 0),<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
+<tr><td><code>filter</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>map</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to conversion function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>reduce</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
+<tr><td><code>reduce_rev</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items (in reverse order) accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
+<tr><td><code>some</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if any item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>all</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if all item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>sort</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to a comparison function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>sorts the array with a comparison function:<br/>1st parameter: first item,<br/>2nd parameter: second item</td></tr>
 </tbody></table>
 <h2><a class="header" href="#use-custom-types-with-arrays" id="use-custom-types-with-arrays">Use Custom Types With Arrays</a></h2>
 <p>To use a <a href="language//rhai/vnext/rust/custom.html">custom type</a> with arrays, a number of array functions need to be manually implemented,
@@ -3052,12 +3062,12 @@ compare elements.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let y = [2, 3];         // array literal with 2 elements
+</span>let y = [2, 3];             // array literal with 2 elements
 
-let y = [2, 3,];        // trailing comma is OK
+let y = [2, 3,];            // trailing comma is OK
 
-y.insert(0, 1);         // insert element at the beginning
-y.insert(999, 4);       // insert element at the end
+y.insert(0, 1);             // insert element at the beginning
+y.insert(999, 4);           // insert element at the end
 
 y.len == 4;
 
@@ -3066,21 +3076,21 @@ y[1] == 2;
 y[2] == 3;
 y[3] == 4;
 
-(1 in y) == true;       // use 'in' to test if an item exists in the array
-(42 in y) == false;     // 'in' uses the '==' operator (which users can override)
-                        // to check if the target item exists in the array
+(1 in y) == true;           // use 'in' to test if an item exists in the array
+(42 in y) == false;         // 'in' uses the '==' operator (which users can override)
+                            // to check if the target item exists in the array
 
-y[1] = 42;              // array elements can be reassigned
+y[1] = 42;                  // array elements can be reassigned
 
 (42 in y) == true;
 
-y.remove(2) == 3;       // remove element
+y.remove(2) == 3;           // remove element
 
 y.len == 3;
 
-y[2] == 4;              // elements after the removed element are shifted
+y[2] == 4;                  // elements after the removed element are shifted
 
-ts.list = y;            // arrays can be assigned completely (by value copy)
+ts.list = y;                // arrays can be assigned completely (by value copy)
 let foo = ts.list[1];
 foo == 42;
 
@@ -3088,7 +3098,7 @@ let foo = [1, 2, 3][0];
 foo == 1;
 
 fn abc() {
-    [42, 43, 44]        // a function returning an array
+    [42, 43, 44]            // a function returning an array
 }
 
 let foo = abc()[0];
@@ -3097,34 +3107,78 @@ foo == 42;
 let foo = y[0];
 foo == 1;
 
-y.push(4);              // 4 elements
-y += 5;                 // 5 elements
+y.push(4);                  // 4 elements
+y += 5;                     // 5 elements
 
 y.len == 5;
 
-let first = y.shift();  // remove the first element, 4 elements remaining
+let first = y.shift();      // remove the first element, 4 elements remaining
 first == 1;
 
-let last = y.pop();     // remove the last element, 3 elements remaining
+let last = y.pop();         // remove the last element, 3 elements remaining
 last == 5;
 
 y.len == 3;
 
-for item in y {         // arrays can be iterated with a 'for' statement
+for item in y {             // arrays can be iterated with a 'for' statement
     print(item);
 }
 
-y.pad(10, &quot;hello&quot;);     // pad the array up to 10 elements
+y.pad(10, &quot;hello&quot;);         // pad the array up to 10 elements
 
 y.len == 10;
 
-y.truncate(5);          // truncate the array to 5 elements
+y.truncate(5);              // truncate the array to 5 elements
 
 y.len == 5;
 
-y.clear();              // empty the array
+y.clear();                  // empty the array
 
 y.len == 0;
+
+let a = [42, 123, 99];
+
+a.map(|v| v + 1);           // [43, 124, 100]
+
+a.map(|v, i| v + i);        // [42, 124, 101]
+
+a.filter(|v| v &gt; 50);       // [123, 99]
+
+a.filter(|v, i| i == 1);    // [123]
+
+a.reduce(|sum, v| {
+    // Detect the initial value of '()'
+    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+) == 264;
+
+a.reduce(|sum, v, i| {
+    if i == 0 { v } else { sum + v }
+) == 264;
+
+a.reduce_rev(|sum, v| {
+    // Detect the initial value of '()'
+    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+) == 264;
+
+a.reduce_rev(|sum, v, i| {
+    if i == 0 { v } else { sum + v }
+) == 264;
+
+a.some(|v| v &gt; 50) == true;
+
+a.some(|v, i| v &lt; i) == false;
+
+a.all(|v| v &gt; 50) == false;
+
+a.all(|v, i| v &gt; i) == true;
+
+a.splice(1, 1, [1, 3, 2]);
+
+a == [42, 1, 3, 2, 99];
+
+a.sort(|x, y| x -  y);
+
+a == [1, 2, 3, 42, 99];
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#object-maps" id="object-maps">Object Maps</a></h1>
@@ -6380,8 +6434,8 @@ fn update(data) {
 </span>let mut engine = Engine::new();
 
 // Create shared data provider.
-// Assume that Provider::get(&amp;str) -&gt; Option&lt;value&gt; gets a system constant.
-let provider: Arc&lt;Provider&gt; = get_data_provider();
+// Assume that SystemValuesProvider::get(&amp;str) -&gt; Option&lt;value&gt; gets a value.
+let provider = Arc::new(SystemValuesProvider::new());
 
 // Clone the shared provider
 let db = provider.clone();
@@ -6433,6 +6487,12 @@ let f = Fn(&quot;foo&quot;);
 call!(f, 41) == 42;     // must use function-call style
 
 f.call!(41);            // &lt;- syntax error: capturing is not allowed in method-call style
+
+// Capturing is not available for module functions
+
+import &quot;hello&quot; as h;
+
+h::greet!();            // &lt;- syntax error: capturing is not allowed in namespace-qualified calls
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#no-mutations" id="no-mutations">No Mutations</a></h2>
@@ -6498,17 +6558,17 @@ engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| *x += y);
 <p>where:</p>
 <ul>
 <li>
-<p><code>T : Variant + Clone</code> - return type of the function.</p>
+<p><code>T: Variant + Clone</code> - return type of the function.</p>
 </li>
 <li>
-<p><code>engine : &amp;Engine</code> - the current <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.</p>
+<p><code>engine: &amp;Engine</code> - the current <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.</p>
 </li>
 <li>
-<p><code>lib : &amp;Module</code> - the current global library of script-defined functions, as a <a href="rust//rhai/vnext/rust/modules/index.html"><code>Module</code></a>.
+<p><code>lib: &amp;Module</code> - the current global library of script-defined functions, as a <a href="rust//rhai/vnext/rust/modules/index.html"><code>Module</code></a>.
 This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="rust//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>.</p>
 </li>
 <li>
-<p><code>args : &amp;mut [&amp;mut Dynamic]</code> - a slice containing <code>&amp;mut</code> references to <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> values.
+<p><code>args: &amp;mut [&amp;mut Dynamic]</code> - a slice containing <code>&amp;mut</code> references to <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> values.
 The slice is guaranteed to contain enough arguments <em>of the correct types</em>.</p>
 </li>
 </ul>
@@ -6603,7 +6663,7 @@ working its way outwards until it reaches the top (global) level, then it
 searches the <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> that is passed into the <code>Engine::eval</code> call.</p>
 <p>There is a built-in facility for advanced users to <em>hook</em> into the variable
 resolution service and to override its default behavior.</p>
-<p>To do so, provide a closure to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the [<code>Engine::on_var</code>] method:</p>
+<p>To do so, provide a closure to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the <code>Engine::on_var</code> method:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -6633,6 +6693,21 @@ This is to avoid needing a mutable reference to the underlying data provider whi
 <p>In order to change these variables, it is best to push them into a custom <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> instead of using
 a variable resolver. Then these variables can be assigned to and their updated values read back after
 the script is evaluated.</p>
+<h2><a class="header" href="#benefits-of-using-a-variable-resolver" id="benefits-of-using-a-variable-resolver">Benefits of Using a Variable Resolver</a></h2>
+<ol>
+<li>
+<p>Avoid having to maintain a custom <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> with all variables regardless of need (because a script may not use them all).</p>
+</li>
+<li>
+<p><em>Short-circuit</em> variable access, essentially overriding standard behavior.</p>
+</li>
+<li>
+<p><em>Lazy-load</em> variables when they are accessed, not up-front. This benefits when the number of variables is very large, when they are timing-dependent, or when they are expensive to load.</p>
+</li>
+<li>
+<p>Rename system variables on a script-by-script basis without having to construct different <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>‘s.</p>
+</li>
+</ol>
 <h2><a class="header" href="#function-signature-1" id="function-signature-1">Function Signature</a></h2>
 <p>The function signature passed to <code>Engine::on_var</code> takes the following form:</p>
 <blockquote>
@@ -6649,7 +6724,7 @@ Offsets start from 1, with 1 meaning the last variable in the current <a href="e
 <p>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</p>
 </li>
 <li>
-<p><code>scope : &amp;Scope</code> - reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</p>
+<p><code>scope: &amp;Scope</code> - reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</p>
 </li>
 <li>
 <p><code>context: &amp;EvalContext</code> - reference to the current evaluation <em>context</em>, which exposes the following fields:</p>
@@ -6660,8 +6735,20 @@ Offsets start from 1, with 1 meaning the last variable in the current <a href="e
 </ul>
 </li>
 </ul>
-<p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where <code>Ok(None)</code> indicates that the normal
-variable resolution process should continue.</p>
+<h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
+<p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where:</p>
+<ul>
+<li>
+<p><code>Ok(None)</code> - normal variable resolution process should continue, meaning to continue searching through the <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+</li>
+<li>
+<p><code>Ok(Some(Dynamic))</code> - wrapped <a href="engine//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> is taken as the value of the variable, which is treated as a constant.</p>
+</li>
+<li>
+<p><code>Err(Box&lt;EvalAltResult&gt;)</code> - error is reflected back to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.
+Normally this is <code>EvalAltResult::ErrorVariableNotFound</code> to indicate that the variable does not exist, but it can be any error.</p>
+</li>
+</ul>
 <h1><a class="header" href="#use-rhai-as-a-domain-specific-language-dsl" id="use-rhai-as-a-domain-specific-language-dsl">Use Rhai as a Domain-Specific Language (DSL)</a></h1>
 <p>Rhai can be successfully used as a domain-specific language (DSL).</p>
 <h2><a class="header" href="#expressions-only" id="expressions-only">Expressions Only</a></h2>
@@ -6824,7 +6911,8 @@ engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: functi
 <tr><td>Comparisons</td><td align="center"><code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code></td><td align="center">110</td></tr>
 <tr><td></td><td align="center"><code>in</code></td><td align="center">130</td></tr>
 <tr><td>Arithmetic</td><td align="center"><code>+</code>, <code>-</code></td><td align="center">150</td></tr>
-<tr><td>Arithmetic</td><td align="center"><code>*</code>, <code>/</code>, <code>~</code>, <code>%</code></td><td align="center">180</td></tr>
+<tr><td>Arithmetic</td><td align="center"><code>*</code>, <code>/</code></td><td align="center">180</td></tr>
+<tr><td>Arithmetic</td><td align="center"><code>~</code>, <code>%</code></td><td align="center">190</td></tr>
 <tr><td>Bit-shifts</td><td align="center"><code>&lt;&lt;</code>, <code>&gt;&gt;</code></td><td align="center">210</td></tr>
 <tr><td>Object</td><td align="center"><code>.</code> <em>(binds to right)</em></td><td align="center">240</td></tr>
 <tr><td><em>Others</em></td><td align="center"></td><td align="center">0</td></tr>

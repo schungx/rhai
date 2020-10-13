@@ -174,7 +174,7 @@ It doesn’t attempt to be a new language. For example:</p>
 <p>No traits...  so it is also not Rust. Do your Rusty stuff in Rust.</p>
 </li>
 <li>
-<p>No structures/records - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
+<p>No structures/records/tuples - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
 <p>There is, however, a built-in <a href="/rhai/vnext/language/object-maps.html">object map</a> type which is adequate for most uses.
 It is possible to simulate <a href="/rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>
 or <a href="/rhai/vnext/language/fn-closure.html">closures</a> in <a href="/rhai/vnext/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
@@ -198,7 +198,7 @@ integrate with native Rust applications.</p>
 </li>
 <li>
 <p>No formal language grammar - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
-for statements and a Pratt parser for expressions.</p>
+for statements, and a hand-coded Pratt parser for expressions.</p>
 <p>This lack of formalism allows the parser itself to be exposed as a service in order to support
 <a href="/rhai/vnext/engine/disable.html">disabling keywords/operators</a>, adding <a href="/rhai/vnext/engine/custom-op.html">custom operators</a>,
 and defining <a href="/rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
@@ -206,8 +206,8 @@ and defining <a href="/rhai/vnext/engine/custom-syntax.html">custom syntax</a>.<
 </ul>
 <h2><a class="header" href="#do-not-write-the-next-4d-vr-game-in-rhai" id="do-not-write-the-next-4d-vr-game-in-rhai">Do Not Write The Next 4D VR Game in Rhai</a></h2>
 <p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting
-advanced language features such as classes, inheritance, first-class functions, closures,
-concurrency, byte-codes VM, JIT etc.</p>
+advanced language features such as classes, inheritance, interfaces, generics,
+first-class functions/closures, pattern matching, concurrency, byte-codes VM, JIT etc.</p>
 <p>Avoid the temptation to write full-fledge application logic entirely in Rhai -
 that use case is best fulfilled by more complete languages such as JavaScript or Lua.</p>
 <h2><a class="header" href="#thin-dynamic-wrapper-layer-over-rust-code" id="thin-dynamic-wrapper-layer-over-rust-code">Thin Dynamic Wrapper Layer Over Rust Code</a></h2>

@@ -199,6 +199,12 @@ let f = Fn(&quot;foo&quot;);
 call!(f, 41) == 42;     // must use function-call style
 
 f.call!(41);            // &lt;- syntax error: capturing is not allowed in method-call style
+
+// Capturing is not available for module functions
+
+import &quot;hello&quot; as h;
+
+h::greet!();            // &lt;- syntax error: capturing is not allowed in namespace-qualified calls
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#no-mutations" id="no-mutations">No Mutations</a></h2>

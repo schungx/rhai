@@ -190,12 +190,20 @@
 <tr><td><code>insert</code></td><td>1) element to insert<br/>2) position (beginning if &lt;= 0, end if &gt;= length)</td><td>inserts an element at a certain index</td></tr>
 <tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
 <tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
-<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it, or returns <a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> if the index is not valid</td></tr>
+<tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> if the index is not valid)</td></tr>
 <tr><td><code>reverse</code></td><td><em>none</em></td><td>reverses the array</td></tr>
 <tr><td><code>len</code> method and property</td><td><em>none</em></td><td>returns the number of elements</td></tr>
 <tr><td><code>pad</code></td><td>1) target length<br/>2) element to pad</td><td>pads the array with an element to at least a specified length</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the array</td></tr>
 <tr><td><code>truncate</code></td><td>target length</td><td>cuts off the array at exactly a specified length (discarding all subsequent elements)</td></tr>
+<tr><td><code>splice</code></td><td>1) start position (beginning if &lt;= 0, end if &gt;= length),<br/>2) number of items to remove (none if &lt;= 0),<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
+<tr><td><code>filter</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>map</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to conversion function (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>reduce</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
+<tr><td><code>reduce_rev</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items (in reverse order) accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
+<tr><td><code>some</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if any item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>all</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if all item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
+<tr><td><code>sort</code></td><td><a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> to a comparison function (can be a <a href="/rhai/vnext/language/fn-closure.html">closure</a>)</td><td>sorts the array with a comparison function:<br/>1st parameter: first item,<br/>2nd parameter: second item</td></tr>
 </tbody></table>
 <h2><a class="header" href="#use-custom-types-with-arrays" id="use-custom-types-with-arrays">Use Custom Types With Arrays</a></h2>
 <p>To use a <a href="/rhai/vnext/rust/custom.html">custom type</a> with arrays, a number of array functions need to be manually implemented,
@@ -207,12 +215,12 @@ compare elements.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let y = [2, 3];         // array literal with 2 elements
+</span>let y = [2, 3];             // array literal with 2 elements
 
-let y = [2, 3,];        // trailing comma is OK
+let y = [2, 3,];            // trailing comma is OK
 
-y.insert(0, 1);         // insert element at the beginning
-y.insert(999, 4);       // insert element at the end
+y.insert(0, 1);             // insert element at the beginning
+y.insert(999, 4);           // insert element at the end
 
 y.len == 4;
 
@@ -221,21 +229,21 @@ y[1] == 2;
 y[2] == 3;
 y[3] == 4;
 
-(1 in y) == true;       // use 'in' to test if an item exists in the array
-(42 in y) == false;     // 'in' uses the '==' operator (which users can override)
-                        // to check if the target item exists in the array
+(1 in y) == true;           // use 'in' to test if an item exists in the array
+(42 in y) == false;         // 'in' uses the '==' operator (which users can override)
+                            // to check if the target item exists in the array
 
-y[1] = 42;              // array elements can be reassigned
+y[1] = 42;                  // array elements can be reassigned
 
 (42 in y) == true;
 
-y.remove(2) == 3;       // remove element
+y.remove(2) == 3;           // remove element
 
 y.len == 3;
 
-y[2] == 4;              // elements after the removed element are shifted
+y[2] == 4;                  // elements after the removed element are shifted
 
-ts.list = y;            // arrays can be assigned completely (by value copy)
+ts.list = y;                // arrays can be assigned completely (by value copy)
 let foo = ts.list[1];
 foo == 42;
 
@@ -243,7 +251,7 @@ let foo = [1, 2, 3][0];
 foo == 1;
 
 fn abc() {
-    [42, 43, 44]        // a function returning an array
+    [42, 43, 44]            // a function returning an array
 }
 
 let foo = abc()[0];
@@ -252,34 +260,78 @@ foo == 42;
 let foo = y[0];
 foo == 1;
 
-y.push(4);              // 4 elements
-y += 5;                 // 5 elements
+y.push(4);                  // 4 elements
+y += 5;                     // 5 elements
 
 y.len == 5;
 
-let first = y.shift();  // remove the first element, 4 elements remaining
+let first = y.shift();      // remove the first element, 4 elements remaining
 first == 1;
 
-let last = y.pop();     // remove the last element, 3 elements remaining
+let last = y.pop();         // remove the last element, 3 elements remaining
 last == 5;
 
 y.len == 3;
 
-for item in y {         // arrays can be iterated with a 'for' statement
+for item in y {             // arrays can be iterated with a 'for' statement
     print(item);
 }
 
-y.pad(10, &quot;hello&quot;);     // pad the array up to 10 elements
+y.pad(10, &quot;hello&quot;);         // pad the array up to 10 elements
 
 y.len == 10;
 
-y.truncate(5);          // truncate the array to 5 elements
+y.truncate(5);              // truncate the array to 5 elements
 
 y.len == 5;
 
-y.clear();              // empty the array
+y.clear();                  // empty the array
 
 y.len == 0;
+
+let a = [42, 123, 99];
+
+a.map(|v| v + 1);           // [43, 124, 100]
+
+a.map(|v, i| v + i);        // [42, 124, 101]
+
+a.filter(|v| v &gt; 50);       // [123, 99]
+
+a.filter(|v, i| i == 1);    // [123]
+
+a.reduce(|sum, v| {
+    // Detect the initial value of '()'
+    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+) == 264;
+
+a.reduce(|sum, v, i| {
+    if i == 0 { v } else { sum + v }
+) == 264;
+
+a.reduce_rev(|sum, v| {
+    // Detect the initial value of '()'
+    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+) == 264;
+
+a.reduce_rev(|sum, v, i| {
+    if i == 0 { v } else { sum + v }
+) == 264;
+
+a.some(|v| v &gt; 50) == true;
+
+a.some(|v, i| v &lt; i) == false;
+
+a.all(|v| v &gt; 50) == false;
+
+a.all(|v, i| v &gt; i) == true;
+
+a.splice(1, 1, [1, 3, 2]);
+
+a == [42, 1, 3, 2, 99];
+
+a.sort(|x, y| x -  y);
+
+a == [1, 2, 3, 42, 99];
 <span class="boring">}
 </span></code></pre></pre>
 

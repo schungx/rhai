@@ -182,6 +182,9 @@
 <p>Very few additional dependencies - right now only <a href="https://crates.io/crates/smallvec/"><code>smallvec</code></a> plus crates for procedural macros;
 for <a href="/rhai/vnext/start/features.html"><code>no-std</code></a> and <code>WASM</code> builds, a number of additional dependencies are pulled in to provide for missing functionalities.</p>
 </li>
+<li>
+<p><a href="/rhai/vnext/plugins/index.html">Plugins</a> system powered by procedural macros simplifies custom API development.</p>
+</li>
 </ul>
 <h2><a class="header" href="#fast" id="fast">Fast</a></h2>
 <ul>
@@ -214,6 +217,9 @@ for <a href="/rhai/vnext/start/features.html"><code>no-std</code></a> and <code>
 </li>
 <li>
 <p>Some support for <a href="/rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a>.</p>
+</li>
+<li>
+<p>Hook into variables access via <a href="/rhai/vnext/engine/var.html">variable resolver</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#safe" id="safe">Safe</a></h2>
@@ -249,14 +255,10 @@ for <a href="/rhai/vnext/start/features.html"><code>no-std</code></a> and <code>
 <p>Supports <a href="targets.html">most build targets</a> including <code>no-std</code> and <a href="/rhai/vnext/start/builds/wasm.html">WASM</a>.</p>
 </li>
 <li>
-<p><a href="/rhai/vnext/plugins/index.html">Plugins</a> system powered by procedural macros simplifies custom API development.</p>
-</li>
-<li>
 <p>Surgically <a href="/rhai/vnext/engine/disable.html">disable keywords and operators</a> to restrict the language.</p>
 </li>
 <li>
-<p>Use as a <a href="/rhai/vnext/engine/dsl.html">DSL</a> by <a href="/rhai/vnext/engine/disable.html">disabling keywords/operators</a>, <a href="/rhai/vnext/engine/custom-op.html">custom operators</a>
-and extending the language with <a href="/rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
+<p>Use as a <a href="/rhai/vnext/engine/dsl.html">DSL</a> by defining <a href="/rhai/vnext/engine/custom-op.html">custom operators</a> and/or extending the language with <a href="/rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
 </li>
 </ul>
 

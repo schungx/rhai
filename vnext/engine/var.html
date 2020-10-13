@@ -169,7 +169,7 @@ working its way outwards until it reaches the top (global) level, then it
 searches the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> that is passed into the <code>Engine::eval</code> call.</p>
 <p>There is a built-in facility for advanced users to <em>hook</em> into the variable
 resolution service and to override its default behavior.</p>
-<p>To do so, provide a closure to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the [<code>Engine::on_var</code>] method:</p>
+<p>To do so, provide a closure to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the <code>Engine::on_var</code> method:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -199,6 +199,21 @@ This is to avoid needing a mutable reference to the underlying data provider whi
 <p>In order to change these variables, it is best to push them into a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> instead of using
 a variable resolver. Then these variables can be assigned to and their updated values read back after
 the script is evaluated.</p>
+<h2><a class="header" href="#benefits-of-using-a-variable-resolver" id="benefits-of-using-a-variable-resolver">Benefits of Using a Variable Resolver</a></h2>
+<ol>
+<li>
+<p>Avoid having to maintain a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> with all variables regardless of need (because a script may not use them all).</p>
+</li>
+<li>
+<p><em>Short-circuit</em> variable access, essentially overriding standard behavior.</p>
+</li>
+<li>
+<p><em>Lazy-load</em> variables when they are accessed, not up-front. This benefits when the number of variables is very large, when they are timing-dependent, or when they are expensive to load.</p>
+</li>
+<li>
+<p>Rename system variables on a script-by-script basis without having to construct different <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>‘s.</p>
+</li>
+</ol>
 <h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
 <p>The function signature passed to <code>Engine::on_var</code> takes the following form:</p>
 <blockquote>
@@ -215,7 +230,7 @@ Offsets start from 1, with 1 meaning the last variable in the current <a href="/
 <p>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</p>
 </li>
 <li>
-<p><code>scope : &amp;Scope</code> - reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</p>
+<p><code>scope: &amp;Scope</code> - reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</p>
 </li>
 <li>
 <p><code>context: &amp;EvalContext</code> - reference to the current evaluation <em>context</em>, which exposes the following fields:</p>
@@ -226,8 +241,20 @@ Offsets start from 1, with 1 meaning the last variable in the current <a href="/
 </ul>
 </li>
 </ul>
-<p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where <code>Ok(None)</code> indicates that the normal
-variable resolution process should continue.</p>
+<h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
+<p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where:</p>
+<ul>
+<li>
+<p><code>Ok(None)</code> - normal variable resolution process should continue, meaning to continue searching through the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+</li>
+<li>
+<p><code>Ok(Some(Dynamic))</code> - wrapped <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> is taken as the value of the variable, which is treated as a constant.</p>
+</li>
+<li>
+<p><code>Err(Box&lt;EvalAltResult&gt;)</code> - error is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.
+Normally this is <code>EvalAltResult::ErrorVariableNotFound</code> to indicate that the variable does not exist, but it can be any error.</p>
+</li>
+</ul>
 
                     </main>
 
