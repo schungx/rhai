@@ -228,7 +228,7 @@ for x in range(0, 50, 3) {      // step by 3
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#iterate-through-object-maps" id="iterate-through-object-maps">Iterate Through Object Maps</a></h2>
-<p>Two functions, <code>keys</code> and <code>values</code>, return <a href="/rhai/vnext/language/arrays.html">arrays</a> containing cloned <em>copies</em>
+<p>Two methods, <code>keys</code> and <code>values</code>, return <a href="/rhai/vnext/language/arrays.html">arrays</a> containing cloned <em>copies</em>
 of all property names and values of an <a href="/rhai/vnext/language/object-maps.html">object map</a>, respectively.</p>
 <p>These <a href="/rhai/vnext/language/arrays.html">arrays</a> can be iterated.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -237,7 +237,7 @@ of all property names and values of an <a href="/rhai/vnext/language/object-maps
 </span>let map = #{a:1, b:3, c:5, d:7, e:9};
 
 // Property names are returned in unsorted, random order
-for x in keys(map) {
+for x in map.keys() {
     if x &gt; 10 { continue; }     // skip to the next iteration
 
     print(x);
@@ -246,7 +246,7 @@ for x in keys(map) {
 }
 
 // Property values are returned in unsorted, random order
-for val in values(map) {
+for val in map.values() {
     print(val);
 }
 <span class="boring">}

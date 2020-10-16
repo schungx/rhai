@@ -2960,10 +2960,10 @@ using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the string</td></tr>
 <tr><td><code>truncate</code></td><td>target length</td><td>cuts off the string at exactly a specified number of characters</td></tr>
 <tr><td><code>contains</code></td><td>character/sub-string to search for</td><td>checks if a certain character or sub-string occurs in the string</td></tr>
-<tr><td><code>index_of</code></td><td>1) character/sub-string to search for<br/>2) start index <em>(optional)</em></td><td>returns the index that a certain character or sub-string occurs in the string, or -1 if not found</td></tr>
-<tr><td><code>sub_string</code></td><td>1) start index<br/>2) length <em>(optional)</em></td><td>extracts a sub-string (to the end of the string if length is not specified)</td></tr>
+<tr><td><code>index_of</code></td><td>1) character/sub-string to search for<br/>2) <em>(optional)</em> start index</td><td>returns the index that a certain character or sub-string occurs in the string, or -1 if not found</td></tr>
+<tr><td><code>sub_string</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to extract, none if &lt; 0</td><td>extracts a sub-string (to the end of the string if length is not specified)</td></tr>
 <tr><td><code>split</code></td><td>delimiter character/string</td><td>splits the string by the specified delimiter, returning an <a href="language//rhai/vnext/language/arrays.html">array</a> of string segments; not available under <a href="language//rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
-<tr><td><code>crop</code></td><td>1) start index<br/>2) length <em>(optional)</em></td><td>retains only a portion of the string (to the end of the string if length is not specified)</td></tr>
+<tr><td><code>crop</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to retain, none if &lt; 0</td><td>retains only a portion of the string</td></tr>
 <tr><td><code>replace</code></td><td>1) target character/sub-string<br/>2) replacement character/string</td><td>replaces a sub-string with another</td></tr>
 <tr><td><code>trim</code></td><td><em>none</em></td><td>trims the string of whitespace at the beginning and end</td></tr>
 </tbody></table>
@@ -3034,23 +3034,26 @@ full_name.len == 0;
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) element to insert (not another array)</td><td>inserts an element at the end</td></tr>
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) array to append</td><td>concatenates the second array to the end of the first</td></tr>
 <tr><td><code>+</code> operator</td><td>1) first array<br/>2) second array</td><td>concatenates the first array with the second</td></tr>
-<tr><td><code>insert</code></td><td>1) element to insert<br/>2) position (beginning if &lt;= 0, end if &gt;= length)</td><td>inserts an element at a certain index</td></tr>
+<tr><td><code>insert</code></td><td>1) element to insert<br/>2) position, beginning if &lt; 0, end if &gt; length</td><td>inserts an element at a certain index</td></tr>
 <tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
 <tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
+<tr><td><code>extract</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length,<br/>2) <em>(optional)</em> number of items to extract, none if &lt; 0</td><td>extracts a portion of the array into a new array</td></tr>
 <tr><td><code>remove</code></td><td>index</td><td>removes an element at a particular index and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if the index is not valid)</td></tr>
 <tr><td><code>reverse</code></td><td><em>none</em></td><td>reverses the array</td></tr>
 <tr><td><code>len</code> method and property</td><td><em>none</em></td><td>returns the number of elements</td></tr>
 <tr><td><code>pad</code></td><td>1) target length<br/>2) element to pad</td><td>pads the array with an element to at least a specified length</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the array</td></tr>
 <tr><td><code>truncate</code></td><td>target length</td><td>cuts off the array at exactly a specified length (discarding all subsequent elements)</td></tr>
-<tr><td><code>splice</code></td><td>1) start position (beginning if &lt;= 0, end if &gt;= length),<br/>2) number of items to remove (none if &lt;= 0),<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
-<tr><td><code>filter</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
-<tr><td><code>map</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to conversion function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
-<tr><td><code>reduce</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
-<tr><td><code>reduce_rev</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items (in reverse order) accumulated by the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: offset index (optional)</td></tr>
-<tr><td><code>some</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if any item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
-<tr><td><code>all</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if all item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: offset index (optional)</td></tr>
-<tr><td><code>sort</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to a comparison function (can be a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>sorts the array with a comparison function:<br/>1st parameter: first item,<br/>2nd parameter: second item</td></tr>
+<tr><td><code>chop</code></td><td>target length</td><td>cuts off the head of the array, leaving the tail at exactly a specified length</td></tr>
+<tr><td><code>splice</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length,<br/>2) number of items to remove, none if &lt; 0,<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
+<tr><td><code>filter</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>map</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to conversion function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item,<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>reduce</code></td><td>1) <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>),<br/>2) <em>(optional)</em> <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>reduce_rev</code></td><td>1) <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>),<br/>2) <em>(optional)</em> <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array (in reverse order) into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially),<br/>2nd parameter: array item,<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>some</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if any item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>none</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if no item returns <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>all</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns <code>true</code> if all items return <code>true</code> when called with the predicate function:<br/>1st parameter: array item,<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>sort</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to a comparison function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>sorts the array with a comparison function:<br/>1st parameter: first item,<br/>2nd parameter: second item,<br/>return value: <code>INT</code> &lt; 0 if first &lt; second, &gt; 0 if first &gt; second, 0 if first == second</td></tr>
 </tbody></table>
 <h2><a class="header" href="#use-custom-types-with-arrays" id="use-custom-types-with-arrays">Use Custom Types With Arrays</a></h2>
 <p>To use a <a href="language//rhai/vnext/rust/custom.html">custom type</a> with arrays, a number of array functions need to be manually implemented,
@@ -3062,12 +3065,13 @@ compare elements.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let y = [2, 3];             // array literal with 2 elements
+</span>let y = [2, 3];             // y == [2, 3]
 
-let y = [2, 3,];            // trailing comma is OK
+let y = [2, 3,];            // y == [2, 3]
 
-y.insert(0, 1);             // insert element at the beginning
-y.insert(999, 4);           // insert element at the end
+y.insert(0, 1);             // y == [1, 2, 3]
+
+y.insert(999, 4);           // y == [1, 2, 3, 4]
 
 y.len == 4;
 
@@ -3080,105 +3084,113 @@ y[3] == 4;
 (42 in y) == false;         // 'in' uses the '==' operator (which users can override)
                             // to check if the target item exists in the array
 
-y[1] = 42;                  // array elements can be reassigned
+y[1] = 42;                  // y == [1, 42, 3, 4]
 
 (42 in y) == true;
 
-y.remove(2) == 3;           // remove element
+y.remove(2) == 3;           // y == [1, 42, 4]
 
 y.len == 3;
 
 y[2] == 4;                  // elements after the removed element are shifted
 
 ts.list = y;                // arrays can be assigned completely (by value copy)
-let foo = ts.list[1];
-foo == 42;
 
-let foo = [1, 2, 3][0];
-foo == 1;
+ts.list[1] == 42;
+
+[1, 2, 3][0] == 1;          // indexing on array literal
 
 fn abc() {
     [42, 43, 44]            // a function returning an array
 }
 
-let foo = abc()[0];
-foo == 42;
+abc()[0] == 42;
 
-let foo = y[0];
-foo == 1;
+y.push(4);                  // y == [1, 42, 4, 4]
 
-y.push(4);                  // 4 elements
-y += 5;                     // 5 elements
+y += 5;                     // y == [1, 42, 4, 4, 5]
 
 y.len == 5;
 
-let first = y.shift();      // remove the first element, 4 elements remaining
-first == 1;
+y.shift() == 1;             // y == [42, 4, 4, 5]
 
-let last = y.pop();         // remove the last element, 3 elements remaining
-last == 5;
+y.chop(3);                  // y == [4, 4, 5]
 
 y.len == 3;
+
+y.pop() == 5;               // y == [4, 4]
+
+y.len == 2;
 
 for item in y {             // arrays can be iterated with a 'for' statement
     print(item);
 }
 
-y.pad(10, &quot;hello&quot;);         // pad the array up to 10 elements
+y.pad(6, &quot;hello&quot;);          // y == [4, 4, &quot;hello&quot;, &quot;hello&quot;, &quot;hello&quot;, &quot;hello&quot;]
 
-y.len == 10;
+y.len == 6;
 
-y.truncate(5);              // truncate the array to 5 elements
+y.truncate(4);              // y == [4, 4, &quot;hello&quot;, &quot;hello&quot;]
 
-y.len == 5;
+y.len == 4;
 
-y.clear();                  // empty the array
+y.clear();                  // y == []
 
 y.len == 0;
 
 let a = [42, 123, 99];
 
-a.map(|v| v + 1);           // [43, 124, 100]
+a.map(|v| v + 1);           // returns [43, 124, 100]
 
-a.map(|v, i| v + i);        // [42, 124, 101]
+a.map(|v, i| v + i);        // returns [42, 124, 101]
 
-a.filter(|v| v &gt; 50);       // [123, 99]
+a.filter(|v| v &gt; 50);       // returns [123, 99]
 
-a.filter(|v, i| i == 1);    // [123]
+a.filter(|v, i| i == 1);    // returns [123]
 
-a.reduce(|sum, v| {
-    // Detect the initial value of '()'
-    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+// Use a closure to provide the initial value
+a.reduce(|sum, v| sum + v, || 0) == 264;
+
+// Detect the initial value of '()'
+a.reduce(
+    |sum, v| if sum.type_of() == &quot;()&quot; { v } else { sum + v }
 ) == 264;
 
-a.reduce(|sum, v, i| {
+// Detect the initial value via index
+a.reduce(|sum, v, i|
     if i == 0 { v } else { sum + v }
 ) == 264;
 
-a.reduce_rev(|sum, v| {
-    // Detect the initial value of '()'
-    if sum.type_of() == &quot;()&quot; { v } else { sum + v }
+// Use a closure to provide the initial value
+a.reduce_rev(|sum, v| sum + v, || 0) == 264;
+
+// Detect the initial value of '()'
+a.reduce_rev(
+    |sum, v| if sum.type_of() == &quot;()&quot; { v } else { sum + v }
 ) == 264;
 
-a.reduce_rev(|sum, v, i| {
-    if i == 0 { v } else { sum + v }
+// Detect the initial value via index
+a.reduce_rev(|sum, v, i|
+    if i == 2 { v } else { sum + v }
 ) == 264;
 
-a.some(|v| v &gt; 50) == true;
+a.some(|v| v &gt; 50);         // returns true
 
-a.some(|v, i| v &lt; i) == false;
+a.some(|v, i| v &lt; i);       // returns false
 
-a.all(|v| v &gt; 50) == false;
+a.none(|v| v != 0);         // returns false
 
-a.all(|v, i| v &gt; i) == true;
+a.none(|v, i| v == i);      // returns true
 
-a.splice(1, 1, [1, 3, 2]);
+a.all(|v| v &gt; 50);          // returns false
 
-a == [42, 1, 3, 2, 99];
+a.all(|v, i| v &gt; i);        // returns true
 
-a.sort(|x, y| x -  y);
+a.splice(1, 1, [1, 3, 2]);  // a == [42, 1, 3, 2, 99]
 
-a == [1, 2, 3, 42, 99];
+a.extract(1, 3);            // returns [1, 3, 2]
+
+a.sort(|x, y| x - y);       // a == [1, 2, 3, 42, 99]
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#object-maps" id="object-maps">Object Maps</a></h1>
@@ -3281,17 +3293,40 @@ y.remove(&quot;a&quot;) == 1;     // remove property
 y.len() == 2;
 y.has(&quot;a&quot;) == false;
 
-for name in keys(y) {   // get an array of all the property names via the 'keys' function
+for name in y.keys() {  // get an array of all the property names via 'keys'
     print(name);
 }
 
-for val in values(y) {  // get an array of all the property values via the 'values' function
+for val in y.values() { // get an array of all the property values via 'values'
     print(val);
 }
 
 y.clear();              // empty the object map
 
 y.len() == 0;
+<span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#no-support-for-property-getters" id="no-support-for-property-getters">No Support for Property Getters</a></h2>
+<p>In order not to affect the speed of accessing properties in an object map, new property
+<a href="language//rhai/vnext/rust/getters-setters.html">getters</a> cannot be registered because they conflict with the syntax of
+property access.</p>
+<p>A property <a href="language//rhai/vnext/rust/getters-setters.html">getter</a> function registered via <code>Engine::register_get</code>, for example,
+for a <code>Map</code> will never be found - instead, the property will be looked up in the object map.</p>
+<p>Therefore, <em>method-call</em> notation must be used for built-in properties:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>map.len                 // access property 'len', returns '()' if not found
+
+map.len()               // returns the number of properties
+
+map.keys                // access property 'keys', returns '()' if not found
+
+map.keys()              // returns array of all property names
+
+map.values              // access property 'values', returns '()' if not found
+
+map.values()            // returns array of all property values
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#parse-an-object-map-from-json" id="parse-an-object-map-from-json">Parse an Object Map from JSON</a></h1>
@@ -3858,7 +3893,7 @@ for x in range(0, 50, 3) {      // step by 3
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#iterate-through-object-maps" id="iterate-through-object-maps">Iterate Through Object Maps</a></h2>
-<p>Two functions, <code>keys</code> and <code>values</code>, return <a href="language//rhai/vnext/language/arrays.html">arrays</a> containing cloned <em>copies</em>
+<p>Two methods, <code>keys</code> and <code>values</code>, return <a href="language//rhai/vnext/language/arrays.html">arrays</a> containing cloned <em>copies</em>
 of all property names and values of an <a href="language//rhai/vnext/language/object-maps.html">object map</a>, respectively.</p>
 <p>These <a href="language//rhai/vnext/language/arrays.html">arrays</a> can be iterated.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -3867,7 +3902,7 @@ of all property names and values of an <a href="language//rhai/vnext/language/ob
 </span>let map = #{a:1, b:3, c:5, d:7, e:9};
 
 // Property names are returned in unsorted, random order
-for x in keys(map) {
+for x in map.keys() {
     if x &gt; 10 { continue; }     // skip to the next iteration
 
     print(x);
@@ -3876,7 +3911,7 @@ for x in keys(map) {
 }
 
 // Property values are returned in unsorted, random order
-for val in values(map) {
+for val in map.values() {
     print(val);
 }
 <span class="boring">}
@@ -4250,7 +4285,7 @@ In fact, internally a function pointer simply stores the <em>name</em> of the fu
 <p>Call a function pointer using the <code>call</code> method.</p>
 <h2><a class="header" href="#built-in-methods" id="built-in-methods">Built-in methods</a></h2>
 <p>The following standard methods (mostly defined in the <a href="language//rhai/vnext/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
-using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="language//rhai/vnext/language/strings-chars.html">strings</a>:</p>
+using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on function pointers:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>name</code> method and property</td><td><em>none</em></td><td>returns the name of the function encapsulated by the function pointer</td></tr>
 <tr><td><code>call</code></td><td><em>arguments</em></td><td>calls the function matching the function pointer’s name with the <em>arguments</em></td></tr>
@@ -4295,7 +4330,7 @@ hello.call(0);              // error: function not found - 'hello_world (i64)'
 <h2><a class="header" href="#global-namespace-only" id="global-namespace-only">Global Namespace Only</a></h2>
 <p>Because of their dynamic nature, function pointers cannot refer to functions in <a href="language//rhai/vnext/language/modules/import.html"><code>import</code></a>-ed <a href="language//rhai/vnext/rust/modules/index.html">modules</a>.
 They can only refer to functions within the global <a href="language//rhai/vnext/language/fn-namespaces.html">namespace</a>.
-See <a href="language//rhai/vnext/language/fn-namespaces.html">function namespaces</a> for more details.</p>
+See <em><a href="language//rhai/vnext/language/fn-namespaces.html">Function Namespaces</a></em> for more details.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -4363,10 +4398,10 @@ let func = sign(x) + 1;
 map[func].call(42);
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#binding-the-this-pointer-1" id="binding-the-this-pointer-1">Binding the <code>this</code> Pointer</a></h2>
-<p>When <code>call</code> is called as a <em>method</em> but not on a <code>FnPtr</code> value, it is possible to dynamically dispatch
+<h2><a class="header" href="#bind-the-this-pointer" id="bind-the-this-pointer">Bind the <code>this</code> Pointer</a></h2>
+<p>When <code>call</code> is called as a <em>method</em> but not on a function pointer, it is possible to dynamically dispatch
 to a function call while binding the object in the method call to the <code>this</code> pointer of the function.</p>
-<p>To achieve this, pass the <code>FnPtr</code> value as the <em>first</em> argument to <code>call</code>:</p>
+<p>To achieve this, pass the function pointer as the <em>first</em> argument to <code>call</code>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -4392,6 +4427,50 @@ x == 42;
 <p>Beware that this only works for <em>method-call</em> style.  Normal function-call style cannot bind
 the <code>this</code> pointer (for syntactic reasons).</p>
 <p>Therefore, obviously, binding the <code>this</code> pointer is unsupported under <a href="language//rhai/vnext/start/features.html"><code>no_object</code></a>.</p>
+<h2><a class="header" href="#call-a-function-pointer-in-rust" id="call-a-function-pointer-in-rust">Call a Function Pointer in Rust</a></h2>
+<p>It is completely normal to register a Rust function with an <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> that takes parameters
+whose types are function pointers.  The Rust type in question is <code>rhai::FnPtr</code>.</p>
+<p>A function pointer in Rhai is essentially syntactic sugar wrapping the <em>name</em> of a function
+to call in script.  Therefore, the script’s <a href="language//rhai/vnext/engine/compile.html"><code>AST</code></a> is required to call a function pointer,
+as well as the entire <em>execution context</em> that the script is running in.</p>
+<p>For a rust function taking a function pointer as parameter, the <a href="language/../rust/register-raw.html">Low-Level API</a>
+must be used to register the function.</p>
+<p>Essentially, use the low-level <code>Engine::register_raw_fn</code> method to register the function.
+<code>FnPtr::call_dynamic</code> is used to actually call the function pointer, passing to it the
+current scripting <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, collection of script-defined functions, the <code>this</code> pointer,
+and other necessary arguments.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rhai::{Engine, Module, Dynamic, FnPtr};
+
+let mut engine = Engine::new();
+
+// Define Rust function in required low-level API signature
+fn call_fn_ptr_with_value(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic])
+    -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
+{
+    // 'args' is guaranteed to contain enough arguments of the correct types
+    let fp = std::mem::take(args[1]).cast::&lt;FnPtr&gt;();       // 2nd argument - function pointer
+    let value = args[2].clone();                            // 3rd argument - function argument
+    let this_ptr = args.get_mut(0).unwrap();                // 1st argument - this pointer
+
+    // Use 'FnPtr::call_dynamic' to call the function pointer.
+    // Beware, private script-defined functions will not be found.
+    fp.call_dynamic(engine, lib, Some(this_ptr), [value])
+}
+
+// Register a Rust function using the low-level API
+engine.register_raw_fn(&quot;super_call&quot;,
+    &amp;[ // parameter types
+        std::any::TypeId::of::&lt;i64&gt;(),
+        std::any::TypeId::of::&lt;FnPtr&gt;(),
+        std::any::TypeId::of::&lt;i64&gt;()
+    ],
+    call_fn_ptr_with_value
+);
+<span class="boring">}
+</span></code></pre></pre>
 <h1><a class="header" href="#function-pointer-currying" id="function-pointer-currying">Function Pointer Currying</a></h1>
 <p>It is possible to <em>curry</em> a <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> by providing partial (or all) arguments.</p>
 <p>Currying is done via the <code>curry</code> keyword and produces a new <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> which carries
@@ -6553,7 +6632,8 @@ engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| *x += y);
 <h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
 <p>The function signature passed to <code>Engine::register_raw_fn</code> takes the following form:</p>
 <blockquote>
-<p><code>Fn(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]) -&gt; Result&lt;T, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
+<p><code>Fn(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic])</code><br />
+<code>-&gt; Result&lt;T, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
 <ul>
@@ -6606,7 +6686,7 @@ engine.register_raw_fn(
         std::any::TypeId::of::&lt;FnPtr&gt;(),
         std::any::TypeId::of::&lt;i64&gt;(),
     ],
-    move |engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]| {
+    |engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic]| {
         // 'args' is guaranteed to contain enough arguments of the correct types
 
         let fp = std::mem::take(args[1]).cast::&lt;FnPtr&gt;();       // 2nd argument - function pointer
@@ -6711,7 +6791,8 @@ the script is evaluated.</p>
 <h2><a class="header" href="#function-signature-1" id="function-signature-1">Function Signature</a></h2>
 <p>The function signature passed to <code>Engine::on_var</code> takes the following form:</p>
 <blockquote>
-<p><code>Fn(name: &amp;str, index: usize, scope: &amp;Scope, context: &amp;EvalContext) -&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
+<p><code>Fn(name: &amp;str, index: usize, scope: &amp;Scope, context: &amp;EvalContext)</code><br />
+<code>-&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
 <ul>
@@ -6902,23 +6983,23 @@ engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: functi
 </span></code></pre></pre>
 <h2><a class="header" href="#operator-precedence" id="operator-precedence">Operator Precedence</a></h2>
 <p>All operators in Rhai has a <em>precedence</em> indicating how tightly they bind.</p>
-<p>The following <em>precedence table</em> show the built-in precedence of standard Rhai operators:</p>
+<p>A higher precedence binds more tightly than a lower precedence, so <code>*</code> and <code>/</code> binds before <code>+</code> and <code>-</code> etc.</p>
+<p>When registering a custom operator, the operator’s precedence must also be provided.</p>
+<p>The following <em>precedence table</em> shows the built-in precedence of standard Rhai operators:</p>
 <table><thead><tr><th>Category</th><th align="center">Operators</th><th align="center">Precedence (0-255)</th></tr></thead><tbody>
 <tr><td>Assignments</td><td align="center"><code>=</code>, <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>~=</code>, <code>%=</code>,<br/><code>&lt;&lt;=</code>, <code>&gt;&gt;=</code>, <code>&amp;=</code>, <code>|=</code>, <code>^=</code></td><td align="center">0</td></tr>
 <tr><td>Logic and bit masks</td><td align="center"><code>||</code>,  <code>|</code>, <code>^</code></td><td align="center">30</td></tr>
 <tr><td>Logic and bit masks</td><td align="center"><code>&amp;</code>, <code>&amp;&amp;</code></td><td align="center">60</td></tr>
 <tr><td>Comparisons</td><td align="center"><code>==</code>, <code>!=</code></td><td align="center">90</td></tr>
-<tr><td>Comparisons</td><td align="center"><code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code></td><td align="center">110</td></tr>
-<tr><td></td><td align="center"><code>in</code></td><td align="center">130</td></tr>
+<tr><td></td><td align="center"><code>in</code></td><td align="center">110</td></tr>
+<tr><td>Comparisons</td><td align="center"><code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code></td><td align="center">130</td></tr>
 <tr><td>Arithmetic</td><td align="center"><code>+</code>, <code>-</code></td><td align="center">150</td></tr>
-<tr><td>Arithmetic</td><td align="center"><code>*</code>, <code>/</code></td><td align="center">180</td></tr>
-<tr><td>Arithmetic</td><td align="center"><code>~</code>, <code>%</code></td><td align="center">190</td></tr>
+<tr><td>Arithmetic</td><td align="center"><code>*</code>, <code>/</code>, <code>%</code></td><td align="center">180</td></tr>
+<tr><td>Arithmetic</td><td align="center"><code>~</code></td><td align="center">190</td></tr>
 <tr><td>Bit-shifts</td><td align="center"><code>&lt;&lt;</code>, <code>&gt;&gt;</code></td><td align="center">210</td></tr>
 <tr><td>Object</td><td align="center"><code>.</code> <em>(binds to right)</em></td><td align="center">240</td></tr>
-<tr><td><em>Others</em></td><td align="center"></td><td align="center">0</td></tr>
+<tr><td>Unary operators</td><td align="center">unary <code>+</code>, <code>-</code>, <code>!</code> <em>(binds to right)</em></td><td align="center">255</td></tr>
 </tbody></table>
-<p>A higher precedence binds more tightly than a lower precedence, so <code>*</code> and <code>/</code> binds before <code>+</code> and <code>-</code> etc.</p>
-<p>When registering a custom operator, the operator’s precedence must also be provided.</p>
 <h1><a class="header" href="#extend-rhai-with-custom-syntax" id="extend-rhai-with-custom-syntax">Extend Rhai with Custom Syntax</a></h1>
 <p>For the ultimate adventurous, there is a built-in facility to <em>extend</em> the Rhai language
 with custom-defined <em>syntax</em>.</p>
@@ -7016,7 +7097,8 @@ print(hello);   // variable declared by a custom syntax persists!
 <h3><a class="header" href="#function-signature-2" id="function-signature-2">Function Signature</a></h3>
 <p>The function signature of an implementation is:</p>
 <blockquote>
-<p><code>Fn(scope: &amp;mut Scope, context: &amp;mut EvalContext, inputs: &amp;[Expression]) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
+<p><code>Fn(scope: &amp;mut Scope, context: &amp;mut EvalContext, inputs: &amp;[Expression])</code><br />
+<code>-&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
 </blockquote>
 <p>where:</p>
 <ul>
@@ -7317,6 +7399,7 @@ crate merging feature <em>just for Rhai</em>.</p>
 <tr><td><code>--</code></td><td align="center">decrement</td><td><em>reserved</em></td></tr>
 <tr><td><code>..</code></td><td align="center">range</td><td><em>reserved</em></td></tr>
 <tr><td><code>...</code></td><td align="center">range</td><td><em>reserved</em></td></tr>
+<tr><td><code>**</code></td><td align="center">exponentiation</td><td><em>reserved</em></td></tr>
 <tr><td><code>#</code></td><td align="center">hash</td><td><em>reserved</em></td></tr>
 <tr><td><code>@</code></td><td align="center">at</td><td><em>reserved</em></td></tr>
 <tr><td><code>$</code></td><td align="center">dollar</td><td><em>reserved</em></td></tr>

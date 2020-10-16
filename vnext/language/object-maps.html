@@ -263,17 +263,40 @@ y.remove(&quot;a&quot;) == 1;     // remove property
 y.len() == 2;
 y.has(&quot;a&quot;) == false;
 
-for name in keys(y) {   // get an array of all the property names via the 'keys' function
+for name in y.keys() {  // get an array of all the property names via 'keys'
     print(name);
 }
 
-for val in values(y) {  // get an array of all the property values via the 'values' function
+for val in y.values() { // get an array of all the property values via 'values'
     print(val);
 }
 
 y.clear();              // empty the object map
 
 y.len() == 0;
+<span class="boring">}
+</span></code></pre></pre>
+<h2><a class="header" href="#no-support-for-property-getters" id="no-support-for-property-getters">No Support for Property Getters</a></h2>
+<p>In order not to affect the speed of accessing properties in an object map, new property
+<a href="/rhai/vnext/rust/getters-setters.html">getters</a> cannot be registered because they conflict with the syntax of
+property access.</p>
+<p>A property <a href="/rhai/vnext/rust/getters-setters.html">getter</a> function registered via <code>Engine::register_get</code>, for example,
+for a <code>Map</code> will never be found - instead, the property will be looked up in the object map.</p>
+<p>Therefore, <em>method-call</em> notation must be used for built-in properties:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>map.len                 // access property 'len', returns '()' if not found
+
+map.len()               // returns the number of properties
+
+map.keys                // access property 'keys', returns '()' if not found
+
+map.keys()              // returns array of all property names
+
+map.values              // access property 'values', returns '()' if not found
+
+map.values()            // returns array of all property values
 <span class="boring">}
 </span></code></pre></pre>
 

@@ -169,7 +169,7 @@ In fact, internally a function pointer simply stores the <em>name</em> of the fu
 <p>Call a function pointer using the <code>call</code> method.</p>
 <h2><a class="header" href="#built-in-methods" id="built-in-methods">Built-in methods</a></h2>
 <p>The following standard methods (mostly defined in the <a href="/rhai/vnext/rust/packages/index.html"><code>BasicFnPackage</code></a> but excluded if
-using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/vnext/language/strings-chars.html">strings</a>:</p>
+using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on function pointers:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>name</code> method and property</td><td><em>none</em></td><td>returns the name of the function encapsulated by the function pointer</td></tr>
 <tr><td><code>call</code></td><td><em>arguments</em></td><td>calls the function matching the function pointer’s name with the <em>arguments</em></td></tr>
@@ -214,7 +214,7 @@ hello.call(0);              // error: function not found - 'hello_world (i64)'
 <h2><a class="header" href="#global-namespace-only" id="global-namespace-only">Global Namespace Only</a></h2>
 <p>Because of their dynamic nature, function pointers cannot refer to functions in <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a>-ed <a href="/rhai/vnext/rust/modules/index.html">modules</a>.
 They can only refer to functions within the global <a href="/rhai/vnext/language/fn-namespaces.html">namespace</a>.
-See <a href="/rhai/vnext/language/fn-namespaces.html">function namespaces</a> for more details.</p>
+See <em><a href="/rhai/vnext/language/fn-namespaces.html">Function Namespaces</a></em> for more details.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -282,10 +282,10 @@ let func = sign(x) + 1;
 map[func].call(42);
 <span class="boring">}
 </span></code></pre></pre>
-<h2><a class="header" href="#binding-the-this-pointer" id="binding-the-this-pointer">Binding the <code>this</code> Pointer</a></h2>
-<p>When <code>call</code> is called as a <em>method</em> but not on a <code>FnPtr</code> value, it is possible to dynamically dispatch
+<h2><a class="header" href="#bind-the-this-pointer" id="bind-the-this-pointer">Bind the <code>this</code> Pointer</a></h2>
+<p>When <code>call</code> is called as a <em>method</em> but not on a function pointer, it is possible to dynamically dispatch
 to a function call while binding the object in the method call to the <code>this</code> pointer of the function.</p>
-<p>To achieve this, pass the <code>FnPtr</code> value as the <em>first</em> argument to <code>call</code>:</p>
+<p>To achieve this, pass the function pointer as the <em>first</em> argument to <code>call</code>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -311,6 +311,50 @@ x == 42;
 <p>Beware that this only works for <em>method-call</em> style.  Normal function-call style cannot bind
 the <code>this</code> pointer (for syntactic reasons).</p>
 <p>Therefore, obviously, binding the <code>this</code> pointer is unsupported under <a href="/rhai/vnext/start/features.html"><code>no_object</code></a>.</p>
+<h2><a class="header" href="#call-a-function-pointer-in-rust" id="call-a-function-pointer-in-rust">Call a Function Pointer in Rust</a></h2>
+<p>It is completely normal to register a Rust function with an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> that takes parameters
+whose types are function pointers.  The Rust type in question is <code>rhai::FnPtr</code>.</p>
+<p>A function pointer in Rhai is essentially syntactic sugar wrapping the <em>name</em> of a function
+to call in script.  Therefore, the script’s <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> is required to call a function pointer,
+as well as the entire <em>execution context</em> that the script is running in.</p>
+<p>For a rust function taking a function pointer as parameter, the <a href="../rust/register-raw.html">Low-Level API</a>
+must be used to register the function.</p>
+<p>Essentially, use the low-level <code>Engine::register_raw_fn</code> method to register the function.
+<code>FnPtr::call_dynamic</code> is used to actually call the function pointer, passing to it the
+current scripting <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, collection of script-defined functions, the <code>this</code> pointer,
+and other necessary arguments.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use rhai::{Engine, Module, Dynamic, FnPtr};
+
+let mut engine = Engine::new();
+
+// Define Rust function in required low-level API signature
+fn call_fn_ptr_with_value(engine: &amp;Engine, lib: &amp;Module, args: &amp;mut [&amp;mut Dynamic])
+    -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;
+{
+    // 'args' is guaranteed to contain enough arguments of the correct types
+    let fp = std::mem::take(args[1]).cast::&lt;FnPtr&gt;();       // 2nd argument - function pointer
+    let value = args[2].clone();                            // 3rd argument - function argument
+    let this_ptr = args.get_mut(0).unwrap();                // 1st argument - this pointer
+
+    // Use 'FnPtr::call_dynamic' to call the function pointer.
+    // Beware, private script-defined functions will not be found.
+    fp.call_dynamic(engine, lib, Some(this_ptr), [value])
+}
+
+// Register a Rust function using the low-level API
+engine.register_raw_fn(&quot;super_call&quot;,
+    &amp;[ // parameter types
+        std::any::TypeId::of::&lt;i64&gt;(),
+        std::any::TypeId::of::&lt;FnPtr&gt;(),
+        std::any::TypeId::of::&lt;i64&gt;()
+    ],
+    call_fn_ptr_with_value
+);
+<span class="boring">}
+</span></code></pre></pre>
 
                     </main>
 

@@ -217,7 +217,8 @@ the script is evaluated.</p>
 <h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
 <p>The function signature passed to <code>Engine::on_var</code> takes the following form:</p>
 <blockquote>
-<p><code>Fn(name: &amp;str, index: usize, scope: &amp;Scope, context: &amp;EvalContext) -&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
+<p><code>Fn(name: &amp;str, index: usize, scope: &amp;Scope, context: &amp;EvalContext)</code><br />
+<code>-&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
 <ul>

@@ -173,10 +173,10 @@ using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) opera
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the string</td></tr>
 <tr><td><code>truncate</code></td><td>target length</td><td>cuts off the string at exactly a specified number of characters</td></tr>
 <tr><td><code>contains</code></td><td>character/sub-string to search for</td><td>checks if a certain character or sub-string occurs in the string</td></tr>
-<tr><td><code>index_of</code></td><td>1) character/sub-string to search for<br/>2) start index <em>(optional)</em></td><td>returns the index that a certain character or sub-string occurs in the string, or -1 if not found</td></tr>
-<tr><td><code>sub_string</code></td><td>1) start index<br/>2) length <em>(optional)</em></td><td>extracts a sub-string (to the end of the string if length is not specified)</td></tr>
+<tr><td><code>index_of</code></td><td>1) character/sub-string to search for<br/>2) <em>(optional)</em> start index</td><td>returns the index that a certain character or sub-string occurs in the string, or -1 if not found</td></tr>
+<tr><td><code>sub_string</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to extract, none if &lt; 0</td><td>extracts a sub-string (to the end of the string if length is not specified)</td></tr>
 <tr><td><code>split</code></td><td>delimiter character/string</td><td>splits the string by the specified delimiter, returning an <a href="/rhai/vnext/language/arrays.html">array</a> of string segments; not available under <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
-<tr><td><code>crop</code></td><td>1) start index<br/>2) length <em>(optional)</em></td><td>retains only a portion of the string (to the end of the string if length is not specified)</td></tr>
+<tr><td><code>crop</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to retain, none if &lt; 0</td><td>retains only a portion of the string</td></tr>
 <tr><td><code>replace</code></td><td>1) target character/sub-string<br/>2) replacement character/string</td><td>replaces a sub-string with another</td></tr>
 <tr><td><code>trim</code></td><td><em>none</em></td><td>trims the string of whitespace at the beginning and end</td></tr>
 </tbody></table>
