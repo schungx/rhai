@@ -164,13 +164,13 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#building-to-webassembly-wasm" id="building-to-webassembly-wasm">Building to WebAssembly (WASM)</a></h1>
-<p>It is possible to use Rhai when compiling to WebAssembly (WASM). This yields a scripting engine (and language)
-that can be run in a standard web browser.</p>
-<p>Why you would want to is another matter... as there is already a nice, fast, complete scripting language
+<p>It is possible to use Rhai when compiling to WebAssembly (WASM).
+This yields a scripting engine (and language) that can be run in a standard web browser.</p>
+<p>Why you would <em>want</em> to is another matter... as there is already a nice, fast, complete scripting language
 for the the common WASM environment (i.e. a browser) - and it is called JavaScript.</p>
 <p>But anyhow, do it because you <em>can</em>!</p>
-<p>When building for WASM, certain features will not be available, such as the script file API’s and loading modules
-from external script files.</p>
+<p>When building for WASM, certain features will not be available,
+such as the script file API’s and loading modules from external script files.</p>
 <h2><a class="header" href="#size" id="size">Size</a></h2>
 <p>Also look into <a href="/rhai/start/builds/minimal.html">minimal builds</a> to reduce generated WASM size.</p>
 <p>As of this version, a typical, full-featured Rhai scripting engine compiles to a single WASM file
@@ -184,14 +184,15 @@ further shrunk to 160KB.</p>
 are typically used for a WASM build:</p>
 <table><thead><tr><th align="center">Feature</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center"><a href="/rhai/start/features.html"><code>unchecked</code></a></td><td>When a WASM module panics, it doesn’t crash the entire web app; however this also disables <a href="/rhai/safety/max-operations.html">maximum number of operations</a> and <a href="/rhai/safety/progress.html">progress</a> tracking so a script can still run indefinitely - the web app must terminate it itself.</td></tr>
-<tr><td align="center"><a href="/rhai/start/features.html"><code>only_i32</code></a></td><td>JavaScript has only one <code>number</code> type and we’re only supporting <code>wasm32</code> here (so far).</td></tr>
+<tr><td align="center"><a href="/rhai/start/features.html"><code>only_i32</code></a></td><td>WASM supports 32-bit and 64-bit integers, but most scripts will only need 32-bit.</td></tr>
+<tr><td align="center"><a href="/rhai/start/features.html"><code>f32_float</code></a></td><td>WASM supports 32-bit single-precision and 64-bit double-precision floating-point numbers, but single-precision is usually fine for most uses.</td></tr>
 <tr><td align="center"><a href="/rhai/start/features.html"><code>no_module</code></a></td><td>A WASM module cannot load modules from the file system, so usually this is not needed, but the savings are minimal; alternatively, a custom <a href="/rhai/rust/modules/resolvers.html">module resolver</a> can be provided that loads other Rhai scripts.</td></tr>
 </tbody></table>
 <p>The following features are typically <em>not</em> used because they don’t make sense in a WASM build:</p>
 <table><thead><tr><th align="center">Feature</th><th>Why unnecessary</th></tr></thead><tbody>
 <tr><td align="center"><a href="/rhai/start/features.html"><code>sync</code></a></td><td>WASM is single-threaded.</td></tr>
 <tr><td align="center"><a href="/rhai/start/features.html"><code>no_std</code></a></td><td><code>std</code> lib works fine with WASM.</td></tr>
-<tr><td align="center"><a href="/rhai/start/features.html"><code>internals</code></a></td><td>WASM usually doesn’t need to access Rhai internal data structures.</td></tr>
+<tr><td align="center"><a href="/rhai/start/features.html"><code>internals</code></a></td><td>WASM usually doesn’t need to access Rhai internal data structures, unless you are walking the <a href="/rhai/engine/compile.html"><code>AST</code></a>.</td></tr>
 </tbody></table>
 
                     </main>

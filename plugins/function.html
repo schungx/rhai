@@ -257,7 +257,7 @@ pub fn greet(context: NativeCallContext, callback: FnPtr)
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, Position};
+</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, NO_POS};
 use rhai::plugin::*;        // a &quot;prelude&quot; import for macros
 
 // This function builds an array of arbitrary size, but is protected
@@ -277,7 +277,7 @@ pub fn grow(context: NativeCallContext, size: i64)
             &quot;Size to grow&quot;.to_string(),
             context.engine().max_array_size(),
             size as usize,
-            Position::none(),
+            NO_POS,
         ).into();
     }
 

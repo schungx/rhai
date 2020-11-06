@@ -501,7 +501,7 @@ mod my_module {
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, Position};
+</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, NO_POS};
 use rhai::plugin::*;        // a &quot;prelude&quot; import for macros
 
 #[export_module]
@@ -522,7 +522,7 @@ mod my_module {
                 &quot;Size to grow&quot;.to_string(),
                 context.engine().max_array_size(),
                 size as usize,
-                Position::none(),
+                NO_POS,
             ).into();
         }
 
