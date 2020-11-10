@@ -170,7 +170,7 @@
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
 <h2><a class="header" href="#versions" id="versions">Versions</a></h2>
-<p>This Book is for version <strong>0.19.4</strong> of Rhai.</p>
+<p>This Book is for version <strong>0.19.5</strong> of Rhai.</p>
 <p>For the latest development version, see <a href="about//rhai/vnext/">here</a>.</p>
 <h2><a class="header" href="#etymology-of-the-name-rhai" id="etymology-of-the-name-rhai">Etymology of the name “Rhai”</a></h2>
 <h3><a class="header" href="#as-per-rhais-author-johnathan-turner" id="as-per-rhais-author-johnathan-turner">As per Rhai’s author Johnathan Turner</a></h3>
@@ -424,7 +424,7 @@ Scripts can be evaluated directly from the editor.</p>
 <p>The easiest way is to install the Rhai crate from <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>,
 starting by looking up the latest version and adding this line under <code>dependencies</code> in the project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = &quot;0.19.4&quot;    # assuming 0.19.4 is the latest version
+rhai = &quot;0.19.5&quot;    # assuming 0.19.5 is the latest version
 </code></pre>
 <p>Or to automatically use the latest released crate version on <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>:</p>
 <pre><code class="language-toml">[dependencies]
@@ -470,7 +470,7 @@ more control over what a script can (or cannot) do.</p>
 <li><code>no_function</code> (no defining <a href="start//rhai/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.19.4&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
+rhai = { version = &quot;0.19.5&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
 no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="start//rhai/language/functions.html">functions</a>
@@ -681,6 +681,7 @@ cargo +nightly build --release
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/function_decl3.rhai"><code>function_decl3.rhai</code></a></td><td>a <a href="start/examples//rhai/language/functions.html">function</a> with many parameters</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/if1.rhai"><code>if1.rhai</code></a></td><td><a href="start/examples//rhai/language/if.html"><code>if</code></a> example</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/loop.rhai"><code>loop.rhai</code></a></td><td>count-down <a href="start/examples//rhai/language/loop.html"><code>loop</code></a> in Rhai, emulating a <code>do</code> .. <code>while</code> loop</td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/module.rhai"><code>module.rhai</code></a></td><td>import a script file as a module</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/oop.rhai"><code>oop.rhai</code></a></td><td>simulate <a href="start/examples//rhai/patterns/oop.html">object-oriented programming (OOP)</a> with <a href="start/examples//rhai/language/fn-closure.html">closures</a></td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op1.rhai"><code>op1.rhai</code></a></td><td>just simple addition</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op2.rhai"><code>op2.rhai</code></a></td><td>simple addition and multiplication</td></tr>
@@ -1798,7 +1799,7 @@ as if they were defined inside the same script.</p>
 which converts a normal Rust module into a Rhai <a href="rust/modules//rhai/rust/modules/index.html">module</a> via procedural macros.</p>
 <h2><a class="header" href="#create-via-module-api" id="create-via-module-api">Create via <code>Module</code> API</a></h2>
 <p>Manually creating a <a href="rust/modules//rhai/rust/modules/index.html">module</a> is possible via the <code>Module</code> API.</p>
-<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.4/rhai/struct.Module.html">documentation</a> online.</p>
+<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.5/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the <code>Module</code> Available to the <code>Engine</code></a></h2>
 <p><code>Engine::load_package</code> supports loading a <a href="rust/modules//rhai/rust/modules/index.html">module</a> as a <a href="rust/modules//rhai/rust/packages/index.html">package</a>.</p>
 <p>Since it acts as a <a href="rust/modules//rhai/rust/packages/index.html">package</a>, all functions will be registered into the <em>global</em> namespace
@@ -1936,6 +1937,9 @@ and execute it to form a module.</p>
 Loads a script file (based off the current directory) with <code>.rhai</code> extension.</p>
 <p>All functions in the <em>global</em> namespace, plus all those defined in the same module,
 are <em>merged</em> into a <em>unified</em> namespace.</p>
+<p>All modules imported at <em>global</em> level via <a href="rust/modules//rhai/language/modules/import.html"><code>import</code></a> statements become sub-modules,
+which are also available to functions defined within the same script file.</p>
+<p>Modules are also <em>cached</em> so a script file is only evaluated <em>once</em>, even when repeatedly imported.</p>
 <pre><pre class="playground"><code class="language-rust">------------------
 | my_module.rhai |
 ------------------
@@ -2023,8 +2027,6 @@ m::greet();                         // prints &quot;hello! from module!&quot;
 </span></code></pre></pre>
 <h3><a class="header" href="#changing-the-base-directory" id="changing-the-base-directory">Changing the base directory</a></h3>
 <p>The base directory can be changed via the <code>FileModuleResolver::new_with_path</code> constructor function.</p>
-<h3><a class="header" href="#returning-a-module-instead" id="returning-a-module-instead">Returning a module instead</a></h3>
-<p><code>FileModuleResolver::create_module</code> loads a script file and returns a module with the standard behavior.</p>
 <h2><a class="header" href="#staticmoduleresolver" id="staticmoduleresolver"><code>StaticModuleResolver</code></a></h2>
 <p>Loads modules that are statically added. This can be used under <a href="rust/modules//rhai/start/features.html"><code>no_std</code></a>.</p>
 <p>Functions are searched in the <em>global</em> namespace by default.</p>
@@ -2071,7 +2073,10 @@ which contains only one function: <code>resolve</code>.</p>
 of the <em>module path</em> (i.e. the path specified in the <a href="rust/modules//rhai/language/modules/import.html"><code>import</code></a> statement).</p>
 <ul>
 <li>
-<p>Upon success, it should return a <a href="rust/modules//rhai/rust/modules/index.html"><code>Module</code></a>.</p>
+<p>Upon success, it should return an <a href="rust/modules//rhai/rust/modules/index.html"><code>Rc&lt;Module&gt;</code></a> (or <code>Arc&lt;Module&gt;</code> under <a href="rust/modules//rhai/start/features.html"><code>sync</code></a>).</p>
+<p>The module should call <code>Module::build_index</code> on the target module before returning.
+This method flattens the entire module tree and <em>indexes</em> it for fast function name resolution.
+If the module is already indexed, calling this method has no effect.</p>
 </li>
 <li>
 <p>If the path does not resolve to a valid module, return <code>EvalAltResult::ErrorModuleNotFound</code>.</p>
@@ -2097,14 +2102,17 @@ impl ModuleResolver for MyModuleResolver {
         engine: &amp;Engine,    // reference to the current 'Engine'
         path: &amp;str,         // the module path
         pos: Position,      // position of the 'import' statement
-    ) -&gt; Result&lt;Module, Box&lt;EvalAltResult&gt;&gt; {
+    ) -&gt; Result&lt;Rc&lt;Module&gt;, Box&lt;EvalAltResult&gt;&gt; {
         // Check module path.
         if is_valid_module_path(path) {
-            // Load the custom module.
-            load_secret_module(path).map_err(|err|
-                // Return EvalAltResult::ErrorInModule upon loading error
-                EvalAltResult::ErrorInModule(err.to_string(), pos).into()
-            )
+            let mut my_module =
+                load_secret_module(path)        // load the custom module
+                    .map_err(|err|
+                        // Return EvalAltResult::ErrorInModule upon loading error
+                        EvalAltResult::ErrorInModule(path.into(), Box::new(err), pos).into()
+                    )?;
+            my_module.build_index();  // index it
+            Rc::new(my_module)                  // make it shared
         } else {
             // Return EvalAltResult::ErrorModuleNotFound if the path is invalid
             Err(EvalAltResult::ErrorModuleNotFound(path.into(), pos).into())
@@ -2430,16 +2438,11 @@ mod my_module {
 <p>If the <em>first</em> parameter of a function is of type <code>rhai::NativeCallContext</code>, then it is treated
 specially by the plugins system.</p>
 <p><code>NativeCallContext</code> is a type that encapsulates the current <em>native call context</em> and exposes the following:</p>
-<ul>
-<li>
-<p><code>NativeCallContext::engine(): &amp;Engine</code> - the current <a href="plugins//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.
-This is sometimes useful for calling a script-defined function within the same evaluation context
-using <a href="plugins//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>.</p>
-</li>
-<li>
-<p><code>NativeCallContext::namespace(): &amp;Module</code> - the global namespace of script-defined functions, as a <a href="plugins//rhai/rust/modules/index.html"><code>Module</code></a>.</p>
-</li>
-</ul>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="plugins//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="plugins//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="plugins//rhai/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="plugins//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="plugins//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This first parameter, if exists, will be stripped before all other processing.  It is <em>virtual</em>.
 Most importantly, it does <em>not</em> count as a parameter to the function and there is no need to provide
 this argument when calling the function in Rhai.</p>
@@ -2582,16 +2585,11 @@ fn main() {
 <p>If the <em>first</em> parameter of a function is of type <code>rhai::NativeCallContext</code>, then it is treated
 specially by the plugins system.</p>
 <p><code>NativeCallContext</code> is a type that encapsulates the current <em>native call context</em> and exposes the following:</p>
-<ul>
-<li>
-<p><code>NativeCallContext::engine(): &amp;Engine</code> - the current <a href="plugins//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.
-This is sometimes useful for calling a script-defined function within the same evaluation context
-using <a href="plugins//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>.</p>
-</li>
-<li>
-<p><code>NativeCallContext::namespace(): &amp;Module</code> - the global namespace of script-defined functions, as a <a href="plugins//rhai/rust/modules/index.html"><code>Module</code></a>.</p>
-</li>
-</ul>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="plugins//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="plugins//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="plugins//rhai/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="plugins//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="plugins//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This first parameter, if exists, will be stripped before all other processing.  It is <em>virtual</em>.
 Most importantly, it does <em>not</em> count as a parameter to the function and there is no need to provide
 this argument when calling the function in Rhai.</p>
@@ -3261,6 +3259,9 @@ full_name.len == 0;
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) element to insert (not another array)</td><td>inserts an element at the end</td></tr>
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) array to append</td><td>concatenates the second array to the end of the first</td></tr>
 <tr><td><code>+</code> operator</td><td>1) first array<br/>2) second array</td><td>concatenates the first array with the second</td></tr>
+<tr><td><code>==</code> operator</td><td>1) first array<br/>2) second array</td><td>are the two arrays the same (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>!=</code> operator</td><td>1) first array<br/>2) second array</td><td>are the two arrays different (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>in</code> operator</td><td>item to find</td><td>does the array contain the item (compared with the <code>==</code> operator, if defined)?</td></tr>
 <tr><td><code>insert</code></td><td>1) element to insert<br/>2) position, beginning if &lt; 0, end if &gt; length</td><td>inserts an element at a certain index</td></tr>
 <tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="language//rhai/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
 <tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="language//rhai/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
@@ -3278,6 +3279,7 @@ full_name.len == 0;
 <tr><td><code>retain</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length<br/>2) number of items to retain, none if &lt; 0</td><td>retains a portion of the array, removes all other items and returning them (not in original order)</td></tr>
 <tr><td><code>splice</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length<br/>2) number of items to remove, none if &lt; 0<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
 <tr><td><code>filter</code></td><td><a href="language//rhai/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that return <code>true</code> when called with the predicate function:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>index_of</code></td><td><a href="language//rhai/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/language/fn-closure.html">closure</a>)</td><td>returns the index of the first item in the array that returns <code>true</code> when called with the predicate function, or -1 if not found:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>map</code></td><td><a href="language//rhai/language/fn-ptr.html">function pointer</a> to conversion function (usually a <a href="language//rhai/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>reduce</code></td><td>1) <a href="language//rhai/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/language/fn-closure.html">closure</a>)<br/>2) <em>(optional)</em> <a href="language//rhai/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/language/values-and-types.html"><code>()</code></a> initially)<br/>2nd parameter: array item<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>reduce_rev</code></td><td>1) <a href="language//rhai/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/language/fn-closure.html">closure</a>)<br/>2) <em>(optional)</em> <a href="language//rhai/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array (in reverse order) into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/language/values-and-types.html"><code>()</code></a> initially)<br/>2nd parameter: array item<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
@@ -3465,12 +3467,14 @@ naming rules as <a href="language//rhai/language/variables.html">variables</a>, 
 <p>The following methods (defined in the <a href="language//rhai/rust/packages/index.html"><code>BasicMapPackage</code></a> but excluded if using a <a href="language//rhai/engine/raw.html">raw <code>Engine</code></a>)
 operate on object maps:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>has</code></td><td>property name</td><td>does the object map contain a property of a particular name?</td></tr>
+<tr><td><code>has</code>, <code>in</code> operator</td><td>property name</td><td>does the object map contain a property of a particular name?</td></tr>
 <tr><td><code>len</code></td><td><em>none</em></td><td>returns the number of properties</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the object map</td></tr>
 <tr><td><code>remove</code></td><td>property name</td><td>removes a certain property and returns it (<a href="language//rhai/language/values-and-types.html"><code>()</code></a> if the property does not exist)</td></tr>
 <tr><td><code>+=</code> operator, <code>mixin</code></td><td>second object map</td><td>mixes in all the properties of the second object map to the first (values of properties with the same names replace the existing values)</td></tr>
 <tr><td><code>+</code> operator</td><td>1) first object map<br/>2) second object map</td><td>merges the first object map with the second</td></tr>
+<tr><td><code>==</code> operator</td><td>1) first object map<br/>2) second object map</td><td>are the two object map the same (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>!=</code> operator</td><td>1) first object map<br/>2) second object map</td><td>are the two object map different (elements compared with the <code>==</code> operator, if defined)?</td></tr>
 <tr><td><code>fill_with</code></td><td>second object map</td><td>adds in all properties of the second object map that do not exist in the object map</td></tr>
 <tr><td><code>keys</code></td><td><em>none</em></td><td>returns an <a href="language//rhai/language/arrays.html">array</a> of all the property names (in random order), not available under <a href="language//rhai/start/features.html"><code>no_index</code></a></td></tr>
 <tr><td><code>values</code></td><td><em>none</em></td><td>returns an <a href="language//rhai/language/arrays.html">array</a> of all the property values (in random order), not available under <a href="language//rhai/start/features.html"><code>no_index</code></a></td></tr>
@@ -4567,6 +4571,9 @@ allow combining all functions in one <a href="language//rhai/engine/compile.html
 <li>
 <p>All the Rust functions defined in <a href="language//rhai/rust/packages/index.html">packages</a> that are loaded into the <a href="language//rhai/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
+<li>
+<p>All the <a href="language//rhai/rust/modules/index.html">modules</a> imported via <a href="language//rhai/language/modules/import.html"><code>import</code></a> statements.</p>
+</li>
 </ul>
 <p>In addition, during evaluation of an <a href="language//rhai/engine/compile.html"><code>AST</code></a>, all script-defined functions bundled together within
 the <a href="language//rhai/engine/compile.html"><code>AST</code></a> are added to the global namespace and override any existing registered functions of
@@ -4620,8 +4627,9 @@ fn get_message() { &quot;Hello!&quot; }
 | script.rhai |
 ---------------
 
+import &quot;message&quot; as msg;
+
 fn say_hello() {
-    import &quot;message&quot; as msg;
     print(msg::get_message());
 }
 say_hello();
@@ -4691,7 +4699,6 @@ f::do_work();               // works!
 let p = Fn(&quot;f::do_work&quot;);   // error: invalid function name
 
 fn do_work_now() {          // call it from a local function
-    import &quot;foo&quot; as f;
     f::do_work();
 }
 
@@ -4822,13 +4829,18 @@ engine.register_raw_fn(&quot;super_call&quot;,
 </span></code></pre></pre>
 <h2><a class="header" href="#nativecallcontext" id="nativecallcontext"><code>NativeCallContext</code></a></h2>
 <p><code>FnPtr::call_dynamic</code> takes a parameter of type <code>NativeCallContext</code> which holds the <em>native call context</em>
-of the particular call to a registered Rust function.</p>
+of the particular call to a registered Rust function. It is a type that exposes the following:</p>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="language//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="language//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="language//rhai/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="language//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="language//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This type is normally provided by the <a href="language//rhai/engine/hello-world.html"><code>Engine</code></a> (e.g. when using <a href="language/../rust/register-raw.html"><code>Engine::register_fn_raw</code></a>).
 However, it may also be manually constructed from a tuple:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Engine, FnPtr};
+</span>use rhai::{Engine, FnPtr, NativeCallContext};
 
 let engine = Engine::new();
 
@@ -4846,13 +4858,11 @@ let fn_ptr = engine.eval_ast::&lt;FnPtr&gt;(&amp;ast)?;
 // Get rid of the script, retaining only functions
 ast.retain_functions(|_, _, _| true);
 
-// Create native call context via a tuple
-let context =
-        (
-            &amp;engine,            // the 'Engine'
-            &amp;[ast.as_ref()]     // function namespace from the 'AST'
-                                // as a one-element slice
-        ).into();
+// Create native call context
+let context = NativeCallContext::new(
+    &amp;engine,                    // the 'Engine'
+    &amp;[ast.as_ref()]             // function namespace from the 'AST'
+);
 
 // 'f' captures: the engine, the AST, and the closure
 let f = move |x: i64| fn_ptr.call_dynamic(context, None, [x.into()]);
@@ -5195,15 +5205,30 @@ let x = 42;             // this will be exported below
 
 export x;               // the variable 'x' is exported under its own name
 
+export let x = 42;      // convenient short-hand to declare a variable and export it
+                        // under its own name
+
 export x as answer;     // the variable 'x' is exported under the alias 'answer'
                         // another script can load this module and access 'x' as 'module::answer'
 
 {
     let inner = 0;      // local variable - it disappears when the statement block ends,
-                        //                  therefore it is not 'global' and is not exported
+                        //                  therefore it is not 'global' and cannot be exported
 
-    export inner;       // exporting an temporary variable has no effect
+    export inner;       // &lt;- syntax error: cannot export a local variable
 }
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#multiple-exports" id="multiple-exports">Multiple Exports</a></h3>
+<p>One <code>export</code> statement can export multiple variables, even under multiple names.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The following exports three variables:
+//   - 'x' (as 'x' and 'hello')
+//   - 'y' (as 'foo' and 'bar')
+//   - 'z' (as 'z')
+export x, x as hello, x as world, y as foo, y as bar, z;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#export-functions" id="export-functions">Export Functions</a></h2>
@@ -7052,6 +7077,7 @@ engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| *x += y);
 <tr><td><code>T</code></td><td align="center"><code>impl Clone</code></td><td>return type of the function</td></tr>
 <tr><td><code>context</code></td><td align="center"><code>NativeCallContext</code></td><td>the current <em>native call context</em></td></tr>
 <tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="rust//rhai/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="rust//rhai/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="rust//rhai/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="rust//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
 <tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="rust//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td><code>args</code></td><td align="center"><code>&amp;mut [&amp;mut Dynamic]</code></td><td>a slice containing <code>&amp;mut</code> references to <a href="rust//rhai/language/dynamic.html"><code>Dynamic</code></a> values.<br/>The slice is guaranteed to contain enough arguments <em>of the correct types</em>.</td></tr>
 </tbody></table>
@@ -7208,6 +7234,7 @@ the script is evaluated.</p>
 <tr><td><code>context</code></td><td align="center"><code>&amp;EvalContext</code></td><td>reference to the current evaluation <em>context</em></td></tr>
 <tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="engine//rhai/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position</td></tr>
 <tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="engine//rhai/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="engine//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
 <tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="engine//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
 <tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
@@ -7492,6 +7519,7 @@ print(hello);   // variable declared by a custom syntax persists!
 <tr><td><code>context</code></td><td align="center"><code>&amp;mut EvalContext</code></td><td>mutable reference to the current evaluation <em>context</em></td></tr>
 <tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;mut Scope</code></td><td>mutable reference to the current <a href="engine//rhai/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it</td></tr>
 <tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="engine//rhai/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="engine//rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
 <tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="engine//rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
 <tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
@@ -7718,7 +7746,7 @@ a different <a href="patterns//rhai/start/features.html">features</a> set, by th
 </ul>
 <p>Use the following configuration in <code>Cargo.toml</code> to pull in multiple copies of Rhai within the same project:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.19.4&quot;, features = [ &quot;no_float&quot; ] }
+rhai = { version = &quot;0.19.5&quot;, features = [ &quot;no_float&quot; ] }
 rhai_github = { git = &quot;https://github.com/jonathandturner/rhai&quot;, features = [ &quot;unchecked&quot; ] }
 rhai_my_github = { git = &quot;https://github.com/my_github/rhai&quot;, branch = &quot;variation1&quot;, features = [ &quot;serde&quot;, &quot;no_closure&quot; ] }
 rhai_local = { path = &quot;../rhai_copy&quot; }

@@ -227,6 +227,7 @@ the script is evaluated.</p>
 <tr><td><code>context</code></td><td align="center"><code>&amp;EvalContext</code></td><td>reference to the current evaluation <em>context</em></td></tr>
 <tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/rhai/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position</td></tr>
 <tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/rhai/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rhai/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
 <tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
 <tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>

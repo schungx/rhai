@@ -173,7 +173,10 @@ which contains only one function: <code>resolve</code>.</p>
 of the <em>module path</em> (i.e. the path specified in the <a href="/rhai/language/modules/import.html"><code>import</code></a> statement).</p>
 <ul>
 <li>
-<p>Upon success, it should return a <a href="/rhai/rust/modules/index.html"><code>Module</code></a>.</p>
+<p>Upon success, it should return an <a href="/rhai/rust/modules/index.html"><code>Rc&lt;Module&gt;</code></a> (or <code>Arc&lt;Module&gt;</code> under <a href="/rhai/start/features.html"><code>sync</code></a>).</p>
+<p>The module should call <code>Module::build_index</code> on the target module before returning.
+This method flattens the entire module tree and <em>indexes</em> it for fast function name resolution.
+If the module is already indexed, calling this method has no effect.</p>
 </li>
 <li>
 <p>If the path does not resolve to a valid module, return <code>EvalAltResult::ErrorModuleNotFound</code>.</p>
@@ -199,14 +202,17 @@ impl ModuleResolver for MyModuleResolver {
         engine: &amp;Engine,    // reference to the current 'Engine'
         path: &amp;str,         // the module path
         pos: Position,      // position of the 'import' statement
-    ) -&gt; Result&lt;Module, Box&lt;EvalAltResult&gt;&gt; {
+    ) -&gt; Result&lt;Rc&lt;Module&gt;, Box&lt;EvalAltResult&gt;&gt; {
         // Check module path.
         if is_valid_module_path(path) {
-            // Load the custom module.
-            load_secret_module(path).map_err(|err|
-                // Return EvalAltResult::ErrorInModule upon loading error
-                EvalAltResult::ErrorInModule(err.to_string(), pos).into()
-            )
+            let mut my_module =
+                load_secret_module(path)        // load the custom module
+                    .map_err(|err|
+                        // Return EvalAltResult::ErrorInModule upon loading error
+                        EvalAltResult::ErrorInModule(path.into(), Box::new(err), pos).into()
+                    )?;
+            my_module.build_index();  // index it
+            Rc::new(my_module)                  // make it shared
         } else {
             // Return EvalAltResult::ErrorModuleNotFound if the path is invalid
             Err(EvalAltResult::ErrorModuleNotFound(path.into(), pos).into())
