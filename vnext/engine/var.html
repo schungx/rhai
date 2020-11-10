@@ -176,16 +176,16 @@ resolution service and to override its default behavior.</p>
 </span>let mut engine = Engine::new();
 
 // Register a variable resolver.
-engine.on_var(|name, index, scope, context| {
+engine.on_var(|name, index, context| {
     match name {
         &quot;MYSTIC_NUMBER&quot; =&gt; Ok(Some((42 as INT).into())),
         // Override a variable - make it not found even if it exists!
         &quot;DO_NOT_USE&quot; =&gt; Err(Box::new(
-            EvalAltResult::ErrorVariableNotFound(name.to_string(), Position::none())
+            EvalAltResult::ErrorVariableNotFound(name.to_string(), NO_POS)
         )),
         // Silently maps 'chameleon' into 'innocent'.
-        &quot;chameleon&quot; =&gt; scope.get_value(&quot;innocent&quot;).map(Some).ok_or_else(|| Box::new(
-            EvalAltResult::ErrorVariableNotFound(name.to_string(), Position::none())
+        &quot;chameleon&quot; =&gt; context.scope.get_value(&quot;innocent&quot;).map(Some).ok_or_else(|| Box::new(
+            EvalAltResult::ErrorVariableNotFound(name.to_string(), NO_POS)
         )),
         // Return Ok(None) to continue with the normal variable resolution process.
         _ =&gt; Ok(None)
@@ -221,40 +221,24 @@ the script is evaluated.</p>
 <code>-&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
-<ul>
-<li>
-<p><code>name: &amp;str</code> - variable name.</p>
-</li>
-<li>
-<p><code>index: usize</code> - an offset from the bottom of the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.
-Offsets start from 1, with 1 meaning the last variable in the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.</p>
-<p>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</p>
-</li>
-<li>
-<p><code>context: &amp;EvalContext</code> - reference to the current evaluation <em>context</em>, which exposes the following fields:</p>
-<ul>
-<li><code>context.scope: &amp;Scope</code> - reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</li>
-<li><code>context.engine(): &amp;Engine</code> - reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
-<li><code>context.iter_namespaces(): impl Iterator&lt;Item = &amp;Module&gt;</code> - iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions.</li>
-<li><code>context.this_ptr(): Option&lt;&amp;Dynamic&gt;</code> - reference to the current bound [<code>this</code>] pointer, if any.</li>
-<li><code>context.call_level(): usize</code> - the current nesting level of function calls.</li>
-</ul>
-</li>
-</ul>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>name</code></td><td align="center"><code>&amp;str</code></td><td>variable name</td></tr>
+<tr><td><code>index</code></td><td align="center"><code>usize</code></td><td>an offset from the bottom of the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.<br/>Offsets start from 1, with 1 meaning the last variable in the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.<br/>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</td></tr>
+<tr><td><code>context</code></td><td align="center"><code>&amp;EvalContext</code></td><td>reference to the current evaluation <em>context</em></td></tr>
+<tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position</td></tr>
+<tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
+<tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
+</tbody></table>
 <h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
 <p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where:</p>
-<ul>
-<li>
-<p><code>Ok(None)</code> - normal variable resolution process should continue, meaning to continue searching through the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
-</li>
-<li>
-<p><code>Ok(Some(Dynamic))</code> - wrapped <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> is taken as the value of the variable, which is treated as a constant.</p>
-</li>
-<li>
-<p><code>Err(Box&lt;EvalAltResult&gt;)</code> - error is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.
-Normally this is <code>EvalAltResult::ErrorVariableNotFound</code> to indicate that the variable does not exist, but it can be any error.</p>
-</li>
-</ul>
+<table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Ok(None)</code></td><td>normal variable resolution process should continue, i.e. continue searching through the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a></td></tr>
+<tr><td><code>Ok(Some(Dynamic))</code></td><td>value of the variable, treated as a constant</td></tr>
+<tr><td><code>Err(Box&lt;EvalAltResult&gt;)</code></td><td>error that is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>EvalAltResult::ErrorVariableNotFound(var_name, NO_POS)</code> to indicate that the variable does not exist, but it can be any <code>EvalAltResult</code>.</td></tr>
+</tbody></table>
 
                     </main>
 

@@ -176,8 +176,9 @@ Under this feature, only <code>i32</code> is supported as a built-in integer typ
 <p>On 64-bit targets this may not gain much, but on certain 32-bit targets this improves performance
 due to 64-bit arithmetic requiring more CPU cycles to complete.</p>
 <h2><a class="header" href="#minimize-size-of-dynamic" id="minimize-size-of-dynamic">Minimize Size of <code>Dynamic</code></a></h2>
-<p>Turning on <a href="/rhai/vnext/start/features.html"><code>no_float</code></a> and <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> on 32-bit targets makes the critical <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes long.
-Normally <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
+<p>Turning on <a href="/rhai/vnext/start/features.html"><code>no_float</code></a> or <a href="/rhai/vnext/start/features.html"><code>f32_float</code></a> and <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> on 32-bit targets makes the critical <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a>
+data type only 8 bytes long.
+Normally <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> can be up to 12-16 bytes in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>A small <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> helps performance due to better cache efficiency.</p>
 <h2><a class="header" href="#use-immutablestring" id="use-immutablestring">Use <code>ImmutableString</code></a></h2>
 <p>Internally, Rhai uses <em>immutable</em> <a href="/rhai/vnext/language/strings-chars.html">strings</a> instead of the Rust <code>String</code> type.  This is mainly to avoid excessive

@@ -184,6 +184,9 @@ allow combining all functions in one <a href="/rhai/vnext/engine/compile.html"><
 <li>
 <p>All the Rust functions defined in <a href="/rhai/vnext/rust/packages/index.html">packages</a> that are loaded into the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
+<li>
+<p>All the <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statements.</p>
+</li>
 </ul>
 <p>In addition, during evaluation of an <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, all script-defined functions bundled together within
 the <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> are added to the global namespace and override any existing registered functions of
@@ -237,8 +240,9 @@ fn get_message() { &quot;Hello!&quot; }
 | script.rhai |
 ---------------
 
+import &quot;message&quot; as msg;
+
 fn say_hello() {
-    import &quot;message&quot; as msg;
     print(msg::get_message());
 }
 say_hello();

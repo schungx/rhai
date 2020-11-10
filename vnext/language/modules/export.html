@@ -184,15 +184,30 @@ let x = 42;             // this will be exported below
 
 export x;               // the variable 'x' is exported under its own name
 
+export let x = 42;      // convenient short-hand to declare a variable and export it
+                        // under its own name
+
 export x as answer;     // the variable 'x' is exported under the alias 'answer'
                         // another script can load this module and access 'x' as 'module::answer'
 
 {
     let inner = 0;      // local variable - it disappears when the statement block ends,
-                        //                  therefore it is not 'global' and is not exported
+                        //                  therefore it is not 'global' and cannot be exported
 
-    export inner;       // exporting an temporary variable has no effect
+    export inner;       // &lt;- syntax error: cannot export a local variable
 }
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#multiple-exports" id="multiple-exports">Multiple Exports</a></h3>
+<p>One <code>export</code> statement can export multiple variables, even under multiple names.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The following exports three variables:
+//   - 'x' (as 'x' and 'hello')
+//   - 'y' (as 'foo' and 'bar')
+//   - 'z' (as 'z')
+export x, x as hello, x as world, y as foo, y as bar, z;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#export-functions" id="export-functions">Export Functions</a></h2>

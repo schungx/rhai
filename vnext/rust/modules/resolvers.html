@@ -177,6 +177,9 @@ and execute it to form a module.</p>
 Loads a script file (based off the current directory) with <code>.rhai</code> extension.</p>
 <p>All functions in the <em>global</em> namespace, plus all those defined in the same module,
 are <em>merged</em> into a <em>unified</em> namespace.</p>
+<p>All modules imported at <em>global</em> level via <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statements become sub-modules,
+which are also available to functions defined within the same script file.</p>
+<p>Modules are also <em>cached</em> so a script file is only evaluated <em>once</em>, even when repeatedly imported.</p>
 <pre><pre class="playground"><code class="language-rust">------------------
 | my_module.rhai |
 ------------------
@@ -264,8 +267,6 @@ m::greet();                         // prints &quot;hello! from module!&quot;
 </span></code></pre></pre>
 <h3><a class="header" href="#changing-the-base-directory" id="changing-the-base-directory">Changing the base directory</a></h3>
 <p>The base directory can be changed via the <code>FileModuleResolver::new_with_path</code> constructor function.</p>
-<h3><a class="header" href="#returning-a-module-instead" id="returning-a-module-instead">Returning a module instead</a></h3>
-<p><code>FileModuleResolver::create_module</code> loads a script file and returns a module with the standard behavior.</p>
 <h2><a class="header" href="#staticmoduleresolver" id="staticmoduleresolver"><code>StaticModuleResolver</code></a></h2>
 <p>Loads modules that are statically added. This can be used under <a href="/rhai/vnext/start/features.html"><code>no_std</code></a>.</p>
 <p>Functions are searched in the <em>global</em> namespace by default.</p>

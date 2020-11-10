@@ -174,6 +174,7 @@ more control over what a script can (or cannot) do.</p>
 <tr><td><code>sync</code></td><td align="center">no</td><td>restricts all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> and <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, are all <code>Send + Sync</code></td></tr>
 <tr><td><code>no_optimize</code></td><td align="center">no</td><td>disables <a href="/rhai/vnext/engine/optimize/index.html">script optimization</a></td></tr>
 <tr><td><code>no_float</code></td><td align="center">no</td><td>disables floating-point numbers and math</td></tr>
+<tr><td><code>f32_float</code></td><td align="center">no</td><td>sets the system floating-point type to <code>f32</code> instead of <code>f64</code>. <code>FLOAT</code> is set to <code>f32</code></td></tr>
 <tr><td><code>only_i32</code></td><td align="center">no</td><td>sets the system integer type to <code>i32</code> and disable all other integer types. <code>INT</code> is set to <code>i32</code></td></tr>
 <tr><td><code>only_i64</code></td><td align="center">no</td><td>sets the system integer type to <code>i64</code> and disable all other integer types. <code>INT</code> is set to <code>i64</code></td></tr>
 <tr><td><code>no_index</code></td><td align="center">no</td><td>disables <a href="/rhai/vnext/language/arrays.html">arrays</a> and indexing features</td></tr>
@@ -197,7 +198,7 @@ more control over what a script can (or cannot) do.</p>
 <li><code>no_function</code> (no defining <a href="/rhai/vnext/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.19.3&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
+rhai = { version = &quot;0.19.6&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
 no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="/rhai/vnext/language/functions.html">functions</a>

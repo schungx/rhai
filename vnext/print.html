@@ -170,7 +170,7 @@
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
 <h2><a class="header" href="#versions" id="versions">Versions</a></h2>
-<p>This Book is for version <strong>0.19.3</strong> of Rhai.</p>
+<p>This Book is for version <strong>0.19.6</strong> of Rhai.</p>
 <h2><a class="header" href="#etymology-of-the-name-rhai" id="etymology-of-the-name-rhai">Etymology of the name “Rhai”</a></h2>
 <h3><a class="header" href="#as-per-rhais-author-johnathan-turner" id="as-per-rhais-author-johnathan-turner">As per Rhai’s author Johnathan Turner</a></h3>
 <p>In the beginning there was <a href="http://chaiscript.com">ChaiScript</a>,
@@ -192,10 +192,12 @@ came across a copy of <em>Catcher in the Rye</em> in a restaurant.  The rest was
 <p>Easy-to-use language similar to JavaScript+Rust with dynamic typing.</p>
 </li>
 <li>
-<p>Tight integration with native Rust <a href="about//rhai/vnext/language/functions.html">functions</a> and <a href="about//rhai/vnext/rust/custom.html">types</a>, including <a href="about//rhai/vnext/rust/getters-setters.html">getters/setters</a>, <a href="about//rhai/vnext/rust/custom.html">methods</a> and <a href="about//rhai/vnext/rust/indexers.html">indexers</a>.</p>
+<p>Tight integration with native Rust <a href="about//rhai/vnext/language/functions.html">functions</a> and <a href="about//rhai/vnext/rust/custom.html">types</a> including <a href="about//rhai/vnext/rust/getters-setters.html">getters/setters</a>,
+<a href="about//rhai/vnext/rust/custom.html">methods</a> and <a href="about//rhai/vnext/rust/indexers.html">indexers</a>.</p>
 </li>
 <li>
-<p>Freely pass Rust variables/constants into a script via an external <a href="about//rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+<p>Freely pass Rust variables/constants into a script via an external <a href="about//rhai/vnext/engine/scope.html"><code>Scope</code></a> - all clonable Rust types are supported seamlessly
+without the need to implement any special trait.</p>
 </li>
 <li>
 <p>Easily <a href="about//rhai/vnext/engine/call-fn.html">call a script-defined function</a> from Rust.</p>
@@ -214,7 +216,8 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and 
 <p>Fairly low compile-time overhead.</p>
 </li>
 <li>
-<p>Fairly efficient evaluation (1 million iterations in 0.3 sec on a single core, 2.3 GHz Linux VM).</p>
+<p>Fairly efficient evaluation (1 million iterations in 0.3 sec on a single core, 2.3 GHz Linux VM).
+An unofficial Fibonacci benchmark puts Rhai somewhere between Wren and Python.</p>
 </li>
 <li>
 <p>Scripts are <a href="about//rhai/vnext/engine/optimize/index.html">optimized</a> (useful for template-based machine-generated scripts) for repeated evaluations.</p>
@@ -250,13 +253,15 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and 
 <p>Relatively little <code>unsafe</code> code (yes there are some for performance reasons).</p>
 </li>
 <li>
-<p>Sand-boxed - the scripting <a href="about//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, if declared immutable, cannot mutate the containing environment unless <a href="about//rhai/vnext/patterns/control.html">explicitly permitted</a>.</p>
+<p>Sand-boxed - the scripting <a href="about//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, if declared immutable, cannot mutate the containing environment unless
+<a href="about//rhai/vnext/patterns/control.html">explicitly permitted</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#rugged" id="rugged">Rugged</a></h2>
 <ul>
 <li>
-<p>Protected against malicious attacks (such as <a href="about//rhai/vnext/safety/max-call-stack.html">stack-overflow</a>, <a href="about//rhai/vnext/safety/max-string-size.html">over-sized data</a>, and <a href="about//rhai/vnext/safety/max-operations.html">runaway scripts</a> etc.) that may come from untrusted third-party user-land scripts.</p>
+<p>Protected against malicious attacks (such as <a href="about//rhai/vnext/safety/max-call-stack.html">stack-overflow</a>, <a href="about//rhai/vnext/safety/max-string-size.html">over-sized data</a>,
+and <a href="about//rhai/vnext/safety/max-operations.html">runaway scripts</a> etc.) that may come from untrusted third-party user-land scripts.</p>
 </li>
 <li>
 <p>Track script evaluation <a href="about//rhai/vnext/safety/progress.html">progress</a> and manually terminate a script run.</p>
@@ -303,38 +308,45 @@ for <a href="about//rhai/vnext/start/features.html"><code>no-std</code></a> and 
 It doesn’t attempt to be a new language. For example:</p>
 <ul>
 <li>
-<p>No classes.  Well, Rust doesn’t either. On the other hand...</p>
+<p><strong>No classes</strong>.  Well, Rust doesn’t either. On the other hand...</p>
 </li>
 <li>
-<p>No traits...  so it is also not Rust. Do your Rusty stuff in Rust.</p>
+<p><strong>No traits</strong>...  so it is also not Rust. Do your Rusty stuff in Rust.</p>
 </li>
 <li>
-<p>No structures/records/tuples - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
+<p><strong>No structures/records/tuples</strong> - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
 <p>There is, however, a built-in <a href="about//rhai/vnext/language/object-maps.html">object map</a> type which is adequate for most uses.
 It is possible to simulate <a href="about//rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="about//rhai/vnext/language/fn-ptr.html">function pointers</a>
 or <a href="about//rhai/vnext/language/fn-closure.html">closures</a> in <a href="about//rhai/vnext/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
 </li>
 <li>
-<p>No first-class functions - Code your functions in Rust instead, and register them with Rhai.</p>
+<p><strong>No first-class functions</strong> - Code your functions in Rust instead, and register them with Rhai.</p>
 <p>There is, however, support for simple <a href="about//rhai/vnext/language/fn-ptr.html">function pointers</a> to allow runtime dispatch by function name.</p>
 </li>
 <li>
-<p>No garbage collection - this should be expected, so...</p>
+<p><strong>No garbage collection</strong> - this should be expected, so...</p>
 </li>
 <li>
-<p>No first-class closures - do your closure magic in Rust instead: <a href="about//rhai/vnext/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
+<p><strong>No first-class closures</strong> - do your closure magic in Rust instead: <a href="about//rhai/vnext/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
 <p>There is, however, support for simulated <a href="about//rhai/vnext/language/fn-closure.html">closures</a> via <a href="about//rhai/vnext/language/fn-curry.html">currying</a> a <a href="about//rhai/vnext/language/fn-ptr.html">function pointer</a> with
 captured shared variables.</p>
 </li>
 <li>
-<p>No byte-codes/JIT - Rhai has an AST-walking interpreter which will not win any speed races.
-The purpose of Rhai is not to be extremely <em>fast</em>, but to make it as easy as possible to
+<p><strong>No byte-codes/JIT</strong> - Rhai has an optimized AST-walking interpreter which is fast enough for most usage scenarios.
+Essential AST data structures are packed and kept together to maximize cache friendliness.</p>
+<p>Functions are dispatched based on pre-calculated hashes and accessing variables are mostly through pre-calculated
+offsets to the variables file (a <a href="about//rhai/vnext/engine/scope.html"><code>Scope</code></a>), so it is seldom necessary to look something up by text name.</p>
+<p>In addition, Rhai’s design deliberately avoids maintaining a <em>scope chain</em> so function scopes do not
+pay any speed penalty.  This particular design also allows variables data to be kept together in a contiguous
+block, avoiding allocations and fragmentation while being cache-friendly. In a typical script evaluation run,
+no data is shared and nothing is locked.</p>
+<p>Still, the purpose of Rhai is not to be super <em>fast</em>, but to make it as easy and versatile as possible to
 integrate with native Rust applications.</p>
 </li>
 <li>
-<p>No formal language grammar - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
+<p><strong>No formal language grammar</strong> - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
 for statements, and a hand-coded Pratt parser for expressions.</p>
-<p>This lack of formalism allows the parser itself to be exposed as a service in order to support
+<p>This lack of formalism allows the <em>parser</em> itself to be exposed as a service in order to support
 <a href="about//rhai/vnext/engine/disable.html">disabling keywords/operators</a>, adding <a href="about//rhai/vnext/engine/custom-op.html">custom operators</a>,
 and defining <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
 </li>
@@ -342,7 +354,8 @@ and defining <a href="about//rhai/vnext/engine/custom-syntax.html">custom syntax
 <h2><a class="header" href="#do-not-write-the-next-4d-vr-game-in-rhai" id="do-not-write-the-next-4d-vr-game-in-rhai">Do Not Write The Next 4D VR Game in Rhai</a></h2>
 <p>Due to this intended usage, Rhai deliberately keeps the language simple and small by omitting
 advanced language features such as classes, inheritance, interfaces, generics,
-first-class functions/closures, pattern matching, concurrency, byte-codes VM, JIT etc.</p>
+first-class functions/closures, pattern matching, concurrency, byte-codes VM, JIT etc.
+Focus is on <em>flexibility</em> and <em>ease of use</em> instead of raw speed.</p>
 <p>Avoid the temptation to write full-fledge application logic entirely in Rhai -
 that use case is best fulfilled by more complete languages such as JavaScript or Lua.</p>
 <h2><a class="header" href="#thin-dynamic-wrapper-layer-over-rust-code" id="thin-dynamic-wrapper-layer-over-rust-code">Thin Dynamic Wrapper Layer Over Rust Code</a></h2>
@@ -383,7 +396,7 @@ without any additional terms or conditions.</p>
 <p><a href="https://alvinhochun.github.io/rhai-demo">Online Playground</a> - Run scripts directly from editor</p>
 </li>
 <li>
-<p><a href="https://discord.gg/yZMKAQ">Discord Chat</a> - Rhai channel</p>
+<p><a href="https://discord.gg/HquqbYFcZ9">Discord Chat</a> - Rhai channel</p>
 </li>
 <li>
 <p><a href="https://www.reddit.com/r/Rhai">Reddit</a> - Rhai community</p>
@@ -410,7 +423,7 @@ Scripts can be evaluated directly from the editor.</p>
 <p>The easiest way is to install the Rhai crate from <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>,
 starting by looking up the latest version and adding this line under <code>dependencies</code> in the project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = &quot;0.19.3&quot;    # assuming 0.19.3 is the latest version
+rhai = &quot;0.19.6&quot;    # assuming 0.19.6 is the latest version
 </code></pre>
 <p>Or to automatically use the latest released crate version on <a href="https:/crates.io/crates/rhai/"><code>crates.io</code></a>:</p>
 <pre><code class="language-toml">[dependencies]
@@ -432,6 +445,7 @@ more control over what a script can (or cannot) do.</p>
 <tr><td><code>sync</code></td><td align="center">no</td><td>restricts all values types to those that are <code>Send + Sync</code>. Under this feature, all Rhai types, including <a href="start//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, <a href="start//rhai/vnext/engine/scope.html"><code>Scope</code></a> and <a href="start//rhai/vnext/engine/compile.html"><code>AST</code></a>, are all <code>Send + Sync</code></td></tr>
 <tr><td><code>no_optimize</code></td><td align="center">no</td><td>disables <a href="start//rhai/vnext/engine/optimize/index.html">script optimization</a></td></tr>
 <tr><td><code>no_float</code></td><td align="center">no</td><td>disables floating-point numbers and math</td></tr>
+<tr><td><code>f32_float</code></td><td align="center">no</td><td>sets the system floating-point type to <code>f32</code> instead of <code>f64</code>. <code>FLOAT</code> is set to <code>f32</code></td></tr>
 <tr><td><code>only_i32</code></td><td align="center">no</td><td>sets the system integer type to <code>i32</code> and disable all other integer types. <code>INT</code> is set to <code>i32</code></td></tr>
 <tr><td><code>only_i64</code></td><td align="center">no</td><td>sets the system integer type to <code>i64</code> and disable all other integer types. <code>INT</code> is set to <code>i64</code></td></tr>
 <tr><td><code>no_index</code></td><td align="center">no</td><td>disables <a href="start//rhai/vnext/language/arrays.html">arrays</a> and indexing features</td></tr>
@@ -455,7 +469,7 @@ more control over what a script can (or cannot) do.</p>
 <li><code>no_function</code> (no defining <a href="start//rhai/vnext/language/functions.html">functions</a>)</li>
 </ul>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.19.3&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
+rhai = { version = &quot;0.19.6&quot;, features = [ &quot;sync&quot;, &quot;unchecked&quot;, &quot;only_i32&quot;, &quot;no_float&quot;, &quot;no_module&quot;, &quot;no_function&quot; ] }
 </code></pre>
 <p>The resulting scripting engine supports only the <code>i32</code> integer numeral type (and no others like <code>u32</code>, <code>i16</code> or <code>i64</code>),
 no floating-point, is <code>Send + Sync</code> (so it can be safely used across threads), and does not support defining <a href="start//rhai/vnext/language/functions.html">functions</a>
@@ -482,8 +496,9 @@ Under this feature, only <code>i32</code> is supported as a built-in integer typ
 <p>On 64-bit targets this may not gain much, but on certain 32-bit targets this improves performance
 due to 64-bit arithmetic requiring more CPU cycles to complete.</p>
 <h2><a class="header" href="#minimize-size-of-dynamic" id="minimize-size-of-dynamic">Minimize Size of <code>Dynamic</code></a></h2>
-<p>Turning on <a href="start/builds//rhai/vnext/start/features.html"><code>no_float</code></a> and <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> on 32-bit targets makes the critical <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> data type only 8 bytes long.
-Normally <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> can be up to 16 bytes (e.g. on x86/x64 CPU’s) in order to hold an <code>i64</code> or <code>f64</code>.</p>
+<p>Turning on <a href="start/builds//rhai/vnext/start/features.html"><code>no_float</code></a> or <a href="start/builds//rhai/vnext/start/features.html"><code>f32_float</code></a> and <a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a> on 32-bit targets makes the critical <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a>
+data type only 8 bytes long.
+Normally <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> can be up to 12-16 bytes in order to hold an <code>i64</code> or <code>f64</code>.</p>
 <p>A small <a href="start/builds//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> helps performance due to better cache efficiency.</p>
 <h2><a class="header" href="#use-immutablestring" id="use-immutablestring">Use <code>ImmutableString</code></a></h2>
 <p>Internally, Rhai uses <em>immutable</em> <a href="start/builds//rhai/vnext/language/strings-chars.html">strings</a> instead of the Rust <code>String</code> type.  This is mainly to avoid excessive
@@ -533,16 +548,67 @@ of basic arithmetic and logical operators.</p>
 hardware (the primary target for <code>no-std</code>) has limited storage.</p>
 <h2><a class="header" href="#nightly-required" id="nightly-required">Nightly Required</a></h2>
 <p>Currently, <a href="start/builds//rhai/vnext/start/features.html"><code>no_std</code></a> requires the nightly compiler due to the crates that it uses.</p>
+<h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
+<p>Rhai allocates, so the first thing that must be included in any <code>no-std</code> project is
+an allocator crate, such as <a href="https://crates.io/crates/wee_alloc"><code>wee_alloc</code></a>.</p>
+<p>Then there is the need to set up proper error/panic handlers.
+The following example uses <code>panic = &quot;abort&quot;</code> and <code>wee_alloc</code> as the allocator.</p>
+<pre><pre class="playground"><code class="language-rust">// Set up for no-std.
+#![no_std]
+
+// The following no-std features are usually needed.
+#![feature(alloc_error_handler, start, core_intrinsics, lang_items, link_cfg)]
+
+// Set up the global allocator.
+extern crate alloc;
+extern crate wee_alloc;
+
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+// Rust needs a CRT runtime on Windows when compiled with MSVC.
+#[cfg(all(windows, target_env = &quot;msvc&quot;))]
+#[link(name = &quot;msvcrt&quot;)]
+#[link(name = &quot;libcmt&quot;)]
+extern {}
+
+// Set up panic and error handlers
+#[alloc_error_handler]
+fn err_handler(_: core::alloc::Layout) -&gt; ! {
+    core::intrinsics::abort();
+}
+
+#[panic_handler]
+#[lang = &quot;panic_impl&quot;]
+extern &quot;C&quot; fn rust_begin_panic(_: &amp;core::panic::PanicInfo) -&gt; ! {
+    core::intrinsics::abort();
+}
+
+#[lang = &quot;eh_personality&quot;]
+extern &quot;C&quot; fn eh_personality() {}
+
+#[no_mangle]
+extern &quot;C&quot; fn rust_eh_register_frames() {}
+
+#[no_mangle]
+extern &quot;C&quot; fn rust_eh_unregister_frames() {}
+
+#[start]
+fn main(_argc: isize, _argv: *const *const u8) -&gt; isize {
+    // ... main program ...
+}
+</code></pre></pre>
 <h2><a class="header" href="#samples" id="samples">Samples</a></h2>
-<p>Check out the <a href="start/builds/../examples/rust.html#no-std-samples"><code>no-std</code> sample applications</a> for different operating environments.</p>
+<p>Check out the <a href="start/builds/../examples/rust.html#no-std-samples"><code>no-std</code> sample applications</a>
+for different operating environments.</p>
 <h1><a class="header" href="#building-to-webassembly-wasm" id="building-to-webassembly-wasm">Building to WebAssembly (WASM)</a></h1>
-<p>It is possible to use Rhai when compiling to WebAssembly (WASM). This yields a scripting engine (and language)
-that can be run in a standard web browser.</p>
-<p>Why you would want to is another matter... as there is already a nice, fast, complete scripting language
+<p>It is possible to use Rhai when compiling to WebAssembly (WASM).
+This yields a scripting engine (and language) that can be run in a standard web browser.</p>
+<p>Why you would <em>want</em> to is another matter... as there is already a nice, fast, complete scripting language
 for the the common WASM environment (i.e. a browser) - and it is called JavaScript.</p>
 <p>But anyhow, do it because you <em>can</em>!</p>
-<p>When building for WASM, certain features will not be available, such as the script file API’s and loading modules
-from external script files.</p>
+<p>When building for WASM, certain features will not be available,
+such as the script file API’s and loading modules from external script files.</p>
 <h2><a class="header" href="#size" id="size">Size</a></h2>
 <p>Also look into <a href="start/builds//rhai/vnext/start/builds/minimal.html">minimal builds</a> to reduce generated WASM size.</p>
 <p>As of this version, a typical, full-featured Rhai scripting engine compiles to a single WASM file
@@ -556,14 +622,15 @@ further shrunk to 160KB.</p>
 are typically used for a WASM build:</p>
 <table><thead><tr><th align="center">Feature</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>When a WASM module panics, it doesn’t crash the entire web app; however this also disables <a href="start/builds//rhai/vnext/safety/max-operations.html">maximum number of operations</a> and <a href="start/builds//rhai/vnext/safety/progress.html">progress</a> tracking so a script can still run indefinitely - the web app must terminate it itself.</td></tr>
-<tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a></td><td>JavaScript has only one <code>number</code> type and we’re only supporting <code>wasm32</code> here (so far).</td></tr>
+<tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>only_i32</code></a></td><td>WASM supports 32-bit and 64-bit integers, but most scripts will only need 32-bit.</td></tr>
+<tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>f32_float</code></a></td><td>WASM supports 32-bit single-precision and 64-bit double-precision floating-point numbers, but single-precision is usually fine for most uses.</td></tr>
 <tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>no_module</code></a></td><td>A WASM module cannot load modules from the file system, so usually this is not needed, but the savings are minimal; alternatively, a custom <a href="start/builds//rhai/vnext/rust/modules/resolvers.html">module resolver</a> can be provided that loads other Rhai scripts.</td></tr>
 </tbody></table>
 <p>The following features are typically <em>not</em> used because they don’t make sense in a WASM build:</p>
 <table><thead><tr><th align="center">Feature</th><th>Why unnecessary</th></tr></thead><tbody>
 <tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>sync</code></a></td><td>WASM is single-threaded.</td></tr>
 <tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>no_std</code></a></td><td><code>std</code> lib works fine with WASM.</td></tr>
-<tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>internals</code></a></td><td>WASM usually doesn’t need to access Rhai internal data structures.</td></tr>
+<tr><td align="center"><a href="start/builds//rhai/vnext/start/features.html"><code>internals</code></a></td><td>WASM usually doesn’t need to access Rhai internal data structures, unless you are walking the <a href="start/builds//rhai/vnext/engine/compile.html"><code>AST</code></a>.</td></tr>
 </tbody></table>
 <h1><a class="header" href="#examples" id="examples">Examples</a></h1>
 <p>Rhai comes with a number of examples showing how to integrate the scripting <a href="start/examples//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> within
@@ -613,6 +680,7 @@ cargo +nightly build --release
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/function_decl3.rhai"><code>function_decl3.rhai</code></a></td><td>a <a href="start/examples//rhai/vnext/language/functions.html">function</a> with many parameters</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/if1.rhai"><code>if1.rhai</code></a></td><td><a href="start/examples//rhai/vnext/language/if.html"><code>if</code></a> example</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/loop.rhai"><code>loop.rhai</code></a></td><td>count-down <a href="start/examples//rhai/vnext/language/loop.html"><code>loop</code></a> in Rhai, emulating a <code>do</code> .. <code>while</code> loop</td></tr>
+<tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/module.rhai"><code>module.rhai</code></a></td><td>import a script file as a module</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/oop.rhai"><code>oop.rhai</code></a></td><td>simulate <a href="start/examples//rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> with <a href="start/examples//rhai/vnext/language/fn-closure.html">closures</a></td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op1.rhai"><code>op1.rhai</code></a></td><td>just simple addition</td></tr>
 <tr><td><a href="https://github.com/jonathandturner/rhai/tree/master/scripts/op2.rhai"><code>op2.rhai</code></a></td><td>simple addition and multiplication</td></tr>
@@ -1183,7 +1251,7 @@ See the [script-optimization] for more details.</p>
 <p>Rhai works seamlessly with <em>any</em> Rust type.  The type can be <em>anything</em>; it does not
 have any prerequisites other than being <code>Clone</code>.  It does not need to implement
 any other trait or use any custom <code>#[derive]</code>.</p>
-<p>This allows Rhai to be integrated into an existing code base with as little plumbing
+<p>This allows Rhai to be integrated into an existing Rust code base with as little plumbing
 as possible, usually silently and seamlessly.  External types that are not defined
 within the same crate (and thus cannot implement special Rhai traits or
 use special <code>#[derive]</code>) can also be used easily with Rhai.</p>
@@ -1730,7 +1798,7 @@ as if they were defined inside the same script.</p>
 which converts a normal Rust module into a Rhai <a href="rust/modules//rhai/vnext/rust/modules/index.html">module</a> via procedural macros.</p>
 <h2><a class="header" href="#create-via-module-api" id="create-via-module-api">Create via <code>Module</code> API</a></h2>
 <p>Manually creating a <a href="rust/modules//rhai/vnext/rust/modules/index.html">module</a> is possible via the <code>Module</code> API.</p>
-<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.3/rhai/struct.Module.html">documentation</a> online.</p>
+<p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.6/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the <code>Module</code> Available to the <code>Engine</code></a></h2>
 <p><code>Engine::load_package</code> supports loading a <a href="rust/modules//rhai/vnext/rust/modules/index.html">module</a> as a <a href="rust/modules//rhai/vnext/rust/packages/index.html">package</a>.</p>
 <p>Since it acts as a <a href="rust/modules//rhai/vnext/rust/packages/index.html">package</a>, all functions will be registered into the <em>global</em> namespace
@@ -1868,6 +1936,9 @@ and execute it to form a module.</p>
 Loads a script file (based off the current directory) with <code>.rhai</code> extension.</p>
 <p>All functions in the <em>global</em> namespace, plus all those defined in the same module,
 are <em>merged</em> into a <em>unified</em> namespace.</p>
+<p>All modules imported at <em>global</em> level via <a href="rust/modules//rhai/vnext/language/modules/import.html"><code>import</code></a> statements become sub-modules,
+which are also available to functions defined within the same script file.</p>
+<p>Modules are also <em>cached</em> so a script file is only evaluated <em>once</em>, even when repeatedly imported.</p>
 <pre><pre class="playground"><code class="language-rust">------------------
 | my_module.rhai |
 ------------------
@@ -1955,8 +2026,6 @@ m::greet();                         // prints &quot;hello! from module!&quot;
 </span></code></pre></pre>
 <h3><a class="header" href="#changing-the-base-directory" id="changing-the-base-directory">Changing the base directory</a></h3>
 <p>The base directory can be changed via the <code>FileModuleResolver::new_with_path</code> constructor function.</p>
-<h3><a class="header" href="#returning-a-module-instead" id="returning-a-module-instead">Returning a module instead</a></h3>
-<p><code>FileModuleResolver::create_module</code> loads a script file and returns a module with the standard behavior.</p>
 <h2><a class="header" href="#staticmoduleresolver" id="staticmoduleresolver"><code>StaticModuleResolver</code></a></h2>
 <p>Loads modules that are statically added. This can be used under <a href="rust/modules//rhai/vnext/start/features.html"><code>no_std</code></a>.</p>
 <p>Functions are searched in the <em>global</em> namespace by default.</p>
@@ -2003,7 +2072,10 @@ which contains only one function: <code>resolve</code>.</p>
 of the <em>module path</em> (i.e. the path specified in the <a href="rust/modules//rhai/vnext/language/modules/import.html"><code>import</code></a> statement).</p>
 <ul>
 <li>
-<p>Upon success, it should return a <a href="rust/modules//rhai/vnext/rust/modules/index.html"><code>Module</code></a>.</p>
+<p>Upon success, it should return an <a href="rust/modules//rhai/vnext/rust/modules/index.html"><code>Rc&lt;Module&gt;</code></a> (or <code>Arc&lt;Module&gt;</code> under <a href="rust/modules//rhai/vnext/start/features.html"><code>sync</code></a>).</p>
+<p>The module should call <code>Module::build_index</code> on the target module before returning.
+This method flattens the entire module tree and <em>indexes</em> it for fast function name resolution.
+If the module is already indexed, calling this method has no effect.</p>
 </li>
 <li>
 <p>If the path does not resolve to a valid module, return <code>EvalAltResult::ErrorModuleNotFound</code>.</p>
@@ -2029,14 +2101,17 @@ impl ModuleResolver for MyModuleResolver {
         engine: &amp;Engine,    // reference to the current 'Engine'
         path: &amp;str,         // the module path
         pos: Position,      // position of the 'import' statement
-    ) -&gt; Result&lt;Module, Box&lt;EvalAltResult&gt;&gt; {
+    ) -&gt; Result&lt;Rc&lt;Module&gt;, Box&lt;EvalAltResult&gt;&gt; {
         // Check module path.
         if is_valid_module_path(path) {
-            // Load the custom module.
-            load_secret_module(path).map_err(|err|
-                // Return EvalAltResult::ErrorInModule upon loading error
-                EvalAltResult::ErrorInModule(err.to_string(), pos).into()
-            )
+            let mut my_module =
+                load_secret_module(path)        // load the custom module
+                    .map_err(|err|
+                        // Return EvalAltResult::ErrorInModule upon loading error
+                        EvalAltResult::ErrorInModule(path.into(), Box::new(err), pos).into()
+                    )?;
+            my_module.build_index();  // index it
+            Rc::new(my_module)                  // make it shared
         } else {
             // Return EvalAltResult::ErrorModuleNotFound if the path is invalid
             Err(EvalAltResult::ErrorModuleNotFound(path.into(), pos).into())
@@ -2362,16 +2437,11 @@ mod my_module {
 <p>If the <em>first</em> parameter of a function is of type <code>rhai::NativeCallContext</code>, then it is treated
 specially by the plugins system.</p>
 <p><code>NativeCallContext</code> is a type that encapsulates the current <em>native call context</em> and exposes the following:</p>
-<ul>
-<li>
-<p><code>NativeCallContext::engine(): &amp;Engine</code> - the current <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.
-This is sometimes useful for calling a script-defined function within the same evaluation context
-using <a href="plugins//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>.</p>
-</li>
-<li>
-<p><code>NativeCallContext::namespace(): &amp;Module</code> - the global namespace of script-defined functions, as a <a href="plugins//rhai/vnext/rust/modules/index.html"><code>Module</code></a>.</p>
-</li>
-</ul>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="plugins//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="plugins//rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="plugins//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="plugins//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This first parameter, if exists, will be stripped before all other processing.  It is <em>virtual</em>.
 Most importantly, it does <em>not</em> count as a parameter to the function and there is no need to provide
 this argument when calling the function in Rhai.</p>
@@ -2401,7 +2471,7 @@ mod my_module {
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, Position};
+</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, NO_POS};
 use rhai::plugin::*;        // a &quot;prelude&quot; import for macros
 
 #[export_module]
@@ -2422,7 +2492,7 @@ mod my_module {
                 &quot;Size to grow&quot;.to_string(),
                 context.engine().max_array_size(),
                 size as usize,
-                Position::none(),
+                NO_POS,
             ).into();
         }
 
@@ -2514,16 +2584,11 @@ fn main() {
 <p>If the <em>first</em> parameter of a function is of type <code>rhai::NativeCallContext</code>, then it is treated
 specially by the plugins system.</p>
 <p><code>NativeCallContext</code> is a type that encapsulates the current <em>native call context</em> and exposes the following:</p>
-<ul>
-<li>
-<p><code>NativeCallContext::engine(): &amp;Engine</code> - the current <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.
-This is sometimes useful for calling a script-defined function within the same evaluation context
-using <a href="plugins//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>.</p>
-</li>
-<li>
-<p><code>NativeCallContext::namespace(): &amp;Module</code> - the global namespace of script-defined functions, as a <a href="plugins//rhai/vnext/rust/modules/index.html"><code>Module</code></a>.</p>
-</li>
-</ul>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="plugins//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="plugins//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="plugins//rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="plugins//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="plugins//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This first parameter, if exists, will be stripped before all other processing.  It is <em>virtual</em>.
 Most importantly, it does <em>not</em> count as a parameter to the function and there is no need to provide
 this argument when calling the function in Rhai.</p>
@@ -2551,7 +2616,7 @@ pub fn greet(context: NativeCallContext, callback: FnPtr)
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, Position};
+</span>use rhai::{Dynamic, Array, NativeCallContext, EvalAltResult, NO_POS};
 use rhai::plugin::*;        // a &quot;prelude&quot; import for macros
 
 // This function builds an array of arbitrary size, but is protected
@@ -2571,7 +2636,7 @@ pub fn grow(context: NativeCallContext, size: i64)
             &quot;Size to grow&quot;.to_string(),
             context.engine().max_array_size(),
             size as usize,
-            Position::none(),
+            NO_POS,
         ).into();
     }
 
@@ -2611,7 +2676,7 @@ Comments can be nested.</p>
 <p>The following primitive types are supported natively:</p>
 <table><thead><tr><th>Category</th><th>Equivalent Rust types</th><th><a href="language//rhai/vnext/language/type-of.html"><code>type_of()</code></a></th><th><code>to_string()</code></th></tr></thead><tbody>
 <tr><td><strong>Integer number</strong></td><td><code>u8</code>, <code>i8</code>, <code>u16</code>, <code>i16</code>, <br/><code>u32</code>, <code>i32</code> (default for <a href="language//rhai/vnext/start/features.html"><code>only_i32</code></a>),<br/><code>u64</code>, <code>i64</code> <em>(default)</em></td><td><code>&quot;i32&quot;</code>, <code>&quot;u64&quot;</code> etc.</td><td><code>&quot;42&quot;</code>, <code>&quot;123&quot;</code> etc.</td></tr>
-<tr><td><strong>Floating-point number</strong> (disabled with <a href="language//rhai/vnext/start/features.html"><code>no_float</code></a>)</td><td><code>f32</code>, <code>f64</code> <em>(default)</em></td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.4567&quot;</code> etc.</td></tr>
+<tr><td><strong>Floating-point number</strong> (disabled with <a href="language//rhai/vnext/start/features.html"><code>no_float</code></a>)</td><td><code>f32</code> (default for <a href="language//rhai/vnext/start/features.html"><code>f32_float</code></a>), <code>f64</code> <em>(default)</em></td><td><code>&quot;f32&quot;</code> or <code>&quot;f64&quot;</code></td><td><code>&quot;123.4567&quot;</code> etc.</td></tr>
 <tr><td><strong>Boolean value</strong></td><td><code>bool</code></td><td><code>&quot;bool&quot;</code></td><td><code>&quot;true&quot;</code> or <code>&quot;false&quot;</code></td></tr>
 <tr><td><strong>Unicode character</strong></td><td><code>char</code></td><td><code>&quot;char&quot;</code></td><td><code>&quot;A&quot;</code>, <code>&quot;x&quot;</code> etc.</td></tr>
 <tr><td><strong>Immutable Unicode <a href="language//rhai/vnext/language/strings-chars.html">string</a></strong></td><td><code>rhai::ImmutableString</code> (implemented as <code>Rc&lt;String&gt;</code> or <code>Arc&lt;String&gt;</code>)</td><td><code>&quot;string&quot;</code></td><td><code>&quot;hello&quot;</code> etc.</td></tr>
@@ -3193,6 +3258,9 @@ full_name.len == 0;
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) element to insert (not another array)</td><td>inserts an element at the end</td></tr>
 <tr><td><code>+=</code> operator</td><td>1) array<br/>2) array to append</td><td>concatenates the second array to the end of the first</td></tr>
 <tr><td><code>+</code> operator</td><td>1) first array<br/>2) second array</td><td>concatenates the first array with the second</td></tr>
+<tr><td><code>==</code> operator</td><td>1) first array<br/>2) second array</td><td>are the two arrays the same (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>!=</code> operator</td><td>1) first array<br/>2) second array</td><td>are the two arrays different (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>in</code> operator</td><td>item to find</td><td>does the array contain the item (compared with the <code>==</code> operator, if defined)?</td></tr>
 <tr><td><code>insert</code></td><td>1) element to insert<br/>2) position, beginning if &lt; 0, end if &gt; length</td><td>inserts an element at a certain index</td></tr>
 <tr><td><code>pop</code></td><td><em>none</em></td><td>removes the last element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
 <tr><td><code>shift</code></td><td><em>none</em></td><td>removes the first element and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if empty)</td></tr>
@@ -3210,6 +3278,7 @@ full_name.len == 0;
 <tr><td><code>retain</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length<br/>2) number of items to retain, none if &lt; 0</td><td>retains a portion of the array, removes all other items and returning them (not in original order)</td></tr>
 <tr><td><code>splice</code></td><td>1) start position, beginning if &lt; 0, end if &gt; length<br/>2) number of items to remove, none if &lt; 0<br/>3) array to insert</td><td>replaces a portion of the array with another (not necessarily of the same length as the replaced portion)</td></tr>
 <tr><td><code>filter</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items that return <code>true</code> when called with the predicate function:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
+<tr><td><code>index_of</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to predicate (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>returns the index of the first item in the array that returns <code>true</code> when called with the predicate function, or -1 if not found:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>map</code></td><td><a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to conversion function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)</td><td>constructs a new array with all items mapped to the result of applying the conversion function:<br/>1st parameter: array item<br/>2nd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>reduce</code></td><td>1) <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)<br/>2) <em>(optional)</em> <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially)<br/>2nd parameter: array item<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
 <tr><td><code>reduce_rev</code></td><td>1) <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to accumulator function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>)<br/>2) <em>(optional)</em> <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a> to function (usually a <a href="language//rhai/vnext/language/fn-closure.html">closure</a>) that provides the initial value</td><td>reduces the array (in reverse order) into a single value via the accumulator function:<br/>1st parameter: accumulated value (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> initially)<br/>2nd parameter: array item<br/>3rd parameter: <em>(optional)</em> offset index</td></tr>
@@ -3397,12 +3466,14 @@ naming rules as <a href="language//rhai/vnext/language/variables.html">variables
 <p>The following methods (defined in the <a href="language//rhai/vnext/rust/packages/index.html"><code>BasicMapPackage</code></a> but excluded if using a <a href="language//rhai/vnext/engine/raw.html">raw <code>Engine</code></a>)
 operate on object maps:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>has</code></td><td>property name</td><td>does the object map contain a property of a particular name?</td></tr>
+<tr><td><code>has</code>, <code>in</code> operator</td><td>property name</td><td>does the object map contain a property of a particular name?</td></tr>
 <tr><td><code>len</code></td><td><em>none</em></td><td>returns the number of properties</td></tr>
 <tr><td><code>clear</code></td><td><em>none</em></td><td>empties the object map</td></tr>
 <tr><td><code>remove</code></td><td>property name</td><td>removes a certain property and returns it (<a href="language//rhai/vnext/language/values-and-types.html"><code>()</code></a> if the property does not exist)</td></tr>
 <tr><td><code>+=</code> operator, <code>mixin</code></td><td>second object map</td><td>mixes in all the properties of the second object map to the first (values of properties with the same names replace the existing values)</td></tr>
 <tr><td><code>+</code> operator</td><td>1) first object map<br/>2) second object map</td><td>merges the first object map with the second</td></tr>
+<tr><td><code>==</code> operator</td><td>1) first object map<br/>2) second object map</td><td>are the two object map the same (elements compared with the <code>==</code> operator, if defined)?</td></tr>
+<tr><td><code>!=</code> operator</td><td>1) first object map<br/>2) second object map</td><td>are the two object map different (elements compared with the <code>==</code> operator, if defined)?</td></tr>
 <tr><td><code>fill_with</code></td><td>second object map</td><td>adds in all properties of the second object map that do not exist in the object map</td></tr>
 <tr><td><code>keys</code></td><td><em>none</em></td><td>returns an <a href="language//rhai/vnext/language/arrays.html">array</a> of all the property names (in random order), not available under <a href="language//rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
 <tr><td><code>values</code></td><td><em>none</em></td><td>returns an <a href="language//rhai/vnext/language/arrays.html">array</a> of all the property values (in random order), not available under <a href="language//rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
@@ -3650,10 +3721,10 @@ if now.elapsed &gt; 30.0 {
 <tr><td><code>while</code>, <code>loop</code>, <code>for</code>, <code>in</code>, <code>continue</code>, <code>break</code></td><td><code>do</code>, <code>each</code></td><td>looping</td><td align="center"></td></tr>
 <tr><td><code>fn</code>, <code>private</code></td><td><code>public</code>, <code>new</code></td><td>functions</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_function</code></a></td></tr>
 <tr><td><code>return</code></td><td></td><td>return values</td><td align="center"></td></tr>
-<tr><td><code>throw</code></td><td><code>try</code>, <code>catch</code></td><td>throw exceptions</td><td align="center"></td></tr>
+<tr><td><code>throw</code>, <code>try</code>, <code>catch</code></td><td></td><td>throw/catch exceptions</td><td align="center"></td></tr>
 <tr><td><code>import</code>, <code>export</code>, <code>as</code></td><td><code>use</code>, <code>with</code>, <code>module</code>, <code>package</code></td><td>modules/packages</td><td align="center"><a href="language//rhai/vnext/start/features.html"><code>no_module</code></a></td></tr>
 <tr><td><code>Fn</code>, <code>call</code>, <code>curry</code></td><td></td><td>function pointers</td><td align="center"></td></tr>
-<tr><td></td><td><code>spawn</code>, <code>go</code>, <code>sync</code>, <code>async</code>, <code>await</code>, <code>yield</code></td><td>threading/async</td><td align="center"></td></tr>
+<tr><td></td><td><code>spawn</code>, <code>thread</code>, <code>go</code>, <code>sync</code>, <code>async</code>, <code>await</code>, <code>yield</code></td><td>threading/async</td><td align="center"></td></tr>
 <tr><td><code>type_of</code>, <code>print</code>, <code>debug</code>, <code>eval</code></td><td></td><td>special functions</td><td align="center"></td></tr>
 <tr><td></td><td><code>default</code>, <code>void</code>, <code>null</code>, <code>nil</code></td><td>special values</td><td align="center"></td></tr>
 </tbody></table>
@@ -4214,22 +4285,22 @@ catch
 </span></code></pre></pre>
 <h2><a class="header" href="#catchable-exceptions" id="catchable-exceptions">Catchable Exceptions</a></h2>
 <p>Many script-oriented exceptions can be caught via <code>try</code> ... <code>catch</code>:</p>
-<table><thead><tr><th>Error</th><th align="center">Error value when captured</th></tr></thead><tbody>
+<table><thead><tr><th>Error type</th><th align="center">Error value</th></tr></thead><tbody>
 <tr><td>Runtime error thrown by a <a href="language//rhai/vnext/language/throw.html"><code>throw</code></a> statement</td><td align="center">value in <code>throw</code> statement</td></tr>
-<tr><td>Other runtime error</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Arithmetic error</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Variable not found</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td><a href="language//rhai/vnext/language/functions.html">Function</a> not found</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td><a href="language//rhai/vnext/rust/modules/index.html">Module</a> not found</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Unbound [<code>this</code>]</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Data type mismatch</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Assignment to a calculated/constant value</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td><a href="language//rhai/vnext/language/arrays.html">Array</a>/<a href="language//rhai/vnext/language/strings-chars.html">string</a> indexing out-of-bounds</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Indexing with an inappropriate data type</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Error in a dot expression</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td><code>for</code> statement without an iterator</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Error in an <code>in</code> expression</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
-<tr><td>Data race detected</td><td align="center">error message (<a href="language//rhai/vnext/language/strings-chars.html">string</a>)</td></tr>
+<tr><td>Other runtime error</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Arithmetic error</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Variable not found</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="language//rhai/vnext/language/functions.html">Function</a> not found</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="language//rhai/vnext/rust/modules/index.html">Module</a> not found</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Unbound [<code>this</code>]</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Data type mismatch</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Assignment to a calculated/constant value</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="language//rhai/vnext/language/arrays.html">Array</a>/<a href="language//rhai/vnext/language/strings-chars.html">string</a> indexing out-of-bounds</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Indexing with an inappropriate data type</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Error in a dot expression</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><code>for</code> statement without an iterator</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Error in an <code>in</code> expression</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Data race detected</td><td align="center">error message <a href="language//rhai/vnext/language/strings-chars.html">string</a></td></tr>
 </tbody></table>
 <h2><a class="header" href="#non-catchable-exceptions" id="non-catchable-exceptions">Non-Catchable Exceptions</a></h2>
 <p>Some exceptions <em>cannot</em> be caught:</p>
@@ -4499,6 +4570,9 @@ allow combining all functions in one <a href="language//rhai/vnext/engine/compil
 <li>
 <p>All the Rust functions defined in <a href="language//rhai/vnext/rust/packages/index.html">packages</a> that are loaded into the <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
+<li>
+<p>All the <a href="language//rhai/vnext/rust/modules/index.html">modules</a> imported via <a href="language//rhai/vnext/language/modules/import.html"><code>import</code></a> statements.</p>
+</li>
 </ul>
 <p>In addition, during evaluation of an <a href="language//rhai/vnext/engine/compile.html"><code>AST</code></a>, all script-defined functions bundled together within
 the <a href="language//rhai/vnext/engine/compile.html"><code>AST</code></a> are added to the global namespace and override any existing registered functions of
@@ -4552,8 +4626,9 @@ fn get_message() { &quot;Hello!&quot; }
 | script.rhai |
 ---------------
 
+import &quot;message&quot; as msg;
+
 fn say_hello() {
-    import &quot;message&quot; as msg;
     print(msg::get_message());
 }
 say_hello();
@@ -4623,7 +4698,6 @@ f::do_work();               // works!
 let p = Fn(&quot;f::do_work&quot;);   // error: invalid function name
 
 fn do_work_now() {          // call it from a local function
-    import &quot;foo&quot; as f;
     f::do_work();
 }
 
@@ -4754,13 +4828,18 @@ engine.register_raw_fn(&quot;super_call&quot;,
 </span></code></pre></pre>
 <h2><a class="header" href="#nativecallcontext" id="nativecallcontext"><code>NativeCallContext</code></a></h2>
 <p><code>FnPtr::call_dynamic</code> takes a parameter of type <code>NativeCallContext</code> which holds the <em>native call context</em>
-of the particular call to a registered Rust function.</p>
+of the particular call to a registered Rust function. It is a type that exposes the following:</p>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="language//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="language//rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="language//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="language//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This type is normally provided by the <a href="language//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> (e.g. when using <a href="language/../rust/register-raw.html"><code>Engine::register_fn_raw</code></a>).
 However, it may also be manually constructed from a tuple:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Engine, FnPtr};
+</span>use rhai::{Engine, FnPtr, NativeCallContext};
 
 let engine = Engine::new();
 
@@ -4778,13 +4857,11 @@ let fn_ptr = engine.eval_ast::&lt;FnPtr&gt;(&amp;ast)?;
 // Get rid of the script, retaining only functions
 ast.retain_functions(|_, _, _| true);
 
-// Create native call context via a tuple
-let context =
-        (
-            &amp;engine,            // the 'Engine'
-            &amp;[ast.as_ref()]     // function namespace from the 'AST'
-                                // as a one-element slice
-        ).into();
+// Create native call context
+let context = NativeCallContext::new(
+    &amp;engine,                    // the 'Engine'
+    &amp;[ast.as_ref()]             // function namespace from the 'AST'
+);
 
 // 'f' captures: the engine, the AST, and the closure
 let f = move |x: i64| fn_ptr.call_dynamic(context, None, [x.into()]);
@@ -5127,15 +5204,30 @@ let x = 42;             // this will be exported below
 
 export x;               // the variable 'x' is exported under its own name
 
+export let x = 42;      // convenient short-hand to declare a variable and export it
+                        // under its own name
+
 export x as answer;     // the variable 'x' is exported under the alias 'answer'
                         // another script can load this module and access 'x' as 'module::answer'
 
 {
     let inner = 0;      // local variable - it disappears when the statement block ends,
-                        //                  therefore it is not 'global' and is not exported
+                        //                  therefore it is not 'global' and cannot be exported
 
-    export inner;       // exporting an temporary variable has no effect
+    export inner;       // &lt;- syntax error: cannot export a local variable
 }
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#multiple-exports" id="multiple-exports">Multiple Exports</a></h3>
+<p>One <code>export</code> statement can export multiple variables, even under multiple names.</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The following exports three variables:
+//   - 'x' (as 'x' and 'hello')
+//   - 'y' (as 'foo' and 'bar')
+//   - 'z' (as 'z')
+export x, x as hello, x as world, y as foo, y as bar, z;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#export-functions" id="export-functions">Export Functions</a></h2>
@@ -5186,6 +5278,14 @@ where the module script contains initialization statements that puts the functio
 </span>import &quot;crypto_init&quot;;           // run the script file 'crypto_init.rhai' without creating an imported module
 
 import &quot;crypto&quot; as lock;        // run the script file 'crypto.rhai' and import it as a module named 'lock'
+
+const SECRET_NUMBER = 42;
+
+let mod_file = &quot;crypto_&quot; + SECRET_NUMBER;
+
+import mod_file as my_mod;      // load the script file &quot;crypto_42.rhai&quot; and import it as a module named 'my_mod'
+                                // notice that module path names can be dynamically constructed!
+                                // any expression that evaluates to a string is acceptable after the 'import' keyword
 
 lock::encrypt(secret);          // use functions defined under the module via '::'
 
@@ -5542,13 +5642,22 @@ engine.on_progress(|&amp;count| {   // parameter is '&amp;u64' - number of opera
     if count % 1000 == 0 {
         println!(&quot;{}&quot;, count);  // print out a progress log every 1,000 operations
     }
-    true                        // return 'true' to continue running the script
-                                // return 'false' to immediately terminate the script
+    None                        // return 'None' to continue running the script
+                                // return 'Some(token)' to immediately terminate the script
 });
 <span class="boring">}
 </span></code></pre></pre>
 <p>The closure passed to <code>Engine::on_progress</code> will be called once for every operation.
-Return <code>false</code> to terminate the script immediately.</p>
+Return <code>Some(token)</code> to terminate the script immediately, with the provided value
+(any <a href="safety//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a>) acting as a termination token.</p>
+<h2><a class="header" href="#termination-token" id="termination-token">Termination Token</a></h2>
+<p>The <a href="safety//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> value returned by the closure for <code>Engine::on_progress</code> is a <em>termination token</em>.
+A script that is manually terminated returns with <code>Err(EvalAltResult::ErrorTerminated)</code>
+wrapping this value.</p>
+<p>The termination token is commonly used to provide information on the <em>reason</em> or <em>source</em>
+behind the termination decision.</p>
+<p>If the termination token is not needed, simply return <code>Some(().into())</code> to terminate the script
+run with <a href="safety//rhai/vnext/language/values-and-types.html"><code>()</code></a> as the token.</p>
 <h2><a class="header" href="#operations-count-vs-progress-percentage" id="operations-count-vs-progress-percentage">Operations Count vs. Progress Percentage</a></h2>
 <p>Notice that the <em>operations count</em> value passed into the closure does not indicate the <em>percentage</em> of work
 already done by the script (and thus it is not real <em>progress</em> tracking), because it is impossible to determine
@@ -5991,7 +6100,7 @@ obj.action();                                // prints 84
 <p>Since Rhai is <em>sand-boxed</em>, it cannot mutate the environment.  To modify the external configuration object via an API, it must be wrapped in a <code>RefCell</code> (or <code>RwLock</code>/<code>Mutex</code> for <a href="patterns//rhai/vnext/start/features.html"><code>sync</code></a>) and shared to the <a href="patterns//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
 </ul>
-<h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
+<h2><a class="header" href="#implementation-1" id="implementation-1">Implementation</a></h2>
 <h3><a class="header" href="#configuration-type" id="configuration-type">Configuration Type</a></h3>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -6147,7 +6256,7 @@ if config contains &quot;hey&quot; || config is_set &quot;hey&quot; {
 <p>Since Rhai is <em><a href="patterns//rhai/vnext/safety/sandbox.html">sand-boxed</a></em>, it cannot mutate the environment.  To perform external actions via an API, the actual system must be wrapped in a <code>RefCell</code> (or <code>RwLock</code>/<code>Mutex</code> for <a href="patterns//rhai/vnext/start/features.html"><code>sync</code></a>) and shared to the <a href="patterns//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
 </ul>
-<h2><a class="header" href="#implementation-1" id="implementation-1">Implementation</a></h2>
+<h2><a class="header" href="#implementation-2" id="implementation-2">Implementation</a></h2>
 <p>There are two broad ways for Rhai to control an external system, both of which involve
 wrapping the system in a shared, interior-mutated object.</p>
 <p>This is one way which does not involve exposing the data structures of the external system,
@@ -6292,7 +6401,7 @@ Use Rhai only for the logic that <em>must</em> be dynamic or hot-loadable.</p>
 <p>Control each command object in script via the constants.</p>
 </li>
 </ul>
-<h2><a class="header" href="#implementation-2" id="implementation-2">Implementation</a></h2>
+<h2><a class="header" href="#implementation-3" id="implementation-3">Implementation</a></h2>
 <p>There are two broad ways for Rhai to control an external system, both of which involve
 wrapping the system in a shared, interior-mutated object.</p>
 <p>This is the other way which involves directly exposing the data structures of the external system
@@ -6654,7 +6763,7 @@ for x in 0..10_000 {
 <p>Optionally, trap the <code>EvalAltResult::ErrorFunctionNotFound</code> error to provide a default implementation.</p>
 </li>
 </ul>
-<h2><a class="header" href="#implementation-3" id="implementation-3">Implementation</a></h2>
+<h2><a class="header" href="#implementation-4" id="implementation-4">Implementation</a></h2>
 <h3><a class="header" href="#declare-handler-object" id="declare-handler-object">Declare Handler Object</a></h3>
 <p>In most cases, it would be simpler to store an <a href="patterns//rhai/vnext/engine/hello-world.html"><code>Engine</code></a> instance together with the handler object
 because it only requires registering all API functions only once.</p>
@@ -6833,7 +6942,7 @@ fn update(data) {
 <p>May even perform back-end network access or look up the latest value from a database.</p>
 </li>
 </ul>
-<h2><a class="header" href="#implementation-4" id="implementation-4">Implementation</a></h2>
+<h2><a class="header" href="#implementation-5" id="implementation-5">Implementation</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -6865,7 +6974,6 @@ access to the calling environment.</p>
 it raises an evaluation error.</p>
 <p>It is possible, through a special syntax, to capture the calling scope - i.e. the scope
 that makes the function call - and access variables defined there.</p>
-<p>Capturing can be disabled via the <a href="language//rhai/vnext/start/features.html"><code>no_closure</code></a> feature.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -6964,23 +7072,16 @@ engine.register_fn(&quot;increment_by&quot;, |x: &amp;mut i64, y: i64| *x += y);
 <code>-&gt; Result&lt;T, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
-<ul>
-<li>
-<p><code>T: Clone</code> - return type of the function.</p>
-</li>
-<li>
-<p><code>context: NativeCallContext</code> - the current <em>native call context</em>, which exposes the following:</p>
-<ul>
-<li><code>context.engine(): &amp;Engine</code> - the current <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.
-This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="rust//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="rust//rhai/vnext/language/fn-ptr.html">function pointer</a>.</li>
-<li><code>context.iter_namespaces(): impl Iterator&lt;Item = &amp;Module&gt;</code> - iterator of the namespaces (as <a href="rust//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions.</li>
-</ul>
-</li>
-<li>
-<p><code>args: &amp;mut [&amp;mut Dynamic]</code> - a slice containing <code>&amp;mut</code> references to <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> values.
-The slice is guaranteed to contain enough arguments <em>of the correct types</em>.</p>
-</li>
-</ul>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>T</code></td><td align="center"><code>impl Clone</code></td><td>return type of the function</td></tr>
+<tr><td><code>context</code></td><td align="center"><code>NativeCallContext</code></td><td>the current <em>native call context</em></td></tr>
+<tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="rust//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="rust//rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="rust//rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="rust//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="rust//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td><code>args</code></td><td align="center"><code>&amp;mut [&amp;mut Dynamic]</code></td><td>a slice containing <code>&amp;mut</code> references to <a href="rust//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> values.<br/>The slice is guaranteed to contain enough arguments <em>of the correct types</em>.</td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value" id="return-value">Return value</a></h3>
+<p>The return value is the result of the function call.</p>
 <p>Remember, in Rhai, all arguments <em>except</em> the <em>first</em> one are always passed by <em>value</em> (i.e. cloned).
 Therefore, it is unnecessary to ever mutate any argument except the first one, as all mutations
 will be on the cloned copy.</p>
@@ -7011,16 +7112,16 @@ let mut engine = Engine::new();
 engine.register_raw_fn(
     &quot;bar&quot;,
     &amp;[
-        std::any::TypeId::of::&lt;i64&gt;(),                          // parameter types
+        std::any::TypeId::of::&lt;i64&gt;(),                      // parameter types
         std::any::TypeId::of::&lt;FnPtr&gt;(),
         std::any::TypeId::of::&lt;i64&gt;(),
     ],
     |context, args| {
         // 'args' is guaranteed to contain enough arguments of the correct types
 
-        let fp = std::mem::take(args[1]).cast::&lt;FnPtr&gt;();       // 2nd argument - function pointer
-        let value = args[2].clone();                            // 3rd argument - function argument
-        let this_ptr = args.get_mut(0).unwrap();                // 1st argument - this pointer
+        let fp = std::mem::take(args[1]).cast::&lt;FnPtr&gt;();   // 2nd argument - function pointer
+        let value = args[2].clone();                        // 3rd argument - function argument
+        let this_ptr = args.get_mut(0).unwrap();            // 1st argument - this pointer
 
         // Use 'FnPtr::call_dynamic' to call the function pointer.
         // Beware, private script-defined functions will not be found.
@@ -7028,13 +7129,14 @@ engine.register_raw_fn(
     },
 );
 
-let result = engine.eval::&lt;i64&gt;(r#&quot;
+let result = engine.eval::&lt;i64&gt;(
+          r#&quot;
                 fn foo(x) { this += x; }    // script-defined function 'foo'
 
                 let x = 41;                 // object
                 x.bar(Fn(&quot;foo&quot;), 1);        // pass 'foo' as function pointer
                 x
-&quot;#)?;
+          &quot;#)?;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#tldr---why-read_lock-and-write_lock" id="tldr---why-read_lock-and-write_lock">TL;DR - Why <code>read_lock</code> and <code>write_lock</code></a></h2>
@@ -7045,7 +7147,8 @@ is a <em>shared value</em> created by <a href="rust//rhai/vnext/language/fn-clos
 <p>Shared values are implemented as <code>Rc&lt;RefCell&lt;Dynamic&gt;&gt;</code> (<code>Arc&lt;RwLock&lt;Dynamic&gt;&gt;</code> under <a href="rust//rhai/vnext/start/features.html"><code>sync</code></a>).</p>
 <p>If the value is <em>not</em> a shared value, or if running under <a href="rust//rhai/vnext/start/features.html"><code>no_closure</code></a> where there is
 no <a href="rust//rhai/vnext/language/fn-closure.html">capturing</a>, this API de-sugars to a simple <code>Dynamic::downcast_ref</code> and
-<code>Dynamic::downcast_mut</code>.</p>
+<code>Dynamic::downcast_mut</code>.  In other words, there is no locking and reference counting overhead
+for the vast majority of non-shared values.</p>
 <p>If the value is a shared value, then it is first locked and the returned lock guard
 then allows access to the underlying value in the specified type.</p>
 <h2><a class="header" href="#hold-multiple-references" id="hold-multiple-references">Hold Multiple References</a></h2>
@@ -7079,16 +7182,16 @@ resolution service and to override its default behavior.</p>
 </span>let mut engine = Engine::new();
 
 // Register a variable resolver.
-engine.on_var(|name, index, scope, context| {
+engine.on_var(|name, index, context| {
     match name {
         &quot;MYSTIC_NUMBER&quot; =&gt; Ok(Some((42 as INT).into())),
         // Override a variable - make it not found even if it exists!
         &quot;DO_NOT_USE&quot; =&gt; Err(Box::new(
-            EvalAltResult::ErrorVariableNotFound(name.to_string(), Position::none())
+            EvalAltResult::ErrorVariableNotFound(name.to_string(), NO_POS)
         )),
         // Silently maps 'chameleon' into 'innocent'.
-        &quot;chameleon&quot; =&gt; scope.get_value(&quot;innocent&quot;).map(Some).ok_or_else(|| Box::new(
-            EvalAltResult::ErrorVariableNotFound(name.to_string(), Position::none())
+        &quot;chameleon&quot; =&gt; context.scope.get_value(&quot;innocent&quot;).map(Some).ok_or_else(|| Box::new(
+            EvalAltResult::ErrorVariableNotFound(name.to_string(), NO_POS)
         )),
         // Return Ok(None) to continue with the normal variable resolution process.
         _ =&gt; Ok(None)
@@ -7124,40 +7227,24 @@ the script is evaluated.</p>
 <code>-&gt; Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt; + 'static</code></p>
 </blockquote>
 <p>where:</p>
-<ul>
-<li>
-<p><code>name: &amp;str</code> - variable name.</p>
-</li>
-<li>
-<p><code>index: usize</code> - an offset from the bottom of the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.
-Offsets start from 1, with 1 meaning the last variable in the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.</p>
-<p>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</p>
-</li>
-<li>
-<p><code>context: &amp;EvalContext</code> - reference to the current evaluation <em>context</em>, which exposes the following fields:</p>
-<ul>
-<li><code>context.scope: &amp;Scope</code> - reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position.</li>
-<li><code>context.engine(): &amp;Engine</code> - reference to the current <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
-<li><code>context.iter_namespaces(): impl Iterator&lt;Item = &amp;Module&gt;</code> - iterator of the namespaces (as <a href="engine//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions.</li>
-<li><code>context.this_ptr(): Option&lt;&amp;Dynamic&gt;</code> - reference to the current bound [<code>this</code>] pointer, if any.</li>
-<li><code>context.call_level(): usize</code> - the current nesting level of function calls.</li>
-</ul>
-</li>
-</ul>
-<h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>name</code></td><td align="center"><code>&amp;str</code></td><td>variable name</td></tr>
+<tr><td><code>index</code></td><td align="center"><code>usize</code></td><td>an offset from the bottom of the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.<br/>Offsets start from 1, with 1 meaning the last variable in the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.<br/>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</td></tr>
+<tr><td><code>context</code></td><td align="center"><code>&amp;EvalContext</code></td><td>reference to the current evaluation <em>context</em></td></tr>
+<tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a> containing all variables up to the current evaluation position</td></tr>
+<tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="engine//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="engine//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
+<tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value-1" id="return-value-1">Return Value</a></h3>
 <p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where:</p>
-<ul>
-<li>
-<p><code>Ok(None)</code> - normal variable resolution process should continue, meaning to continue searching through the <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
-</li>
-<li>
-<p><code>Ok(Some(Dynamic))</code> - wrapped <a href="engine//rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> is taken as the value of the variable, which is treated as a constant.</p>
-</li>
-<li>
-<p><code>Err(Box&lt;EvalAltResult&gt;)</code> - error is reflected back to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.
-Normally this is <code>EvalAltResult::ErrorVariableNotFound</code> to indicate that the variable does not exist, but it can be any error.</p>
-</li>
-</ul>
+<table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Ok(None)</code></td><td>normal variable resolution process should continue, i.e. continue searching through the <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a></td></tr>
+<tr><td><code>Ok(Some(Dynamic))</code></td><td>value of the variable, treated as a constant</td></tr>
+<tr><td><code>Err(Box&lt;EvalAltResult&gt;)</code></td><td>error that is reflected back to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>EvalAltResult::ErrorVariableNotFound(var_name, NO_POS)</code> to indicate that the variable does not exist, but it can be any <code>EvalAltResult</code>.</td></tr>
+</tbody></table>
 <h1><a class="header" href="#use-rhai-as-a-domain-specific-language-dsl" id="use-rhai-as-a-domain-specific-language-dsl">Use Rhai as a Domain-Specific Language (DSL)</a></h1>
 <p>Rhai can be successfully used as a domain-specific language (DSL).</p>
 <h2><a class="header" href="#expressions-only" id="expressions-only">Expressions Only</a></h2>
@@ -7378,13 +7465,12 @@ obscure language syntax just to do something.</p>
 <p><code>$ident$</code> - any <a href="engine//rhai/vnext/language/variables.html">variable</a> name.</p>
 </li>
 </ul>
-<h3><a class="header" href="#the-first-symbol-must-be-a-keyword" id="the-first-symbol-must-be-a-keyword">The First Symbol Must be a Keyword</a></h3>
+<h3><a class="header" href="#the-first-symbol-must-be-an-identifier" id="the-first-symbol-must-be-an-identifier">The First Symbol Must be an Identifier</a></h3>
 <p>There is no specific limit on the combination and sequencing of each symbol type,
 except the <em>first</em> symbol which must be a custom keyword that follows the naming rules
 of <a href="engine//rhai/vnext/language/variables.html">variables</a>.</p>
-<p>The first symbol also cannot be a reserved <a href="engine//rhai/vnext/appendix/keywords.html">keyword</a>, unless that keyword
-has been <a href="engine//rhai/vnext/engine/disable.html">disabled</a>.</p>
-<p>In other words, any valid identifier that is not an active <a href="engine//rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
+<p>The first symbol also cannot be a normal or reserved <a href="engine//rhai/vnext/appendix/keywords.html">keyword</a>.
+In other words, any valid identifier that is not a <a href="engine//rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
 <h3><a class="header" href="#the-first-symbol-must-be-unique" id="the-first-symbol-must-be-unique">The First Symbol Must be Unique</a></h3>
 <p>Rhai uses the <em>first</em> symbol as a clue to parse custom syntax.</p>
 <p>Therefore, at any one time, there can only be <em>one</em> custom syntax starting with each unique symbol.</p>
@@ -7428,21 +7514,18 @@ print(hello);   // variable declared by a custom syntax persists!
 <p><code>Fn(context: &amp;mut EvalContext, inputs: &amp;[Expression]) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
 </blockquote>
 <p>where:</p>
-<ul>
-<li>
-<p><code>context: &amp;mut EvalContext</code> - mutable reference to the current evaluation <em>context</em>, exposing the following:</p>
-<ul>
-<li><code>context.scope: &amp;mut Scope</code> - mutable reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it.</li>
-<li><code>context.engine(): &amp;Engine</code> - reference to the current <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
-<li><code>context.iter_namespaces(): impl Iterator&lt;Item = &amp;Module&gt;</code> - iterator of the namespaces (as <a href="engine//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions.</li>
-<li><code>context.this_ptr(): Option&lt;&amp;Dynamic&gt;</code> - reference to the current bound [<code>this</code>] pointer, if any.</li>
-<li><code>context.call_level(): usize</code> - the current nesting level of function calls.</li>
-</ul>
-</li>
-<li>
-<p><code>inputs: &amp;[Expression]</code> - a list of input expression trees.</p>
-</li>
-</ul>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>context</code></td><td align="center"><code>&amp;mut EvalContext</code></td><td>mutable reference to the current evaluation <em>context</em></td></tr>
+<tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;mut Scope</code></td><td>mutable reference to the current <a href="engine//rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it</td></tr>
+<tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="engine//rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="engine//rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
+<tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
+<tr><td><code>inputs</code></td><td align="center"><code>&amp;[Expression]</code></td><td>a list of input expression trees</td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value-2" id="return-value-2">Return Value</a></h3>
+<p>Return value is the result of evaluating the custom syntax expression.</p>
 <h3><a class="header" href="#access-arguments" id="access-arguments">Access Arguments</a></h3>
 <p>The most important argument is <code>inputs</code> where the matched identifiers (<code>$ident$</code>), expressions/statements (<code>$expr$</code>)
 and statement blocks (<code>$block$</code>) are provided.</p>
@@ -7521,9 +7604,9 @@ fn implementation_func(
     Ok(().into())
 }
 
-// Register the custom syntax (sample): do |x| -&gt; { x += 1 } while x &lt; 0;
+// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0;
 engine.register_custom_syntax(
-    &amp;[ &quot;do&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
+    &amp;[ &quot;exec&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
     1,  // the number of new variables declared within this custom syntax
     implementation_func
 )?;
@@ -7544,6 +7627,83 @@ of what you’re doing.</p>
 <p>For custom syntax, documentation is crucial.</p>
 <p>Make sure there are <em>lots</em> of examples for users to follow.</p>
 <h2><a class="header" href="#step-six---profit" id="step-six---profit">Step Six - Profit!</a></h2>
+<h2><a class="header" href="#really-advanced---low-level-custom-syntax-api" id="really-advanced---low-level-custom-syntax-api">Really Advanced - Low Level Custom Syntax API</a></h2>
+<p>Sometimes it is desirable to have multiple custom syntax starting with the
+same symbol.  This is especially common for <em>command-style</em> syntax where the
+second symbol calls a particular command:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The following simulates a command-style syntax, all starting with 'perform'.
+perform hello world;        // A fixed sequence of symbols
+perform action 42;          // Perform a system action with a parameter
+perform update system;      // Update the system
+perform check all;          // Check all system settings
+perform cleanup;            // Clean up the system
+perform add something;      // Add something to the system
+perform remove something;   // Delete something from the system
+<span class="boring">}
+</span></code></pre></pre>
+<p>For even more flexibility, there is a <em>low level</em> API for custom syntax that
+allows the registration of an entire mini-parser.</p>
+<p>Use <code>Engine::register_custom_syntax_raw</code> to register a custom syntax <em>parser</em>
+together with the implementation function:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>engine.register_custom_syntax_raw(
+    &quot;perform&quot;,
+    |stream| match stream.len() {
+        // perform ...
+        1 =&gt; Ok(Some(&quot;$ident$&quot;.to_string())),
+        // perform command ...
+        2 =&gt; match stream[1].as_str() {
+            &quot;action&quot; =&gt; Ok(Some(&quot;$expr$&quot;.to_string())),
+            &quot;hello&quot; =&gt; Ok(Some(&quot;world&quot;.to_string())),
+            &quot;update&quot; | &quot;check&quot; | &quot;add&quot; | &quot;remove&quot; =&gt; Ok(Some(&quot;$ident$&quot;.to_string())),
+            &quot;cleanup&quot; =&gt; Ok(None),
+            cmd =&gt; Err(ParseError(Box::new(ParseErrorType::BadInput(
+                LexError::ImproperSymbol(format!(&quot;Improper command: {}&quot;, cmd))
+            )), NO_POS)),
+        },
+        // perform command arg ...
+        3 =&gt; match (stream[1].as_str(), stream[2].as_str()) {
+            (&quot;action&quot;, _) =&gt; Ok(None),
+            (&quot;hello&quot;, &quot;world&quot;) =&gt; Ok(None),
+            (&quot;update&quot;, arg) if arg == &quot;system&quot; =&gt; Ok(None),
+            (&quot;update&quot;, arg) if arg == &quot;client&quot; =&gt; Ok(None),
+            (&quot;check&quot;, arg) =&gt; Ok(None),
+            (&quot;add&quot;, arg) =&gt; Ok(None),
+            (&quot;remove&quot;, arg) =&gt; Ok(None),
+            (cmd, arg) =&gt; Err(ParseError(Box::new(ParseErrorType::BadInput(
+                LexError::ImproperSymbol(
+                    format!(&quot;Invalid argument for command {}: {}&quot;, cmd, arg)
+                )
+            )), NO_POS)),
+        },
+        _ =&gt; unreachable!(),
+    },
+    0, // the number of new variables declared within this custom syntax
+    implementation_func
+);
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#function-signature-3" id="function-signature-3">Function Signature</a></h3>
+<p>The custom syntax parser has the following signature:</p>
+<blockquote>
+<p><code>Fn(stream: &amp;[String]) -&gt; Result&lt;Option&lt;String&gt;, ParseError&gt;</code></p>
+</blockquote>
+<p>where:</p>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>stream</code></td><td align="center"><code>&amp;[String]</code></td><td>a slice of symbols that have been parsed so far, possibly containing <code>&quot;$expr$&quot;</code> and/or <code>&quot;$block$&quot;</code></td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value-3" id="return-value-3">Return Value</a></h3>
+<p>The return value is <code>Result&lt;Option&lt;String&gt;, ParseError&gt;</code> where:</p>
+<table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Ok(None)</code></td><td>parsing complete and there are no more symbols to match</td></tr>
+<tr><td><code>Ok(Some(symbol))</code></td><td>next symbol to match, which can also be <code>&quot;$expr$&quot;</code>, <code>&quot;$ident$&quot;</code> or <code>&quot;$block$&quot;</code></td></tr>
+<tr><td><code>Err(ParseError)</code></td><td>error that is reflected back to the <a href="engine//rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), NO_POS)</code> to indicate that there is a syntax error, but it can be any <code>ParseError</code>.</td></tr>
+</tbody></table>
 <h1><a class="header" href="#multiple-instantiation" id="multiple-instantiation">Multiple Instantiation</a></h1>
 <h2><a class="header" href="#background" id="background">Background</a></h2>
 <p>Rhai’s <a href="patterns//rhai/vnext/start/features.html">features</a> are not strictly additive.  This is easily deduced from the <a href="patterns//rhai/vnext/start/features.html"><code>no_std</code></a> feature
@@ -7585,7 +7745,7 @@ a different <a href="patterns//rhai/vnext/start/features.html">features</a> set,
 </ul>
 <p>Use the following configuration in <code>Cargo.toml</code> to pull in multiple copies of Rhai within the same project:</p>
 <pre><code class="language-toml">[dependencies]
-rhai = { version = &quot;0.19.3&quot;, features = [ &quot;no_float&quot; ] }
+rhai = { version = &quot;0.19.6&quot;, features = [ &quot;no_float&quot; ] }
 rhai_github = { git = &quot;https://github.com/jonathandturner/rhai&quot;, features = [ &quot;unchecked&quot; ] }
 rhai_my_github = { git = &quot;https://github.com/my_github/rhai&quot;, branch = &quot;variation1&quot;, features = [ &quot;serde&quot;, &quot;no_closure&quot; ] }
 rhai_local = { path = &quot;../rhai_copy&quot; }
@@ -7661,6 +7821,7 @@ crate merging feature <em>just for Rhai</em>.</p>
 <tr><td><code>with</code></td><td>scope</td></tr>
 <tr><td><code>module</code></td><td>module</td></tr>
 <tr><td><code>package</code></td><td>package</td></tr>
+<tr><td><code>thread</code></td><td>threading</td></tr>
 <tr><td><code>spawn</code></td><td>threading</td></tr>
 <tr><td><code>go</code></td><td>threading</td></tr>
 <tr><td><code>await</code></td><td>async</td></tr>

@@ -227,7 +227,6 @@ f::do_work();               // works!
 let p = Fn(&quot;f::do_work&quot;);   // error: invalid function name
 
 fn do_work_now() {          // call it from a local function
-    import &quot;foo&quot; as f;
     f::do_work();
 }
 
@@ -358,13 +357,18 @@ engine.register_raw_fn(&quot;super_call&quot;,
 </span></code></pre></pre>
 <h2><a class="header" href="#nativecallcontext" id="nativecallcontext"><code>NativeCallContext</code></a></h2>
 <p><code>FnPtr::call_dynamic</code> takes a parameter of type <code>NativeCallContext</code> which holds the <em>native call context</em>
-of the particular call to a registered Rust function.</p>
+of the particular call to a registered Rust function. It is a type that exposes the following:</p>
+<table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="/rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+</tbody></table>
 <p>This type is normally provided by the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> (e.g. when using <a href="../rust/register-raw.html"><code>Engine::register_fn_raw</code></a>).
 However, it may also be manually constructed from a tuple:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use rhai::{Engine, FnPtr};
+</span>use rhai::{Engine, FnPtr, NativeCallContext};
 
 let engine = Engine::new();
 
@@ -382,13 +386,11 @@ let fn_ptr = engine.eval_ast::&lt;FnPtr&gt;(&amp;ast)?;
 // Get rid of the script, retaining only functions
 ast.retain_functions(|_, _, _| true);
 
-// Create native call context via a tuple
-let context =
-        (
-            &amp;engine,            // the 'Engine'
-            &amp;[ast.as_ref()]     // function namespace from the 'AST'
-                                // as a one-element slice
-        ).into();
+// Create native call context
+let context = NativeCallContext::new(
+    &amp;engine,                    // the 'Engine'
+    &amp;[ast.as_ref()]             // function namespace from the 'AST'
+);
 
 // 'f' captures: the engine, the AST, and the closure
 let f = move |x: i64| fn_ptr.call_dynamic(context, None, [x.into()]);

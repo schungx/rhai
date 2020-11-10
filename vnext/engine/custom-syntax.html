@@ -213,13 +213,12 @@ obscure language syntax just to do something.</p>
 <p><code>$ident$</code> - any <a href="/rhai/vnext/language/variables.html">variable</a> name.</p>
 </li>
 </ul>
-<h3><a class="header" href="#the-first-symbol-must-be-a-keyword" id="the-first-symbol-must-be-a-keyword">The First Symbol Must be a Keyword</a></h3>
+<h3><a class="header" href="#the-first-symbol-must-be-an-identifier" id="the-first-symbol-must-be-an-identifier">The First Symbol Must be an Identifier</a></h3>
 <p>There is no specific limit on the combination and sequencing of each symbol type,
 except the <em>first</em> symbol which must be a custom keyword that follows the naming rules
 of <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
-<p>The first symbol also cannot be a reserved <a href="/rhai/vnext/appendix/keywords.html">keyword</a>, unless that keyword
-has been <a href="/rhai/vnext/engine/disable.html">disabled</a>.</p>
-<p>In other words, any valid identifier that is not an active <a href="/rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
+<p>The first symbol also cannot be a normal or reserved <a href="/rhai/vnext/appendix/keywords.html">keyword</a>.
+In other words, any valid identifier that is not a <a href="/rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
 <h3><a class="header" href="#the-first-symbol-must-be-unique" id="the-first-symbol-must-be-unique">The First Symbol Must be Unique</a></h3>
 <p>Rhai uses the <em>first</em> symbol as a clue to parse custom syntax.</p>
 <p>Therefore, at any one time, there can only be <em>one</em> custom syntax starting with each unique symbol.</p>
@@ -263,21 +262,18 @@ print(hello);   // variable declared by a custom syntax persists!
 <p><code>Fn(context: &amp;mut EvalContext, inputs: &amp;[Expression]) -&gt; Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code></p>
 </blockquote>
 <p>where:</p>
-<ul>
-<li>
-<p><code>context: &amp;mut EvalContext</code> - mutable reference to the current evaluation <em>context</em>, exposing the following:</p>
-<ul>
-<li><code>context.scope: &amp;mut Scope</code> - mutable reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it.</li>
-<li><code>context.engine(): &amp;Engine</code> - reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</li>
-<li><code>context.iter_namespaces(): impl Iterator&lt;Item = &amp;Module&gt;</code> - iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions.</li>
-<li><code>context.this_ptr(): Option&lt;&amp;Dynamic&gt;</code> - reference to the current bound [<code>this</code>] pointer, if any.</li>
-<li><code>context.call_level(): usize</code> - the current nesting level of function calls.</li>
-</ul>
-</li>
-<li>
-<p><code>inputs: &amp;[Expression]</code> - a list of input expression trees.</p>
-</li>
-</ul>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>context</code></td><td align="center"><code>&amp;mut EvalContext</code></td><td>mutable reference to the current evaluation <em>context</em></td></tr>
+<tr><td>- <code>context.scope</code></td><td align="center"><code>&amp;mut Scope</code></td><td>mutable reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it</td></tr>
+<tr><td>- <code>context.engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>- <code>context.imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>- <code>context.iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>- <code>context.this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
+<tr><td>- <code>context.call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
+<tr><td><code>inputs</code></td><td align="center"><code>&amp;[Expression]</code></td><td>a list of input expression trees</td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
+<p>Return value is the result of evaluating the custom syntax expression.</p>
 <h3><a class="header" href="#access-arguments" id="access-arguments">Access Arguments</a></h3>
 <p>The most important argument is <code>inputs</code> where the matched identifiers (<code>$ident$</code>), expressions/statements (<code>$expr$</code>)
 and statement blocks (<code>$block$</code>) are provided.</p>
@@ -356,9 +352,9 @@ fn implementation_func(
     Ok(().into())
 }
 
-// Register the custom syntax (sample): do |x| -&gt; { x += 1 } while x &lt; 0;
+// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0;
 engine.register_custom_syntax(
-    &amp;[ &quot;do&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
+    &amp;[ &quot;exec&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
     1,  // the number of new variables declared within this custom syntax
     implementation_func
 )?;
@@ -379,6 +375,83 @@ of what you’re doing.</p>
 <p>For custom syntax, documentation is crucial.</p>
 <p>Make sure there are <em>lots</em> of examples for users to follow.</p>
 <h2><a class="header" href="#step-six---profit" id="step-six---profit">Step Six - Profit!</a></h2>
+<h2><a class="header" href="#really-advanced---low-level-custom-syntax-api" id="really-advanced---low-level-custom-syntax-api">Really Advanced - Low Level Custom Syntax API</a></h2>
+<p>Sometimes it is desirable to have multiple custom syntax starting with the
+same symbol.  This is especially common for <em>command-style</em> syntax where the
+second symbol calls a particular command:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The following simulates a command-style syntax, all starting with 'perform'.
+perform hello world;        // A fixed sequence of symbols
+perform action 42;          // Perform a system action with a parameter
+perform update system;      // Update the system
+perform check all;          // Check all system settings
+perform cleanup;            // Clean up the system
+perform add something;      // Add something to the system
+perform remove something;   // Delete something from the system
+<span class="boring">}
+</span></code></pre></pre>
+<p>For even more flexibility, there is a <em>low level</em> API for custom syntax that
+allows the registration of an entire mini-parser.</p>
+<p>Use <code>Engine::register_custom_syntax_raw</code> to register a custom syntax <em>parser</em>
+together with the implementation function:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>engine.register_custom_syntax_raw(
+    &quot;perform&quot;,
+    |stream| match stream.len() {
+        // perform ...
+        1 =&gt; Ok(Some(&quot;$ident$&quot;.to_string())),
+        // perform command ...
+        2 =&gt; match stream[1].as_str() {
+            &quot;action&quot; =&gt; Ok(Some(&quot;$expr$&quot;.to_string())),
+            &quot;hello&quot; =&gt; Ok(Some(&quot;world&quot;.to_string())),
+            &quot;update&quot; | &quot;check&quot; | &quot;add&quot; | &quot;remove&quot; =&gt; Ok(Some(&quot;$ident$&quot;.to_string())),
+            &quot;cleanup&quot; =&gt; Ok(None),
+            cmd =&gt; Err(ParseError(Box::new(ParseErrorType::BadInput(
+                LexError::ImproperSymbol(format!(&quot;Improper command: {}&quot;, cmd))
+            )), NO_POS)),
+        },
+        // perform command arg ...
+        3 =&gt; match (stream[1].as_str(), stream[2].as_str()) {
+            (&quot;action&quot;, _) =&gt; Ok(None),
+            (&quot;hello&quot;, &quot;world&quot;) =&gt; Ok(None),
+            (&quot;update&quot;, arg) if arg == &quot;system&quot; =&gt; Ok(None),
+            (&quot;update&quot;, arg) if arg == &quot;client&quot; =&gt; Ok(None),
+            (&quot;check&quot;, arg) =&gt; Ok(None),
+            (&quot;add&quot;, arg) =&gt; Ok(None),
+            (&quot;remove&quot;, arg) =&gt; Ok(None),
+            (cmd, arg) =&gt; Err(ParseError(Box::new(ParseErrorType::BadInput(
+                LexError::ImproperSymbol(
+                    format!(&quot;Invalid argument for command {}: {}&quot;, cmd, arg)
+                )
+            )), NO_POS)),
+        },
+        _ =&gt; unreachable!(),
+    },
+    0, // the number of new variables declared within this custom syntax
+    implementation_func
+);
+<span class="boring">}
+</span></code></pre></pre>
+<h3><a class="header" href="#function-signature-1" id="function-signature-1">Function Signature</a></h3>
+<p>The custom syntax parser has the following signature:</p>
+<blockquote>
+<p><code>Fn(stream: &amp;[String]) -&gt; Result&lt;Option&lt;String&gt;, ParseError&gt;</code></p>
+</blockquote>
+<p>where:</p>
+<table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>stream</code></td><td align="center"><code>&amp;[String]</code></td><td>a slice of symbols that have been parsed so far, possibly containing <code>&quot;$expr$&quot;</code> and/or <code>&quot;$block$&quot;</code></td></tr>
+</tbody></table>
+<h3><a class="header" href="#return-value-1" id="return-value-1">Return Value</a></h3>
+<p>The return value is <code>Result&lt;Option&lt;String&gt;, ParseError&gt;</code> where:</p>
+<table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>Ok(None)</code></td><td>parsing complete and there are no more symbols to match</td></tr>
+<tr><td><code>Ok(Some(symbol))</code></td><td>next symbol to match, which can also be <code>&quot;$expr$&quot;</code>, <code>&quot;$ident$&quot;</code> or <code>&quot;$block$&quot;</code></td></tr>
+<tr><td><code>Err(ParseError)</code></td><td>error that is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), NO_POS)</code> to indicate that there is a syntax error, but it can be any <code>ParseError</code>.</td></tr>
+</tbody></table>
 
                     </main>
 

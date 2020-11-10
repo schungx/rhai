@@ -170,10 +170,12 @@
 <p>Easy-to-use language similar to JavaScript+Rust with dynamic typing.</p>
 </li>
 <li>
-<p>Tight integration with native Rust <a href="/rhai/vnext/language/functions.html">functions</a> and <a href="/rhai/vnext/rust/custom.html">types</a>, including <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a>, <a href="/rhai/vnext/rust/custom.html">methods</a> and <a href="/rhai/vnext/rust/indexers.html">indexers</a>.</p>
+<p>Tight integration with native Rust <a href="/rhai/vnext/language/functions.html">functions</a> and <a href="/rhai/vnext/rust/custom.html">types</a> including <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a>,
+<a href="/rhai/vnext/rust/custom.html">methods</a> and <a href="/rhai/vnext/rust/indexers.html">indexers</a>.</p>
 </li>
 <li>
-<p>Freely pass Rust variables/constants into a script via an external <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+<p>Freely pass Rust variables/constants into a script via an external <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> - all clonable Rust types are supported seamlessly
+without the need to implement any special trait.</p>
 </li>
 <li>
 <p>Easily <a href="/rhai/vnext/engine/call-fn.html">call a script-defined function</a> from Rust.</p>
@@ -192,7 +194,8 @@ for <a href="/rhai/vnext/start/features.html"><code>no-std</code></a> and <code>
 <p>Fairly low compile-time overhead.</p>
 </li>
 <li>
-<p>Fairly efficient evaluation (1 million iterations in 0.3 sec on a single core, 2.3 GHz Linux VM).</p>
+<p>Fairly efficient evaluation (1 million iterations in 0.3 sec on a single core, 2.3 GHz Linux VM).
+An unofficial Fibonacci benchmark puts Rhai somewhere between Wren and Python.</p>
 </li>
 <li>
 <p>Scripts are <a href="/rhai/vnext/engine/optimize/index.html">optimized</a> (useful for template-based machine-generated scripts) for repeated evaluations.</p>
@@ -228,13 +231,15 @@ for <a href="/rhai/vnext/start/features.html"><code>no-std</code></a> and <code>
 <p>Relatively little <code>unsafe</code> code (yes there are some for performance reasons).</p>
 </li>
 <li>
-<p>Sand-boxed - the scripting <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, if declared immutable, cannot mutate the containing environment unless <a href="/rhai/vnext/patterns/control.html">explicitly permitted</a>.</p>
+<p>Sand-boxed - the scripting <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, if declared immutable, cannot mutate the containing environment unless
+<a href="/rhai/vnext/patterns/control.html">explicitly permitted</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#rugged" id="rugged">Rugged</a></h2>
 <ul>
 <li>
-<p>Protected against malicious attacks (such as <a href="/rhai/vnext/safety/max-call-stack.html">stack-overflow</a>, <a href="/rhai/vnext/safety/max-string-size.html">over-sized data</a>, and <a href="/rhai/vnext/safety/max-operations.html">runaway scripts</a> etc.) that may come from untrusted third-party user-land scripts.</p>
+<p>Protected against malicious attacks (such as <a href="/rhai/vnext/safety/max-call-stack.html">stack-overflow</a>, <a href="/rhai/vnext/safety/max-string-size.html">over-sized data</a>,
+and <a href="/rhai/vnext/safety/max-operations.html">runaway scripts</a> etc.) that may come from untrusted third-party user-land scripts.</p>
 </li>
 <li>
 <p>Track script evaluation <a href="/rhai/vnext/safety/progress.html">progress</a> and manually terminate a script run.</p>
