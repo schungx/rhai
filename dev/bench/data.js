@@ -45962,18 +45962,6 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_nested_if",
-            "value": 16566650,
-            "range": "± 2478378",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_switch",
-            "value": 6194400,
-            "range": "± 928151",
-            "unit": "ns/iter"
-          },
-          {
             "name": "bench_eval_map_large_get",
             "value": 2417,
             "range": "± 298",
@@ -46259,18 +46247,6 @@ window.BENCHMARK_DATA = {
             "name": "bench_eval_loop_strings_no_build",
             "value": 2019801,
             "range": "± 379074",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_nested_if",
-            "value": 16596870,
-            "range": "± 2166636",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_switch",
-            "value": 6136185,
-            "range": "± 906809",
             "unit": "ns/iter"
           },
           {
@@ -46562,18 +46538,6 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_nested_if",
-            "value": 17615443,
-            "range": "± 1204528",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_switch",
-            "value": 7463870,
-            "range": "± 410255",
-            "unit": "ns/iter"
-          },
-          {
             "name": "bench_eval_map_large_get",
             "value": 2566,
             "range": "± 497",
@@ -46862,18 +46826,6 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_nested_if",
-            "value": 15710322,
-            "range": "± 2298010",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_switch",
-            "value": 6495597,
-            "range": "± 987782",
-            "unit": "ns/iter"
-          },
-          {
             "name": "bench_eval_map_large_get",
             "value": 2259,
             "range": "± 469",
@@ -47159,18 +47111,6 @@ window.BENCHMARK_DATA = {
             "name": "bench_eval_loop_strings_no_build",
             "value": 1679223,
             "range": "± 257859",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_nested_if",
-            "value": 14147076,
-            "range": "± 1557859",
-            "unit": "ns/iter"
-          },
-          {
-            "name": "bench_eval_switch",
-            "value": 5946383,
-            "range": "± 675288",
             "unit": "ns/iter"
           },
           {
