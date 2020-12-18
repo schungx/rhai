@@ -170,7 +170,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#what-is-rhai" id="what-is-rhai">What is Rhai</a></h1>
-<p><img src="about//rhai/vnext/images/rhai_logo.png" alt="Rhai Logo" /></p>
+<p><img src="about//rhai/vnext/images/logo/rhai-banner-transparent-colour.svg" alt="Rhai Logo" /></p>
 <p>Rhai is an embedded scripting language and evaluation engine for Rust that gives a safe and easy way
 to add scripting to any application.</p>
 <h2><a class="header" href="#versions" id="versions">Versions</a></h2>
@@ -185,10 +185,12 @@ another hot beverage - <strong>Chai</strong>, which is the word for “tea” in
 and, in particular, a popular kind of milk tea consumed in India.</p>
 <p>Later, when the novel implementation technique behind ChaiScript was ported from C++ to Rust,
 logically the <code>C</code> was changed to an <code>R</code> to make it “RhaiScript”, or just “Rhai”.</p>
-<h3><a class="header" href="#on-the-origin-of-the-temporary-rhai-logo" id="on-the-origin-of-the-temporary-rhai-logo">On the origin of the temporary Rhai logo</a></h3>
-<p>One of Rhai’s maintainers, Stephen Chung, was thinking about a logo when he accidentally
-came across a copy of <em>Catcher in the Rye</em> in a restaurant.  The rest was history.</p>
-<p>It is temporary until it becomes official, that is...</p>
+<h3><a class="header" href="#on-the-origin-of-the-semi-official-rhai-logo" id="on-the-origin-of-the-semi-official-rhai-logo">On the origin of the semi-official Rhai logo</a></h3>
+<p>One of Rhai’s maintainers, <a href="https://github.com/schungx">Stephen Chung</a>, was thinking about a logo when he accidentally
+came across a copy of <em>Catcher in the Rye</em> in a restaurant, and drew the first version
+of the logo.</p>
+<p>Then <a href="https://github.com/semirix"><code>@semirix</code></a> refined it to the current version.</p>
+<p>The plan is to make the logo official together with a <code>1.0</code> release.</p>
 <h1><a class="header" href="#features" id="features">Features</a></h1>
 <h2><a class="header" href="#easy" id="easy">Easy</a></h2>
 <ul>
@@ -8217,12 +8219,27 @@ fn implementation_func(
     Ok(Dynamic::UNIT)
 }
 
-// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0;
+// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0
 engine.register_custom_syntax(
     &amp;[ &quot;exec&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
     1,  // the number of new variables declared within this custom syntax
     implementation_func
 )?;
+<span class="boring">}
+</span></code></pre></pre>
+<p>Remember that a custom syntax acts as an <em>expression</em>, so it can show up practically anywhere:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use as an expression:
+let foo = (exec |x| -&gt; { x += 1 } while x &lt; 0) * 100;
+
+// Use as a function call argument:
+do_something(exec |x| -&gt; { x += 1 } while x &lt; 0, 24, true);
+
+// Use as a statement:
+exec |x| -&gt; { x += 1 } while x &lt; 0;
+//                                ^ terminate statement with ';'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#step-four---disable-unneeded-statement-types" id="step-four---disable-unneeded-statement-types">Step Four - Disable Unneeded Statement Types</a></h2>

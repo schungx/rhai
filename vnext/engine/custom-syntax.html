@@ -357,12 +357,27 @@ fn implementation_func(
     Ok(Dynamic::UNIT)
 }
 
-// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0;
+// Register the custom syntax (sample): exec |x| -&gt; { x += 1 } while x &lt; 0
 engine.register_custom_syntax(
     &amp;[ &quot;exec&quot;, &quot;|&quot;, &quot;$ident$&quot;, &quot;|&quot;, &quot;-&gt;&quot;, &quot;$block$&quot;, &quot;while&quot;, &quot;$expr$&quot; ], // the custom syntax
     1,  // the number of new variables declared within this custom syntax
     implementation_func
 )?;
+<span class="boring">}
+</span></code></pre></pre>
+<p>Remember that a custom syntax acts as an <em>expression</em>, so it can show up practically anywhere:</p>
+<pre><pre class="playground"><code class="language-rust">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use as an expression:
+let foo = (exec |x| -&gt; { x += 1 } while x &lt; 0) * 100;
+
+// Use as a function call argument:
+do_something(exec |x| -&gt; { x += 1 } while x &lt; 0, 24, true);
+
+// Use as a statement:
+exec |x| -&gt; { x += 1 } while x &lt; 0;
+//                                ^ terminate statement with ';'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#step-four---disable-unneeded-statement-types" id="step-four---disable-unneeded-statement-types">Step Four - Disable Unneeded Statement Types</a></h2>
