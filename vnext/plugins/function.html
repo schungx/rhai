@@ -169,13 +169,13 @@
                     <main>
                         <h1><a class="header" href="#export-a-rust-function-to-rhai" id="export-a-rust-function-to-rhai">Export a Rust Function to Rhai</a></h1>
 <p>Sometimes only a few ad hoc functions are required and it is simpler to register
-individual functions instead of a full-blown <a href="/plugins/module.html">plugin module</a>.</p>
+individual functions instead of a full-blown <a href="/rhai/vnext/plugins/module.html">plugin module</a>.</p>
 <h2><a class="header" href="#macros" id="macros">Macros</a></h2>
 <table><thead><tr><th>Macro</th><th>Signature</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>#[export_fn]</code></td><td>apply to rust function defined in a Rust module</td><td>exports the function</td></tr>
-<tr><td><code>register_exported_fn!</code></td><td><code>register_exported_fn!(&amp;mut </code><em>engine</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into an <a href="/engine/hello-world.html"><code>Engine</code></a> under a specific name</td></tr>
-<tr><td><code>set_exported_fn!</code></td><td><code>set_exported_fn!(&amp;mut </code><em>module</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into a <a href="/rust/modules/index.html"><code>Module</code></a> under a specific name</td></tr>
-<tr><td><code>set_exported_global_fn!</code></td><td><code>set_exported_global_fn!(&amp;mut </code><em>module</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into a <a href="/rust/modules/index.html"><code>Module</code></a> under a specific name, exposing it to the global namespace</td></tr>
+<tr><td><code>register_exported_fn!</code></td><td><code>register_exported_fn!(&amp;mut </code><em>engine</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> under a specific name</td></tr>
+<tr><td><code>set_exported_fn!</code></td><td><code>set_exported_fn!(&amp;mut </code><em>module</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into a <a href="/rhai/vnext/rust/modules/index.html"><code>Module</code></a> under a specific name</td></tr>
+<tr><td><code>set_exported_global_fn!</code></td><td><code>set_exported_global_fn!(&amp;mut </code><em>module</em><code>, &quot;</code><em>name</em><code>&quot;, </code><em>function</em><code>)</code></td><td>registers the function into a <a href="/rhai/vnext/rust/modules/index.html"><code>Module</code></a> under a specific name, exposing it to the global namespace</td></tr>
 </tbody></table>
 <h2><a class="header" href="#export_fn-and-register_exported_fn" id="export_fn-and-register_exported_fn"><code>#[export_fn]</code> and <code>register_exported_fn!</code></a></h2>
 <p>Apply <code>#[export_fn]</code> onto a function defined at <em>module level</em> to convert it into a Rhai plugin function.</p>
@@ -197,7 +197,7 @@ fn main() {
 }
 </code></pre></pre>
 <h2><a class="header" href="#fallible-functions" id="fallible-functions">Fallible Functions</a></h2>
-<p>To register <a href="/rust/fallible.html">fallible functions</a> (i.e. functions that may return errors), apply the
+<p>To register <a href="/rhai/vnext/rust/fallible.html">fallible functions</a> (i.e. functions that may return errors), apply the
 <code>#[rhai_fn(return_raw)]</code> attribute on plugin functions that return <code>Result&lt;Dynamic, Box&lt;EvalAltResult&gt;&gt;</code>.</p>
 <p>A syntax error is generated if the function with <code>#[rhai_fn(return_raw)]</code> does not
 have the appropriate return type.</p>
@@ -226,14 +226,14 @@ fn main() {
 specially by the plugins system.</p>
 <p><code>NativeCallContext</code> is a type that encapsulates the current <em>native call context</em> and exposes the following:</p>
 <table><thead><tr><th>Field</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="/language/fn-ptr.html">function pointer</a>.</td></tr>
-<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
-<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td><code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, with all configurations and settings.<br/>This is sometimes useful for calling a script-defined function within the same evaluation context using <a href="/rhai/vnext/engine/call-fn.html"><code>Engine::call_fn</code></a>, or calling a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a>.</td></tr>
+<tr><td><code>imports()</code></td><td align="center"><code>Option&lt;&amp;Imports&gt;</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements (if any)</td></tr>
+<tr><td><code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 </tbody></table>
 <p>This first parameter, if exists, will be stripped before all other processing.  It is <em>virtual</em>.
 Most importantly, it does <em>not</em> count as a parameter to the function and there is no need to provide
 this argument when calling the function in Rhai.</p>
-<p>The native call context can be used to call a <a href="/language/fn-ptr.html">function pointer</a> or <a href="/language/fn-closure.html">closure</a> that has been passed
+<p>The native call context can be used to call a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> or <a href="/rhai/vnext/language/fn-closure.html">closure</a> that has been passed
 as a parameter to the function, thereby implementing a <em>callback</em>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -329,21 +329,6 @@ pub fn grow(context: NativeCallContext, size: i64)
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

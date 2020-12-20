@@ -170,10 +170,10 @@
                         <h1><a class="header" href="#variable-resolver" id="variable-resolver">Variable Resolver</a></h1>
 <p>By default, Rhai looks up access to variables from the enclosing block scope,
 working its way outwards until it reaches the top (global) level, then it
-searches the <a href="/engine/scope.html"><code>Scope</code></a> that is passed into the <code>Engine::eval</code> call.</p>
+searches the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> that is passed into the <code>Engine::eval</code> call.</p>
 <p>There is a built-in facility for advanced users to <em>hook</em> into the variable
 resolution service and to override its default behavior.</p>
-<p>To do so, provide a closure to the <a href="/engine/hello-world.html"><code>Engine</code></a> via the <code>Engine::on_var</code> method:</p>
+<p>To do so, provide a closure to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> via the <code>Engine::on_var</code> method:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -200,13 +200,13 @@ engine.on_var(|name, index, context| {
 <h2><a class="header" href="#returned-values-are-constants" id="returned-values-are-constants">Returned Values are Constants</a></h2>
 <p>Variable values, if any returned, are treated as <em>constants</em> by the script and cannot be assigned to.
 This is to avoid needing a mutable reference to the underlying data provider which may not be possible to obtain.</p>
-<p>In order to change these variables, it is best to push them into a custom <a href="/engine/scope.html"><code>Scope</code></a> instead of using
+<p>In order to change these variables, it is best to push them into a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> instead of using
 a variable resolver. Then these variables can be assigned to and their updated values read back after
 the script is evaluated.</p>
 <h2><a class="header" href="#benefits-of-using-a-variable-resolver" id="benefits-of-using-a-variable-resolver">Benefits of Using a Variable Resolver</a></h2>
 <ol>
 <li>
-<p>Avoid having to maintain a custom <a href="/engine/scope.html"><code>Scope</code></a> with all variables regardless of need (because a script may not use them all).</p>
+<p>Avoid having to maintain a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> with all variables regardless of need (because a script may not use them all).</p>
 </li>
 <li>
 <p><em>Short-circuit</em> variable access, essentially overriding standard behavior.</p>
@@ -215,7 +215,7 @@ the script is evaluated.</p>
 <p><em>Lazy-load</em> variables when they are accessed, not up-front. This benefits when the number of variables is very large, when they are timing-dependent, or when they are expensive to load.</p>
 </li>
 <li>
-<p>Rename system variables on a script-by-script basis without having to construct different <a href="/engine/scope.html"><code>Scope</code></a>‘s.</p>
+<p>Rename system variables on a script-by-script basis without having to construct different <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>‘s.</p>
 </li>
 </ol>
 <h2><a class="header" href="#function-signature" id="function-signature">Function Signature</a></h2>
@@ -227,21 +227,21 @@ the script is evaluated.</p>
 <p>where:</p>
 <table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>name</code></td><td align="center"><code>&amp;str</code></td><td>variable name</td></tr>
-<tr><td><code>index</code></td><td align="center"><code>usize</code></td><td>an offset from the bottom of the current <a href="/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.<br/>Offsets start from 1, with 1 meaning the last variable in the current <a href="/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.<br/>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="/engine/scope.html"><code>Scope</code></a> must be performed.</td></tr>
+<tr><td><code>index</code></td><td align="center"><code>usize</code></td><td>an offset from the bottom of the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> that the variable is supposed to reside.<br/>Offsets start from 1, with 1 meaning the last variable in the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.  Essentially the correct variable is at position <code>scope.len() - index</code>.<br/>If <code>index</code> is zero, then there is no pre-calculated offset position and a search through the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> must be performed.</td></tr>
 <tr><td><code>context</code></td><td align="center"><code>&amp;EvalContext</code></td><td>reference to the current evaluation <em>context</em></td></tr>
-<tr><td>• <code>scope()</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/engine/scope.html"><code>Scope</code></a></td></tr>
-<tr><td>• <code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/engine/hello-world.html"><code>Engine</code></a></td></tr>
-<tr><td>• <code>imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
-<tr><td>• <code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>• <code>scope()</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a></td></tr>
+<tr><td>• <code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>• <code>imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>• <code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td>• <code>this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
 <tr><td>• <code>call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
 </tbody></table>
 <h3><a class="header" href="#return-value" id="return-value">Return Value</a></h3>
 <p>The return value is <code>Result&lt;Option&lt;Dynamic&gt;, Box&lt;EvalAltResult&gt;&gt;</code> where:</p>
 <table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>Ok(None)</code></td><td>normal variable resolution process should continue, i.e. continue searching through the <a href="/engine/scope.html"><code>Scope</code></a></td></tr>
+<tr><td><code>Ok(None)</code></td><td>normal variable resolution process should continue, i.e. continue searching through the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a></td></tr>
 <tr><td><code>Ok(Some(Dynamic))</code></td><td>value of the variable, treated as a constant</td></tr>
-<tr><td><code>Err(Box&lt;EvalAltResult&gt;)</code></td><td>error that is reflected back to the <a href="/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>EvalAltResult::ErrorVariableNotFound(var_name, Position::NONE)</code> to indicate that the variable does not exist, but it can be any <code>EvalAltResult</code>.</td></tr>
+<tr><td><code>Err(Box&lt;EvalAltResult&gt;)</code></td><td>error that is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.<br/>Normally this is <code>EvalAltResult::ErrorVariableNotFound(var_name, Position::NONE)</code> to indicate that the variable does not exist, but it can be any <code>EvalAltResult</code>.</td></tr>
 </tbody></table>
 
                     </main>
@@ -281,21 +281,6 @@ the script is evaluated.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

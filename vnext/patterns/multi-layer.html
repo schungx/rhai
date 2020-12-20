@@ -171,7 +171,7 @@
 <h2><a class="header" href="#usage-scenario" id="usage-scenario">Usage Scenario</a></h2>
 <ul>
 <li>
-<p>A system is divided into separate <em>layers</em>, each providing logic in terms of scripted <a href="/language/functions.html">functions</a>.</p>
+<p>A system is divided into separate <em>layers</em>, each providing logic in terms of scripted <a href="/rhai/vnext/language/functions.html">functions</a>.</p>
 </li>
 <li>
 <p>A lower layer provides <em>default implementations</em> of certain functions.</p>
@@ -197,10 +197,10 @@ corporate-wide defaults.</p>
 <p>Each layer is a separate script.</p>
 </li>
 <li>
-<p>The lowest layer script is compiled into a base <a href="/engine/compile.html"><code>AST</code></a>.</p>
+<p>The lowest layer script is compiled into a base <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>.</p>
 </li>
 <li>
-<p>Higher layer scripts are also compiled into <a href="/engine/compile.html"><code>AST</code></a> and <em>combined</em> into the base using <code>AST::combine</code>
+<p>Higher layer scripts are also compiled into <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> and <em>combined</em> into the base using <code>AST::combine</code>
 (or the <code>+=</code> operator), overriding any existing functions.</p>
 </li>
 </ul>
@@ -324,21 +324,6 @@ ast += lowest;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

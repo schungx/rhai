@@ -170,7 +170,7 @@
                         <h1><a class="header" href="#script-optimization" id="script-optimization">Script Optimization</a></h1>
 <p>Rhai includes an <em>optimizer</em> that tries to optimize a script after parsing.
 This can reduce resource utilization and increase execution speed.</p>
-<p>Script optimization can be turned off via the <a href="/start/features.html"><code>no_optimize</code></a> feature.</p>
+<p>Script optimization can be turned off via the <a href="/rhai/vnext/start/features.html"><code>no_optimize</code></a> feature.</p>
 <h2><a class="header" href="#dead-code-removal" id="dead-code-removal">Dead Code Removal</a></h2>
 <p>For example, in the following:</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -219,12 +219,12 @@ print(&quot;done!&quot;);                             // &lt;- the line above is
 </span></code></pre></pre>
 <p>These are quite effective for template-based machine-generated scripts where certain constant values
 are spliced into the script text in order to turn on/off certain sections.</p>
-<p>For fixed script texts, the constant values can be provided in a user-defined <a href="/engine/scope.html"><code>Scope</code></a> object
-to the <a href="/engine/hello-world.html"><code>Engine</code></a> for use in compilation and evaluation.</p>
+<p>For fixed script texts, the constant values can be provided in a user-defined <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> object
+to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> for use in compilation and evaluation.</p>
 <h3><a class="header" href="#caveat" id="caveat">Caveat</a></h3>
-<p>If the <a href="/language/constants.html">constants</a> are modified later on (yes, it is possible, via Rust functions),
+<p>If the <a href="/rhai/vnext/language/constants.html">constants</a> are modified later on (yes, it is possible, via Rust functions),
 the modified values will not show up in the optimized script.
-Only the initialization values of <a href="/language/constants.html">constants</a> are ever retained.</p>
+Only the initialization values of <a href="/rhai/vnext/language/constants.html">constants</a> are ever retained.</p>
 <p>This is almost never a problem because real-world scripts seldom modify a constant,
 but the possibility is always there.</p>
 <h2><a class="header" href="#eager-operator-evaluations" id="eager-operator-evaluations">Eager Operator Evaluations</a></h2>
@@ -235,7 +235,7 @@ so whether they are optimized away depends on the situation:</p>
 <p>If the operands are not <em>constant</em> values, it is not optimized.</p>
 </li>
 <li>
-<p>If the operator is <a href="/rust/operators.html">overloaded</a>, it is not optimized because the overloading function may not be <em>pure</em>
+<p>If the operator is <a href="/rhai/vnext/rust/operators.html">overloaded</a>, it is not optimized because the overloading function may not be <em>pure</em>
 (i.e. may cause side-effects when called).</p>
 </li>
 <li>
@@ -245,14 +245,14 @@ so whether they are optimized away depends on the situation:</p>
 <p>If the operands are not of the same type, it is not optimized.</p>
 </li>
 <li>
-<p>If the operator is not <em>built-in</em> (see list of <a href="/engine/raw.html#built-in-operators">built-in operators</a>), it is not optimized.</p>
+<p>If the operator is not <em>built-in</em> (see list of <a href="/rhai/vnext/engine/raw.html#built-in-operators">built-in operators</a>), it is not optimized.</p>
 </li>
 <li>
-<p>If the operator is a binary built-in operator for a <a href="/language/values-and-types.html">standard type</a>, it is called and replaced by a constant result.</p>
+<p>If the operator is a binary built-in operator for a <a href="/rhai/vnext/language/values-and-types.html">standard type</a>, it is called and replaced by a constant result.</p>
 </li>
 </ul>
 <p>Rhai guarantees that no external function will be run (in order not to trigger side-effects) during the
-optimization process (unless the optimization level is set to <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>).</p>
+optimization process (unless the optimization level is set to <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -271,7 +271,7 @@ if DECISION == 1 {              // this is optimized into 'true'
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>Because of the eager evaluation of operators for <a href="/language/values-and-types.html">standard types</a>, many constant expressions will be evaluated
+<p>Because of the eager evaluation of operators for <a href="/rhai/vnext/language/values-and-types.html">standard types</a>, many constant expressions will be evaluated
 and replaced by the result.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -304,7 +304,7 @@ if DECISION == 1 {              // NOT optimized away because the operator is no
 }
 <span class="boring">}
 </span></code></pre></pre>
-<p>Alternatively, turn the optimizer to <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.</p>
+<p>Alternatively, turn the optimizer to <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>.</p>
 
                     </main>
 
@@ -343,21 +343,6 @@ if DECISION == 1 {              // NOT optimized away because the operator is no
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

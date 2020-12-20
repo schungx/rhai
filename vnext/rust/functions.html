@@ -169,9 +169,9 @@
                     <main>
                         <h1><a class="header" href="#register-a-rust-function" id="register-a-rust-function">Register a Rust Function</a></h1>
 <p>Rhai’s scripting engine is very lightweight.  It gets most of its abilities from functions.</p>
-<p>To call these functions, they need to be <em>registered</em> with the <a href="/engine/hello-world.html"><code>Engine</code></a> using <code>Engine::register_fn</code>
+<p>To call these functions, they need to be <em>registered</em> with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> using <code>Engine::register_fn</code>
 (in the <code>RegisterFn</code> trait) and <code>Engine::register_result_fn</code> (in the <code>RegisterResultFn</code> trait,
-see <a href="/rust/fallible.html">fallible functions</a>).</p>
+see <a href="/rhai/vnext/rust/fallible.html">fallible functions</a>).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -216,8 +216,8 @@ let result = engine.eval::&lt;i64&gt;(&quot;get_any_value()&quot;)?;
 println!(&quot;Answer: {}&quot;, result);             // prints 42
 <span class="boring">}
 </span></code></pre></pre>
-<p>To create a <a href="/language/dynamic.html"><code>Dynamic</code></a> value, use the <code>Dynamic::from</code> method.
-<a href="/language/values-and-types.html">Standard types</a> in Rhai can also use <code>into()</code>.</p>
+<p>To create a <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> value, use the <code>Dynamic::from</code> method.
+<a href="/rhai/vnext/language/values-and-types.html">Standard types</a> in Rhai can also use <code>into()</code>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -229,7 +229,7 @@ let y = Dynamic::from(&quot;hello!&quot;.to_string());    // remember &amp;str i
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#function-overloading" id="function-overloading">Function Overloading</a></h2>
-<p>Functions registered with the <a href="/engine/hello-world.html"><code>Engine</code></a> can be <em>overloaded</em> as long as the <em>signature</em> is unique,
+<p>Functions registered with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be <em>overloaded</em> as long as the <em>signature</em> is unique,
 i.e. different functions can have the same name as long as their parameters are of different types
 or different number.</p>
 <p>New definitions <em>overwrite</em> previous definitions of the same name and same number/types of parameters.</p>
@@ -271,21 +271,6 @@ or different number.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -171,13 +171,13 @@
 <p>For many applications in which Rhai is embedded, it is necessary to customize the way that modules
 are resolved.  For instance, modules may need to be loaded from script texts stored in a database,
 not in the file system.</p>
-<p>A module resolver must implement the trait <a href="/rust/traits.html"><code>rhai::ModuleResolver</code></a>,
+<p>A module resolver must implement the trait <a href="/rhai/vnext/rust/traits.html"><code>rhai::ModuleResolver</code></a>,
 which contains only one function: <code>resolve</code>.</p>
 <p>When Rhai prepares to load a module, <code>ModuleResolver::resolve</code> is called with the name
-of the <em>module path</em> (i.e. the path specified in the <a href="/language/modules/import.html"><code>import</code></a> statement).</p>
+of the <em>module path</em> (i.e. the path specified in the <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement).</p>
 <ul>
 <li>
-<p>Upon success, it should return an <a href="/rust/modules/index.html"><code>Rc&lt;Module&gt;</code></a> (or <a href="/rust/modules/index.html"><code>Arc&lt;Module&gt;</code></a> under <a href="/start/features.html"><code>sync</code></a>).</p>
+<p>Upon success, it should return an <a href="/rhai/vnext/rust/modules/index.html"><code>Rc&lt;Module&gt;</code></a> (or <a href="/rhai/vnext/rust/modules/index.html"><code>Arc&lt;Module&gt;</code></a> under <a href="/rhai/vnext/start/features.html"><code>sync</code></a>).</p>
 <p>The module should call <code>Module::build_index</code> on the target module before returning.
 This method flattens the entire module tree and <em>indexes</em> it for fast function name resolution.
 If the module is already indexed, calling this method has no effect.</p>
@@ -274,21 +274,6 @@ engine.consume(r#&quot;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

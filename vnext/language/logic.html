@@ -177,9 +177,9 @@
 <tr><td align="center"><code>&lt;</code></td><td>less than</td></tr>
 <tr><td align="center"><code>&lt;=</code></td><td>less than or equals to</td></tr>
 </tbody></table>
-<p>Comparing most values of the same data type work out-of-the-box for all <a href="/language/values-and-types.html">standard types</a> supported by the system.</p>
-<p>However, if using a <a href="/engine/raw.html">raw <code>Engine</code></a> without loading any <a href="/rust/packages/index.html">packages</a>, comparisons can only be made between a limited
-set of types (see <a href="/engine/raw.html#built-in-operators">built-in operators</a>).</p>
+<p>Comparing most values of the same data type work out-of-the-box for all <a href="/rhai/vnext/language/values-and-types.html">standard types</a> supported by the system.</p>
+<p>However, if using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a> without loading any <a href="/rhai/vnext/rust/packages/index.html">packages</a>, comparisons can only be made between a limited
+set of types (see <a href="/rhai/vnext/engine/raw.html#built-in-operators">built-in operators</a>).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -235,7 +235,7 @@ a() | b();              // both a() and b() are evaluated
 a() &amp; b();              // both a() and b() are evaluated
 <span class="boring">}
 </span></code></pre></pre>
-<p>All boolean operators are <a href="/engine/raw.html#built-in-operators">built in</a> for the <code>bool</code> data type.</p>
+<p>All boolean operators are <a href="/rhai/vnext/engine/raw.html#built-in-operators">built in</a> for the <code>bool</code> data type.</p>
 
                     </main>
 
@@ -274,21 +274,6 @@ a() &amp; b();              // both a() and b() are evaluated
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -169,8 +169,8 @@
                     <main>
                         <h1><a class="header" href="#modules" id="modules">Modules</a></h1>
 <p>Rhai allows organizing code (functions, both Rust-based or script-based, and variables) into <em>modules</em>.
-Modules can be disabled via the <a href="/start/features.html"><code>no_module</code></a> feature.</p>
-<p>A module is of the type <code>Module</code> and holds a collection of functions, variables, <a href="/language/iterator.html">type iterators</a> and sub-modules.
+Modules can be disabled via the <a href="/rhai/vnext/start/features.html"><code>no_module</code></a> feature.</p>
+<p>A module is of the type <code>Module</code> and holds a collection of functions, variables, <a href="/rhai/vnext/language/iterator.html">type iterators</a> and sub-modules.
 It may be created entirely from Rust functions, or it may encapsulate a Rhai script together with the functions
 and variables defined by that script.</p>
 <p>Other scripts can then load this module and use the functions and variables exported
@@ -213,21 +213,6 @@ as if they were defined inside the same script.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

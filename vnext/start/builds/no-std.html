@@ -168,11 +168,11 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#no-std-build" id="no-std-build"><code>no-std</code> Build</a></h1>
-<p>The feature <a href="/start/features.html"><code>no_std</code></a> automatically converts the scripting engine into a <code>no-std</code> build.</p>
-<p>Usually, a <code>no-std</code> build goes hand-in-hand with <a href="/start/builds/minimal.html">minimal builds</a> because typical embedded
+<p>The feature <a href="/rhai/vnext/start/features.html"><code>no_std</code></a> automatically converts the scripting engine into a <code>no-std</code> build.</p>
+<p>Usually, a <code>no-std</code> build goes hand-in-hand with <a href="/rhai/vnext/start/builds/minimal.html">minimal builds</a> because typical embedded
 hardware (the primary target for <code>no-std</code>) has limited storage.</p>
 <h2><a class="header" href="#nightly-required" id="nightly-required">Nightly Required</a></h2>
-<p>Currently, <a href="/start/features.html"><code>no_std</code></a> requires the nightly compiler due to the crates that it uses.</p>
+<p>Currently, <a href="/rhai/vnext/start/features.html"><code>no_std</code></a> requires the nightly compiler due to the crates that it uses.</p>
 <h2><a class="header" href="#implementation" id="implementation">Implementation</a></h2>
 <p>Rhai allocates, so the first thing that must be included in any <code>no-std</code> project is
 an allocator crate, such as <a href="https://crates.io/crates/wee_alloc"><code>wee_alloc</code></a>.</p>
@@ -264,21 +264,6 @@ for different operating environments.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

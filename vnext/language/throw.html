@@ -168,7 +168,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#throw-exception-on-error" id="throw-exception-on-error">Throw Exception on Error</a></h1>
-<p>All of <a href="/engine/hello-world.html"><code>Engine</code></a>‘s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
+<p>All of <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>‘s evaluation/consuming methods return <code>Result&lt;T, Box&lt;rhai::EvalAltResult&gt;&gt;</code>
 with <code>EvalAltResult</code> holding error information.</p>
 <p>To deliberately return an error during an evaluation, use the <code>throw</code> keyword.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -200,7 +200,7 @@ println!(&quot;{}&quot;, result);     // prints &quot;Runtime error: 42 (line 5,
 </span></code></pre></pre>
 <h2><a class="header" href="#catch-a-thrown-exception" id="catch-a-thrown-exception">Catch a Thrown Exception</a></h2>
 <p>It is possible to <em>catch</em> an exception instead of having it abort the evaluation
-of the entire script via the <a href="/language/try-catch.html"><code>try</code> ... <code>catch</code></a>
+of the entire script via the <a href="/rhai/vnext/language/try-catch.html"><code>try</code> ... <code>catch</code></a>
 statement common to many C-like languages.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -253,21 +253,6 @@ catch (err)         // 'err' captures the thrown exception value
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -169,19 +169,19 @@
                     <main>
                         <h1><a class="header" href="#function-namespaces" id="function-namespaces">Function Namespaces</a></h1>
 <h2><a class="header" href="#each-function-is-a-separate-compilation-unit" id="each-function-is-a-separate-compilation-unit">Each Function is a Separate Compilation Unit</a></h2>
-<p><a href="/language/functions.html">Functions</a> in Rhai are <em>pure</em> and they form individual <em>compilation units</em>.
+<p><a href="/rhai/vnext/language/functions.html">Functions</a> in Rhai are <em>pure</em> and they form individual <em>compilation units</em>.
 This means that individual functions can be separated, exported, re-grouped, imported,
 and generally mix-’n-match-ed with other completely unrelated scripts.</p>
 <p>For example, the <code>AST::merge</code> and <code>AST::combine</code> methods (or the equivalent <code>+</code> and <code>+=</code> operators)
-allow combining all functions in one <a href="/engine/compile.html"><code>AST</code></a> into another, forming a new, unified, group of functions.</p>
+allow combining all functions in one <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> into another, forming a new, unified, group of functions.</p>
 <p>In general, there are two types of <em>namespaces</em> where functions are looked up:</p>
 <table><thead><tr><th>Namespace</th><th align="center">How Many</th><th>Source</th><th>Lookup method</th><th align="center">Sub-modules?</th><th align="center">Variables?</th></tr></thead><tbody>
-<tr><td>Global</td><td align="center">One</td><td>1) <a href="/engine/compile.html"><code>AST</code></a> being evaluated<br/>2) <code>Engine::register_XXX</code> API<br/>3) <a href="/rust/packages/index.html">packages</a> loaded<br/>4) functions in <a href="/rust/modules/index.html">modules</a> loaded via <code>Engine::register_module</code> and marked <em>global</em></td><td>simple function name</td><td align="center">ignored</td><td align="center">ignored</td></tr>
-<tr><td>Module</td><td align="center">Many</td><td><a href="/rust/modules/index.html"><code>Module</code></a></td><td>namespace-qualified function name</td><td align="center">yes</td><td align="center">yes</td></tr>
+<tr><td>Global</td><td align="center">One</td><td>1) <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> being evaluated<br/>2) <code>Engine::register_XXX</code> API<br/>3) <a href="/rhai/vnext/rust/packages/index.html">packages</a> loaded<br/>4) functions in <a href="/rhai/vnext/rust/modules/index.html">modules</a> loaded via <code>Engine::register_module</code> and marked <em>global</em></td><td>simple function name</td><td align="center">ignored</td><td align="center">ignored</td></tr>
+<tr><td>Module</td><td align="center">Many</td><td><a href="/rhai/vnext/rust/modules/index.html"><code>Module</code></a></td><td>namespace-qualified function name</td><td align="center">yes</td><td align="center">yes</td></tr>
 </tbody></table>
 <h2><a class="header" href="#module-namespace" id="module-namespace">Module Namespace</a></h2>
 <p>There can be multiple module namespaces at any time during a script evaluation, loaded via the
-<a href="/language/modules/import.html"><code>import</code></a> statement.</p>
+<a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statement.</p>
 <p>Functions and variables in module namespaces are isolated and encapsulated within their own environments.</p>
 <p>They must be called or accessed in a <em>namespace-qualified</em> manner.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -198,20 +198,20 @@ let x = calc_result();              // &lt;- error: function 'calc_result' not f
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#global-namespace" id="global-namespace">Global Namespace</a></h2>
-<p>There is one <em>global</em> namespace for every <a href="/engine/hello-world.html"><code>Engine</code></a>, which includes (in the following search order):</p>
+<p>There is one <em>global</em> namespace for every <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>, which includes (in the following search order):</p>
 <ul>
 <li>
-<p>All functions defined in the <a href="/engine/compile.html"><code>AST</code></a> currently being evaluated.</p>
+<p>All functions defined in the <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a> currently being evaluated.</p>
 </li>
 <li>
 <p>All native Rust functions and iterators registered via the <code>Engine::register_XXX</code> API.</p>
 </li>
 <li>
-<p>All functions and iterators defined in <a href="/rust/packages/index.html">packages</a> that are loaded into the <a href="/engine/hello-world.html"><code>Engine</code></a>.</p>
+<p>All functions and iterators defined in <a href="/rhai/vnext/rust/packages/index.html">packages</a> that are loaded into the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 </li>
 <li>
-<p>Functions defined in <a href="/rust/modules/index.html">modules</a> loaded via <code>Engine::register_module</code> that are specifically marked
-for exposure to the global namespace (e.g. via the <code>#[rhai(global)]</code> attribute in a <a href="/plugins/module.html">plugin module</a>).</p>
+<p>Functions defined in <a href="/rhai/vnext/rust/modules/index.html">modules</a> loaded via <code>Engine::register_module</code> that are specifically marked
+for exposure to the global namespace (e.g. via the <code>#[rhai(global)]</code> attribute in a <a href="/rhai/vnext/plugins/module.html">plugin module</a>).</p>
 </li>
 </ul>
 <p>Anywhere in a Rhai script, when a function call is made, the function is searched within the
@@ -248,8 +248,8 @@ engine.consume_ast(&amp;ast1)?;         // prints 'Boo!'
 </span></code></pre></pre>
 <p>Therefore, care must be taken when <em>cross-calling</em> functions to make sure that the correct
 functions are called.</p>
-<p>The only practical way to ensure that a function is a correct one is to use <a href="/rust/modules/index.html">modules</a> -
-i.e. define the function in a separate module and then <a href="/language/modules/import.html"><code>import</code></a> it:</p>
+<p>The only practical way to ensure that a function is a correct one is to use <a href="/rhai/vnext/rust/modules/index.html">modules</a> -
+i.e. define the function in a separate module and then <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> it:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -310,21 +310,6 @@ say_hello();
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

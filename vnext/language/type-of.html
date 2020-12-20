@@ -169,7 +169,7 @@
                     <main>
                         <h1><a class="header" href="#type_of" id="type_of"><code>type_of()</code></a></h1>
 <p>The <code>type_of</code> function detects the actual type of a value.</p>
-<p>This is useful because all variables are <a href="/language/dynamic.html"><code>Dynamic</code></a> in nature.</p>
+<p>This is useful because all variables are <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> in nature.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -191,7 +191,7 @@ if type_of(x) == &quot;string&quot; {
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#custom-types" id="custom-types">Custom Types</a></h2>
-<p><code>type_of()</code> a <a href="/rust/custom.html">custom type</a> returns:</p>
+<p><code>type_of()</code> a <a href="/rhai/vnext/rust/custom.html">custom type</a> returns:</p>
 <ul>
 <li>
 <p>if registered via <code>Engine::register_type_with_name</code> - the registered name</p>
@@ -251,21 +251,6 @@ engine
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

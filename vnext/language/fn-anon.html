@@ -168,8 +168,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#anonymous-functions" id="anonymous-functions">Anonymous Functions</a></h1>
-<p>Sometimes it gets tedious to define separate functions only to dispatch them via single <a href="/language/fn-ptr.html">function pointers</a>.
-This scenario is especially common when simulating object-oriented programming (<a href="/patterns/oop.html">OOP</a>).</p>
+<p>Sometimes it gets tedious to define separate functions only to dispatch them via single <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>.
+This scenario is especially common when simulating object-oriented programming (<a href="/rhai/vnext/patterns/oop.html">OOP</a>).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -220,8 +220,8 @@ fn anon_fn_1002() { print this.data; }
 <h2><a class="header" href="#warning---not-real-closures" id="warning---not-real-closures">WARNING - NOT Real Closures</a></h2>
 <p>Remember: anonymous functions, though having the same syntax as Rust <em>closures</em>, are themselves
 <strong>not</strong> real closures.</p>
-<p>In particular, they capture their execution environment via <a href="/language/fn-closure.html">automatic currying</a>
-(disabled via <a href="/start/features.html"><code>no_closure</code></a>).</p>
+<p>In particular, they capture their execution environment via <a href="/rhai/vnext/language/fn-closure.html">automatic currying</a>
+(disabled via <a href="/rhai/vnext/start/features.html"><code>no_closure</code></a>).</p>
 
                     </main>
 
@@ -260,21 +260,6 @@ fn anon_fn_1002() { print this.data; }
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

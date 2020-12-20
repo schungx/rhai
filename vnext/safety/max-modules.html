@@ -168,12 +168,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#maximum-number-of-modules" id="maximum-number-of-modules">Maximum Number of Modules</a></h1>
-<p>Rhai by default does not limit how many <a href="/rust/modules/index.html">modules</a> can be loaded via <a href="/language/modules/import.html"><code>import</code></a> statements.</p>
+<p>Rhai by default does not limit how many <a href="/rhai/vnext/rust/modules/index.html">modules</a> can be loaded via <a href="/rhai/vnext/language/modules/import.html"><code>import</code></a> statements.</p>
 <p>This can be changed via the <code>Engine::set_max_modules</code> method. Notice that setting the maximum number
 of modules to zero does <em>not</em> indicate unlimited modules, but disallows loading any module altogether.</p>
 <p>A script attempting to load more than the maximum number of modules will terminate with an error result.</p>
-<p>This limit can also be used to stop <a href="/language/modules/import.html"><code>import</code>-loops</a> (i.e. cycles of modules referring to each other).</p>
-<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance
+<p>This limit can also be used to stop <a href="/rhai/vnext/language/modules/import.html"><code>import</code>-loops</a> (i.e. cycles of modules referring to each other).</p>
+<p>This check can be disabled via the <a href="/rhai/vnext/start/features.html"><code>unchecked</code></a> feature for higher performance
 (but higher risks as well).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -225,21 +225,6 @@ engine.set_max_modules(1000);   // set to a large number for effectively unlimit
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

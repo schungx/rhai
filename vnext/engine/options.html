@@ -170,16 +170,16 @@
                         <h1><a class="header" href="#engine-configuration-options" id="engine-configuration-options">Engine Configuration Options</a></h1>
 <p>A number of other configuration options are available from the <code>Engine</code> to fine-tune behavior and safeguards.</p>
 <table><thead><tr><th>Method</th><th>Not available under</th><th>Description</th></tr></thead><tbody>
-<tr><td><code>set_doc_comments</code></td><td></td><td>enables/disables <a href="/language/comments.html#doc-comments">doc-comments</a></td></tr>
-<tr><td><code>set_optimization_level</code></td><td><a href="/start/features.html"><code>no_optimize</code></a></td><td>sets the amount of script <em>optimizations</em> performedSee <a href="/engine/optimize/index.html">script optimization</a></td></tr>
-<tr><td><code>set_max_expr_depths</code></td><td><a href="/start/features.html"><code>unchecked</code></a></td><td>sets the maximum nesting levels of an expression/statementSee <a href="/safety/max-stmt-depth.html">maximum statement depth</a></td></tr>
-<tr><td><code>set_max_call_levels</code></td><td><a href="/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of function call levels (default 50) to avoid infinite recursionSee <a href="/safety/max-call-stack.html">maximum call stack depth</a></td></tr>
-<tr><td><code>set_max_operations</code></td><td><a href="/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of <em>operations</em> that a script is allowed to consumeSee <a href="/safety/max-operations.html">maximum number of operations</a></td></tr>
-<tr><td><code>set_max_modules</code></td><td><a href="/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of <a href="/rust/modules/index.html">modules</a> that a script is allowed to loadSee <a href="/safety/max-modules.html">maximum number of modules</a></td></tr>
-<tr><td><code>set_max_string_size</code></td><td><a href="/start/features.html"><code>unchecked</code></a></td><td>sets the maximum length (in UTF-8 bytes) for <a href="/language/strings-chars.html">strings</a>See <a href="/safety/max-string-size.html">maximum length of strings</a></td></tr>
-<tr><td><code>set_max_array_size</code></td><td><a href="/start/features.html"><code>unchecked</code></a>, <a href="/start/features.html"><code>no_index</code></a></td><td>sets the maximum size for <a href="/language/arrays.html">arrays</a>See <a href="/safety/max-array-size.html">maximum size of arrays</a></td></tr>
-<tr><td><code>set_max_map_size</code></td><td><a href="/start/features.html"><code>unchecked</code></a>, <a href="/start/features.html"><code>no_object</code></a></td><td>sets the maximum number of properties for <a href="/language/object-maps.html">object maps</a>See <a href="/safety/max-map-size.html">maximum size of object maps</a></td></tr>
-<tr><td><code>disable_symbol</code></td><td></td><td>disables a certain keyword or operatorSee <a href="/engine/disable.html">disable keywords and operators</a></td></tr>
+<tr><td><code>set_doc_comments</code></td><td></td><td>enables/disables <a href="/rhai/vnext/language/comments.html#doc-comments">doc-comments</a></td></tr>
+<tr><td><code>set_optimization_level</code></td><td><a href="/rhai/vnext/start/features.html"><code>no_optimize</code></a></td><td>sets the amount of script <em>optimizations</em> performedSee <a href="/rhai/vnext/engine/optimize/index.html">script optimization</a></td></tr>
+<tr><td><code>set_max_expr_depths</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>sets the maximum nesting levels of an expression/statementSee <a href="/rhai/vnext/safety/max-stmt-depth.html">maximum statement depth</a></td></tr>
+<tr><td><code>set_max_call_levels</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of function call levels (default 50) to avoid infinite recursionSee <a href="/rhai/vnext/safety/max-call-stack.html">maximum call stack depth</a></td></tr>
+<tr><td><code>set_max_operations</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of <em>operations</em> that a script is allowed to consumeSee <a href="/rhai/vnext/safety/max-operations.html">maximum number of operations</a></td></tr>
+<tr><td><code>set_max_modules</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>sets the maximum number of <a href="/rhai/vnext/rust/modules/index.html">modules</a> that a script is allowed to loadSee <a href="/rhai/vnext/safety/max-modules.html">maximum number of modules</a></td></tr>
+<tr><td><code>set_max_string_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a></td><td>sets the maximum length (in UTF-8 bytes) for <a href="/rhai/vnext/language/strings-chars.html">strings</a>See <a href="/rhai/vnext/safety/max-string-size.html">maximum length of strings</a></td></tr>
+<tr><td><code>set_max_array_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td><td>sets the maximum size for <a href="/rhai/vnext/language/arrays.html">arrays</a>See <a href="/rhai/vnext/safety/max-array-size.html">maximum size of arrays</a></td></tr>
+<tr><td><code>set_max_map_size</code></td><td><a href="/rhai/vnext/start/features.html"><code>unchecked</code></a>, <a href="/rhai/vnext/start/features.html"><code>no_object</code></a></td><td>sets the maximum number of properties for <a href="/rhai/vnext/language/object-maps.html">object maps</a>See <a href="/rhai/vnext/safety/max-map-size.html">maximum size of object maps</a></td></tr>
+<tr><td><code>disable_symbol</code></td><td></td><td>disables a certain keyword or operatorSee <a href="/rhai/vnext/engine/disable.html">disable keywords and operators</a></td></tr>
 </tbody></table>
 
                     </main>
@@ -219,21 +219,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

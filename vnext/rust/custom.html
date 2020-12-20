@@ -178,16 +178,16 @@ within the same crate (and thus cannot implement special Rhai traits or
 use special <code>#[derive]</code>) can also be used easily with Rhai.</p>
 <p>The reason why it is termed a <em>custom</em> type throughout this documentation is that
 Rhai natively supports a number of data types with fast, internal treatment (see
-the list of <a href="/language/values-and-types.html">standard types</a>).  Any type outside of this list is considered <em>custom</em>.</p>
+the list of <a href="/rhai/vnext/language/values-and-types.html">standard types</a>).  Any type outside of this list is considered <em>custom</em>.</p>
 <p>Any type not supported natively by Rhai is stored as a Rust <em>trait object</em>, with no
-restrictions other than being <code>Clone</code> (plus <code>Send + Sync</code> under the <a href="/start/features.html"><code>sync</code></a> feature).
+restrictions other than being <code>Clone</code> (plus <code>Send + Sync</code> under the <a href="/rhai/vnext/start/features.html"><code>sync</code></a> feature).
 It runs slightly slower than natively-supported types as it does not have built-in,
 optimized implementations for commonly-used functions, but for all other purposes has
 no difference.</p>
-<p>Support for custom types can be turned off via the <a href="/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Support for custom types can be turned off via the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature.</p>
 <h2><a class="header" href="#register-a-custom-type-and-its-methods" id="register-a-custom-type-and-its-methods">Register a Custom Type and its Methods</a></h2>
-<p>Any custom type must implement the <code>Clone</code> trait as this allows the <a href="/engine/hello-world.html"><code>Engine</code></a> to pass by value.</p>
-<p>If the <a href="/start/features.html"><code>sync</code></a> feature is used, it must also be <code>Send + Sync</code>.</p>
+<p>Any custom type must implement the <code>Clone</code> trait as this allows the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> to pass by value.</p>
+<p>If the <a href="/rhai/vnext/start/features.html"><code>sync</code></a> feature is used, it must also be <code>Send + Sync</code>.</p>
 <p>Notice that the custom type needs to be <em>registered</em> using <code>Engine::register_type</code>
 or <code>Engine::register_type_with_name</code>.</p>
 <p>To use native methods on custom types in Rhai scripts, it is common to register an API
@@ -264,7 +264,7 @@ let result = engine.eval::&lt;i64&gt;(
 println!(&quot;result: {}&quot;, result);         // prints 1
 <span class="boring">}
 </span></code></pre></pre>
-<p>Under <a href="/start/features.html"><code>no_object</code></a>, however, the <em>method</em> style of function calls
+<p>Under <a href="/rhai/vnext/start/features.html"><code>no_object</code></a>, however, the <em>method</em> style of function calls
 (i.e. calling a function as an object-method) is no longer supported.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -275,9 +275,9 @@ let result = engine.eval(&quot;let x = [1, 2, 3]; x.clear();&quot;)?;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#type_of-a-custom-type" id="type_of-a-custom-type"><code>type_of()</code> a Custom Type</a></h2>
-<p><a href="/language/type-of.html"><code>type_of()</code></a> works fine with custom types and returns the name of the type.</p>
+<p><a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> works fine with custom types and returns the name of the type.</p>
 <p>If <code>Engine::register_type_with_name</code> is used to register the custom type
-with a special “pretty-print” name, <a href="/language/type-of.html"><code>type_of()</code></a> will return that name instead.</p>
+with a special “pretty-print” name, <a href="/rhai/vnext/language/type-of.html"><code>type_of()</code></a> will return that name instead.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -295,7 +295,7 @@ println!(&quot;{}&quot;, ts1_type);               // prints 'TestStruct'
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#use-the-custom-type-with-arrays" id="use-the-custom-type-with-arrays">Use the Custom Type With Arrays</a></h2>
-<p>The <code>push</code>, <code>insert</code>, <code>pad</code> functions, as well as the <code>+=</code> operator, for <a href="/language/arrays.html">arrays</a> are only
+<p>The <code>push</code>, <code>insert</code>, <code>pad</code> functions, as well as the <code>+=</code> operator, for <a href="/rhai/vnext/language/arrays.html">arrays</a> are only
 defined for standard built-in types. For custom types, type-specific versions must be registered:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -320,7 +320,7 @@ defined for standard built-in types. For custom types, type-specific versions mu
     });
 <span class="boring">}
 </span></code></pre></pre>
-<p>In particular, in order to use the <code>in</code> operator with a custom type for an <a href="/language/arrays.html">array</a>,
+<p>In particular, in order to use the <code>in</code> operator with a custom type for an <a href="/rhai/vnext/language/arrays.html">array</a>,
 the <code>==</code> operator must be registered for the custom type:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -337,7 +337,7 @@ item in array;              // 'in' operator uses '=='
 </span></code></pre></pre>
 <h2><a class="header" href="#working-with-enums" id="working-with-enums">Working With Enums</a></h2>
 <p>It is quite easy to use Rust enums with Rhai.
-See <a href="/patterns/enums.html">this chapter</a> for more details.</p>
+See <a href="/rhai/vnext/patterns/enums.html">this chapter</a> for more details.</p>
 
                     </main>
 
@@ -376,21 +376,6 @@ See <a href="/patterns/enums.html">this chapter</a> for more details.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

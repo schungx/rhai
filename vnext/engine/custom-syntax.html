@@ -175,7 +175,7 @@ with custom-defined <em>syntax</em>.</p>
 <p>Stick with standard language syntax as much as possible.</p>
 <p>Having to learn Rhai is bad enough, no sane user would ever want to learn <em>yet</em> another
 obscure language syntax just to do something.</p>
-<p>Try to use <a href="/engine/custom-op.html">custom operators</a> first.  Defining a custom syntax should be considered a <em>last resort</em>.</p>
+<p>Try to use <a href="/rhai/vnext/engine/custom-op.html">custom operators</a> first.  Defining a custom syntax should be considered a <em>last resort</em>.</p>
 <h2><a class="header" href="#where-this-might-be-useful" id="where-this-might-be-useful">Where This Might Be Useful</a></h2>
 <ul>
 <li>
@@ -196,16 +196,16 @@ obscure language syntax just to do something.</p>
 <p>These symbol types can be used:</p>
 <ul>
 <li>
-<p>Standard <a href="/appendix/keywords.html">keywords</a></p>
+<p>Standard <a href="/rhai/vnext/appendix/keywords.html">keywords</a></p>
 </li>
 <li>
-<p>Standard <a href="/appendix/operators.html#operators">operators</a>.</p>
+<p>Standard <a href="/rhai/vnext/appendix/operators.html#operators">operators</a>.</p>
 </li>
 <li>
-<p>Reserved <a href="/appendix/operators.html#symbols">symbols</a>.</p>
+<p>Reserved <a href="/rhai/vnext/appendix/operators.html#symbols">symbols</a>.</p>
 </li>
 <li>
-<p>Identifiers following the <a href="/language/variables.html">variable</a> naming rules.</p>
+<p>Identifiers following the <a href="/rhai/vnext/language/variables.html">variable</a> naming rules.</p>
 </li>
 <li>
 <p><code>$expr$</code> - any valid expression, statement or statement block.</p>
@@ -214,15 +214,15 @@ obscure language syntax just to do something.</p>
 <p><code>$block$</code> - any valid statement block (i.e. must be enclosed by <code>'{'</code> .. <code>'}'</code>).</p>
 </li>
 <li>
-<p><code>$ident$</code> - any <a href="/language/variables.html">variable</a> name.</p>
+<p><code>$ident$</code> - any <a href="/rhai/vnext/language/variables.html">variable</a> name.</p>
 </li>
 </ul>
 <h3><a class="header" href="#the-first-symbol-must-be-an-identifier" id="the-first-symbol-must-be-an-identifier">The First Symbol Must be an Identifier</a></h3>
 <p>There is no specific limit on the combination and sequencing of each symbol type,
 except the <em>first</em> symbol which must be a custom keyword that follows the naming rules
-of <a href="/language/variables.html">variables</a>.</p>
-<p>The first symbol also cannot be a normal or reserved <a href="/appendix/keywords.html">keyword</a>.
-In other words, any valid identifier that is not a <a href="/appendix/keywords.html">keyword</a> will work fine.</p>
+of <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
+<p>The first symbol also cannot be a normal or reserved <a href="/rhai/vnext/appendix/keywords.html">keyword</a>.
+In other words, any valid identifier that is not a <a href="/rhai/vnext/appendix/keywords.html">keyword</a> will work fine.</p>
 <h3><a class="header" href="#the-first-symbol-must-be-unique" id="the-first-symbol-must-be-unique">The First Symbol Must be Unique</a></h3>
 <p>Rhai uses the <em>first</em> symbol as a clue to parse custom syntax.</p>
 <p>Therefore, at any one time, there can only be <em>one</em> custom syntax starting with each unique symbol.</p>
@@ -238,7 +238,7 @@ In other words, any valid identifier that is not a <a href="/appendix/keywords.h
 <table><thead><tr><th align="center">Position</th><th align="center">Input</th><th align="center">Symbol</th><th>Description</th></tr></thead><tbody>
 <tr><td align="center">1</td><td align="center"></td><td align="center"><code>exec</code></td><td>custom keyword</td></tr>
 <tr><td align="center">2</td><td align="center">1</td><td align="center"><code>$ident$</code></td><td>a variable name</td></tr>
-<tr><td align="center">3</td><td align="center"></td><td align="center"><code>&lt;-</code></td><td>the left-arrow symbol (which is a <a href="/appendix/operators.html#symbols">reserved symbol</a> in Rhai).</td></tr>
+<tr><td align="center">3</td><td align="center"></td><td align="center"><code>&lt;-</code></td><td>the left-arrow symbol (which is a <a href="/rhai/vnext/appendix/operators.html#symbols">reserved symbol</a> in Rhai).</td></tr>
 <tr><td align="center">4</td><td align="center">2</td><td align="center"><code>$expr$</code></td><td>an expression, which may be enclosed with <code>{</code> .. <code>}</code>, or not.</td></tr>
 <tr><td align="center">5</td><td align="center"></td><td align="center"><code>:</code></td><td>the colon symbol</td></tr>
 <tr><td align="center">6</td><td align="center">3</td><td align="center"><code>$block$</code></td><td>a statement block, which must be enclosed with <code>{</code> .. <code>}</code>.</td></tr>
@@ -268,11 +268,11 @@ print(hello);   // variable declared by a custom syntax persists!
 <p>where:</p>
 <table><thead><tr><th>Parameter</th><th align="center">Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>context</code></td><td align="center"><code>&amp;mut EvalContext</code></td><td>mutable reference to the current evaluation <em>context</em></td></tr>
-<tr><td>• <code>scope()</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/engine/scope.html"><code>Scope</code></a></td></tr>
-<tr><td>• <code>scope_mut()</code></td><td align="center"><code>&amp;mut Scope</code></td><td>mutable reference to the current <a href="/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it</td></tr>
-<tr><td>• <code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/engine/hello-world.html"><code>Engine</code></a></td></tr>
-<tr><td>• <code>imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
-<tr><td>• <code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
+<tr><td>• <code>scope()</code></td><td align="center"><code>&amp;Scope</code></td><td>reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a></td></tr>
+<tr><td>• <code>scope_mut()</code></td><td align="center"><code>&amp;mut Scope</code></td><td>mutable reference to the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>; variables can be added to/removed from it</td></tr>
+<tr><td>• <code>engine()</code></td><td align="center"><code>&amp;Engine</code></td><td>reference to the current <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a></td></tr>
+<tr><td>• <code>imports()</code></td><td align="center"><code>&amp;Imports</code></td><td>reference to the current stack of <a href="/rhai/vnext/rust/modules/index.html">modules</a> imported via <code>import</code> statements</td></tr>
+<tr><td>• <code>iter_namespaces()</code></td><td align="center"><code>impl Iterator&lt;Item = &amp;Module&gt;</code></td><td>iterator of the namespaces (as <a href="/rhai/vnext/rust/modules/index.html">modules</a>) containing all script-defined functions</td></tr>
 <tr><td>• <code>this_ptr()</code></td><td align="center"><code>Option&lt;&amp;Dynamic&gt;</code></td><td>reference to the current bound [<code>this</code>] pointer, if any</td></tr>
 <tr><td>• <code>call_level()</code></td><td align="center"><code>usize</code></td><td>the current nesting level of function calls</td></tr>
 <tr><td><code>inputs</code></td><td align="center"><code>&amp;[Expression]</code></td><td>a list of input expression trees</td></tr>
@@ -300,9 +300,9 @@ let result = context.eval_expression_tree(expression)?;
 </span></code></pre></pre>
 <h3><a class="header" href="#declare-variables" id="declare-variables">Declare Variables</a></h3>
 <p>New variables maybe declared (usually with a variable name that is passed in via `$ident$).</p>
-<p>It can simply be pushed into the <a href="/engine/scope.html"><code>Scope</code></a>.</p>
+<p>It can simply be pushed into the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
 <p>However, beware that all new variables must be declared <em>prior</em> to evaluating any expression tree.
-In other words, any <a href="/engine/scope.html"><code>Scope</code></a> calls that change the list of must come <em>before</em> any
+In other words, any <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> calls that change the list of must come <em>before</em> any
 <code>EvalContext::eval_expression_tree</code> calls.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -383,7 +383,7 @@ exec |x| -&gt; { x += 1 } while x &lt; 0;
 <h2><a class="header" href="#step-four---disable-unneeded-statement-types" id="step-four---disable-unneeded-statement-types">Step Four - Disable Unneeded Statement Types</a></h2>
 <p>When a DSL needs a custom syntax, most likely than not it is extremely specialized.
 Therefore, many statement types actually may not make sense under the same usage scenario.</p>
-<p>So, while at it, better <a href="/engine/disable.html">disable</a> those built-in keywords
+<p>So, while at it, better <a href="/rhai/vnext/engine/disable.html">disable</a> those built-in keywords
 and operators that should not be used by the user.  The would leave only the bare minimum
 language surface exposed, together with the custom syntax that is tailor-designed for
 the scenario.</p>
@@ -501,14 +501,14 @@ look-ahead symbol).</p>
 <tr><td><code>symbols</code></td><td align="center"><code>&amp;[ImmutableString]</code></td><td>a slice of symbols that have been parsed so far, possibly containing <code>$expr$</code> and/or <code>$block$</code>; <code>$ident$</code> is replaced by the actual identifier</td></tr>
 <tr><td><code>look_ahead</code></td><td align="center"><code>&amp;str</code></td><td>a string slice containing the next symbol that is about to be read</td></tr>
 </tbody></table>
-<p>Most strings are <a href="/language/strings-chars.html"><code>ImmutableString</code></a>‘s so it is usually more efficient to just <code>clone</code> the appropriate one
+<p>Most strings are <a href="/rhai/vnext/language/strings-chars.html"><code>ImmutableString</code></a>‘s so it is usually more efficient to just <code>clone</code> the appropriate one
 (if any matches, or keep an internal cache for commonly-used symbols) as the return value.</p>
 <h3><a class="header" href="#return-value-1" id="return-value-1">Return Value</a></h3>
 <p>The return value is <code>Result&lt;Option&lt;ImmutableString&gt;, ParseError&gt;</code> where:</p>
 <table><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>Ok(None)</code></td><td>parsing complete and there are no more symbols to match</td></tr>
 <tr><td><code>Ok(Some(symbol))</code></td><td>the next symbol to match, which can also be <code>$expr$</code>, <code>$ident$</code> or <code>$block$</code></td></tr>
-<tr><td><code>Err(ParseError)</code></td><td>error that is reflected back to the <a href="/engine/hello-world.html"><code>Engine</code></a> - normally <code>ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), Position::NONE)</code> to indicate that there is a syntax error, but it can be any <code>ParseError</code>.</td></tr>
+<tr><td><code>Err(ParseError)</code></td><td>error that is reflected back to the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> - normally <code>ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), Position::NONE)</code> to indicate that there is a syntax error, but it can be any <code>ParseError</code>.</td></tr>
 </tbody></table>
 
                     </main>
@@ -548,21 +548,6 @@ look-ahead symbol).</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

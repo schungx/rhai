@@ -188,15 +188,15 @@
 <tr><td align="center"><code>throw</code></td><td>throw exception</td><td align="center"></td><td align="center">no</td><td align="center"></td></tr>
 <tr><td align="center"><code>try</code></td><td>trap exception</td><td align="center"></td><td align="center">no</td><td align="center"></td></tr>
 <tr><td align="center"><code>catch</code></td><td>catch exception</td><td align="center"></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>import</code></td><td>import module</td><td align="center"><a href="/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>export</code></td><td>export variable</td><td align="center"><a href="/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>as</code></td><td>alias for variable export</td><td align="center"><a href="/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>private</code></td><td>mark function private</td><td align="center"><a href="/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>fn</code> (lower-case <code>f</code>)</td><td>function definition</td><td align="center"><a href="/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
-<tr><td align="center"><code>Fn</code> (capital <code>F</code>)</td><td>create a <a href="/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">yes</td></tr>
-<tr><td align="center"><code>call</code></td><td>call a <a href="/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">no</td></tr>
-<tr><td align="center"><code>curry</code></td><td>curry a <a href="/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">no</td></tr>
-<tr><td align="center"><code>this</code></td><td>reference to base object for method call</td><td align="center"><a href="/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>import</code></td><td>import module</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>export</code></td><td>export variable</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>as</code></td><td>alias for variable export</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_module</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>private</code></td><td>mark function private</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>fn</code> (lower-case <code>f</code>)</td><td>function definition</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
+<tr><td align="center"><code>Fn</code> (capital <code>F</code>)</td><td>create a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">yes</td></tr>
+<tr><td align="center"><code>call</code></td><td>call a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">no</td></tr>
+<tr><td align="center"><code>curry</code></td><td>curry a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a></td><td align="center"></td><td align="center">yes</td><td align="center">no</td></tr>
+<tr><td align="center"><code>this</code></td><td>reference to base object for method call</td><td align="center"><a href="/rhai/vnext/start/features.html"><code>no_function</code></a></td><td align="center">no</td><td align="center"></td></tr>
 <tr><td align="center"><code>type_of</code></td><td>get type name of value</td><td align="center"></td><td align="center">yes</td><td align="center">yes</td></tr>
 <tr><td align="center"><code>print</code></td><td>print value</td><td align="center"></td><td align="center">yes</td><td align="center">yes</td></tr>
 <tr><td align="center"><code>debug</code></td><td>print value in debug format</td><td align="center"></td><td align="center">yes</td><td align="center">yes</td></tr>
@@ -272,21 +272,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

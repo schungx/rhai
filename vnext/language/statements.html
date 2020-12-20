@@ -197,7 +197,7 @@ creative name, “statement expressions.”</p>
 <p>The <em>last</em> statement of a statement block is <em>always</em> the block’s return value when used as a statement,
 <em>regardless</em> of whether it is terminated by a semicolon or not. This is different from Rust where,
 if the last statement is terminated by a semicolon, the block’s return value is taken to be <code>()</code>.</p>
-<p>If the last statement has no return value (e.g. variable definitions, assignments) then it is assumed to be <a href="/language/values-and-types.html"><code>()</code></a>.</p>
+<p>If the last statement has no return value (e.g. variable definitions, assignments) then it is assumed to be <a href="/rhai/vnext/language/values-and-types.html"><code>()</code></a>.</p>
 
                     </main>
 
@@ -236,21 +236,6 @@ if the last statement is terminated by a semicolon, the block’s return value i
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

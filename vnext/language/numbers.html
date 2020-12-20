@@ -169,9 +169,9 @@
                     <main>
                         <h1><a class="header" href="#numbers" id="numbers">Numbers</a></h1>
 <p>Integer numbers follow C-style format with support for decimal, binary (’<code>0b</code>‘), octal (’<code>0o</code>‘) and hex (’<code>0x</code>‘) notations.</p>
-<p>The default system integer type (also aliased to <code>INT</code>) is <code>i64</code>. It can be turned into <code>i32</code> via the <a href="/start/features.html"><code>only_i32</code></a> feature.</p>
-<p>Floating-point numbers are also supported if not disabled with <a href="/start/features.html"><code>no_float</code></a>. The default system floating-point type is <code>i64</code>
-(also aliased to <code>FLOAT</code>). It can be turned into <code>f32</code> via the <a href="/start/features.html"><code>f32_float</code></a> feature.</p>
+<p>The default system integer type (also aliased to <code>INT</code>) is <code>i64</code>. It can be turned into <code>i32</code> via the <a href="/rhai/vnext/start/features.html"><code>only_i32</code></a> feature.</p>
+<p>Floating-point numbers are also supported if not disabled with <a href="/rhai/vnext/start/features.html"><code>no_float</code></a>. The default system floating-point type is <code>i64</code>
+(also aliased to <code>FLOAT</code>). It can be turned into <code>f32</code> via the <a href="/rhai/vnext/start/features.html"><code>f32_float</code></a> feature.</p>
 <p>‘<code>_</code>‘ separators can be added freely and are ignored within a number - except at the very beginning or right after
 a decimal point (’<code>.</code>‘).</p>
 <table><thead><tr><th>Format</th><th>Type</th></tr></thead><tbody>
@@ -219,21 +219,6 @@ a decimal point (’<code>.</code>‘).</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

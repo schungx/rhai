@@ -169,9 +169,9 @@
                     <main>
                         <h1><a class="header" href="#sand-boxing---block-access-to-external-data" id="sand-boxing---block-access-to-external-data">Sand-Boxing - Block Access to External Data</a></h1>
 <p>Rhai is <em>sand-boxed</em> so a script can never read from outside its own environment.</p>
-<p>Furthermore, an <a href="/engine/hello-world.html"><code>Engine</code></a> created non-<code>mut</code> cannot mutate any state, including itself
+<p>Furthermore, an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> created non-<code>mut</code> cannot mutate any state, including itself
 (and therefore it is also <em>re-entrant</em>).</p>
-<p>It is highly recommended that <a href="/engine/hello-world.html"><code>Engine</code></a>‘s be created immutable as much as possible.</p>
+<p>It is highly recommended that <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>‘s be created immutable as much as possible.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -189,16 +189,16 @@ let engine = engine;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#using-rhai-to-control-external-environment" id="using-rhai-to-control-external-environment">Using Rhai to Control External Environment</a></h2>
-<p>How does a <em>sand-boxed</em>, immutable <a href="/engine/hello-world.html"><code>Engine</code></a> control the external environment?
+<p>How does a <em>sand-boxed</em>, immutable <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> control the external environment?
 This is necessary in order to use Rhai as a <em>dynamic control layer</em> over a Rust core system.</p>
 <p>There are two general patterns, both involving wrapping the external system
 in a shared, interior-mutated object (e.g. <code>Rc&lt;RefCell&lt;T&gt;&gt;</code>):</p>
 <ul>
 <li>
-<p><a href="/patterns/control.html">Control Layer</a> pattern.</p>
+<p><a href="/rhai/vnext/patterns/control.html">Control Layer</a> pattern.</p>
 </li>
 <li>
-<p><a href="/patterns/singleton.html">Singleton Command Object</a> pattern.</p>
+<p><a href="/rhai/vnext/patterns/singleton.html">Singleton Command Object</a> pattern.</p>
 </li>
 </ul>
 
@@ -239,21 +239,6 @@ in a shared, interior-mutated object (e.g. <code>Rc&lt;RefCell&lt;T&gt;&gt;</cod
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

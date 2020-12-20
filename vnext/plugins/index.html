@@ -171,7 +171,7 @@
 <p>Rhai contains a robust <em>plugin</em> system that greatly simplifies registration of custom
 functionality.</p>
 <p>Instead of using the large <code>Engine::register_XXX</code> API or the parallel <code>Module::set_fn_XXX</code> API,
-a <em>plugin</em> simplifies the work of creating and registering new functionality in an <a href="/engine/hello-world.html"><code>Engine</code></a>.</p>
+a <em>plugin</em> simplifies the work of creating and registering new functionality in an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a>.</p>
 <p>Plugins are processed via a set of procedural macros under the <code>rhai::plugin</code> module. These
 allow registering Rust functions directly in the Engine, or adding Rust modules as packages.</p>
 
@@ -212,21 +212,6 @@ allow registering Rust functions directly in the Engine, or adding Rust modules 
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

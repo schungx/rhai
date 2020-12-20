@@ -169,14 +169,14 @@
                     <main>
                         <h1><a class="header" href="#call-method-as-function" id="call-method-as-function">Call Method as Function</a></h1>
 <h2><a class="header" href="#first-mut-parameter" id="first-mut-parameter">First <code>&amp;mut</code> Parameter</a></h2>
-<p>Property <a href="/rust/getters-setters.html">getters/setters</a> and <a href="/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/engine/hello-world.html"><code>Engine</code></a> can be called
+<p>Property <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/vnext/rust/custom.html">methods</a> in a Rust custom type registered with the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> can be called
 just like a regular function.  In fact, like Rust, property getters/setters and object methods
-are registered as regular <a href="/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
+are registered as regular <a href="/rhai/vnext/language/functions.html">functions</a> in Rhai that take a first <code>&amp;mut</code> parameter.</p>
 <p>Unlike functions defined in script (for which all arguments are passed by <em>value</em>),
 native Rust functions may mutate the object (or the first argument if called in normal function call style).</p>
 <p>However, sometimes it is not as straight-forward, and methods called in function-call style may end up
 not muting the object - see the example below. Therefore, it is best to always use method-call style.</p>
-<p>Custom types, properties and methods can be disabled via the <a href="/start/features.html"><code>no_object</code></a> feature.</p>
+<p>Custom types, properties and methods can be disabled via the <a href="/rhai/vnext/start/features.html"><code>no_object</code></a> feature.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -198,7 +198,7 @@ array[0].update();  // &lt;- call in method-call style will update 'a'
 </span></code></pre></pre>
 <p><strong>IMPORTANT: Rhai does NOT support normal references (i.e. <code>&amp;T</code>) as parameters.</strong></p>
 <h2><a class="header" href="#number-of-parameters-in-methods" id="number-of-parameters-in-methods">Number of Parameters in Methods</a></h2>
-<p>Native Rust methods registered with an <a href="/engine/hello-world.html"><code>Engine</code></a> take <em>one additional parameter</em> more than
+<p>Native Rust methods registered with an <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> take <em>one additional parameter</em> more than
 an equivalent method coded in script, where the object is accessed via the <code>this</code> pointer instead.</p>
 <p>The following table illustrates the differences:</p>
 <table><thead><tr><th align="center">Function type</th><th align="center">Parameters</th><th align="center">Object reference</th><th align="center">Function signature</th></tr></thead><tbody>
@@ -280,21 +280,6 @@ fn add_method(obj: &amp;mut VeryComplexType, offset: i64) -&gt; i64 {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

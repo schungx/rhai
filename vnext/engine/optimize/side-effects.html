@@ -170,7 +170,7 @@
                         <h1><a class="header" href="#side-effect-considerations-for-full-optimization-level" id="side-effect-considerations-for-full-optimization-level">Side-Effect Considerations for Full Optimization Level</a></h1>
 <p>All of Rhai’s built-in functions (and operators which are implemented as functions) are <em>pure</em>
 (i.e. they do not mutate state nor cause any side-effects, with the exception of <code>print</code> and <code>debug</code>
-which are handled specially) so using <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a> is usually quite safe <em>unless</em>
+which are handled specially) so using <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a> is usually quite safe <em>unless</em>
 custom types and functions are registered.</p>
 <p>If custom functions are registered, they <em>may</em> be called (or maybe not, if the calls happen to lie
 within a pruned code block).</p>
@@ -179,7 +179,7 @@ the operators are used (in an <code>if</code> statement, for example) causing si
 <p>Therefore, the rule-of-thumb is:</p>
 <ul>
 <li>
-<p><em>Always</em> register custom types and functions <em>after</em> compiling scripts if <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a> is used.</p>
+<p><em>Always</em> register custom types and functions <em>after</em> compiling scripts if <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a> is used.</p>
 </li>
 <li>
 <p><em>DO NOT</em> depend on knowledge that the functions have no side-effects, because those functions can change later on and,
@@ -224,21 +224,6 @@ when that happens, existing scripts may break in subtle ways.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

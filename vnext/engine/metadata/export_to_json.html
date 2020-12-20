@@ -170,19 +170,19 @@
                         <h1><a class="header" href="#export-functions-metadata-to-json" id="export-functions-metadata-to-json">Export Functions Metadata to JSON</a></h1>
 <h2><a class="header" href="#enginegen_fn_metadata_to_json" id="enginegen_fn_metadata_to_json"><code>Engine::gen_fn_metadata_to_json</code></a></h2>
 <p>As part of a <em>reflections</em> API, <code>Engine::gen_fn_metadata_to_json</code> exports the full list
-of <a href="/engine/metadata/index.html">functions metadata</a> in JSON format.</p>
-<p>The <a href="/start/features.html"><code>metadata</code></a> feature must be used to turn on this method, which requires
+of <a href="/rhai/vnext/engine/metadata/index.html">functions metadata</a> in JSON format.</p>
+<p>The <a href="/rhai/vnext/start/features.html"><code>metadata</code></a> feature must be used to turn on this method, which requires
 the <a href="https://crates.io/crates/serde_json"><code>serde_json</code></a> crate.</p>
 <h3><a class="header" href="#sources" id="sources">Sources</a></h3>
 <p>Functions from the following sources are included:</p>
 <ol>
-<li>Script-defined functions in an <a href="/engine/compile.html"><code>AST</code></a>, if provided</li>
+<li>Script-defined functions in an <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, if provided</li>
 <li>Native Rust functions registered into the global namespace via the <code>Engine::register_XXX</code> API</li>
-<li><em>Public</em> (i.e. non-<a href="/engine/call-fn.html"><code>private</code></a>) functions (native Rust or Rhai scripted) in global sub-modules registered via
-<a href="/rust/modules/create.html"><code>Engine::register_module</code></a></li>
-<li>Native Rust functions in registered <a href="/rust/packages/index.html">packages</a> (optional)</li>
+<li><em>Public</em> (i.e. non-<a href="/rhai/vnext/engine/call-fn.html"><code>private</code></a>) functions (native Rust or Rhai scripted) in global sub-modules registered via
+<a href="/rhai/vnext/rust/modules/create.html"><code>Engine::register_module</code></a></li>
+<li>Native Rust functions in registered <a href="/rhai/vnext/rust/packages/index.html">packages</a> (optional)</li>
 </ol>
-<p>Notice that if a function has been <a href="/rust/functions.html#function-overloading">overloaded</a>, only the overriding function’s
+<p>Notice that if a function has been <a href="/rhai/vnext/rust/functions.html#function-overloading">overloaded</a>, only the overriding function’s
 metadata is included.</p>
 <h2><a class="header" href="#json-schema" id="json-schema">JSON Schema</a></h2>
 <p>The JSON schema used to hold functions metadata is very simple, containing a nested structure of
@@ -291,21 +291,6 @@ metadata is included.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

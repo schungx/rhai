@@ -169,7 +169,7 @@
                     <main>
                         <h1><a class="header" href="#constants" id="constants">Constants</a></h1>
 <p>Constants can be defined using the <code>const</code> keyword and are immutable.</p>
-<p>Constants follow the same naming rules as <a href="/language/variables.html">variables</a>.</p>
+<p>Constants follow the same naming rules as <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -189,10 +189,10 @@ const x = 40 + 2;   // 'x' is a constant 42
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#manually-add-constant-into-custom-scope" id="manually-add-constant-into-custom-scope">Manually Add Constant into Custom Scope</a></h2>
-<p>It is possible to add a constant into a custom <a href="/engine/scope.html"><code>Scope</code></a> so it’ll be available to scripts
-running with that <a href="/engine/scope.html"><code>Scope</code></a>.</p>
-<p>When added to a custom <a href="/engine/scope.html"><code>Scope</code></a>, a constant can hold any value, not just a literal value.</p>
-<p>It is very useful to have a constant value hold a <a href="/rust/custom.html">custom type</a>, which essentially acts
+<p>It is possible to add a constant into a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> so it’ll be available to scripts
+running with that <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>.</p>
+<p>When added to a custom <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>, a constant can hold any value, not just a literal value.</p>
+<p>It is very useful to have a constant value hold a <a href="/rhai/vnext/rust/custom.html">custom type</a>, which essentially acts
 as a <a href="../patterns/singleton.html"><em>singleton</em></a>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -251,7 +251,7 @@ x.double();         // &lt;- error: cannot modify constant 'this'
 x == 43;            // value of 'x' is unchanged by script
 <span class="boring">}
 </span></code></pre></pre>
-<p>This is important to keep in mind because the script <a href="/engine/optimize/index.html">optimizer</a>
+<p>This is important to keep in mind because the script <a href="/rhai/vnext/engine/optimize/index.html">optimizer</a>
 by default does <em>constant propagation</em> as a operation.</p>
 <p>If a constant is eventually modified by a Rust function, the optimizer will not see
 the updated value and will propagate the original initialization value instead.</p>
@@ -293,21 +293,6 @@ the updated value and will propagate the original initialization value instead.<
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

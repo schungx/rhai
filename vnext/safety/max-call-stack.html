@@ -172,7 +172,7 @@
 <p>Rhai by default limits function calls to a maximum depth of 128 levels (8 levels in debug build).</p>
 <p>This limit may be changed via the <code>Engine::set_max_call_levels</code> method.</p>
 <p>A script exceeding the maximum call stack depth will terminate with an error result.</p>
-<p>This check can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+<p>This check can be disabled via the <a href="/rhai/vnext/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -186,7 +186,7 @@ engine.set_max_call_levels(0);      // allow no function calls at all (max depth
 <h2><a class="header" href="#setting-maximum-stack-depth" id="setting-maximum-stack-depth">Setting Maximum Stack Depth</a></h2>
 <p>When setting this limit, care must be also taken to the evaluation depth of each <em>statement</em>
 within a function. It is entirely possible for a malicious script to embed a recursive call deep
-inside a nested expression or statement block (see <a href="/safety/max-stmt-depth.html">maximum statement depth</a>).</p>
+inside a nested expression or statement block (see <a href="/rhai/vnext/safety/max-stmt-depth.html">maximum statement depth</a>).</p>
 
                     </main>
 
@@ -225,21 +225,6 @@ inside a nested expression or statement block (see <a href="/safety/max-stmt-dep
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

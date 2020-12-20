@@ -168,7 +168,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#eager-function-evaluation-when-using-full-optimization-level" id="eager-function-evaluation-when-using-full-optimization-level">Eager Function Evaluation When Using Full Optimization Level</a></h1>
-<p>When the optimization level is <a href="/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, the <a href="/engine/hello-world.html"><code>Engine</code></a> assumes all functions to be <em>pure</em>
+<p>When the optimization level is <a href="/rhai/vnext/engine/optimize/optimize-levels.html"><code>OptimizationLevel::Full</code></a>, the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> assumes all functions to be <em>pure</em>
 and will <em>eagerly</em> evaluated all function calls with constant arguments, using the result to replace the call.</p>
 <p>This also applies to all operators (which are implemented as functions).</p>
 <p>For instance, the same example above:</p>
@@ -227,21 +227,6 @@ print(&quot;hello!&quot;);            // &lt;- the above is equivalent to this
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

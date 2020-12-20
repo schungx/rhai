@@ -185,7 +185,7 @@ for _ in 0..42 {
 <span class="boring">}
 </span></code></pre></pre>
 <p>Compiling a script file is also supported with <code>Engine::compile_file</code>
-(not available under <a href="/start/features.html"><code>no_std</code></a> or in <a href="/start/builds/wasm.html">WASM</a> builds):</p>
+(not available under <a href="/rhai/vnext/start/features.html"><code>no_std</code></a> or in <a href="/rhai/vnext/start/builds/wasm.html">WASM</a> builds):</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -230,21 +230,6 @@ for _ in 0..42 {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

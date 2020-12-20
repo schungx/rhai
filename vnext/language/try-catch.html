@@ -168,8 +168,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#catch-exceptions" id="catch-exceptions">Catch Exceptions</a></h1>
-<p>When an <a href="/language/throw.html">exception</a> is thrown via a <a href="/language/throw.html"><code>throw</code></a> statement, evaluation of the script halts
-and the <a href="/engine/hello-world.html"><code>Engine</code></a> returns with <code>Err(Box&lt;EvalAltResult::ErrorRuntime&gt;)</code> containing the
+<p>When an <a href="/rhai/vnext/language/throw.html">exception</a> is thrown via a <a href="/rhai/vnext/language/throw.html"><code>throw</code></a> statement, evaluation of the script halts
+and the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> returns with <code>Err(Box&lt;EvalAltResult::ErrorRuntime&gt;)</code> containing the
 exception value that has been thrown.</p>
 <p>It is possible, via the <code>try</code> ... <code>catch</code> statement, to <em>catch</em> exceptions, optionally
 with an <em>error variable</em>.</p>
@@ -212,7 +212,7 @@ catch
 </span></code></pre></pre>
 <h2><a class="header" href="#re-throw-exception" id="re-throw-exception">Re-Throw Exception</a></h2>
 <p>Like the <code>try</code> ... <code>catch</code> syntax in most languages, it is possible to <em>re-throw</em>
-an exception within the <code>catch</code> block simply by another <a href="/language/throw.html"><code>throw</code></a> statement without
+an exception within the <code>catch</code> block simply by another <a href="/rhai/vnext/language/throw.html"><code>throw</code></a> statement without
 a value.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -235,29 +235,29 @@ catch
 <h2><a class="header" href="#catchable-exceptions" id="catchable-exceptions">Catchable Exceptions</a></h2>
 <p>Many script-oriented exceptions can be caught via <code>try</code> ... <code>catch</code>:</p>
 <table><thead><tr><th>Error type</th><th align="center">Error value</th></tr></thead><tbody>
-<tr><td>Runtime error thrown by a <a href="/language/throw.html"><code>throw</code></a> statement</td><td align="center">value in <code>throw</code> statement</td></tr>
-<tr><td>Other runtime error</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Arithmetic error</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Variable not found</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td><a href="/language/functions.html">Function</a> not found</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td><a href="/rust/modules/index.html">Module</a> not found</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Unbound [<code>this</code>]</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Data type mismatch</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Assignment to a calculated/constant value</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td><a href="/language/arrays.html">Array</a>/<a href="/language/strings-chars.html">string</a> indexing out-of-bounds</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Indexing with an inappropriate data type</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Error in a dot expression</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td><code>for</code> statement without a <a href="/language/iterator.html">type iterator</a></td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Error in an <code>in</code> expression</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
-<tr><td>Data race detected</td><td align="center">error message <a href="/language/strings-chars.html">string</a></td></tr>
+<tr><td>Runtime error thrown by a <a href="/rhai/vnext/language/throw.html"><code>throw</code></a> statement</td><td align="center">value in <code>throw</code> statement</td></tr>
+<tr><td>Other runtime error</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Arithmetic error</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Variable not found</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="/rhai/vnext/language/functions.html">Function</a> not found</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="/rhai/vnext/rust/modules/index.html">Module</a> not found</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Unbound [<code>this</code>]</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Data type mismatch</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Assignment to a calculated/constant value</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><a href="/rhai/vnext/language/arrays.html">Array</a>/<a href="/rhai/vnext/language/strings-chars.html">string</a> indexing out-of-bounds</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Indexing with an inappropriate data type</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Error in a dot expression</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td><code>for</code> statement without a <a href="/rhai/vnext/language/iterator.html">type iterator</a></td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Error in an <code>in</code> expression</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
+<tr><td>Data race detected</td><td align="center">error message <a href="/rhai/vnext/language/strings-chars.html">string</a></td></tr>
 </tbody></table>
 <h2><a class="header" href="#non-catchable-exceptions" id="non-catchable-exceptions">Non-Catchable Exceptions</a></h2>
 <p>Some exceptions <em>cannot</em> be caught:</p>
 <ul>
 <li>Syntax error during parsing</li>
 <li>System error - e.g. script file not found</li>
-<li>Script evaluation metrics over <a href="/safety/index.html">safety limits</a></li>
-<li>Function calls nesting exceeding <a href="/safety/max-call-stack.html">maximum call stack depth</a></li>
+<li>Script evaluation metrics over <a href="/rhai/vnext/safety/index.html">safety limits</a></li>
+<li>Function calls nesting exceeding <a href="/rhai/vnext/safety/max-call-stack.html">maximum call stack depth</a></li>
 <li>Script evaluation manually terminated</li>
 </ul>
 
@@ -298,21 +298,6 @@ catch
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

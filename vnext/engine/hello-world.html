@@ -199,7 +199,7 @@ during the parsing or evaluation process.</p>
 <p>The type parameter for <code>Engine::eval</code> is used to specify the type of the return value,
 which <em>must</em> match the actual type or an error is returned. Rhai is very strict here.</p>
 <p>There are two ways to specify the return type - <em>turbofish</em> notation, or type inference.</p>
-<p>Use <a href="/language/dynamic.html"><code>Dynamic</code></a> for uncertain return types.</p>
+<p>Use <a href="/rhai/vnext/language/dynamic.html"><code>Dynamic</code></a> for uncertain return types.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -252,21 +252,6 @@ let result = engine.eval::&lt;String&gt;(&quot;40 + 2&quot;)?;  // returns an er
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

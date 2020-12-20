@@ -174,35 +174,35 @@
 <p>A system where scripts are called a <em>lot</em>, in tight loops or in parallel.</p>
 </li>
 <li>
-<p>Keeping a global <a href="/engine/hello-world.html"><code>Engine</code></a> instance is sub-optimal due to contention and locking.</p>
+<p>Keeping a global <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> instance is sub-optimal due to contention and locking.</p>
 </li>
 <li>
 <p>Scripts need to be executed independently from each other, perhaps concurrently.</p>
 </li>
 <li>
-<p>Scripts are used to <a href="/engine/func.html">create Rust closure</a> that are stored and may be called at any time, perhaps concurrently.
-In this case, the <a href="/engine/hello-world.html"><code>Engine</code></a> instance is usually moved into the closure itself.</p>
+<p>Scripts are used to <a href="/rhai/vnext/engine/func.html">create Rust closure</a> that are stored and may be called at any time, perhaps concurrently.
+In this case, the <a href="/rhai/vnext/engine/hello-world.html"><code>Engine</code></a> instance is usually moved into the closure itself.</p>
 </li>
 </ul>
 <h2><a class="header" href="#key-concepts" id="key-concepts">Key Concepts</a></h2>
 <ul>
 <li>
-<p>Create a single instance of each standard <a href="/rust/packages/index.html">package</a> required.  To duplicate <code>Engine::new</code>, create a <a href="/rust/packages/builtin.html"><code>StandardPackage</code></a>.</p>
+<p>Create a single instance of each standard <a href="/rhai/vnext/rust/packages/index.html">package</a> required.  To duplicate <code>Engine::new</code>, create a <a href="/rhai/vnext/rust/packages/builtin.html"><code>StandardPackage</code></a>.</p>
 </li>
 <li>
-<p>Gather up all common custom functions into a <a href="/rust/packages/create.html">custom package</a>.</p>
+<p>Gather up all common custom functions into a <a href="/rhai/vnext/rust/packages/create.html">custom package</a>.</p>
 </li>
 <li>
 <p>Store a global <code>AST</code> for use with all engines.</p>
 </li>
 <li>
-<p>Always use <code>Engine::new_raw</code> to create a <a href="/engine/raw.html">raw <code>Engine</code></a>, instead of <code>Engine::new</code> which is <em>much</em> more expensive.
-A <a href="/engine/raw.html">raw <code>Engine</code></a> is <em>extremely</em> cheap to create.</p>
-<p>Loading the <a href="/rust/packages/builtin.html"><code>StandardPackage</code></a> into a <a href="/engine/raw.html">raw <code>Engine</code></a> via <code>Engine::load_package</code> is essentially the same as <code>Engine::new</code>.
+<p>Always use <code>Engine::new_raw</code> to create a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>, instead of <code>Engine::new</code> which is <em>much</em> more expensive.
+A <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a> is <em>extremely</em> cheap to create.</p>
+<p>Loading the <a href="/rhai/vnext/rust/packages/builtin.html"><code>StandardPackage</code></a> into a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a> via <code>Engine::load_package</code> is essentially the same as <code>Engine::new</code>.
 But because packages are shared, loading an existing package is <em>much cheaper</em> than registering all the functions one by one.</p>
 </li>
 <li>
-<p>Load the required packages into the <a href="/engine/raw.html">raw <code>Engine</code></a> via <code>Engine::load_package</code>, using <code>Package::get</code> to obtain a shared copy.</p>
+<p>Load the required packages into the <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a> via <code>Engine::load_package</code>, using <code>Package::get</code> to obtain a shared copy.</p>
 </li>
 </ul>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
@@ -277,21 +277,6 @@ for x in 0..10_000 {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

@@ -169,11 +169,11 @@
                     <main>
                         <h1><a class="header" href="#create-a-module-from-an-ast" id="create-a-module-from-an-ast">Create a Module from an AST</a></h1>
 <h2><a class="header" href="#moduleeval_ast_as_new" id="moduleeval_ast_as_new"><code>Module::eval_ast_as_new</code></a></h2>
-<p>A <em>module</em> can be created from a single script (or pre-compiled <a href="/engine/compile.html"><code>AST</code></a>) containing global variables,
+<p>A <em>module</em> can be created from a single script (or pre-compiled <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>) containing global variables,
 functions and sub-modules via the <code>Module::eval_ast_as_new</code> method.</p>
-<p>See the section on <a href="/language/modules/export.html"><em>Exporting Variables, Functions and Sub-Modules</em></a> for details on how to prepare
+<p>See the section on <a href="/rhai/vnext/language/modules/export.html"><em>Exporting Variables, Functions and Sub-Modules</em></a> for details on how to prepare
 a Rhai script for this purpose as well as to control which functions/variables to export.</p>
-<p>When given an <a href="/engine/compile.html"><code>AST</code></a>, it is first evaluated, then the following items are exposed as members of the new module:</p>
+<p>When given an <a href="/rhai/vnext/engine/compile.html"><code>AST</code></a>, it is first evaluated, then the following items are exposed as members of the new module:</p>
 <ul>
 <li>
 <p>Global variables - all variables exported via the <code>export</code> statement (those not exported remain hidden).</p>
@@ -182,14 +182,14 @@ a Rhai script for this purpose as well as to control which functions/variables t
 <p>Functions not specifically marked <code>private</code>.</p>
 </li>
 <li>
-<p>Global modules that remain in the <a href="/engine/scope.html"><code>Scope</code></a> at the end of a script run.</p>
+<p>Global modules that remain in the <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a> at the end of a script run.</p>
 </li>
 </ul>
 <p><code>Module::eval_ast_as_new</code> encapsulates the entire <code>AST</code> into each function call, merging the module namespace
 with the global namespace.  Therefore, functions defined within the same module script can cross-call each other.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
-<p>Don’t forget the <a href="/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
-other than non-<a href="/engine/call-fn.html"><code>private</code></a> functions (unless that’s intentional).</p>
+<p>Don’t forget the <a href="/rhai/vnext/language/modules/export.html"><code>export</code></a> statement, otherwise there will be no variables exposed by the module
+other than non-<a href="/rhai/vnext/engine/call-fn.html"><code>private</code></a> functions (unless that’s intentional).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -276,21 +276,6 @@ let module = Module::eval_ast_as_new(Scope::new(), &amp;ast, &amp;engine)?;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

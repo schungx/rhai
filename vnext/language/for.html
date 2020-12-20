@@ -168,14 +168,14 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#for-loop" id="for-loop"><code>for</code> Loop</a></h1>
-<p>Iterating through a range or an <a href="/language/arrays.html">array</a>, or any type with a registered <a href="/language/iterator.html">type iterator</a>,
+<p>Iterating through a range or an <a href="/rhai/vnext/language/arrays.html">array</a>, or any type with a registered <a href="/rhai/vnext/language/iterator.html">type iterator</a>,
 is provided by the <code>for</code> ... <code>in</code> loop.</p>
 <p>Like C, <code>continue</code> can be used to skip to the next iteration, by-passing all following statements;
 <code>break</code> can be used to break out of the loop unconditionally.</p>
 <p>To loop through a number sequence (with or without steps), use the <code>range</code> function to
 return a numeric iterator.</p>
 <h2><a class="header" href="#iterate-through-strings" id="iterate-through-strings">Iterate Through Strings</a></h2>
-<p>Iterating through a <a href="/language/strings-chars.html">string</a> yields characters.</p>
+<p>Iterating through a <a href="/rhai/vnext/language/strings-chars.html">string</a> yields characters.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -191,7 +191,7 @@ for ch in s {
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#iterate-through-arrays" id="iterate-through-arrays">Iterate Through Arrays</a></h2>
-<p>Iterating through an <a href="/language/arrays.html">array</a> yields cloned <em>copies</em> of each element.</p>
+<p>Iterating through an <a href="/rhai/vnext/language/arrays.html">array</a> yields cloned <em>copies</em> of each element.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -232,9 +232,9 @@ for x in range(0, 50, 3) {      // step by 3
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#iterate-through-object-maps" id="iterate-through-object-maps">Iterate Through Object Maps</a></h2>
-<p>Two methods, <code>keys</code> and <code>values</code>, return <a href="/language/arrays.html">arrays</a> containing cloned <em>copies</em>
-of all property names and values of an <a href="/language/object-maps.html">object map</a>, respectively.</p>
-<p>These <a href="/language/arrays.html">arrays</a> can be iterated.</p>
+<p>Two methods, <code>keys</code> and <code>values</code>, return <a href="/rhai/vnext/language/arrays.html">arrays</a> containing cloned <em>copies</em>
+of all property names and values of an <a href="/rhai/vnext/language/object-maps.html">object map</a>, respectively.</p>
+<p>These <a href="/rhai/vnext/language/arrays.html">arrays</a> can be iterated.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -293,21 +293,6 @@ for val in map.values() {
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

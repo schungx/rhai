@@ -195,7 +195,7 @@ print(z);                       // &lt;- error: variable 'z' not found
 &quot;print(42)&quot;.eval();             // &lt;- nope... method-call style doesn't work with 'eval'
 <span class="boring">}
 </span></code></pre></pre>
-<p>Script segments passed to <code>eval</code> execute inside the current <a href="/engine/scope.html"><code>Scope</code></a>, so they can access and modify <em>everything</em>,
+<p>Script segments passed to <code>eval</code> execute inside the current <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>, so they can access and modify <em>everything</em>,
 including all variables that are visible at that position in code! It is almost as if the script segments were
 physically pasted in at the position of the <code>eval</code> call.</p>
 <h2><a class="header" href="#cannot-define-new-functions" id="cannot-define-new-functions">Cannot Define New Functions</a></h2>
@@ -218,7 +218,7 @@ print(x);
 </span></code></pre></pre>
 <h2><a class="header" href="#eval-is-evil" id="eval-is-evil"><code>eval</code> is Evil</a></h2>
 <p>For those who subscribe to the (very sensible) motto of <a href="http://linterrors.com/js/eval-is-evil">“<code>eval</code> is evil”</a>,
-disable <code>eval</code> using <a href="/engine/disable.html"><code>Engine::disable_symbol</code></a>:</p>
+disable <code>eval</code> using <a href="/rhai/vnext/engine/disable.html"><code>Engine::disable_symbol</code></a>:</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -281,21 +281,6 @@ let x = eval(&quot;40 + 2&quot;);         // throws &quot;eval is evil! I refuse
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

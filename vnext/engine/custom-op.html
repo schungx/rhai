@@ -209,7 +209,7 @@ result == 15;
 into a syntax that uses the corresponding function calls.</p>
 <p>Using <code>Engine::register_custom_operator</code> merely enables a convenient shortcut.</p>
 <h2><a class="header" href="#must-follow-variable-naming" id="must-follow-variable-naming">Must Follow Variable Naming</a></h2>
-<p>All custom operators must be <em>identifiers</em> that follow the same naming rules as <a href="/language/variables.html">variables</a>.</p>
+<p>All custom operators must be <em>identifiers</em> that follow the same naming rules as <a href="/rhai/vnext/language/variables.html">variables</a>.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -288,21 +288,6 @@ engine.eval::&lt;i64&gt;(&quot;1 + 2 * 3 foo 4 - 5 / 6&quot;)?; // error: functi
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

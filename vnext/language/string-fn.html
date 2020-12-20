@@ -168,8 +168,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#built-in-string-functions" id="built-in-string-functions">Built-in String Functions</a></h1>
-<p>The following standard methods (mostly defined in the <a href="/rust/packages/index.html"><code>MoreStringPackage</code></a> but excluded if
-using a <a href="/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/language/strings-chars.html">strings</a>:</p>
+<p>The following standard methods (mostly defined in the <a href="/rhai/vnext/rust/packages/index.html"><code>MoreStringPackage</code></a> but excluded if
+using a <a href="/rhai/vnext/engine/raw.html">raw <code>Engine</code></a>) operate on <a href="/rhai/vnext/language/strings-chars.html">strings</a>:</p>
 <table><thead><tr><th>Function</th><th>Parameter(s)</th><th>Description</th></tr></thead><tbody>
 <tr><td><code>len</code> method and property</td><td><em>none</em></td><td>returns the number of characters (not number of bytes) in the string</td></tr>
 <tr><td><code>pad</code></td><td>1) target length<br/>2) character/string to pad</td><td>pads the string with a character or a string to at least a specified length</td></tr>
@@ -179,7 +179,7 @@ using a <a href="/engine/raw.html">raw <code>Engine</code></a>) operate on <a hr
 <tr><td><code>contains</code></td><td>character/sub-string to search for</td><td>checks if a certain character or sub-string occurs in the string</td></tr>
 <tr><td><code>index_of</code></td><td>1) character/sub-string to search for<br/>2) <em>(optional)</em> start index</td><td>returns the index that a certain character or sub-string occurs in the string, or -1 if not found</td></tr>
 <tr><td><code>sub_string</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to extract, none if &lt; 0</td><td>extracts a sub-string (to the end of the string if length is not specified)</td></tr>
-<tr><td><code>split</code></td><td>delimiter character/string</td><td>splits the string by the specified delimiter, returning an <a href="/language/arrays.html">array</a> of string segments; not available under <a href="/start/features.html"><code>no_index</code></a></td></tr>
+<tr><td><code>split</code></td><td>delimiter character/string</td><td>splits the string by the specified delimiter, returning an <a href="/rhai/vnext/language/arrays.html">array</a> of string segments; not available under <a href="/rhai/vnext/start/features.html"><code>no_index</code></a></td></tr>
 <tr><td><code>crop</code></td><td>1) start index<br/>2) <em>(optional)</em> number of characters to retain, none if &lt; 0</td><td>retains only a portion of the string</td></tr>
 <tr><td><code>replace</code></td><td>1) target character/sub-string<br/>2) replacement character/string</td><td>replaces a sub-string with another</td></tr>
 <tr><td><code>trim</code></td><td><em>none</em></td><td>trims the string of whitespace at the beginning and end</td></tr>
@@ -265,21 +265,6 @@ full_name.len == 0;
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

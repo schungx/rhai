@@ -169,14 +169,14 @@
                     <main>
                         <h1><a class="header" href="#create-a-module-from-rust" id="create-a-module-from-rust">Create a Module from Rust</a></h1>
 <h2><a class="header" href="#create-via-plugin" id="create-via-plugin">Create via Plugin</a></h2>
-<p>By far the simplest way to create a <a href="/rust/modules/index.html">module</a> is via a <a href="/plugins/module.html">plugin module</a>
-which converts a normal Rust module into a Rhai <a href="/rust/modules/index.html">module</a> via procedural macros.</p>
+<p>By far the simplest way to create a <a href="/rhai/vnext/rust/modules/index.html">module</a> is via a <a href="/rhai/vnext/plugins/module.html">plugin module</a>
+which converts a normal Rust module into a Rhai <a href="/rhai/vnext/rust/modules/index.html">module</a> via procedural macros.</p>
 <h2><a class="header" href="#create-via-module-api" id="create-via-module-api">Create via <code>Module</code> API</a></h2>
-<p>Manually creating a <a href="/rust/modules/index.html">module</a> is possible via the <code>Module</code> API.</p>
+<p>Manually creating a <a href="/rhai/vnext/rust/modules/index.html">module</a> is possible via the <code>Module</code> API.</p>
 <p>For the complete <code>Module</code> API, refer to the <a href="https://docs.rs/rhai/0.19.8/rhai/struct.Module.html">documentation</a> online.</p>
 <h2><a class="header" href="#make-the-module-available-to-the-engine" id="make-the-module-available-to-the-engine">Make the <code>Module</code> Available to the <code>Engine</code></a></h2>
-<p><code>Engine::load_package</code> supports loading a <a href="/rust/modules/index.html">module</a> as a <a href="/rust/packages/index.html">package</a>.</p>
-<p>Since it acts as a <a href="/rust/packages/index.html">package</a>, all functions will be registered into the <em>global</em> namespace
+<p><code>Engine::load_package</code> supports loading a <a href="/rhai/vnext/rust/modules/index.html">module</a> as a <a href="/rhai/vnext/rust/packages/index.html">package</a>.</p>
+<p>Since it acts as a <a href="/rhai/vnext/rust/packages/index.html">package</a>, all functions will be registered into the <em>global</em> namespace
 and can be accessed without <em>namespace qualifiers</em>.  This is by far the easiest way to expose
 a module’s functionalities to Rhai.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -201,7 +201,7 @@ engine.eval::&lt;i64&gt;(&quot;inc(41)&quot;)? == 42;       // no need to import
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#make-the-module-a-global-module" id="make-the-module-a-global-module">Make the <code>Module</code> a Global Module</a></h2>
-<p><code>Engine::register_module</code> loads a <a href="/rust/modules/index.html">module</a> and makes it available globally under a specific namespace.</p>
+<p><code>Engine::register_module</code> loads a <a href="/rhai/vnext/rust/modules/index.html">module</a> and makes it available globally under a specific namespace.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -224,8 +224,8 @@ engine.eval::&lt;i64&gt;(&quot;calc::inc(41)&quot;)? == 42; // refer to the 'Cal
 <span class="boring">}
 </span></code></pre></pre>
 <p><code>Module::set_fn_XXX_mut</code> can expose functions (usually <em>methods</em>) in the module
-to the <em>global</em> namespace, so <a href="/rust/getters-setters.html">getters/setters</a> and <a href="/rust/indexers.html">indexers</a> for <a href="/rust/custom.html">custom types</a> can work as expected.</p>
-<p><a href="/language/iterator.html">Type iterators</a>, because of their special nature, are always exposed to the <em>global</em> namespace.</p>
+to the <em>global</em> namespace, so <a href="/rhai/vnext/rust/getters-setters.html">getters/setters</a> and <a href="/rhai/vnext/rust/indexers.html">indexers</a> for <a href="/rhai/vnext/rust/custom.html">custom types</a> can work as expected.</p>
+<p><a href="/rhai/vnext/language/iterator.html">Type iterators</a>, because of their special nature, are always exposed to the <em>global</em> namespace.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -249,9 +249,9 @@ engine.eval::&lt;i64&gt;(&quot;let x = 41; x.inc()&quot;)? == 42;
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#make-the-module-dynamically-loadable" id="make-the-module-dynamically-loadable">Make the <code>Module</code> Dynamically Loadable</a></h2>
-<p>In order to dynamically load a custom module, there must be a <a href="/rust/modules/resolvers.html">module resolver</a> which serves
+<p>In order to dynamically load a custom module, there must be a <a href="/rhai/vnext/rust/modules/resolvers.html">module resolver</a> which serves
 the module when loaded via <code>import</code> statements.</p>
-<p>The easiest way is to use, for example, the <a href="/rust/modules/resolvers.html"><code>StaticModuleResolver</code></a> to hold such
+<p>The easiest way is to use, for example, the <a href="/rhai/vnext/rust/modules/resolvers.html"><code>StaticModuleResolver</code></a> to hold such
 a custom module.</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -319,21 +319,6 @@ engine.eval::&lt;i64&gt;(r#&quot;import &quot;question&quot; as q; q::inc(q::ans
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

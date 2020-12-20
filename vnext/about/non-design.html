@@ -179,27 +179,27 @@ It doesn’t attempt to be a new language. For example:</p>
 </li>
 <li>
 <p><strong>No structures/records/tuples</strong> - define your types in Rust instead; Rhai can seamlessly work with <em>any Rust type</em>.</p>
-<p>There is, however, a built-in <a href="/language/object-maps.html">object map</a> type which is adequate for most uses.
-It is possible to simulate <a href="/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="/language/fn-ptr.html">function pointers</a>
-or <a href="/language/fn-closure.html">closures</a> in <a href="/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
+<p>There is, however, a built-in <a href="/rhai/vnext/language/object-maps.html">object map</a> type which is adequate for most uses.
+It is possible to simulate <a href="/rhai/vnext/patterns/oop.html">object-oriented programming (OOP)</a> by storing <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a>
+or <a href="/rhai/vnext/language/fn-closure.html">closures</a> in <a href="/rhai/vnext/language/object-maps.html">object map</a> properties, turning them into <em>methods</em>.</p>
 </li>
 <li>
 <p><strong>No first-class functions</strong> - Code your functions in Rust instead, and register them with Rhai.</p>
-<p>There is, however, support for simple <a href="/language/fn-ptr.html">function pointers</a> to allow runtime dispatch by function name.</p>
+<p>There is, however, support for simple <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a> to allow runtime dispatch by function name.</p>
 </li>
 <li>
 <p><strong>No garbage collection</strong> - this should be expected, so...</p>
 </li>
 <li>
-<p><strong>No first-class closures</strong> - do your closure magic in Rust instead: <a href="/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
-<p>There is, however, support for simulated <a href="/language/fn-closure.html">closures</a> via <a href="/language/fn-curry.html">currying</a> a <a href="/language/fn-ptr.html">function pointer</a> with
+<p><strong>No first-class closures</strong> - do your closure magic in Rust instead: <a href="/rhai/vnext/engine/call-fn.html">turn a Rhai scripted function into a Rust closure</a>.</p>
+<p>There is, however, support for simulated <a href="/rhai/vnext/language/fn-closure.html">closures</a> via <a href="/rhai/vnext/language/fn-curry.html">currying</a> a <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> with
 captured shared variables.</p>
 </li>
 <li>
 <p><strong>No byte-codes/JIT</strong> - Rhai has an optimized AST-walking interpreter which is fast enough for most casual
 usage scenarios. Essential AST data structures are packed and kept together to maximize cache friendliness.</p>
 <p>Functions are dispatched based on pre-calculated hashes and accessing variables are mostly through pre-calculated
-offsets to the variables file (a <a href="/engine/scope.html"><code>Scope</code></a>), so it is seldom necessary to look something up by text name.</p>
+offsets to the variables file (a <a href="/rhai/vnext/engine/scope.html"><code>Scope</code></a>), so it is seldom necessary to look something up by text name.</p>
 <p>In addition, Rhai’s design deliberately avoids maintaining a <em>scope chain</em> so function scopes do not
 pay any speed penalty.  This particular design also allows variables data to be kept together in a contiguous
 block, avoiding allocations and fragmentation while being cache-friendly. In a typical script evaluation run,
@@ -211,8 +211,8 @@ integrate with native Rust applications.</p>
 <p><strong>No formal language grammar</strong> - Rhai uses a hand-coded lexer, a hand-coded top-down recursive-descent parser
 for statements, and a hand-coded Pratt parser for expressions.</p>
 <p>This lack of formalism allows the <em>tokenizer</em> and <em>parser</em> themselves to be exposed as services in order
-to support <a href="/engine/disable.html">disabling keywords/operators</a>, adding <a href="/engine/custom-op.html">custom operators</a>,
-and defining <a href="/engine/custom-syntax.html">custom syntax</a>.</p>
+to support <a href="/rhai/vnext/engine/disable.html">disabling keywords/operators</a>, adding <a href="/rhai/vnext/engine/custom-op.html">custom operators</a>,
+and defining <a href="/rhai/vnext/engine/custom-syntax.html">custom syntax</a>.</p>
 </li>
 </ul>
 <h2><a class="header" href="#do-not-write-the-next-4d-vr-game-in-rhai" id="do-not-write-the-next-4d-vr-game-in-rhai">Do Not Write The Next 4D VR Game in Rhai</a></h2>
@@ -269,21 +269,6 @@ as XHR calls and payload encoding such as JSON.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

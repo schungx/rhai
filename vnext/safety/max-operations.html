@@ -174,7 +174,7 @@
 <p>The <em>operations count</em> is intended to be a very course-grained measurement of the amount of CPU that a script
 has consumed, allowing the system to impose a hard upper limit on computing resources.</p>
 <p>A script exceeding the maximum operations count terminates with an error result.
-This can be disabled via the <a href="/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
+This can be disabled via the <a href="/rhai/vnext/start/features.html"><code>unchecked</code></a> feature for higher performance (but higher risks as well).</p>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -234,21 +234,6 @@ one CPU cycle to execute.</p>
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

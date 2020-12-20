@@ -170,21 +170,21 @@
                         <h1><a class="header" href="#object-oriented-programming-oop" id="object-oriented-programming-oop">Object-Oriented Programming (OOP)</a></h1>
 <p>Rhai does not have <em>objects</em> per se, but it is possible to <em>simulate</em> object-oriented programming.</p>
 <h2><a class="header" href="#use-object-maps-to-simulate-oop" id="use-object-maps-to-simulate-oop">Use Object Maps to Simulate OOP</a></h2>
-<p>Rhai’s <a href="/language/object-maps.html">object maps</a> has <a href="/language/object-maps-oop.html">special support for OOP</a>.</p>
+<p>Rhai’s <a href="/rhai/vnext/language/object-maps.html">object maps</a> has <a href="/rhai/vnext/language/object-maps-oop.html">special support for OOP</a>.</p>
 <table><thead><tr><th>Rhai concept</th><th align="center">Maps to OOP</th></tr></thead><tbody>
-<tr><td><a href="/language/object-maps.html">Object maps</a></td><td align="center">objects</td></tr>
-<tr><td><a href="/language/object-maps.html">Object map</a> properties holding values</td><td align="center">properties</td></tr>
-<tr><td><a href="/language/object-maps.html">Object map</a> properties that hold <a href="/language/fn-ptr.html">function pointers</a></td><td align="center">methods</td></tr>
+<tr><td><a href="/rhai/vnext/language/object-maps.html">Object maps</a></td><td align="center">objects</td></tr>
+<tr><td><a href="/rhai/vnext/language/object-maps.html">Object map</a> properties holding values</td><td align="center">properties</td></tr>
+<tr><td><a href="/rhai/vnext/language/object-maps.html">Object map</a> properties that hold <a href="/rhai/vnext/language/fn-ptr.html">function pointers</a></td><td align="center">methods</td></tr>
 </tbody></table>
-<p>When a property of an <a href="/language/object-maps.html">object map</a> is called like a method function, and if it happens to hold
-a valid <a href="/language/fn-ptr.html">function pointer</a> (perhaps defined via an <a href="/language/fn-anon.html">anonymous function</a> or more commonly as a <a href="/language/fn-closure.html">closure</a>),
-then the call will be dispatched to the actual function with <code>this</code> binding to the <a href="/language/object-maps.html">object map</a> itself.</p>
+<p>When a property of an <a href="/rhai/vnext/language/object-maps.html">object map</a> is called like a method function, and if it happens to hold
+a valid <a href="/rhai/vnext/language/fn-ptr.html">function pointer</a> (perhaps defined via an <a href="/rhai/vnext/language/fn-anon.html">anonymous function</a> or more commonly as a <a href="/rhai/vnext/language/fn-closure.html">closure</a>),
+then the call will be dispatched to the actual function with <code>this</code> binding to the <a href="/rhai/vnext/language/object-maps.html">object map</a> itself.</p>
 <h2><a class="header" href="#use-closures-to-define-methods" id="use-closures-to-define-methods">Use Closures to Define Methods</a></h2>
-<p><a href="/language/fn-anon.html">Anonymous functions</a> or <a href="/language/fn-closure.html">closures</a> defined as values for <a href="/language/object-maps.html">object map</a> properties take on
+<p><a href="/rhai/vnext/language/fn-anon.html">Anonymous functions</a> or <a href="/rhai/vnext/language/fn-closure.html">closures</a> defined as values for <a href="/rhai/vnext/language/object-maps.html">object map</a> properties take on
 a syntactic shape which resembles very closely that of class methods in an OOP language.</p>
-<p>Closures also <em><a href="/language/fn-closure.html">capture</a></em> variables from the defining environment, which is a very
-common language feature.  Capturing is accomplished via a feature called <em><a href="/language/fn-closure.html">automatic currying</a></em> and
-can be turned off via the <a href="/start/features.html"><code>no_closure</code></a> feature.</p>
+<p>Closures also <em><a href="/rhai/vnext/language/fn-closure.html">capture</a></em> variables from the defining environment, which is a very
+common language feature.  Capturing is accomplished via a feature called <em><a href="/rhai/vnext/language/fn-closure.html">automatic currying</a></em> and
+can be turned off via the <a href="/rhai/vnext/start/features.html"><code>no_closure</code></a> feature.</p>
 <h2><a class="header" href="#examples" id="examples">Examples</a></h2>
 <pre><pre class="playground"><code class="language-rust">
 <span class="boring">#![allow(unused)]
@@ -213,7 +213,7 @@ obj.action();                                // prints 84
 <span class="boring">}
 </span></code></pre></pre>
 <h2><a class="header" href="#simulating-inheritance-with-mixin" id="simulating-inheritance-with-mixin">Simulating Inheritance With Mixin</a></h2>
-<p>The <code>fill_with</code> method of <a href="/language/object-maps.html">object maps</a> can be conveniently used to <em>polyfill</em> default
+<p>The <code>fill_with</code> method of <a href="/rhai/vnext/language/object-maps.html">object maps</a> can be conveniently used to <em>polyfill</em> default
 method implementations from a <em>base class</em>, as per OOP lingo.</p>
 <p>Do not use the <code>mixin</code> method because it <em>overwrites</em> existing fields.</p>
 <pre><pre class="playground"><code class="language-rust">
@@ -295,21 +295,6 @@ obj.data == 142
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         
