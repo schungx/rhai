@@ -14,21 +14,26 @@ use std::any::TypeId;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-/// Special marker for matching an expression.
-pub const CUSTOM_SYNTAX_MARKER_EXPR: &str = "$expr$";
-/// Special marker for matching a statements block.
-pub const CUSTOM_SYNTAX_MARKER_BLOCK: &str = "$block$";
-/// Special marker for matching an identifier.
-pub const CUSTOM_SYNTAX_MARKER_IDENT: &str = "$ident$";
-/// Special marker for matching a string literal.
-pub const CUSTOM_SYNTAX_MARKER_STRING: &str = "$string$";
-/// Special marker for matching an integer number.
-pub const CUSTOM_SYNTAX_MARKER_INT: &str = "$int$";
-/// Special marker for matching a floating-point number.
-#[cfg(not(feature = "no_float"))]
-pub const CUSTOM_SYNTAX_MARKER_FLOAT: &str = "$float$";
-/// Special marker for matching a boolean value.
-pub const CUSTOM_SYNTAX_MARKER_BOOL: &str = "$bool$";
+/// Collection of special markers for custom syntax definition.
+pub mod markers {
+    /// Special marker for matching an expression.
+    pub const CUSTOM_SYNTAX_MARKER_EXPR: &str = "$expr$";
+    /// Special marker for matching a statements block.
+    pub const CUSTOM_SYNTAX_MARKER_BLOCK: &str = "$block$";
+    /// Special marker for matching an identifier.
+    pub const CUSTOM_SYNTAX_MARKER_IDENT: &str = "$ident$";
+    /// Special marker for matching a single symbol.
+    pub const CUSTOM_SYNTAX_MARKER_SYMBOL: &str = "$symbol$";
+    /// Special marker for matching a string literal.
+    pub const CUSTOM_SYNTAX_MARKER_STRING: &str = "$string$";
+    /// Special marker for matching an integer number.
+    pub const CUSTOM_SYNTAX_MARKER_INT: &str = "$int$";
+    /// Special marker for matching a floating-point number.
+    #[cfg(not(feature = "no_float"))]
+    pub const CUSTOM_SYNTAX_MARKER_FLOAT: &str = "$float$";
+    /// Special marker for matching a boolean value.
+    pub const CUSTOM_SYNTAX_MARKER_BOOL: &str = "$bool$";
+}
 
 /// A general expression evaluation trait object.
 #[cfg(not(feature = "sync"))]
@@ -186,6 +191,8 @@ impl Engine {
         scope_may_be_changed: bool,
         func: impl Fn(&mut EvalContext, &[Expression]) -> RhaiResult + SendSync + 'static,
     ) -> Result<&mut Self, ParseError> {
+        use markers::*;
+
         let keywords = keywords.as_ref();
 
         let mut segments: StaticVec<ImmutableString> = Default::default();
@@ -203,6 +210,7 @@ impl Engine {
             let seg = match s {
                 // Markers not in first position
                 CUSTOM_SYNTAX_MARKER_IDENT
+                | CUSTOM_SYNTAX_MARKER_SYMBOL
                 | CUSTOM_SYNTAX_MARKER_EXPR
                 | CUSTOM_SYNTAX_MARKER_BLOCK
                 | CUSTOM_SYNTAX_MARKER_BOOL
@@ -230,7 +238,7 @@ impl Engine {
                 s if segments.is_empty()
                     && token
                         .as_ref()
-                        .map_or(false, |v| v.is_keyword() || v.is_reserved()) =>
+                        .map_or(false, |v| v.is_standard_keyword() || v.is_reserved()) =>
                 {
                     return Err(LexError::ImproperSymbol(
                         s.to_string(),

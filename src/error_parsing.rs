@@ -235,6 +235,8 @@ impl fmt::Display for ParseErrorType {
             Self::MismatchedType(r, a) => write!(f, "Expecting {}, not {}", r, a),
             Self::ExprExpected(s) => write!(f, "Expecting {} expression", s),
             Self::MissingToken(token, s) => write!(f, "Expecting '{}' {}", token, s),
+
+            Self::MissingSymbol(s) if s.is_empty() => f.write_str("Expecting a symbol"),
             Self::MissingSymbol(s) => f.write_str(s),
 
             Self::AssignmentToConstant(s) => match s.as_str() {

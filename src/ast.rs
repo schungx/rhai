@@ -1436,8 +1436,8 @@ impl OpAssignment<'_> {
         let op_raw = op
             .map_op_assignment()
             .expect("never fails because token must be an op-assignment operator")
-            .keyword_syntax();
-        let op_assignment = op.keyword_syntax();
+            .literal_syntax();
+        let op_assignment = op.literal_syntax();
 
         Self {
             hash_op_assign: calc_fn_hash(op_assignment, 2),
