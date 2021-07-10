@@ -1,4 +1,6 @@
-use rhai::{Dynamic, Engine, EvalAltResult, LexError, ParseErrorType, Position, INT};
+use rhai::{
+    Dynamic, Engine, EvalAltResult, ImmutableString, LexError, ParseErrorType, Position, INT,
+};
 
 #[test]
 fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
@@ -19,21 +21,32 @@ fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
 
     engine.register_custom_syntax(
         &[
-            "exec", "[", "$ident$", ";", "$int$", "]", "->", "$block$", "while", "$expr$",
+            "exec", "[", "$ident$", "$symbol$", "$int$", "]", "->", "$block$", "while", "$expr$",
         ],
         true,
         |context, inputs| {
             let var_name = inputs[0].get_variable_name().unwrap().to_string();
-            let max = inputs[1].get_literal_value::<INT>().unwrap();
-            let stmt = inputs.get(2).unwrap();
-            let condition = inputs.get(3).unwrap();
+            let op = inputs[1].get_literal_value::<ImmutableString>().unwrap();
+            let max = inputs[2].get_literal_value::<INT>().unwrap();
+            let stmt = inputs.get(3).unwrap();
+            let condition = inputs.get(4).unwrap();
 
             context.scope_mut().push(var_name.clone(), 0 as INT);
 
             let mut count: INT = 0;
 
             loop {
-                if count >= max {
+                let done = match op.as_str() {
+                    "<" => count >= max,
+                    "<=" => count > max,
+                    ">" => count <= max,
+                    ">=" => count < max,
+                    "==" => count != max,
+                    "!=" => count == max,
+                    _ => return Err(format!("Unsupported operator: {}", op).into()),
+                };
+
+                if done {
                     break;
                 }
 
@@ -64,11 +77,18 @@ fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
         },
     )?;
 
+    assert!(matches!(
+        *engine
+            .consume("let foo = (exec [x<<15] -> { x += 2 } while x < 42) * 10;")
+            .expect_err("should error"),
+        EvalAltResult::ErrorRuntime(_, _)
+    ));
+
     assert_eq!(
         engine.eval::<INT>(
             "
                 let x = 0;
-                let foo = (exec [x;15] -> { x += 2 } while x < 42) * 10;
+                let foo = (exec [x<15] -> { x += 2 } while x < 42) * 10;
                 foo
             "
         )?,
@@ -78,7 +98,7 @@ fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
         engine.eval::<INT>(
             "
                 let x = 0;
-                exec [x;100] -> { x += 1 } while x < 42;
+                exec [x<100] -> { x += 1 } while x < 42;
                 x
             "
         )?,
@@ -87,7 +107,7 @@ fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
     assert_eq!(
         engine.eval::<INT>(
             "
-                exec [x;100] -> { x += 1 } while x < 42;
+                exec [x<100] -> { x += 1 } while x < 42;
                 x
             "
         )?,
@@ -97,7 +117,7 @@ fn test_custom_syntax() -> Result<(), Box<EvalAltResult>> {
         engine.eval::<INT>(
             "
                 let foo = 123;
-                exec [x;15] -> { x += 1 } while x < 42;
+                exec [x<15] -> { x += 1 } while x < 42;
                 foo + x + x1 + x2 + x3
             "
         )?,

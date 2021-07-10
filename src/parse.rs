@@ -4,10 +4,7 @@ use crate::ast::{
     BinaryExpr, CustomExpr, Expr, FnCallExpr, FnCallHashes, Ident, OpAssignment, ReturnType,
     ScriptFnDef, Stmt, StmtBlock,
 };
-use crate::custom_syntax::{
-    CustomSyntax, CUSTOM_SYNTAX_MARKER_BLOCK, CUSTOM_SYNTAX_MARKER_BOOL, CUSTOM_SYNTAX_MARKER_EXPR,
-    CUSTOM_SYNTAX_MARKER_IDENT, CUSTOM_SYNTAX_MARKER_INT, CUSTOM_SYNTAX_MARKER_STRING,
-};
+use crate::custom_syntax::{markers::*, CustomSyntax};
 use crate::dynamic::AccessMode;
 use crate::engine::{Precedence, KEYWORD_THIS, OP_CONTAINS};
 use crate::fn_hash::get_hasher;
@@ -29,7 +26,7 @@ use std::{
 };
 
 #[cfg(not(feature = "no_float"))]
-use crate::{custom_syntax::CUSTOM_SYNTAX_MARKER_FLOAT, FLOAT};
+use crate::{custom_syntax::markers::CUSTOM_SYNTAX_MARKER_FLOAT, FLOAT};
 
 #[cfg(not(feature = "no_function"))]
 use crate::FnAccess;
@@ -386,6 +383,20 @@ fn parse_var_name(input: &mut TokenStream) -> Result<(String, Position), ParseEr
         (Token::LexError(err), pos) => Err(err.into_err(pos)),
         // Not a variable name
         (_, pos) => Err(PERR::VariableExpected.into_err(pos)),
+    }
+}
+
+/// Parse a symbol.
+fn parse_symbol(input: &mut TokenStream) -> Result<(String, Position), ParseError> {
+    match input.next().expect(NEVER_ENDS) {
+        // Symbol
+        (token, pos) if token.is_standard_symbol() => Ok((token.literal_syntax().into(), pos)),
+        // Reserved symbol
+        (Token::Reserved(s), pos) if !is_valid_identifier(s.chars()) => Ok((s, pos)),
+        // Bad identifier
+        (Token::LexError(err), pos) => Err(err.into_err(pos)),
+        // Not a symbol
+        (_, pos) => Err(PERR::MissingSymbol(Default::default()).into_err(pos)),
     }
 }
 
@@ -1992,6 +2003,13 @@ fn parse_custom_syntax(
                 tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_IDENT));
                 keywords.push(Expr::Variable(None, pos, (None, None, name).into()));
             }
+            CUSTOM_SYNTAX_MARKER_SYMBOL => {
+                let (symbol, pos) = parse_symbol(input)?;
+                let symbol: ImmutableString = state.get_identifier(symbol).into();
+                segments.push(symbol.clone());
+                tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_SYMBOL));
+                keywords.push(Expr::StringConstant(symbol, pos));
+            }
             CUSTOM_SYNTAX_MARKER_EXPR => {
                 keywords.push(parse_expr(input, state, lib, settings)?);
                 let keyword = state.get_identifier(CUSTOM_SYNTAX_MARKER_EXPR);
@@ -2010,9 +2028,8 @@ fn parse_custom_syntax(
             CUSTOM_SYNTAX_MARKER_BOOL => match input.next().expect(NEVER_ENDS) {
                 (b @ Token::True, pos) | (b @ Token::False, pos) => {
                     keywords.push(Expr::BoolConstant(b == Token::True, pos));
-                    let keyword = state.get_identifier(CUSTOM_SYNTAX_MARKER_BOOL);
-                    segments.push(keyword.clone().into());
-                    tokens.push(keyword);
+                    segments.push(state.get_identifier(b.literal_syntax()).into());
+                    tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_BOOL));
                 }
                 (_, pos) => {
                     return Err(
@@ -2024,9 +2041,8 @@ fn parse_custom_syntax(
             CUSTOM_SYNTAX_MARKER_INT => match input.next().expect(NEVER_ENDS) {
                 (Token::IntegerConstant(i), pos) => {
                     keywords.push(Expr::IntegerConstant(i, pos));
-                    let keyword = state.get_identifier(CUSTOM_SYNTAX_MARKER_INT);
-                    segments.push(keyword.clone().into());
-                    tokens.push(keyword);
+                    segments.push(i.to_string().into());
+                    tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_INT));
                 }
                 (_, pos) => {
                     return Err(
@@ -2039,9 +2055,8 @@ fn parse_custom_syntax(
             CUSTOM_SYNTAX_MARKER_FLOAT => match input.next().expect(NEVER_ENDS) {
                 (Token::FloatConstant(f), pos) => {
                     keywords.push(Expr::FloatConstant(f, pos));
-                    let keyword = state.get_identifier(CUSTOM_SYNTAX_MARKER_FLOAT);
-                    segments.push(keyword.clone().into());
-                    tokens.push(keyword);
+                    segments.push(f.to_string().into());
+                    tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_FLOAT));
                 }
                 (_, pos) => {
                     return Err(PERR::MissingSymbol(
@@ -2052,10 +2067,10 @@ fn parse_custom_syntax(
             },
             CUSTOM_SYNTAX_MARKER_STRING => match input.next().expect(NEVER_ENDS) {
                 (Token::StringConstant(s), pos) => {
-                    keywords.push(Expr::StringConstant(state.get_identifier(s).into(), pos));
-                    let keyword = state.get_identifier(CUSTOM_SYNTAX_MARKER_STRING);
-                    segments.push(keyword.clone().into());
-                    tokens.push(keyword);
+                    let s: ImmutableString = state.get_identifier(s).into();
+                    keywords.push(Expr::StringConstant(s.clone(), pos));
+                    segments.push(s);
+                    tokens.push(state.get_identifier(CUSTOM_SYNTAX_MARKER_STRING));
                 }
                 (_, pos) => {
                     return Err(PERR::MissingSymbol("Expecting a string".to_string()).into_err(pos))

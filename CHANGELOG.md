@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.1.0
+=============
+
+Enhancements
+------------
+
+* `$symbol$` is supported in custom syntax to match any symbol.
+
+
 Version 1.0.0
 =============
 

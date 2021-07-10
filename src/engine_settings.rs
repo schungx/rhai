@@ -308,13 +308,13 @@ impl Engine {
             None | Some(Token::Reserved(_)) | Some(Token::Custom(_)) => (),
             // Active standard keywords cannot be made custom
             // Disabled keywords are OK
-            Some(token) if token.is_keyword() => {
+            Some(token) if token.is_standard_keyword() => {
                 if !self.disabled_symbols.contains(token.syntax().as_ref()) {
                     return Err(format!("'{}' is a reserved keyword", keyword.as_ref()).into());
                 }
             }
             // Active standard symbols cannot be made custom
-            Some(token) if token.is_symbol() => {
+            Some(token) if token.is_standard_symbol() => {
                 if !self.disabled_symbols.contains(token.syntax().as_ref()) {
                     return Err(format!("'{}' is a reserved operator", keyword.as_ref()).into());
                 }
