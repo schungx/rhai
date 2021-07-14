@@ -14,8 +14,8 @@ use crate::token::{
     is_keyword_function, is_valid_identifier, Token, TokenStream, TokenizerControl,
 };
 use crate::{
-    calc_fn_hash, calc_qualified_fn_hash, calc_qualified_var_hash, Engine, Identifier, LexError,
-    ParseError, ParseErrorType, Position, Scope, Shared, StaticVec, AST,
+    calc_fn_hash, calc_qualified_fn_hash, calc_qualified_var_hash, Engine, Identifier,
+    ImmutableString, LexError, ParseError, ParseErrorType, Position, Scope, Shared, StaticVec, AST,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
