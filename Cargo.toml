@@ -23,7 +23,7 @@ smartstring = { version = "0.2.7", default-features = false }
 rhai_codegen = { version = "1.1", path = "codegen", default-features = false }
 
 [features]
-default = ["ahash/std", "num-traits/std"]
+default = ["ahash/std", "num-traits/std", "metadata", "internals"]
 unchecked = []                  # unchecked arithmetic
 sync = []                       # restrict to only types that implement Send + Sync
 no_position = []                # do not track position in the parser

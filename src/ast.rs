@@ -962,6 +962,24 @@ impl OptionFlags {
     pub const fn contains(self, flag: Self) -> bool {
         self.0 & flag.0 != 0
     }
+    /// Create a new [`OptionFlags`] from a [`u8`].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn from_u8(value: u8) -> Self {
+        Self(value)
+    }
+    /// Convert this [`OptionFlags`] into a [`u8`].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn inner_get(self) -> u8 {
+        self.0
+    }
+    /// Override the value of this [`OptionFlags`] with a [`u8`].
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn inner_set(&mut self, value: u8) {
+        self.0 = value
+    }
 }
 
 impl Not for OptionFlags {
