@@ -276,8 +276,17 @@ impl Engine {
             #[cfg(not(feature = "unchecked"))]
             self.inc_operations(&mut global.num_operations, expr.position())?;
 
-            let result =
-                self.eval_fn_call_expr(scope, global, state, lib, this_ptr, x, *pos, level);
+            let nested = !x.is_qualified()
+                && x.args.iter().any(|e| match e {
+                    Expr::FnCall(_, _) | Expr::And(_, _) | Expr::Or(_, _) => true,
+                    _ => false,
+                });
+
+            let result = if nested {
+                ExprOpCodeEngine::new(expr).run(self, scope, global, state, lib, this_ptr, level)
+            } else {
+                self.eval_fn_call_expr(scope, global, state, lib, this_ptr, x, *pos, level)
+            };
 
             #[cfg(feature = "debugging")]
             global.debugger.reset_status(reset_debugger);

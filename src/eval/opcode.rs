@@ -1,32 +1,51 @@
 //! Module defining opcodes for evaluating an expression.
 
 use super::{EvalContext, EvalState, GlobalRuntimeState};
-use crate::ast::{BinaryExpr, Expr, FnCallExpr, Ident, OpAssignment};
+use crate::ast::{BinaryExpr, Expr, FnCallExpr, OpAssignment};
 use crate::engine::{KEYWORD_FN_PTR_CALL, KEYWORD_THIS, OP_CONCAT};
 use crate::{Dynamic, Engine, Module, Position, RhaiResult, Scope, StaticVec, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{fmt, mem};
 
-pub const MAX_INLINE: usize = 8;
+/// Maximum number of expression opcodes to keep inline.
+pub const MAX_EXPR_INLINE: usize = 4;
 
+/// Opcodes for [`AST`][crate::AST] evaluation.
 pub enum OpCode<'a> {
-    Do(&'a Expr),
+    /// Evaluate an [`Expr`].
+    Eval(&'a Expr),
+    /// Evaluate the RHS of an [`Expr::And`][Expr::And].
+    /// Result of the LHS is on the stack.
     And(&'a BinaryExpr),
+    /// Evaluate the RHS of an [`Expr::Or`][Expr::Or].
+    /// Result of the LHS is on the stack.
     Or(&'a BinaryExpr),
+    /// Evaluate an [`Expr::FnCall`][Expr::FnCall].
+    /// All argument values (possibly except the first one) are on the stack.
+    ///
+    /// If the boolean is `true`, then the first argument is not evaluated.
     FnCall(&'a Expr, bool),
     #[cfg(not(feature = "no_index"))]
+    /// Build an [`Array`] via [`Expr::Array`][Expr::Array].
+    /// All array items are on the stack.
     Array(&'a Expr),
     #[cfg(not(feature = "no_object"))]
+    /// Build a [`Map`] via [`Expr::Map`][Expr::Map].
+    /// All object map items are on the stack.
     Map(&'a Expr),
+    /// Build a string via [`Expr::InterpolatedString`][Expr::InterpolatedString].
+    /// All string segments are on the stack.
     InterpolateString(&'a Expr),
+    /// Raise an error if the value on top of the stack is not `bool`.
+    /// This is mainly used for conditionals.
     MustBeBool(Position),
 }
 
 impl fmt::Debug for OpCode<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Do(_) => f.debug_tuple("Do").finish(),
+            Self::Eval(_) => f.debug_tuple("Eval").finish(),
             Self::And(_) => f.debug_tuple("And").finish(),
             Self::Or(_) => f.debug_tuple("Or").finish(),
             Self::FnCall(_, _) => f.debug_tuple("FnCall").finish(),
@@ -40,13 +59,18 @@ impl fmt::Debug for OpCode<'_> {
     }
 }
 
+/// Engine to evaluate [opcodes][`OpCode`] for an [`Expr`].
 pub struct ExprOpCodeEngine<'a> {
+    /// Current expression being evaluated.
     current_expr: &'a Expr,
-    opcodes: smallvec::SmallVec<[OpCode<'a>; MAX_INLINE]>,
-    stack: smallvec::SmallVec<[Dynamic; MAX_INLINE]>,
+    /// Stack of [opcodes][`OpCode`] to be evaluated.
+    opcodes: smallvec::SmallVec<[OpCode<'a>; MAX_EXPR_INLINE]>,
+    /// Results stack.
+    stack: smallvec::SmallVec<[Dynamic; MAX_EXPR_INLINE]>,
 }
 
 impl<'a> ExprOpCodeEngine<'a> {
+    /// Create an [`ExprOpCodeEngine`] from the [`Expr`] to be evaluated.
     #[inline(always)]
     pub const fn new(root: &'a Expr) -> Self {
         Self {
@@ -55,7 +79,7 @@ impl<'a> ExprOpCodeEngine<'a> {
             stack: smallvec::SmallVec::new_const(),
         }
     }
-
+    /// Evaluate this [`Expr`] using [opcodes][`OpCode`].
     #[inline]
     pub fn run(
         &mut self,
@@ -68,6 +92,7 @@ impl<'a> ExprOpCodeEngine<'a> {
         level: usize,
     ) -> RhaiResult {
         loop {
+            // Evaluate the current expression.
             let expr = self.current_expr;
 
             // Coded this way for better branch prediction.
@@ -75,26 +100,48 @@ impl<'a> ExprOpCodeEngine<'a> {
             if let Expr::FnCall(x, pos) = expr {
                 // Function calls should account for a relatively larger portion of expressions because
                 // binary operators are also function calls.
+                // They also account for the majority of deeply-nested expressions.
 
-                if x.args.is_empty() || x.is_qualified() || x.name == KEYWORD_FN_PTR_CALL {
+                // Defer to standard evaluation if:
+                // 1) the function has no parameters - thus no more nesting
+                // 2) the function is qualified - again no more nesting
+                // 3) the function is `call` - which needs the expression for the _second_ parameter
+                // 4) the function call has no arguments that are nested
+                if x.args.is_empty()
+                    || x.is_qualified()
+                    || x.name == KEYWORD_FN_PTR_CALL
+                    || !x.args.iter().any(|e| match e {
+                        Expr::FnCall(_, _) | Expr::And(_, _) | Expr::Or(_, _) => true,
+                        _ => false,
+                    })
+                {
                     let value = engine
                         .eval_fn_call_expr(scope, global, state, lib, this_ptr, x, *pos, level)?;
                     self.stack.push(value);
                 } else {
-                    let skip_first = x.args.len() > 0 && x.args[0].is_variable_access(false);
-                    let skip = if skip_first { 2 } else { 1 };
+                    // If the first argument is a simple variable access, skip it because it may be
+                    // converted into a method call to avoid cloning.
+                    let skip_first = x.args[0].is_variable_access(false);
+                    let skip = if skip_first { 1 } else { 0 };
 
+                    // Function call
                     self.opcodes.push(OpCode::FnCall(expr, skip_first));
-                    x.args
-                        .iter()
-                        .skip(skip)
-                        .rev()
-                        .for_each(|e| self.opcodes.push(OpCode::Do(e)));
-                    self.current_expr = &x.args[skip - 1];
-                    continue;
+
+                    if x.args.len() > skip {
+                        // Argument expressions
+                        x.args
+                            .iter()
+                            .skip(skip + 1)
+                            .rev()
+                            .for_each(|e| self.opcodes.push(OpCode::Eval(e)));
+
+                        self.current_expr = &x.args[skip];
+                        continue;
+                    }
                 }
             } else if let Expr::Variable(index, var_pos, x) = expr {
                 // Then variable access.
+
                 // We shouldn't do this for too many variants because, soon or later, the added comparisons
                 // will cost more than the mis-predicted `match` branch.
 
@@ -110,6 +157,7 @@ impl<'a> ExprOpCodeEngine<'a> {
                 };
                 self.stack.push(value);
             } else {
+                // Evaluate the current expression via `match`
                 match expr {
                     Expr::DynamicConstant(x, _) => self.stack.push(x.as_ref().clone()),
                     Expr::IntegerConstant(x, _) => self.stack.push((*x).into()),
@@ -141,12 +189,12 @@ impl<'a> ExprOpCodeEngine<'a> {
                         x.iter()
                             .skip(1)
                             .rev()
-                            .for_each(|e| self.opcodes.push(OpCode::Do(e)));
+                            .for_each(|e| self.opcodes.push(OpCode::Eval(e)));
                         self.current_expr = &x[0];
                         continue;
                     }
 
-                    #[cfg(not(feature = "no_index"))]
+                    #[cfg(not(feature = "no_object"))]
                     Expr::Map(x, _) if x.0.is_empty() => {
                         self.stack.push(Dynamic::from_map(x.1.clone()));
                     }
@@ -156,7 +204,7 @@ impl<'a> ExprOpCodeEngine<'a> {
                         x.0.iter()
                             .skip(1)
                             .rev()
-                            .for_each(|(_, e)| self.opcodes.push(OpCode::Do(e)));
+                            .for_each(|(_, e)| self.opcodes.push(OpCode::Eval(e)));
                         self.current_expr = &x.0[0].1;
                         continue;
                     }
@@ -167,7 +215,7 @@ impl<'a> ExprOpCodeEngine<'a> {
                         x.iter()
                             .skip(1)
                             .rev()
-                            .for_each(|e| self.opcodes.push(OpCode::Do(e)));
+                            .for_each(|e| self.opcodes.push(OpCode::Eval(e)));
                         self.current_expr = &x[0];
                         continue;
                     }
@@ -217,11 +265,12 @@ impl<'a> ExprOpCodeEngine<'a> {
                         self.stack.push(value);
                     }
 
-                    _ => todo!(),
+                    _ => unreachable!("unknown expression: {:?}", expr),
                 }
             }
 
             // Get the next opcode
+
             self.current_expr = loop {
                 // If no more opcodes, then return the final result
                 if self.opcodes.is_empty() {
@@ -234,12 +283,16 @@ impl<'a> ExprOpCodeEngine<'a> {
                 // Coded this way for better branch prediction.
                 // Popular branches are lifted out of the `match` statement into their own branches.
 
-                if let OpCode::Do(_) = next_opcode {
+                // Evaluations should account for a majority of opcodes...
+                if let OpCode::Eval(_) = next_opcode {
                     match self.opcodes.pop().unwrap() {
-                        OpCode::Do(e) => break e,
-                        op => unreachable!("`ExprOpCode::Do` expected but gets {:?}", op),
+                        OpCode::Eval(e) => break e,
+                        op => unreachable!("`ExprOpCode::Eval` expected but gets {:?}", op),
                     }
                 } else if let OpCode::FnCall(_, _) = next_opcode {
+                    // Function calls should be the next more popular, as they account for the
+                    // majority of deeply-nested expressions.
+
                     // We shouldn't do this for too many variants because, soon or later, the added comparisons
                     // will cost more than the mis-predicted `match` branch.
 
@@ -268,8 +321,10 @@ impl<'a> ExprOpCodeEngine<'a> {
                     let first = if skip_first {
                         args.get(0)
                     } else {
-                        first_expr =
-                            Expr::from_dynamic(mem::take(&mut stack[0]), args[0].position());
+                        first_expr = match &args[0] {
+                            e @ Expr::Stack(_, _) => e.clone(),
+                            e => Expr::from_dynamic(mem::take(&mut stack[0]), e.position()),
+                        };
                         Some(&first_expr)
                     };
 
@@ -292,13 +347,12 @@ impl<'a> ExprOpCodeEngine<'a> {
                     self.stack.truncate(offset);
                     self.stack.push(result);
                 } else {
+                    // Run the current opcode via `match`
                     match self.opcodes.pop().unwrap() {
                         OpCode::And(e) => {
-                            let lhs = self.stack.pop().unwrap().as_bool().map_err(|typ| {
+                            if !self.stack.pop().unwrap().as_bool().map_err(|typ| {
                                 engine.make_type_mismatch_err::<bool>(typ, e.lhs.position())
-                            })?;
-
-                            if !lhs {
+                            })? {
                                 self.stack.push(Dynamic::FALSE);
                             } else {
                                 self.opcodes.push(OpCode::MustBeBool(e.rhs.position()));
@@ -306,11 +360,9 @@ impl<'a> ExprOpCodeEngine<'a> {
                             }
                         }
                         OpCode::Or(e) => {
-                            let lhs = self.stack.pop().unwrap().as_bool().map_err(|typ| {
+                            if self.stack.pop().unwrap().as_bool().map_err(|typ| {
                                 engine.make_type_mismatch_err::<bool>(typ, e.lhs.position())
-                            })?;
-
-                            if lhs {
+                            })? {
                                 self.stack.push(Dynamic::TRUE);
                             } else {
                                 self.opcodes.push(OpCode::MustBeBool(e.rhs.position()));
@@ -370,7 +422,7 @@ impl<'a> ExprOpCodeEngine<'a> {
                             #[cfg(not(feature = "unchecked"))]
                             let mut sizes = (0, 0, 0);
 
-                            for (_x, ((Ident { name, .. }, _), item)) in
+                            for (_x, ((crate::ast::Ident { name, .. }, _), item)) in
                                 items.iter().zip(stack.iter_mut()).enumerate()
                             {
                                 let key = name.clone();
@@ -440,7 +492,7 @@ impl<'a> ExprOpCodeEngine<'a> {
                                     engine.make_type_mismatch_err::<bool>(typ, pos)
                                 })?;
                         }
-                        _ => unreachable!(""),
+                        op => unreachable!("unknown opcode: {:?}", op),
                     }
                 }
             };
