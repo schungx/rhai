@@ -5,6 +5,7 @@ mod eval_context;
 mod eval_state;
 mod expr;
 mod global_state;
+mod opcode;
 mod stmt;
 mod target;
 
@@ -18,4 +19,5 @@ pub use debugger::{BreakPoint, Debugger, DebuggerCommand, OnDebuggerCallback, On
 pub use eval_context::EvalContext;
 pub use eval_state::EvalState;
 pub use global_state::GlobalRuntimeState;
+pub use opcode::{ExprOpCodeEngine, OpCode};
 pub use target::{calc_index, calc_offset_len, Target};

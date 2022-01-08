@@ -6,6 +6,7 @@ on:
       - main
       - master
       - debugger
+      - opcodes
   pull_request: {}
 
 jobs:

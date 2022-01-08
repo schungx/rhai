@@ -1,10 +1,10 @@
 //! Module defining functions for evaluating an expression.
 
-use super::{EvalContext, EvalState, GlobalRuntimeState, Target};
-use crate::ast::{Expr, FnCallExpr, OpAssignment};
-use crate::engine::{KEYWORD_THIS, OP_CONCAT};
+use super::{EvalContext, EvalState, ExprOpCodeEngine, GlobalRuntimeState, Target};
+use crate::ast::{Expr, FnCallExpr};
+use crate::engine::KEYWORD_THIS;
 use crate::types::dynamic::AccessMode;
-use crate::{Dynamic, Engine, Module, Position, RhaiResult, RhaiResultOf, Scope, StaticVec, ERR};
+use crate::{Dynamic, Engine, Module, Position, RhaiResult, RhaiResultOf, Scope, ERR};
 use std::num::NonZeroUsize;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -318,7 +318,7 @@ impl Engine {
         #[cfg(not(feature = "unchecked"))]
         self.inc_operations(&mut global.num_operations, expr.position())?;
 
-        let result = match expr {
+        match expr {
             // Constants
             Expr::DynamicConstant(x, _) => Ok(x.as_ref().clone()),
             Expr::IntegerConstant(x, _) => Ok((*x).into()),
@@ -328,192 +328,6 @@ impl Engine {
             Expr::CharConstant(x, _) => Ok((*x).into()),
             Expr::BoolConstant(x, _) => Ok((*x).into()),
             Expr::Unit(_) => Ok(Dynamic::UNIT),
-
-            // `... ${...} ...`
-            Expr::InterpolatedString(x, pos) => {
-                let mut pos = *pos;
-                let mut concat: Dynamic = self.const_empty_string().into();
-                let mut result = Ok(Dynamic::UNIT);
-
-                for expr in x.iter() {
-                    let item =
-                        match self.eval_expr(scope, global, state, lib, this_ptr, expr, level) {
-                            Ok(r) => r,
-                            err => {
-                                result = err;
-                                break;
-                            }
-                        };
-
-                    if let Err(err) = self.eval_op_assignment(
-                        global,
-                        state,
-                        lib,
-                        Some(OpAssignment::new(OP_CONCAT)),
-                        pos,
-                        &mut (&mut concat).into(),
-                        ("", Position::NONE),
-                        item,
-                    ) {
-                        result = Err(err.fill_position(expr.position()));
-                        break;
-                    }
-
-                    pos = expr.position();
-                }
-
-                result.map(|_| concat)
-            }
-
-            #[cfg(not(feature = "no_index"))]
-            Expr::Array(x, _) => {
-                let mut arr = crate::Array::with_capacity(x.len());
-                let mut result = Ok(Dynamic::UNIT);
-
-                #[cfg(not(feature = "unchecked"))]
-                let mut sizes = (0, 0, 0);
-
-                for item_expr in x.iter() {
-                    let value = match self
-                        .eval_expr(scope, global, state, lib, this_ptr, item_expr, level)
-                    {
-                        Ok(r) => r.flatten(),
-                        err => {
-                            result = err;
-                            break;
-                        }
-                    };
-
-                    #[cfg(not(feature = "unchecked"))]
-                    let val_sizes = Self::calc_data_sizes(&value, true);
-
-                    arr.push(value);
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if self.has_data_size_limit() {
-                        sizes = (
-                            sizes.0 + val_sizes.0,
-                            sizes.1 + val_sizes.1,
-                            sizes.2 + val_sizes.2,
-                        );
-                        self.raise_err_if_over_data_size_limit(sizes, item_expr.position())?;
-                    }
-                }
-
-                result.map(|_| arr.into())
-            }
-
-            #[cfg(not(feature = "no_object"))]
-            Expr::Map(x, _) => {
-                let mut map = x.1.clone();
-                let mut result = Ok(Dynamic::UNIT);
-
-                #[cfg(not(feature = "unchecked"))]
-                let mut sizes = (0, 0, 0);
-
-                for (crate::ast::Ident { name, .. }, value_expr) in x.0.iter() {
-                    let key = name.as_str();
-                    let value = match self
-                        .eval_expr(scope, global, state, lib, this_ptr, value_expr, level)
-                    {
-                        Ok(r) => r.flatten(),
-                        err => {
-                            result = err;
-                            break;
-                        }
-                    };
-
-                    #[cfg(not(feature = "unchecked"))]
-                    let val_sizes = Self::calc_data_sizes(&value, true);
-
-                    *map.get_mut(key).unwrap() = value;
-
-                    #[cfg(not(feature = "unchecked"))]
-                    if self.has_data_size_limit() {
-                        sizes = (
-                            sizes.0 + val_sizes.0,
-                            sizes.1 + val_sizes.1,
-                            sizes.2 + val_sizes.2,
-                        );
-                        self.raise_err_if_over_data_size_limit(sizes, value_expr.position())?;
-                    }
-                }
-
-                result.map(|_| map.into())
-            }
-
-            Expr::And(x, _) => {
-                let lhs = self
-                    .eval_expr(scope, global, state, lib, this_ptr, &x.lhs, level)
-                    .and_then(|v| {
-                        v.as_bool().map_err(|typ| {
-                            self.make_type_mismatch_err::<bool>(typ, x.lhs.position())
-                        })
-                    });
-
-                if let Ok(true) = lhs {
-                    self.eval_expr(scope, global, state, lib, this_ptr, &x.rhs, level)
-                        .and_then(|v| {
-                            v.as_bool()
-                                .map_err(|typ| {
-                                    self.make_type_mismatch_err::<bool>(typ, x.rhs.position())
-                                })
-                                .map(Into::into)
-                        })
-                } else {
-                    lhs.map(Into::into)
-                }
-            }
-
-            Expr::Or(x, _) => {
-                let lhs = self
-                    .eval_expr(scope, global, state, lib, this_ptr, &x.lhs, level)
-                    .and_then(|v| {
-                        v.as_bool().map_err(|typ| {
-                            self.make_type_mismatch_err::<bool>(typ, x.lhs.position())
-                        })
-                    });
-
-                if let Ok(false) = lhs {
-                    self.eval_expr(scope, global, state, lib, this_ptr, &x.rhs, level)
-                        .and_then(|v| {
-                            v.as_bool()
-                                .map_err(|typ| {
-                                    self.make_type_mismatch_err::<bool>(typ, x.rhs.position())
-                                })
-                                .map(Into::into)
-                        })
-                } else {
-                    lhs.map(Into::into)
-                }
-            }
-
-            Expr::Custom(custom, pos) => {
-                let expressions: StaticVec<_> = custom.inputs.iter().map(Into::into).collect();
-                // The first token acts as the custom syntax's key
-                let key_token = custom.tokens.first().unwrap();
-                // The key should exist, unless the AST is compiled in a different Engine
-                let custom_def = self.custom_syntax.get(key_token).ok_or_else(|| {
-                    Box::new(ERR::ErrorCustomSyntax(
-                        format!("Invalid custom syntax prefix: {}", key_token),
-                        custom.tokens.iter().map(|s| s.to_string()).collect(),
-                        *pos,
-                    ))
-                })?;
-                let mut context = EvalContext {
-                    engine: self,
-                    scope,
-                    global,
-                    state,
-                    lib,
-                    this_ptr,
-                    level,
-                };
-
-                let result = (custom_def.func)(&mut context, &expressions);
-
-                self.check_return_value(result, expr.position())
-            }
 
             Expr::Stmt(x) if x.is_empty() => Ok(Dynamic::UNIT),
             Expr::Stmt(x) => {
@@ -530,12 +344,7 @@ impl Engine {
                 self.eval_dot_index_chain(scope, global, state, lib, this_ptr, expr, level, None)
             }
 
-            _ => unreachable!("expression cannot be evaluated: {:?}", expr),
-        };
-
-        #[cfg(feature = "debugging")]
-        global.debugger.reset_status(reset_debugger);
-
-        return result;
+            _ => ExprOpCodeEngine::new(expr).run(self, scope, global, state, lib, this_ptr, level),
+        }
     }
 }

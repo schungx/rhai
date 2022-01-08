@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - debugger
+      - opcodes
 
 jobs:
   benchmark:
