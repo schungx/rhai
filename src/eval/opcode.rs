@@ -95,6 +95,9 @@ impl<'a> ExprOpCodeEngine<'a> {
             // Evaluate the current expression.
             let expr = self.current_expr;
 
+            #[cfg(not(feature = "unchecked"))]
+            engine.inc_operations(&mut global.num_operations, expr.position())?;
+
             // Coded this way for better branch prediction.
             // Popular branches are lifted out of the `match` statement into their own branches.
             if let Expr::FnCall(x, pos) = expr {
