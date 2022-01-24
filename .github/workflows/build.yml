@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - debugger
   pull_request: {}
 
 jobs:

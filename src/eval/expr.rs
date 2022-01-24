@@ -259,6 +259,10 @@ impl Engine {
         expr: &Expr,
         level: usize,
     ) -> RhaiResult {
+        #[cfg(feature = "debugging")]
+        let reset_debugger_command =
+            self.run_debugger(scope, global, state, lib, this_ptr, expr.into(), level);
+
         // Coded this way for better branch prediction.
         // Popular branches are lifted out of the `match` statement into their own branches.
 
@@ -291,7 +295,7 @@ impl Engine {
             #[cfg(not(feature = "unchecked"))]
             self.inc_operations(&mut global.num_operations, expr.position())?;
 
-            return if index.is_none() && x.0.is_none() && x.2 == KEYWORD_THIS {
+            let result = if index.is_none() && x.0.is_none() && x.2 == KEYWORD_THIS {
                 this_ptr
                     .as_deref()
                     .cloned()
@@ -300,6 +304,11 @@ impl Engine {
                 self.search_namespace(scope, global, state, lib, this_ptr, expr)
                     .map(|(val, _)| val.take_or_clone())
             };
+
+            #[cfg(feature = "debugging")]
+            global.debugger.activate(reset_debugger_command);
+
+            return result;
         }
 
         #[cfg(feature = "debugging")]

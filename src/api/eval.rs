@@ -186,6 +186,9 @@ impl Engine {
     ) -> RhaiResultOf<T> {
         let global = &mut GlobalRuntimeState::new(self);
 
+        #[cfg(feature = "debugging")]
+        global.debugger.activate(self.debugger.is_some());
+
         let result = self.eval_ast_with_scope_raw(scope, global, ast, 0)?;
 
         let typ = self.map_type_name(result.type_name());

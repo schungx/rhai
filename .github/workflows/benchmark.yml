@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - debugger
 
 jobs:
   benchmark:
