@@ -1,3 +1,5 @@
+#![cfg(not(feature = "no_std"))]
+
 #[cfg(feature = "debugging")]
 use rhai::{Dynamic, Engine, EvalAltResult, ImmutableString, Position, Scope};
 
@@ -83,6 +85,7 @@ fn print_debug_help() {
     println!("scope                 => print the scope");
     println!("print                 => print all variables de-duplicated");
     println!("print <variable>      => print the current value of a variable");
+    #[cfg(not(feature = "no_module"))]
     println!("imports               => print all imported modules");
     println!("node                  => print the current AST node");
     println!("backtrace             => print the current call-stack");
@@ -162,8 +165,6 @@ fn main() {
     let mut script = String::new();
     let main_ast;
 
-    #[cfg(not(feature = "no_module"))]
-    #[cfg(not(feature = "no_std"))]
     {
         // Load init scripts
         if let Some(filename) = env::args().skip(1).next() {
@@ -303,6 +304,7 @@ fn main() {
                             }
                         }
                         ["print", ..] => print_scope(context.scope(), true),
+                        #[cfg(not(feature = "no_module"))]
                         ["imports", ..] => {
                             for (i, (name, module)) in context
                                 .global_runtime_state()

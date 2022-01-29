@@ -376,7 +376,11 @@ pub enum Expr {
         Option<NonZeroU8>,
         Position,
         #[cfg(not(feature = "no_module"))]
-        Box<(Option<NonZeroUsize>, Option<(crate::module::Namespace, u64)>, Identifier)>,
+        Box<(
+            Option<NonZeroUsize>,
+            Option<(crate::module::Namespace, u64)>,
+            Identifier,
+        )>,
         #[cfg(feature = "no_module")] Box<(Option<NonZeroUsize>, (), Identifier)>,
     ),
     /// Property access - ((getter, hash), (setter, hash), prop)

@@ -62,7 +62,6 @@ impl<'x, 'px, 'm, 'pm, 'pt> EvalContext<'_, 'x, 'px, 'm, 'pm, '_, '_, '_, '_, 'p
     /// _(internals)_ The current [`GlobalRuntimeState`].
     /// Exported under the `internals` feature only.
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_module"))]
     #[inline(always)]
     #[must_use]
     pub const fn global_runtime_state(&self) -> &GlobalRuntimeState {
@@ -71,7 +70,6 @@ impl<'x, 'px, 'm, 'pm, 'pt> EvalContext<'_, 'x, 'px, 'm, 'pm, '_, '_, '_, '_, 'p
     /// _(internals)_ Get a mutable reference to the current [`GlobalRuntimeState`].
     /// Exported under the `internals` feature only.
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_module"))]
     #[inline(always)]
     #[must_use]
     pub fn global_runtime_state_mut(&mut self) -> &mut &'m mut GlobalRuntimeState<'pm> {
