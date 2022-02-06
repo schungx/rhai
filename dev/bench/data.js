@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1643987799168,
+  "lastUpdate": 1644154429684,
   "repoUrl": "https://github.com/schungx/rhai",
   "entries": {
     "Rust Benchmark": [
@@ -49499,6 +49499,78 @@ window.BENCHMARK_DATA = {
             "name": "bench_eval_primes",
             "value": 1693561,
             "range": "± 5612",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "schungx@live.com",
+            "name": "Stephen Chung",
+            "username": "schungx"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5eafc337a20823319f48219c67e3d44fce913da",
+          "message": "Merge pull request #64 from neachdainn/reify-sound\n\nRemove unsound casting functions",
+          "timestamp": "2022-02-06T21:24:32+08:00",
+          "tree_id": "112f47b2fa049bc673f84e21694ca5c4d7567f71",
+          "url": "https://github.com/schungx/rhai/commit/c5eafc337a20823319f48219c67e3d44fce913da"
+        },
+        "date": 1644154425296,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "bench_engine_new",
+            "value": 750905,
+            "range": "± 148281",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_new_raw",
+            "value": 148,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_new_raw_core",
+            "value": 144,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_register_fn",
+            "value": 665,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_large_get",
+            "value": 1348,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_large_set",
+            "value": 1366,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_small_get",
+            "value": 509,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_small_set",
+            "value": 536,
+            "range": "± 1",
             "unit": "ns/iter"
           }
         ]
