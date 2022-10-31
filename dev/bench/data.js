@@ -61802,12 +61802,6 @@ window.BENCHMARK_DATA = {
             "unit": "ns/iter"
           },
           {
-            "name": "bench_eval_expression_optimized_full",
-            "value": 362,
-            "range": "± 1",
-            "unit": "ns/iter"
-          },
-          {
             "name": "bench_eval_expression_optimized_simple",
             "value": 117,
             "range": "± 0",
