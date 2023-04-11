@@ -2,13 +2,10 @@ use crate::{
     Engine, Identifier, Module, ModuleResolver, Position, RhaiResultOf, SharedModule, SmartString,
     ERR,
 };
+use hashbrown::{HashMap, hash_map::{Iter, IntoIter}};
+use std::ops::AddAssign;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{
-    collections::btree_map::{IntoIter, Iter},
-    collections::BTreeMap,
-    ops::AddAssign,
-};
 
 /// A static [module][Module] resolution service that serves [modules][Module] added into it.
 ///
@@ -28,7 +25,7 @@ use std::{
 /// engine.set_module_resolver(resolver);
 /// ```
 #[derive(Debug, Clone, Default)]
-pub struct StaticModuleResolver(BTreeMap<Identifier, SharedModule>);
+pub struct StaticModuleResolver(HashMap<Identifier, SharedModule>);
 
 impl StaticModuleResolver {
     /// Create a new [`StaticModuleResolver`].
@@ -50,7 +47,7 @@ impl StaticModuleResolver {
     #[inline(always)]
     #[must_use]
     pub fn new() -> Self {
-        Self(BTreeMap::new())
+        Self(HashMap::new())
     }
     /// Add a [module][Module] keyed by its path.
     #[inline]

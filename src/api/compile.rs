@@ -92,12 +92,12 @@ impl Engine {
             func::native::shared_take_or_clone,
             module::resolvers::StaticModuleResolver,
         };
-        use std::collections::BTreeSet;
+        use hashbrown::HashSet;
 
         fn collect_imports(
             ast: &AST,
             resolver: &StaticModuleResolver,
-            imports: &mut BTreeSet<crate::Identifier>,
+            imports: &mut HashSet<crate::Identifier>,
         ) {
             ast.walk(&mut |path| match path.last().unwrap() {
                 // Collect all `import` statements with a string constant path
@@ -118,7 +118,7 @@ impl Engine {
         let mut ast = self.compile_with_scope(scope, script)?;
 
         let mut resolver = StaticModuleResolver::new();
-        let mut imports = BTreeSet::new();
+        let mut imports = HashSet::new();
 
         collect_imports(&ast, &resolver, &mut imports);
 

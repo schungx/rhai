@@ -724,10 +724,10 @@ impl Engine {
         name: impl AsRef<str>,
         module: SharedModule,
     ) -> &mut Self {
-        use std::collections::BTreeMap;
+        use hashbrown::HashMap;
 
         fn register_static_module_raw(
-            root: &mut BTreeMap<Identifier, SharedModule>,
+            root: &mut HashMap<Identifier, SharedModule>,
             name: &str,
             module: SharedModule,
         ) {

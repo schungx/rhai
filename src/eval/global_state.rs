@@ -9,7 +9,7 @@ use std::prelude::v1::*;
 #[cfg(not(feature = "no_module"))]
 #[cfg(not(feature = "no_function"))]
 pub type SharedGlobalConstants =
-    crate::Shared<crate::Locked<std::collections::BTreeMap<ImmutableString, Dynamic>>>;
+    crate::Shared<crate::Locked<hashbrown::HashMap<ImmutableString, Dynamic>>>;
 
 /// _(internals)_ Global runtime states.
 /// Exported under the `internals` feature only.

@@ -4,6 +4,7 @@ use crate::engine::OP_EQUALS;
 use crate::module::ModuleFlags;
 use crate::plugin::*;
 use crate::{def_package, Dynamic, ImmutableString, Map, NativeCallContext, RhaiResultOf, INT};
+use std::collections::BTreeMap;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -307,7 +308,11 @@ mod map_functions {
     /// ```
     pub fn to_json(map: &mut Map) -> String {
         #[cfg(feature = "metadata")]
-        return serde_json::to_string(map).unwrap_or_else(|_| "ERROR".into());
+        {
+            let mut m = BTreeMap::new();
+            m.extend(map.iter());
+            return serde_json::to_string(&m).unwrap_or_else(|_| "ERROR".into());
+        }
         #[cfg(not(feature = "metadata"))]
         return crate::format_map_as_json(map);
     }

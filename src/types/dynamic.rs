@@ -413,7 +413,11 @@ impl Hash for Dynamic {
             #[cfg(not(feature = "no_index"))]
             Union::Blob(ref a, ..) => a.hash(state),
             #[cfg(not(feature = "no_object"))]
-            Union::Map(ref m, ..) => m.hash(state),
+            Union::Map(ref m, ..) => {
+                let mut map = std::collections::BTreeMap::new();
+                map.extend(m.iter());
+                map.hash(state)
+            }
             Union::FnPtr(ref f, ..) => f.hash(state),
 
             #[cfg(not(feature = "no_closure"))]
@@ -2194,6 +2198,35 @@ impl<K: Into<crate::Identifier>, T: Variant + Clone> From<std::collections::Hash
 impl<K: Into<crate::Identifier>> From<std::collections::HashSet<K>> for Dynamic {
     #[inline]
     fn from(value: std::collections::HashSet<K>) -> Self {
+        Self(Union::Map(
+            Box::new(value.into_iter().map(|k| (k.into(), Self::UNIT)).collect()),
+            DEFAULT_TAG_VALUE,
+            ReadWrite,
+        ))
+    }
+}
+#[cfg(not(feature = "no_object"))]
+#[cfg(not(feature = "no_std"))]
+impl<K: Into<crate::Identifier>, T: Variant + Clone> From<hashbrown::HashMap<K, T>> for Dynamic {
+    #[inline]
+    fn from(value: hashbrown::HashMap<K, T>) -> Self {
+        Self(Union::Map(
+            Box::new(
+                value
+                    .into_iter()
+                    .map(|(k, v)| (k.into(), Self::from(v)))
+                    .collect(),
+            ),
+            DEFAULT_TAG_VALUE,
+            ReadWrite,
+        ))
+    }
+}
+#[cfg(not(feature = "no_object"))]
+#[cfg(not(feature = "no_std"))]
+impl<K: Into<crate::Identifier>> From<hashbrown::HashSet<K>> for Dynamic {
+    #[inline]
+    fn from(value: hashbrown::HashSet<K>) -> Self {
         Self(Union::Map(
             Box::new(value.into_iter().map(|k| (k.into(), Self::UNIT)).collect()),
             DEFAULT_TAG_VALUE,

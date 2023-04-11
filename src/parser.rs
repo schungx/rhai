@@ -978,7 +978,6 @@ impl Engine {
         settings.pos = eat_token(input, Token::MapStart);
 
         let mut map = StaticVec::<(Ident, Expr)>::new();
-        let mut template = std::collections::BTreeMap::<Identifier, crate::Dynamic>::new();
 
         loop {
             const MISSING_RBRACE: &str = "to end this object map literal";
@@ -1054,7 +1053,6 @@ impl Engine {
             }
 
             let expr = self.parse_expr(input, state, lib, settings.level_up()?)?;
-            template.insert(name.clone(), crate::Dynamic::UNIT);
 
             let name = state.get_interned_string(name);
             map.push((Ident { name, pos }, expr));
@@ -1083,7 +1081,7 @@ impl Engine {
 
         map.shrink_to_fit();
 
-        Ok(Expr::Map((map, template).into(), settings.pos))
+        Ok(Expr::Map(map.into(), settings.pos))
     }
 
     /// Parse a switch expression.

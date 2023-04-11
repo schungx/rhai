@@ -330,12 +330,12 @@ impl Engine {
 
             #[cfg(not(feature = "no_object"))]
             Expr::Map(x, ..) => {
-                let mut map = x.1.clone();
+                let mut map = crate::Map::with_capacity(x.len());
 
                 #[cfg(not(feature = "unchecked"))]
                 let mut total_data_sizes = (0, 0, 0);
 
-                for (key, value_expr) in &x.0 {
+                for (key, value_expr) in x.iter() {
                     let value = self
                         .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), value_expr)?
                         .flatten();
@@ -352,7 +352,7 @@ impl Engine {
                             .map_err(|err| err.fill_position(value_expr.position()))?;
                     }
 
-                    *map.get_mut(key.as_str()).unwrap() = value;
+                    map.insert(key.name.as_str().into(), value);
                 }
 
                 Ok(Dynamic::from_map(map))

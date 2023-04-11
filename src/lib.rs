@@ -298,7 +298,7 @@ pub type Blob = Vec<u8>;
 /// [`SmartString`](https://crates.io/crates/smartstring) is used as the key type because most
 /// property names are ASCII and short, fewer than 23 characters, so they can be stored inline.
 #[cfg(not(feature = "no_object"))]
-pub type Map = std::collections::BTreeMap<Identifier, Dynamic>;
+pub type Map = hashbrown::HashMap<Identifier, Dynamic>;
 
 #[cfg(not(feature = "no_object"))]
 pub use api::json::format_map_as_json;

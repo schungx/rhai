@@ -420,9 +420,7 @@ impl Engine {
                         && global.lib.iter().any(|m| !m.is_empty())
                     {
                         crate::func::locked_write(global.constants.get_or_insert_with(|| {
-                            crate::Shared::new(
-                                crate::Locked::new(std::collections::BTreeMap::new()),
-                            )
+                            crate::Shared::new(crate::Locked::new(hashbrown::HashMap::new()))
                         }))
                         .insert(var_name.name.clone(), value.clone());
                     }

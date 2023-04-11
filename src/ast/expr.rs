@@ -5,13 +5,11 @@ use crate::engine::{KEYWORD_FN_PTR, OP_EXCLUSIVE_RANGE, OP_INCLUSIVE_RANGE};
 use crate::tokenizer::Token;
 use crate::types::dynamic::Union;
 use crate::{
-    calc_fn_hash, Dynamic, FnArgsVec, FnPtr, Identifier, ImmutableString, Position, SmartString,
-    StaticVec, INT,
+    calc_fn_hash, Dynamic, FnArgsVec, FnPtr, ImmutableString, Position, SmartString, StaticVec, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
-    collections::BTreeMap,
     fmt,
     fmt::Write,
     hash::Hash,
@@ -280,10 +278,7 @@ pub enum Expr {
     /// [ expr, ... ]
     Array(Box<FnArgsVec<Expr>>, Position),
     /// #{ name:expr, ... }
-    Map(
-        Box<(StaticVec<(Ident, Expr)>, BTreeMap<Identifier, Dynamic>)>,
-        Position,
-    ),
+    Map(Box<StaticVec<(Ident, Expr)>>, Position),
     /// ()
     Unit(Position),
     /// Variable access - (optional long index, namespace, namespace hash, variable name), optional short index, position
@@ -371,7 +366,7 @@ impl fmt::Debug for Expr {
             Self::Map(x, ..) => {
                 f.write_str("Map")?;
                 f.debug_map()
-                    .entries(x.0.iter().map(|(k, v)| (k, v)))
+                    .entries(x.iter().map(|(k, v)| (k, v)))
                     .finish()
             }
             Self::Variable(x, i, ..) => {
@@ -483,12 +478,11 @@ impl Expr {
 
             #[cfg(not(feature = "no_object"))]
             Self::Map(x, ..) if self.is_constant() => {
-                let mut map = x.1.clone();
-
-                for (k, v) in &x.0 {
-                    *map.get_mut(k.name.as_str()).unwrap() = v.get_literal_value().unwrap();
-                }
-
+                let mut map = crate::Map::with_capacity(x.len());
+                map.extend(
+                    x.iter()
+                        .map(|(k, v)| (k.name.as_str().into(), v.get_literal_value().unwrap())),
+                );
                 Dynamic::from_map(map)
             }
 
@@ -746,7 +740,7 @@ impl Expr {
         match self {
             Self::InterpolatedString(x, ..) | Self::Array(x, ..) => x.iter().all(Self::is_pure),
 
-            Self::Map(x, ..) => x.0.iter().map(|(.., v)| v).all(Self::is_pure),
+            Self::Map(x, ..) => x.iter().map(|(.., v)| v).all(Self::is_pure),
 
             Self::And(x, ..) | Self::Or(x, ..) | Self::Coalesce(x, ..) => {
                 x.lhs.is_pure() && x.rhs.is_pure()
@@ -782,7 +776,7 @@ impl Expr {
 
             Self::InterpolatedString(x, ..) | Self::Array(x, ..) => x.iter().all(Self::is_constant),
 
-            Self::Map(x, ..) => x.0.iter().map(|(.., expr)| expr).all(Self::is_constant),
+            Self::Map(x, ..) => x.iter().map(|(.., expr)| expr).all(Self::is_constant),
 
             _ => false,
         }
@@ -863,7 +857,7 @@ impl Expr {
                 }
             }
             Self::Map(x, ..) => {
-                for (.., e) in &x.0 {
+                for (.., e) in x.iter() {
                     if !e.walk(path, on_node) {
                         return false;
                     }

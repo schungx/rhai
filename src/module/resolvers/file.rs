@@ -7,9 +7,8 @@ use crate::{
     Engine, Identifier, Locked, Module, ModuleResolver, Position, RhaiResultOf, Scope, Shared,
     SharedModule, ERR,
 };
-
+use hashbrown::HashMap;
 use std::{
-    collections::BTreeMap,
     io::Error as IoError,
     path::{Path, PathBuf},
 };
@@ -52,7 +51,7 @@ pub struct FileModuleResolver {
     extension: Identifier,
     cache_enabled: bool,
     scope: Scope<'static>,
-    cache: Locked<BTreeMap<PathBuf, SharedModule>>,
+    cache: Locked<HashMap<PathBuf, SharedModule>>,
 }
 
 impl Default for FileModuleResolver {
@@ -131,7 +130,7 @@ impl FileModuleResolver {
             base_path: None,
             extension: extension.into(),
             cache_enabled: true,
-            cache: BTreeMap::new().into(),
+            cache: HashMap::new().into(),
             scope: Scope::new(),
         }
     }
@@ -161,7 +160,7 @@ impl FileModuleResolver {
             base_path: Some(path.into()),
             extension: extension.into(),
             cache_enabled: true,
-            cache: BTreeMap::new().into(),
+            cache: HashMap::new().into(),
             scope: Scope::new(),
         }
     }

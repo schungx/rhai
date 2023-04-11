@@ -13,11 +13,11 @@ use crate::{
     NativeCallContext, RhaiResultOf, Shared, SharedModule, SmartString,
 };
 use bitflags::bitflags;
+use hashbrown::HashMap;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
     any::TypeId,
-    collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign},
 };
@@ -195,9 +195,9 @@ pub struct Module {
     /// Custom types.
     custom_types: Option<Box<CustomTypesCollection>>,
     /// Sub-modules.
-    modules: Option<BTreeMap<Identifier, SharedModule>>,
+    modules: Option<HashMap<Identifier, SharedModule>>,
     /// [`Module`] variables.
-    variables: Option<BTreeMap<Identifier, Dynamic>>,
+    variables: Option<HashMap<Identifier, Dynamic>>,
     /// Flattened collection of all [`Module`] variables, including those in sub-modules.
     all_variables: Option<StraightHashMap<Dynamic>>,
     /// Functions (both native Rust and scripted).
@@ -208,9 +208,9 @@ pub struct Module {
     /// Bloom filter on native Rust functions (in scripted hash format) that contain [`Dynamic`] parameters.
     dynamic_functions_filter: Option<Box<BloomFilterU64>>,
     /// Iterator functions, keyed by the type producing the iterator.
-    type_iterators: Option<BTreeMap<TypeId, Shared<IteratorFn>>>,
+    type_iterators: Option<HashMap<TypeId, Shared<IteratorFn>>>,
     /// Flattened collection of iterator functions, including those in sub-modules.
-    all_type_iterators: Option<BTreeMap<TypeId, Shared<IteratorFn>>>,
+    all_type_iterators: Option<HashMap<TypeId, Shared<IteratorFn>>>,
     /// Flags.
     pub(crate) flags: ModuleFlags,
 }
@@ -236,7 +236,7 @@ impl fmt::Debug for Module {
                     .modules
                     .as_ref()
                     .into_iter()
-                    .flat_map(BTreeMap::keys)
+                    .flat_map(HashMap::keys)
                     .map(SmartString::as_str)
                     .collect::<Vec<_>>(),
             )
@@ -561,12 +561,9 @@ impl Module {
                 .functions
                 .as_ref()
                 .map_or(true, StraightHashMap::is_empty)
-            && self.variables.as_ref().map_or(true, BTreeMap::is_empty)
-            && self.modules.as_ref().map_or(true, BTreeMap::is_empty)
-            && self
-                .type_iterators
-                .as_ref()
-                .map_or(true, BTreeMap::is_empty)
+            && self.variables.as_ref().map_or(true, HashMap::is_empty)
+            && self.modules.as_ref().map_or(true, HashMap::is_empty)
+            && self.type_iterators.as_ref().map_or(true, HashMap::is_empty)
             && self
                 .all_functions
                 .as_ref()
@@ -578,7 +575,7 @@ impl Module {
             && self
                 .all_type_iterators
                 .as_ref()
-                .map_or(true, BTreeMap::is_empty)
+                .map_or(true, HashMap::is_empty)
     }
 
     /// Is the [`Module`] indexed?
@@ -804,7 +801,7 @@ impl Module {
         })
     }
 
-    /// Get a mutable reference to the underlying [`BTreeMap`] of sub-modules,
+    /// Get a mutable reference to the underlying [`HashMap`] of sub-modules,
     /// creating one if empty.
     ///
     /// # WARNING
@@ -814,7 +811,7 @@ impl Module {
     #[cfg(not(feature = "no_module"))]
     #[inline]
     #[must_use]
-    pub(crate) fn get_sub_modules_mut(&mut self) -> &mut BTreeMap<Identifier, SharedModule> {
+    pub(crate) fn get_sub_modules_mut(&mut self) -> &mut HashMap<Identifier, SharedModule> {
         // We must assume that the user has changed the sub-modules
         // (otherwise why take a mutable reference?)
         self.all_functions = None;
@@ -1980,9 +1977,9 @@ impl Module {
     #[must_use]
     pub fn count(&self) -> (usize, usize, usize) {
         (
-            self.variables.as_ref().map_or(0, BTreeMap::len),
+            self.variables.as_ref().map_or(0, HashMap::len),
             self.functions.as_ref().map_or(0, StraightHashMap::len),
-            self.type_iterators.as_ref().map_or(0, BTreeMap::len),
+            self.type_iterators.as_ref().map_or(0, HashMap::len),
         )
     }
 
@@ -2289,7 +2286,7 @@ impl Module {
             path: &mut Vec<&'a str>,
             variables: &mut StraightHashMap<Dynamic>,
             functions: &mut StraightHashMap<CallableFunction>,
-            type_iterators: &mut BTreeMap<TypeId, Shared<IteratorFn>>,
+            type_iterators: &mut HashMap<TypeId, Shared<IteratorFn>>,
         ) -> bool {
             let mut contains_indexed_global_functions = false;
 
@@ -2405,10 +2402,10 @@ impl Module {
 
         if !self.is_indexed() {
             let mut path = Vec::with_capacity(4);
-            let mut variables = new_hash_map(self.variables.as_ref().map_or(0, BTreeMap::len));
+            let mut variables = new_hash_map(self.variables.as_ref().map_or(0, HashMap::len));
             let mut functions =
                 new_hash_map(self.functions.as_ref().map_or(0, StraightHashMap::len));
-            let mut type_iterators = BTreeMap::new();
+            let mut type_iterators = HashMap::new();
 
             path.push("");
 

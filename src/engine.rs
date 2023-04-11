@@ -11,9 +11,10 @@ use crate::types::StringsInterner;
 use crate::{
     Dynamic, Identifier, ImmutableString, Locked, OptimizationLevel, SharedModule, StaticVec,
 };
+use hashbrown::HashSet;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{collections::BTreeSet, fmt, num::NonZeroU8};
+use std::{fmt, num::NonZeroU8};
 
 pub type Precedence = NonZeroU8;
 
@@ -96,7 +97,7 @@ pub struct Engine {
     pub(crate) global_modules: StaticVec<SharedModule>,
     /// A collection of all sub-modules directly loaded into the Engine.
     #[cfg(not(feature = "no_module"))]
-    pub(crate) global_sub_modules: Option<std::collections::BTreeMap<Identifier, SharedModule>>,
+    pub(crate) global_sub_modules: Option<hashbrown::HashMap<Identifier, SharedModule>>,
 
     /// A module resolution service.
     #[cfg(not(feature = "no_module"))]
@@ -106,15 +107,14 @@ pub struct Engine {
     pub(crate) interned_strings: Option<Box<Locked<StringsInterner>>>,
 
     /// A set of symbols to disable.
-    pub(crate) disabled_symbols: Option<BTreeSet<Identifier>>,
+    pub(crate) disabled_symbols: Option<HashSet<Identifier>>,
     /// A map containing custom keywords and precedence to recognize.
     #[cfg(not(feature = "no_custom_syntax"))]
-    pub(crate) custom_keywords: Option<std::collections::BTreeMap<Identifier, Option<Precedence>>>,
+    pub(crate) custom_keywords: Option<hashbrown::HashMap<Identifier, Option<Precedence>>>,
     /// Custom syntax.
     #[cfg(not(feature = "no_custom_syntax"))]
-    pub(crate) custom_syntax: Option<
-        std::collections::BTreeMap<Identifier, Box<crate::api::custom_syntax::CustomSyntax>>,
-    >,
+    pub(crate) custom_syntax:
+        Option<hashbrown::HashMap<Identifier, Box<crate::api::custom_syntax::CustomSyntax>>>,
     /// Callback closure for filtering variable definition.
     pub(crate) def_var_filter: Option<Box<OnDefVarCallback>>,
     /// Callback closure for resolving variable access.
