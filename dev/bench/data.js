@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1717638988133,
+  "lastUpdate": 1718262783326,
   "repoUrl": "https://github.com/schungx/rhai",
   "entries": {
     "Rust Benchmark": [
@@ -72503,6 +72503,324 @@ window.BENCHMARK_DATA = {
             "name": "bench_eval_primes",
             "value": 956776.5,
             "range": "± 24384.59",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "schungx@live.com",
+            "name": "Stephen Chung",
+            "username": "schungx"
+          },
+          "committer": {
+            "email": "schungx@live.com",
+            "name": "Stephen Chung",
+            "username": "schungx"
+          },
+          "distinct": true,
+          "id": "423f21edf98caf63b9d6cc18974977758b309ade",
+          "message": "Add filter, drain and retain to maps.",
+          "timestamp": "2024-06-13T11:35:11+08:00",
+          "tree_id": "a51395fe665a12b9bbeebba69fc2d93d5e713f4c",
+          "url": "https://github.com/schungx/rhai/commit/423f21edf98caf63b9d6cc18974977758b309ade"
+        },
+        "date": 1718262778714,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "bench_engine_new",
+            "value": 364199.4,
+            "range": "± 11208.38",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_new_raw",
+            "value": 32.81,
+            "range": "± 0.19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_new_raw_core",
+            "value": 95.18,
+            "range": "± 2.32",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_engine_register_fn",
+            "value": 538.68,
+            "range": "± 12.56",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_large_get",
+            "value": 937.63,
+            "range": "± 17.99",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_large_set",
+            "value": 971.23,
+            "range": "± 13.93",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_loop",
+            "value": 4631566.9,
+            "range": "± 65798.22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_small_get",
+            "value": 425.73,
+            "range": "± 6.59",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_array_small_set",
+            "value": 400.6,
+            "range": "± 6.17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_call",
+            "value": 10101.07,
+            "range": "± 122.70",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_call_expression",
+            "value": 8623.05,
+            "range": "± 119.54",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_deeply_nested",
+            "value": 11019.58,
+            "range": "± 164.56",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_expression_number_literal",
+            "value": 134.35,
+            "range": "± 2.17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_expression_number_operators",
+            "value": 193.7,
+            "range": "± 3.52",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_expression_optimized_full",
+            "value": 86.04,
+            "range": "± 1.05",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_expression_optimized_simple",
+            "value": 86.04,
+            "range": "± 1.39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_expression_single",
+            "value": 86,
+            "range": "± 1.15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_loop_number",
+            "value": 1049960.2,
+            "range": "± 9056.36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_loop_strings_build",
+            "value": 1843349.6,
+            "range": "± 18600.26",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_loop_strings_no_build",
+            "value": 1525891.1,
+            "range": "± 20852.30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_nested_if",
+            "value": 10186.57,
+            "range": "± 97.17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_switch",
+            "value": 4423.64,
+            "range": "± 91.41",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_map_large_get",
+            "value": 1240.45,
+            "range": "± 43.90",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_map_large_set",
+            "value": 1276.1,
+            "range": "± 30.47",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_map_small_get",
+            "value": 294.9,
+            "range": "± 5.09",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_map_small_set",
+            "value": 328.89,
+            "range": "± 10.10",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_function_call",
+            "value": 674.6,
+            "range": "± 39.25",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_module",
+            "value": 644.36,
+            "range": "± 11.05",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_scope_complex",
+            "value": 235.4,
+            "range": "± 6.03",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_scope_longer",
+            "value": 292.45,
+            "range": "± 6.06",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_scope_multiple",
+            "value": 177.46,
+            "range": "± 3.87",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_scope_single",
+            "value": 175.59,
+            "range": "± 2.73",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_type_field",
+            "value": 205.71,
+            "range": "± 5.03",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_type_method",
+            "value": 321.17,
+            "range": "± 5.60",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_type_method_nested",
+            "value": 370.62,
+            "range": "± 122.53",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_type_method_with_params",
+            "value": 369.36,
+            "range": "± 7.08",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_iterations_1000",
+            "value": 155074.86,
+            "range": "± 1522.36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_iterations_array",
+            "value": 272707.13,
+            "range": "± 2870.41",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_iterations_blob",
+            "value": 263420.77,
+            "range": "± 2059.21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_iterations_fibonacci",
+            "value": 11514057.3,
+            "range": "± 118869.38",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_array",
+            "value": 1984.5,
+            "range": "± 26.54",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_full",
+            "value": 8216.71,
+            "range": "± 347.33",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_map",
+            "value": 3186.63,
+            "range": "± 71.04",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_optimize_full",
+            "value": 10749.69,
+            "range": "± 175.22",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_optimize_simple",
+            "value": 9764.82,
+            "range": "± 107.98",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_primes",
+            "value": 22632.95,
+            "range": "± 331.47",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_simple",
+            "value": 1791.53,
+            "range": "± 24.14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_parse_single",
+            "value": 302.19,
+            "range": "± 4.28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "bench_eval_primes",
+            "value": 920671,
+            "range": "± 324366.79",
             "unit": "ns/iter"
           }
         ]
