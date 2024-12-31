@@ -1,6 +1,21 @@
 Rhai Release Notes
 ==================
 
+Version 1.21.0
+==============
+
+Bug fixes
+---------
+
+* Fixed bug in raw strings (thanks [`@benatkin`](https://github.com/benatkin) [944](https://github.com/rhaiscript/rhai/pull/944)).
+* `get_fn_metadata_list` function is marked `volatile`.
+
+Enhancements
+------------
+
+* A new `internals` function, `Engine::collect_fn_metadata`, is added to collect all functions metadata. This is to facilitate better error reporting for missing functions (thanks [`therealprof`](https://github.com/therealprof) [945](https://github.com/rhaiscript/rhai/pull/945)).
+
+
 Version 1.20.1
 ==============
 
@@ -8,13 +23,11 @@ Bug fixes
 ---------
 
 * Fixed bug in raw strings with newlines (thanks [`@benatkin`](https://github.com/benatkin) [940](https://github.com/rhaiscript/rhai/pull/940)).
-* `get_fn_metadata_list` function is marked `volatile`.
 
 Enhancements
 ------------
 
 * If a string slice refers to the entire string, the slice is not cloned but returned as-is.
-* A new `internals` function, `Engine::collect_fn_metadata`, is added to collect all functions metadata. This is to facilitate better error reporting for missing functions (thanks [`therealprof`](https://github.com/therealprof) [899](https://github.com/rhaiscript/rhai/issues/899)).
 
 
 Version 1.20.0
