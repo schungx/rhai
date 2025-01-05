@@ -9,6 +9,7 @@ Bug fixes
 
 * Fixed bug in raw strings (thanks [`@benatkin`](https://github.com/benatkin) [944](https://github.com/rhaiscript/rhai/pull/944)).
 * `get_fn_metadata_list` function is marked `volatile`.
+* `no-std` plus `sync` should now build correctly (thanks [`stargazing-dino`](https://github.com/stargazing-dino) [947](https://github.com/rhaiscript/rhai/pull/947)).
 
 Enhancements
 ------------
