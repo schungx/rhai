@@ -93,7 +93,11 @@
 #![allow(clippy::no_effect_underscore_binding)] // Underscored variables may be used by code within feature guards
 #![allow(clippy::semicolon_if_nothing_returned)] // One-liner `match` cases are sometimes formatted as multi-line blocks
 
-#[cfg(feature = "no_std")]
+// TODO: Further audit no_std compatibility
+// When building with no_std + sync features, explicit imports from alloc
+// are needed despite using no_std_compat. This fixed compilation errors
+// in `native.rs` around missing trait implementations for some users.
+//#[cfg(feature = "no_std")]
 extern crate alloc;
 
 #[cfg(feature = "no_std")]
