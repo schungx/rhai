@@ -3,7 +3,7 @@
 use super::{Caches, EvalContext, GlobalRuntimeState, Target};
 use crate::ast::Expr;
 use crate::packages::string_basic::{print_with_func, FUNC_TO_STRING};
-use crate::types::{dynamic::AccessMode, fn_ptr::FnPtrType};
+use crate::types::dynamic::AccessMode;
 use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, SmartString, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -78,7 +78,7 @@ impl Engine {
                         name: v.1.clone(),
                         curry: <_>::default(),
                         env: None,
-                        typ: FnPtrType::Script(fn_def.clone()),
+                        typ: crate::types::fn_ptr::FnPtrType::Script(fn_def.clone()),
                     }
                     .into();
                     return Ok(val.into());

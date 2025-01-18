@@ -189,21 +189,8 @@ fn test_fn_ptr_embed() {
     })
     .unwrap();
 
-    let f2 = FnPtr::from_fn("foo", |_, args| {
-        if args.len() != 2 {
-            panic!();
-        }
-        let y = args[1].as_int().unwrap();
-        let map = &mut *args[0].write_lock::<rhai::Map>().unwrap();
-        let x = &mut *map.get_mut("a").unwrap().write_lock::<INT>().unwrap();
-        *x += y;
-        Ok(Dynamic::UNIT)
-    })
-    .unwrap();
-
     let mut scope = Scope::new();
     scope.push("f1", f1);
-    scope.push("f2", f2);
 
     assert_eq!(
         engine
@@ -221,6 +208,20 @@ fn test_fn_ptr_embed() {
 
     #[cfg(not(feature = "no_object"))]
     {
+        let f2 = FnPtr::from_fn("foo", |_, args| {
+            if args.len() != 2 {
+                panic!();
+            }
+            let y = args[1].as_int().unwrap();
+            let map = &mut *args[0].write_lock::<rhai::Map>().unwrap();
+            let x = &mut *map.get_mut("a").unwrap().write_lock::<INT>().unwrap();
+            *x += y;
+            Ok(Dynamic::UNIT)
+        })
+        .unwrap();
+
+        scope.push("f2", f2);
+
         assert_eq!(
             engine
                 .eval_with_scope::<INT>(

@@ -1,6 +1,5 @@
 //! The `FnPtr` type.
 
-use crate::ast::EncapsulatedEnviron;
 use crate::func::FnCallArgs;
 use crate::tokenizer::{is_reserved_keyword_or_symbol, is_valid_function_name, Token};
 use crate::types::dynamic::Variant;
@@ -58,7 +57,8 @@ pub struct FnPtr {
     /// Curried arguments.
     pub(crate) curry: ThinVec<Dynamic>,
     /// Encapsulated environment.
-    pub(crate) env: Option<Shared<EncapsulatedEnviron>>,
+    #[cfg(not(feature = "no_function"))]
+    pub(crate) env: Option<Shared<crate::ast::EncapsulatedEnviron>>,
     /// Type of function pointer.
     pub(crate) typ: FnPtrType,
 }
@@ -326,7 +326,10 @@ impl FnPtr {
                     caches,
                     &mut crate::Scope::new(),
                     this_ptr,
+                    #[cfg(not(feature = "no_function"))]
                     self.env.as_deref(),
+                    #[cfg(feature = "no_function")]
+                    None,
                     fn_def,
                     args,
                     true,
@@ -496,6 +499,7 @@ impl TryFrom<ImmutableString> for FnPtr {
             Ok(Self {
                 name: value,
                 curry: ThinVec::new(),
+                #[cfg(not(feature = "no_function"))]
                 env: None,
                 typ: FnPtrType::Normal,
             })
@@ -518,6 +522,7 @@ impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> From<T> for FnPtr {
         Self {
             name: fn_def.name.clone(),
             curry: ThinVec::new(),
+            #[cfg(not(feature = "no_function"))]
             env: None,
             typ: FnPtrType::Script(fn_def),
         }

@@ -13,10 +13,7 @@ use crate::tokenizer::{
     is_reserved_keyword_or_symbol, is_valid_function_name, is_valid_identifier, Token, TokenStream,
     TokenizerControl,
 };
-use crate::types::{
-    dynamic::{AccessMode, Union},
-    fn_ptr::FnPtrType,
-};
+use crate::types::dynamic::{AccessMode, Union};
 use crate::{
     calc_fn_hash, Dynamic, Engine, EvalAltResult, EvalContext, ExclusiveRange, FnArgsVec,
     ImmutableString, InclusiveRange, LexError, ParseError, Position, Scope, Shared, SmartString,
@@ -3814,8 +3811,9 @@ impl Engine {
         let fn_ptr = crate::FnPtr {
             name: fn_name,
             curry: ThinVec::new(),
+            #[cfg(not(feature = "no_function"))]
             env: None,
-            typ: FnPtrType::Normal,
+            typ: crate::types::fn_ptr::FnPtrType::Normal,
         };
 
         let expr = Expr::DynamicConstant(Box::new(fn_ptr.into()), new_settings.pos);

@@ -2350,6 +2350,7 @@ impl Module {
         let _ = result?;
 
         // Encapsulated environment
+        #[cfg(not(feature = "no_function"))]
         let env = Shared::new(crate::ast::EncapsulatedEnviron {
             #[cfg(not(feature = "no_function"))]
             lib: ast.shared_lib().clone(),
@@ -2363,7 +2364,7 @@ impl Module {
         while i > 0 {
             i -= 1;
 
-            let (mut value, mut aliases) = if i >= orig_scope_len {
+            let (mut _value, mut aliases) = if i >= orig_scope_len {
                 let (_, v, a) = scope.pop_entry().unwrap();
                 (v, a)
             } else {
@@ -2371,7 +2372,8 @@ impl Module {
                 (v.clone(), a.to_vec())
             };
 
-            value.deep_scan(|v| {
+            #[cfg(not(feature = "no_function"))]
+            _value.deep_scan(|v| {
                 if let Some(fn_ptr) = v.downcast_mut::<crate::FnPtr>() {
                     fn_ptr.env = Some(env.clone());
                 }
@@ -2382,7 +2384,7 @@ impl Module {
                 1 => {
                     let alias = aliases.pop().unwrap();
                     if !module.contains_var(&alias) {
-                        module.set_var(alias, value);
+                        module.set_var(alias, _value);
                     }
                 }
                 _ => {
@@ -2396,12 +2398,12 @@ impl Module {
                         if first_alias.is_none() {
                             first_alias = Some(alias);
                         } else {
-                            module.set_var(alias, value.clone());
+                            module.set_var(alias, _value.clone());
                         }
                     }
 
                     if let Some(alias) = first_alias {
-                        module.set_var(alias, value);
+                        module.set_var(alias, _value);
                     }
                 }
             }

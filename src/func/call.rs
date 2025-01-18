@@ -812,15 +812,17 @@ impl Engine {
                         )
                     })?;
 
-                let (
-                    is_anon,
-                    FnPtr {
-                        name,
-                        curry,
-                        env,
-                        typ,
-                    },
-                ) = (fn_ptr.is_anonymous(), fn_ptr);
+                let _is_anon = false;
+                #[cfg(not(feature = "no_function"))]
+                let _is_anon = fn_ptr.is_anonymous();
+
+                let FnPtr {
+                    name,
+                    curry,
+                    #[cfg(not(feature = "no_function"))]
+                    env,
+                    typ,
+                } = fn_ptr;
 
                 // Adding the curried arguments and the remaining arguments
                 let mut curry = curry.into_iter().collect::<FnArgsVec<_>>();
@@ -871,7 +873,7 @@ impl Engine {
                         // Recalculate hash
                         let num_args = args.len();
 
-                        let new_hash = if !is_anon && !is_valid_function_name(&name) {
+                        let new_hash = if !_is_anon && !is_valid_function_name(&name) {
                             FnCallHashes::from_native_only(calc_fn_hash(None, &name, num_args))
                         } else {
                             #[cfg(not(feature = "no_function"))]
@@ -954,7 +956,17 @@ impl Engine {
                                     _linked = Some((Some(fn_def.clone()), None, fn_ptr.env.clone()))
                                 }
                                 FnPtrType::Native(ref func) => {
-                                    _linked = Some((None, Some(func.clone()), fn_ptr.env.clone()))
+                                    _linked = Some((
+                                        #[cfg(not(feature = "no_function"))]
+                                        None,
+                                        #[cfg(feature = "no_function")]
+                                        Option::<()>::None,
+                                        Some(func.clone()),
+                                        #[cfg(not(feature = "no_function"))]
+                                        fn_ptr.env.clone(),
+                                        #[cfg(feature = "no_function")]
+                                        Option::<()>::None,
+                                    ))
                                 }
                                 _ => {
                                     let _is_anon = false;
@@ -1086,15 +1098,17 @@ impl Engine {
                     )
                 })?;
 
-                let (
-                    is_anon,
-                    FnPtr {
-                        name,
-                        curry: extra_curry,
-                        env,
-                        typ,
-                    },
-                ) = (fn_ptr.is_anonymous(), fn_ptr);
+                let _is_anon = false;
+                #[cfg(not(feature = "no_function"))]
+                let _is_anon = fn_ptr.is_anonymous();
+
+                let FnPtr {
+                    name,
+                    curry: extra_curry,
+                    #[cfg(not(feature = "no_function"))]
+                    env,
+                    typ,
+                } = fn_ptr;
 
                 curry.extend(extra_curry);
 
@@ -1164,7 +1178,7 @@ impl Engine {
                 // Recalculate hash
                 let args_len = num_args + curry.len();
 
-                hashes = if !is_anon && !is_valid_function_name(fn_name) {
+                hashes = if !_is_anon && !is_valid_function_name(fn_name) {
                     FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len))
                 } else {
                     FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len))
