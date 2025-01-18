@@ -406,7 +406,7 @@ impl Hash for Dynamic {
             Union::Blob(ref a, ..) => a.hash(state),
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => m.hash(state),
-            Union::FnPtr(ref f, ..) if f.environ.is_some() => {
+            Union::FnPtr(ref f, ..) if f.env.is_some() => {
                 unimplemented!("FnPtr with embedded environment cannot be hashed")
             }
             Union::FnPtr(ref f, ..) => {
@@ -789,11 +789,7 @@ impl fmt::Debug for Dynamic {
                         Union::FnPtr(ref fnptr, ..) => {
                             dict.insert(value);
 
-                            f.write_str("Fn")?;
-                            #[cfg(not(feature = "no_function"))]
-                            if fnptr.fn_def.is_some() {
-                                f.write_str("*")?;
-                            }
+                            fmt::Display::fmt(&fnptr.typ, f)?;
                             f.write_str("(")?;
                             fmt::Debug::fmt(fnptr.fn_name(), f)?;
                             for curry in &fnptr.curry {
@@ -1220,9 +1216,7 @@ impl Dynamic {
             Union::Blob(..) => true,
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => m.values().all(Self::is_hashable),
-            Union::FnPtr(ref f, ..) => {
-                f.environ.is_none() && f.curry().iter().all(Self::is_hashable)
-            }
+            Union::FnPtr(ref f, ..) => f.env.is_none() && f.curry().iter().all(Self::is_hashable),
             #[cfg(not(feature = "no_time"))]
             Union::TimeStamp(..) => false,
 
@@ -1297,7 +1291,7 @@ impl Dynamic {
                         #[cfg(not(feature = "no_object"))]
                         Union::Map(ref m, ..) => m.values().all(|v| checked_is_hashable(v, dict)),
                         Union::FnPtr(ref f, ..) => {
-                            f.environ.is_none()
+                            f.env.is_none()
                                 && f.curry().iter().all(|v| checked_is_hashable(v, dict))
                         }
                         _ => value.is_hashable(),

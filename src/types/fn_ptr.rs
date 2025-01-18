@@ -1,6 +1,7 @@
 //! The `FnPtr` type.
 
 use crate::ast::EncapsulatedEnviron;
+use crate::func::FnCallArgs;
 use crate::tokenizer::{is_reserved_keyword_or_symbol, is_valid_function_name, Token};
 use crate::types::dynamic::Variant;
 use crate::{
@@ -17,15 +18,49 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+/// Function pointer type.
+#[derive(Clone, Default)]
+pub enum FnPtrType {
+    /// Normal function pointer.
+    #[default]
+    Normal,
+    /// Linked to a script-defined function.
+    #[cfg(not(feature = "no_function"))]
+    Script(Shared<crate::ast::ScriptFuncDef>),
+    /// Embedded native Rust function.
+    #[cfg(not(feature = "sync"))]
+    Native(Shared<dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + 'static>),
+    #[cfg(feature = "sync")]
+    Native(
+        Shared<dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + Send + Sync + 'static>,
+    ),
+}
+
+impl fmt::Display for FnPtrType {
+    #[cold]
+    #[inline(never)]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Normal => f.write_str("Fn"),
+            #[cfg(not(feature = "no_function"))]
+            Self::Script(..) => f.write_str("Fn*"),
+            Self::Native(..) => f.write_str("Fn"),
+        }
+    }
+}
+
 /// A general function pointer, which may carry additional (i.e. curried) argument values
 /// to be passed onto a function during a call.
 #[derive(Clone)]
 pub struct FnPtr {
+    /// Name of the function.
     pub(crate) name: ImmutableString,
+    /// Curried arguments.
     pub(crate) curry: ThinVec<Dynamic>,
-    pub(crate) environ: Option<Shared<EncapsulatedEnviron>>,
-    #[cfg(not(feature = "no_function"))]
-    pub(crate) fn_def: Option<Shared<crate::ast::ScriptFuncDef>>,
+    /// Encapsulated environment.
+    pub(crate) env: Option<Shared<EncapsulatedEnviron>>,
+    /// Type of function pointer.
+    pub(crate) typ: FnPtrType,
 }
 
 impl fmt::Display for FnPtr {
@@ -38,11 +73,7 @@ impl fmt::Debug for FnPtr {
     #[cold]
     #[inline(never)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let func = "Fn";
-        #[cfg(not(feature = "no_function"))]
-        let func = if self.fn_def.is_some() { "Fn*" } else { func };
-
-        let ff = &mut f.debug_tuple(func);
+        let ff = &mut f.debug_tuple(&self.typ.to_string());
         ff.field(&self.name);
         self.curry.iter().for_each(|curry| {
             ff.field(curry);
@@ -55,10 +86,51 @@ impl fmt::Debug for FnPtr {
 
 impl FnPtr {
     /// Create a new function pointer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the function name is not a valid identifier or is a reserved keyword.
     #[inline(always)]
     pub fn new(name: impl Into<ImmutableString>) -> RhaiResultOf<Self> {
         name.into().try_into()
     }
+    /// Create a new function pointer from a native Rust function.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the function name is not a valid identifier or is a reserved keyword.
+    #[inline(always)]
+    pub fn from_fn(
+        name: impl Into<ImmutableString>,
+        #[cfg(not(feature = "sync"))] func: impl Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult
+            + 'static,
+        #[cfg(feature = "sync")] func: impl Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult
+            + Send
+            + Sync
+            + 'static,
+    ) -> RhaiResultOf<Self> {
+        Self::from_dyn_fn(name, Box::new(func))
+    }
+    /// Create a new function pointer from a native Rust function.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the function name is not a valid identifier or is a reserved keyword.
+    #[inline]
+    pub fn from_dyn_fn(
+        name: impl Into<ImmutableString>,
+        #[cfg(not(feature = "sync"))] func: Box<
+            dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + 'static,
+        >,
+        #[cfg(feature = "sync")] func: Box<
+            dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + Semd + Sync + 'static,
+        >,
+    ) -> RhaiResultOf<Self> {
+        let mut fp = Self::new(name)?;
+        fp.typ = FnPtrType::Native(Shared::new(func));
+        Ok(fp)
+    }
+
     /// Get the name of the function.
     #[inline(always)]
     #[must_use]
@@ -240,10 +312,10 @@ impl FnPtr {
         let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
         args.extend(arg_values.iter_mut());
 
-        // Linked to scripted function?
-        #[cfg(not(feature = "no_function"))]
-        match self.fn_def {
-            Some(ref fn_def) if fn_def.params.len() == args.len() => {
+        match self.typ {
+            // Linked to scripted function?
+            #[cfg(not(feature = "no_function"))]
+            FnPtrType::Script(ref fn_def) if fn_def.params.len() == args.len() => {
                 let global = &mut context.global_runtime_state().clone();
                 global.level += 1;
 
@@ -254,7 +326,7 @@ impl FnPtr {
                     caches,
                     &mut crate::Scope::new(),
                     this_ptr,
-                    self.environ.as_deref(),
+                    self.env.as_deref(),
                     fn_def,
                     args,
                     true,
@@ -318,42 +390,47 @@ impl FnPtr {
         extras: [Dynamic; E],
         move_this_ptr_to_args: usize,
     ) -> RhaiResult {
-        #[cfg(not(feature = "no_function"))]
-        if let Some(arity) = self.fn_def.as_deref().map(|f| f.params.len()) {
-            if arity == N + self.curry().len() {
-                return self.call_raw(ctx, this_ptr, args);
-            }
-            if MOVE_PTR && this_ptr.is_some() {
-                if arity == N + 1 + self.curry().len() {
-                    let mut args2 = FnArgsVec::with_capacity(args.len() + 1);
-                    if move_this_ptr_to_args == 0 {
-                        args2.push(this_ptr.as_mut().unwrap().clone());
-                        args2.extend(args);
-                    } else {
-                        args2.extend(args);
-                        args2.insert(move_this_ptr_to_args, this_ptr.as_mut().unwrap().clone());
-                    }
-                    return self.call_raw(ctx, None, args2);
+        match self.typ {
+            #[cfg(not(feature = "no_function"))]
+            FnPtrType::Script(ref fn_def) => {
+                let arity = fn_def.params.len();
+
+                if arity == N + self.curry().len() {
+                    return self.call_raw(ctx, this_ptr, args);
                 }
-                if arity == N + E + 1 + self.curry().len() {
-                    let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len() + 1);
-                    if move_this_ptr_to_args == 0 {
-                        args2.push(this_ptr.as_mut().unwrap().clone());
-                        args2.extend(args);
-                    } else {
-                        args2.extend(args);
-                        args2.insert(move_this_ptr_to_args, this_ptr.as_mut().unwrap().clone());
+                if MOVE_PTR && this_ptr.is_some() {
+                    if arity == N + 1 + self.curry().len() {
+                        let mut args2 = FnArgsVec::with_capacity(args.len() + 1);
+                        if move_this_ptr_to_args == 0 {
+                            args2.push(this_ptr.as_mut().unwrap().clone());
+                            args2.extend(args);
+                        } else {
+                            args2.extend(args);
+                            args2.insert(move_this_ptr_to_args, this_ptr.as_mut().unwrap().clone());
+                        }
+                        return self.call_raw(ctx, None, args2);
                     }
+                    if arity == N + E + 1 + self.curry().len() {
+                        let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len() + 1);
+                        if move_this_ptr_to_args == 0 {
+                            args2.push(this_ptr.as_mut().unwrap().clone());
+                            args2.extend(args);
+                        } else {
+                            args2.extend(args);
+                            args2.insert(move_this_ptr_to_args, this_ptr.as_mut().unwrap().clone());
+                        }
+                        args2.extend(extras);
+                        return self.call_raw(ctx, None, args2);
+                    }
+                }
+                if arity == N + E + self.curry().len() {
+                    let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len());
+                    args2.extend(args);
                     args2.extend(extras);
-                    return self.call_raw(ctx, None, args2);
+                    return self.call_raw(ctx, this_ptr, args2);
                 }
             }
-            if arity == N + E + self.curry().len() {
-                let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len());
-                args2.extend(args);
-                args2.extend(extras);
-                return self.call_raw(ctx, this_ptr, args2);
-            }
+            _ => (),
         }
 
         self.call_raw(ctx, this_ptr.as_deref_mut(), args.clone())
@@ -419,9 +496,8 @@ impl TryFrom<ImmutableString> for FnPtr {
             Ok(Self {
                 name: value,
                 curry: ThinVec::new(),
-                environ: None,
-                #[cfg(not(feature = "no_function"))]
-                fn_def: None,
+                env: None,
+                typ: FnPtrType::Normal,
             })
         } else if is_reserved_keyword_or_symbol(&value).0
             || Token::lookup_symbol_from_syntax(&value).is_some()
@@ -442,8 +518,8 @@ impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> From<T> for FnPtr {
         Self {
             name: fn_def.name.clone(),
             curry: ThinVec::new(),
-            environ: None,
-            fn_def: Some(fn_def),
+            env: None,
+            typ: FnPtrType::Script(fn_def),
         }
     }
 }

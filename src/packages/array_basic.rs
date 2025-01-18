@@ -4,6 +4,7 @@ use crate::api::deprecated::deprecated_array_functions;
 use crate::engine::OP_EQUALS;
 use crate::eval::{calc_index, calc_offset_len};
 use crate::plugin::*;
+use crate::types::fn_ptr::FnPtrType;
 use crate::{
     def_package, Array, Dynamic, ExclusiveRange, FnPtr, InclusiveRange, NativeCallContext,
     Position, RhaiResultOf, ERR, INT, MAX_USIZE_INT,
@@ -1271,9 +1272,8 @@ pub mod array_functions {
         let comparer = FnPtr {
             name: ctx.engine().get_interned_string(OP_EQUALS),
             curry: <_>::default(),
-            environ: None,
-            #[cfg(not(feature = "no_function"))]
-            fn_def: None,
+            env: None,
+            typ: FnPtrType::Normal,
         };
         dedup_by_comparer(ctx, array, comparer);
     }

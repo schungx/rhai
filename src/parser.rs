@@ -13,7 +13,10 @@ use crate::tokenizer::{
     is_reserved_keyword_or_symbol, is_valid_function_name, is_valid_identifier, Token, TokenStream,
     TokenizerControl,
 };
-use crate::types::dynamic::{AccessMode, Union};
+use crate::types::{
+    dynamic::{AccessMode, Union},
+    fn_ptr::FnPtrType,
+};
 use crate::{
     calc_fn_hash, Dynamic, Engine, EvalAltResult, EvalContext, ExclusiveRange, FnArgsVec,
     ImmutableString, InclusiveRange, LexError, ParseError, Position, Scope, Shared, SmartString,
@@ -3677,6 +3680,7 @@ impl Engine {
         skip_parameters: bool,
     ) -> ParseResult<Expr> {
         // Build new parse state
+
         let new_state = &mut ParseState::new(
             state.external_constants,
             state.input,
@@ -3810,9 +3814,8 @@ impl Engine {
         let fn_ptr = crate::FnPtr {
             name: fn_name,
             curry: ThinVec::new(),
-            environ: None,
-            #[cfg(not(feature = "no_function"))]
-            fn_def: Some(fn_def.clone()),
+            env: None,
+            typ: FnPtrType::Normal,
         };
 
         let expr = Expr::DynamicConstant(Box::new(fn_ptr.into()), new_settings.pos);

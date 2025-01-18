@@ -56,7 +56,7 @@ pub enum RhaiFunc {
         /// Shared reference to the [`ScriptFuncDef`][crate::ast::ScriptFuncDef] function definition.
         fn_def: Shared<crate::ast::ScriptFuncDef>,
         /// Encapsulated environment, if any.
-        environ: Option<Shared<EncapsulatedEnviron>>,
+        env: Option<Shared<EncapsulatedEnviron>>,
     },
 }
 
@@ -262,7 +262,7 @@ impl RhaiFunc {
             | Self::Plugin { .. } => None,
 
             #[cfg(not(feature = "no_function"))]
-            Self::Script { environ, .. } => environ.as_deref(),
+            Self::Script { env, .. } => env.as_deref(),
         }
     }
     /// Get a reference to an iterator function.
@@ -297,7 +297,7 @@ impl From<crate::ast::ScriptFuncDef> for RhaiFunc {
     fn from(fn_def: crate::ast::ScriptFuncDef) -> Self {
         Self::Script {
             fn_def: fn_def.into(),
-            environ: None,
+            env: None,
         }
     }
 }
@@ -306,10 +306,7 @@ impl From<crate::ast::ScriptFuncDef> for RhaiFunc {
 impl From<Shared<crate::ast::ScriptFuncDef>> for RhaiFunc {
     #[inline(always)]
     fn from(fn_def: Shared<crate::ast::ScriptFuncDef>) -> Self {
-        Self::Script {
-            fn_def,
-            environ: None,
-        }
+        Self::Script { fn_def, env: None }
     }
 }
 

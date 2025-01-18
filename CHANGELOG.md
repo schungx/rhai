@@ -11,6 +11,11 @@ Bug fixes
 * `get_fn_metadata_list` function is marked `volatile`.
 * `no-std` plus `sync` should now build correctly (thanks [`stargazing-dino`](https://github.com/stargazing-dino) [947](https://github.com/rhaiscript/rhai/pull/947)).
 
+New Features
+------------
+
+* It is possible to create a function pointer (`FnPtr`) which binds to a native Rust function or closure via `FnPtr::from_dn` and `FnPtr::from_dyn_fn`. When called in script, the embedded function will be called.
+
 Enhancements
 ------------
 

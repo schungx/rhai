@@ -2350,7 +2350,7 @@ impl Module {
         let _ = result?;
 
         // Encapsulated environment
-        let environ = Shared::new(crate::ast::EncapsulatedEnviron {
+        let env = Shared::new(crate::ast::EncapsulatedEnviron {
             #[cfg(not(feature = "no_function"))]
             lib: ast.shared_lib().clone(),
             imports,
@@ -2373,7 +2373,7 @@ impl Module {
 
             value.deep_scan(|v| {
                 if let Some(fn_ptr) = v.downcast_mut::<crate::FnPtr>() {
-                    fn_ptr.environ = Some(environ.clone());
+                    fn_ptr.env = Some(env.clone());
                 }
             });
 
@@ -2416,15 +2416,11 @@ impl Module {
             })
             .for_each(|f| {
                 let hash = module.set_script_fn(f.clone());
-                if let (
-                    RhaiFunc::Script {
-                        environ: ref mut e, ..
-                    },
-                    _,
-                ) = module.functions.as_mut().unwrap().get_mut(&hash).unwrap()
+                if let (RhaiFunc::Script { env: ref mut e, .. }, _) =
+                    module.functions.as_mut().unwrap().get_mut(&hash).unwrap()
                 {
                     // Encapsulate AST environment
-                    *e = Some(environ.clone());
+                    *e = Some(env.clone());
                 }
             });
 
