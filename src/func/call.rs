@@ -9,7 +9,7 @@ use crate::engine::{
 };
 use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
 use crate::tokenizer::{is_valid_function_name, Token};
-use crate::types::dynamic::Union;
+use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
 use crate::{
     calc_fn_hash, calc_fn_hash_full, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position,
     RhaiResult, RhaiResultOf, Scope, Shared, SmartString, ERR,
@@ -626,12 +626,12 @@ impl Engine {
             }
 
             if let Some(FnResolutionCacheEntry { func, source }) = resolved.cloned() {
-                let RhaiFunc::Script { fn_def, environ } = func else {
+                let RhaiFunc::Script { fn_def, env } = func else {
                     unreachable!("Script function expected");
                 };
 
                 let fn_def = &*fn_def;
-                let environ = environ.as_deref();
+                let env = env.as_deref();
 
                 if fn_def.body.is_empty() {
                     return Ok((Dynamic::UNIT, false));
@@ -653,7 +653,7 @@ impl Engine {
                     let (first_arg, args) = args.split_first_mut().unwrap();
                     let this_ptr = Some(&mut **first_arg);
                     self.call_script_fn(
-                        global, caches, scope, this_ptr, environ, fn_def, args, true, pos,
+                        global, caches, scope, this_ptr, env, fn_def, args, true, pos,
                     )
                 } else {
                     // Normal call of script function
@@ -668,9 +668,7 @@ impl Engine {
 
                     defer! { args = (args) if swap => move |a| backup.restore_first_arg(a) }
 
-                    self.call_script_fn(
-                        global, caches, scope, None, environ, fn_def, args, true, pos,
-                    )
+                    self.call_script_fn(global, caches, scope, None, env, fn_def, args, true, pos)
                 }
                 .map(|r| (r, false));
             }
@@ -735,39 +733,49 @@ impl Engine {
             // Handle fn_ptr.call(...)
             KEYWORD_FN_PTR_CALL if target.as_ref().is_fnptr() => {
                 let fn_ptr = target.as_ref().read_lock::<FnPtr>().unwrap();
+                let mut curry = fn_ptr.curry().iter().cloned().collect::<FnArgsVec<_>>();
 
                 // Arguments are passed as-is, adding the curried arguments
-                let mut curry = fn_ptr.curry().iter().cloned().collect::<FnArgsVec<_>>();
-                let args = &mut curry
+                let mut args = curry
                     .iter_mut()
                     .chain(call_args.iter_mut())
                     .collect::<FnArgsVec<_>>();
 
-                let _fn_def = ();
-                #[cfg(not(feature = "no_function"))]
-                let _fn_def = fn_ptr.fn_def.as_deref();
-
-                match _fn_def {
+                match fn_ptr.typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    Some(fn_def) if fn_def.params.len() == args.len() => {
+                    FnPtrType::Script(ref fn_def) if fn_def.params.len() == args.len() => {
+                        let fn_ptr = target.as_ref().read_lock::<FnPtr>().unwrap();
+
                         let scope = &mut Scope::new();
-                        let environ = fn_ptr.environ.as_ref().map(<_>::as_ref);
+                        let env = fn_ptr.env.as_ref().map(<_>::as_ref);
 
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, None, environ, fn_def, args, true, pos,
+                            global, caches, scope, None, env, &*fn_def, &mut args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
+                    // Native function - short-circuit
+                    FnPtrType::Native(ref func) => {
+                        defer! { let orig_level = global.level; global.level += 1 }
+
+                        let context = (self, fn_name, None, &*global, pos).into();
+
+                        func(context, &mut args)
+                            .and_then(|r| self.check_data_size(r, pos))
+                            .map(|v| (v, false))
+                            .map_err(|err| err.fill_position(pos))
+                    }
+                    // Normal call
                     _ => {
+                        let fn_name = fn_ptr.fn_name();
+
                         let _is_anon = false;
                         #[cfg(not(feature = "no_function"))]
                         let _is_anon = fn_ptr.is_anonymous();
 
-                        // Redirect function name
-                        let fn_name = fn_ptr.fn_name();
                         // Recalculate hashes
                         let new_hash = if !_is_anon && !is_valid_function_name(fn_name) {
                             FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args.len()))
@@ -777,7 +785,8 @@ impl Engine {
 
                         // Map it to name(args) in function-call style
                         self.exec_fn_call(
-                            global, caches, None, fn_name, None, new_hash, args, false, false, pos,
+                            global, caches, None, fn_name, None, new_hash, &mut args, false, false,
+                            pos,
                         )
                     }
                 }
@@ -803,18 +812,17 @@ impl Engine {
                         )
                     })?;
 
+                let _is_anon = false;
                 #[cfg(not(feature = "no_function"))]
-                let (
-                    is_anon,
-                    FnPtr {
-                        name,
-                        curry,
-                        environ,
-                        fn_def,
-                    },
-                ) = (fn_ptr.is_anonymous(), fn_ptr);
-                #[cfg(feature = "no_function")]
-                let (is_anon, FnPtr { name, curry, .. }, fn_def) = (false, fn_ptr, ());
+                let _is_anon = fn_ptr.is_anonymous();
+
+                let FnPtr {
+                    name,
+                    curry,
+                    #[cfg(not(feature = "no_function"))]
+                    env,
+                    typ,
+                } = fn_ptr;
 
                 // Adding the curried arguments and the remaining arguments
                 let mut curry = curry.into_iter().collect::<FnArgsVec<_>>();
@@ -822,25 +830,40 @@ impl Engine {
                 args.extend(curry.iter_mut());
                 args.extend(call_args.iter_mut().skip(1));
 
-                match fn_def {
+                match typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    Some(fn_def) if fn_def.params.len() == args.len() => {
+                    FnPtrType::Script(fn_def) if fn_def.params.len() == args.len() => {
                         // Check for data race.
                         #[cfg(not(feature = "no_closure"))]
                         ensure_no_data_race(&fn_def.name, args, false)?;
 
                         let scope = &mut Scope::new();
                         let this_ptr = Some(target.as_mut());
-                        let environ = environ.as_deref();
+                        let env = env.as_deref();
 
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, this_ptr, environ, &fn_def, args, true, pos,
+                            global, caches, scope, this_ptr, env, &fn_def, args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
+                    // Native function - short-circuit
+                    FnPtrType::Native(ref func) => {
+                        defer! { let orig_level = global.level; global.level += 1 }
+
+                        let context = (self, fn_name, None, &*global, pos).into();
+
+                        // Add the first argument with the object pointer
+                        args.insert(0, target.as_mut());
+
+                        func(context, args)
+                            .and_then(|r| self.check_data_size(r, pos))
+                            .map(|v| (v, false))
+                            .map_err(|err| err.fill_position(pos))
+                    }
+                    // Normal call
                     _ => {
                         let is_ref_mut = target.is_ref();
 
@@ -850,7 +873,7 @@ impl Engine {
                         // Recalculate hash
                         let num_args = args.len();
 
-                        let new_hash = if !is_anon && !is_valid_function_name(&name) {
+                        let new_hash = if !_is_anon && !is_valid_function_name(&name) {
                             FnCallHashes::from_native_only(calc_fn_hash(None, &name, num_args))
                         } else {
                             #[cfg(not(feature = "no_function"))]
@@ -906,7 +929,6 @@ impl Engine {
                 let mut call_args = call_args;
 
                 // Check if it is a map method call in OOP style
-
                 #[cfg(not(feature = "no_object"))]
                 if let Some(map) = target.as_ref().read_lock::<crate::Map>() {
                     if let Some(val) = map.get(fn_name) {
@@ -925,15 +947,26 @@ impl Engine {
                                 call_args = &mut _arg_values;
                             }
 
-                            let _fn_def = ();
-                            #[cfg(not(feature = "no_function"))]
-                            let _fn_def = fn_ptr.fn_def.as_deref();
-
-                            match _fn_def {
+                            match fn_ptr.typ {
                                 // Linked to scripted function
                                 #[cfg(not(feature = "no_function"))]
-                                Some(fn_def) if fn_def.params.len() == call_args.len() => {
-                                    _linked = Some((fn_def.clone(), fn_ptr.environ.clone()))
+                                FnPtrType::Script(ref fn_def)
+                                    if fn_def.params.len() == call_args.len() =>
+                                {
+                                    _linked = Some((Some(fn_def.clone()), None, fn_ptr.env.clone()))
+                                }
+                                FnPtrType::Native(ref func) => {
+                                    _linked = Some((
+                                        #[cfg(not(feature = "no_function"))]
+                                        None,
+                                        #[cfg(feature = "no_function")]
+                                        Option::<()>::None,
+                                        Some(func.clone()),
+                                        #[cfg(not(feature = "no_function"))]
+                                        fn_ptr.env.clone(),
+                                        #[cfg(feature = "no_function")]
+                                        Option::<()>::None,
+                                    ))
                                 }
                                 _ => {
                                     let _is_anon = false;
@@ -969,23 +1002,38 @@ impl Engine {
                 }
 
                 match _linked {
+                    // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    Some((fn_def, environ)) => {
-                        // Linked to scripted function - short-circuit
+                    Some((Some(fn_def), None, env)) => {
                         let scope = &mut Scope::new();
-                        let environ = environ.as_deref();
+                        let env = env.as_deref();
                         let this_ptr = Some(target.as_mut());
                         let args = &mut call_args.iter_mut().collect::<FnArgsVec<_>>();
 
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, this_ptr, environ, &fn_def, args, true, pos,
+                            global, caches, scope, this_ptr, env, &fn_def, args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
-                    #[cfg(feature = "no_function")]
-                    Some(()) => unreachable!(),
+                    // Native function - short-circuit
+                    Some((None, Some(func), ..)) => {
+                        // Attached object pointer in front of the arguments
+                        let args = &mut std::iter::once(target.as_mut())
+                            .chain(call_args.iter_mut())
+                            .collect::<FnArgsVec<_>>();
+
+                        defer! { let orig_level = global.level; global.level += 1 }
+
+                        let context = (self, fn_name, None, &*global, pos).into();
+
+                        func(context, args)
+                            .and_then(|r| self.check_data_size(r, pos))
+                            .map(|v| (v, false))
+                            .map_err(|err| err.fill_position(pos))
+                    }
+                    // Normal call
                     None => {
                         let is_ref_mut = target.is_ref();
 
@@ -998,6 +1046,7 @@ impl Engine {
                             global, caches, None, fn_name, None, hash, args, is_ref_mut, true, pos,
                         )
                     }
+                    _ => unreachable!(),
                 }
             }
         }?;
@@ -1049,32 +1098,26 @@ impl Engine {
                     )
                 })?;
 
+                let _is_anon = false;
                 #[cfg(not(feature = "no_function"))]
-                let (
-                    is_anon,
-                    FnPtr {
-                        name,
-                        curry: extra_curry,
-                        environ,
-                        fn_def,
-                    },
-                ) = (fn_ptr.is_anonymous(), fn_ptr);
-                #[cfg(feature = "no_function")]
-                let (
-                    is_anon,
-                    FnPtr {
-                        name,
-                        curry: extra_curry,
-                        ..
-                    },
-                ) = (false, fn_ptr);
+                let _is_anon = fn_ptr.is_anonymous();
+
+                let FnPtr {
+                    name,
+                    curry: extra_curry,
+                    #[cfg(not(feature = "no_function"))]
+                    env,
+                    typ,
+                } = fn_ptr;
 
                 curry.extend(extra_curry);
 
-                // Linked to scripted function - short-circuit
-                #[cfg(not(feature = "no_function"))]
-                if let Some(fn_def) = fn_def {
-                    if fn_def.params.len() == curry.len() + args_expr.len() {
+                match typ {
+                    // Linked to scripted function - short-circuit
+                    #[cfg(not(feature = "no_function"))]
+                    FnPtrType::Script(fn_def)
+                        if fn_def.params.len() == curry.len() + args_expr.len() =>
+                    {
                         // Evaluate arguments
                         let mut arg_values =
                             FnArgsVec::with_capacity(curry.len() + args_expr.len());
@@ -1087,14 +1130,38 @@ impl Engine {
                         }
                         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
                         let scope = &mut Scope::new();
-                        let environ = environ.as_deref();
+                        let env = env.as_deref();
 
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         return self.call_script_fn(
-                            global, caches, scope, None, environ, &fn_def, args, true, pos,
+                            global, caches, scope, None, env, &fn_def, args, true, pos,
                         );
                     }
+                    // Native function - short-circuit
+                    FnPtrType::Native(ref func) => {
+                        // Evaluate arguments
+                        let mut arg_values =
+                            FnArgsVec::with_capacity(curry.len() + args_expr.len());
+                        arg_values.extend(curry);
+                        for expr in args_expr {
+                            let this_ptr = this_ptr.as_deref_mut();
+                            let (value, _) =
+                                self.get_arg_value(global, caches, scope, this_ptr, expr)?;
+                            arg_values.push(value);
+                        }
+                        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+
+                        defer! { let orig_level = global.level; global.level += 1 }
+
+                        let context = (self, fn_name, None, &*global, pos).into();
+
+                        return func(context, args)
+                            .and_then(|r| self.check_data_size(r, pos))
+                            .map_err(|err| err.fill_position(pos));
+                    }
+                    // Normal function call
+                    _ => (),
                 }
 
                 // Redirect function name
@@ -1111,7 +1178,7 @@ impl Engine {
                 // Recalculate hash
                 let args_len = num_args + curry.len();
 
-                hashes = if !is_anon && !is_valid_function_name(fn_name) {
+                hashes = if !_is_anon && !is_valid_function_name(fn_name) {
                     FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len))
                 } else {
                     FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len))
@@ -1547,16 +1614,14 @@ impl Engine {
 
         match func {
             #[cfg(not(feature = "no_function"))]
-            Some(RhaiFunc::Script { fn_def, environ }) => {
-                let environ = environ.as_deref();
+            Some(RhaiFunc::Script { fn_def, env }) => {
+                let env = env.as_deref();
                 let scope = &mut Scope::new();
 
                 let orig_source = mem::replace(&mut global.source, module.id_raw().cloned());
                 defer! { global => move |g| g.source = orig_source }
 
-                self.call_script_fn(
-                    global, caches, scope, None, environ, fn_def, args, true, pos,
-                )
+                self.call_script_fn(global, caches, scope, None, env, fn_def, args, true, pos)
             }
 
             Some(f) if !f.is_pure() && args[0].is_read_only() => {

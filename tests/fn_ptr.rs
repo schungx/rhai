@@ -1,4 +1,4 @@
-use rhai::{Engine, EvalAltResult, FnPtr, INT};
+use rhai::{Dynamic, Engine, EvalAltResult, FnPtr, Scope, INT};
 
 #[test]
 fn test_fn_ptr() {
@@ -113,10 +113,10 @@ fn test_fn_ptr_curry() {
         engine
             .eval::<INT>(
                 r#"
-                let f = Fn("foo");
-                let f2 = f.curry(40);
-                f2.call(2)
-            "#
+                    let f = Fn("foo");
+                    let f2 = f.curry(40);
+                    f2.call(2)
+                "#
             )
             .unwrap(),
         42
@@ -126,10 +126,10 @@ fn test_fn_ptr_curry() {
         engine
             .eval::<INT>(
                 r#"
-                let f = Fn("foo");
-                let f2 = curry(f, 40);
-                call(f2, 2)
-            "#
+                    let f = Fn("foo");
+                    let f2 = curry(f, 40);
+                    call(f2, 2)
+                "#
             )
             .unwrap(),
         42
@@ -159,9 +159,9 @@ fn test_fn_ptr_make_closure() {
         let ast = engine
             .compile(
                 r#"
-                let test = "hello";
-                |x| test + x            // this creates a closure
-            "#,
+                    let test = "hello";
+                    |x| test + x            // this creates a closure
+                "#,
             )
             .unwrap();
 
@@ -172,4 +172,94 @@ fn test_fn_ptr_make_closure() {
 
     // 'f' captures: the Engine, the AST, and the closure
     assert_eq!(f(42).unwrap(), "hello42");
+}
+
+#[test]
+fn test_fn_ptr_embed() {
+    let engine = Engine::new();
+
+    let f1 = FnPtr::from_fn("foo", |_, args| {
+        if args.len() != 2 {
+            panic!();
+        }
+        let y = args[1].as_int().unwrap();
+        let x = &mut *args[0].write_lock::<INT>().unwrap();
+        *x += y;
+        Ok(Dynamic::UNIT)
+    })
+    .unwrap();
+
+    let mut scope = Scope::new();
+    scope.push("f1", f1);
+
+    assert_eq!(
+        engine
+            .eval_with_scope::<INT>(
+                &mut scope,
+                r#"
+                    let x = 40;
+                    call(f1, x, 2);
+                    x
+                "#,
+            )
+            .unwrap(),
+        40,
+    );
+
+    #[cfg(not(feature = "no_object"))]
+    {
+        let f2 = FnPtr::from_fn("foo", |_, args| {
+            if args.len() != 2 {
+                panic!();
+            }
+            let y = args[1].as_int().unwrap();
+            let map = &mut *args[0].write_lock::<rhai::Map>().unwrap();
+            let x = &mut *map.get_mut("a").unwrap().write_lock::<INT>().unwrap();
+            *x += y;
+            Ok(Dynamic::UNIT)
+        })
+        .unwrap();
+
+        scope.push("f2", f2);
+
+        assert_eq!(
+            engine
+                .eval_with_scope::<INT>(
+                    &mut scope,
+                    r#"
+                        let x = 40;
+                        f1.call(x, 2);
+                        x
+                    "#,
+                )
+                .unwrap(),
+            40,
+        );
+        assert_eq!(
+            engine
+                .eval_with_scope::<INT>(
+                    &mut scope,
+                    r#"
+                        let x = 40;
+                        x.call(f1, 2);
+                        x
+                    "#,
+                )
+                .unwrap(),
+            42,
+        );
+        assert_eq!(
+            engine
+                .eval_with_scope::<INT>(
+                    &mut scope,
+                    r#"
+                        let x = #{ a: 40, foo: f2 };
+                        x.foo(2);
+                        x.a
+                    "#,
+                )
+                .unwrap(),
+            42,
+        );
+    }
 }

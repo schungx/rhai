@@ -792,14 +792,14 @@ impl Engine {
     #[allow(dead_code)]
     pub(crate) fn collect_fn_metadata_impl<T>(
         &self,
-        ctx: Option<&NativeCallContext>,
+        _ctx: Option<&NativeCallContext>,
         mapper: impl Fn(crate::module::FuncInfo) -> Option<T> + Copy,
         include_standard_packages: bool,
     ) -> Vec<T> {
         let mut list = Vec::new();
 
         #[cfg(not(feature = "no_function"))]
-        if let Some(ctx) = ctx {
+        if let Some(ctx) = _ctx {
             ctx.iter_namespaces()
                 .flat_map(Module::iter_fn)
                 .filter_map(|(func, f)| {
@@ -829,7 +829,7 @@ impl Engine {
             .for_each(|v| list.push(v));
 
         #[cfg(not(feature = "no_module"))]
-        if let Some(ctx) = ctx {
+        if let Some(ctx) = _ctx {
             use crate::engine::NAMESPACE_SEPARATOR;
             use crate::SmartString;
 

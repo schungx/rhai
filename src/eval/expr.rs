@@ -77,8 +77,8 @@ impl Engine {
                     let val: Dynamic = crate::FnPtr {
                         name: v.1.clone(),
                         curry: <_>::default(),
-                        environ: None,
-                        fn_def: Some(fn_def.clone()),
+                        env: None,
+                        typ: crate::types::fn_ptr::FnPtrType::Script(fn_def.clone()),
                     }
                     .into();
                     return Ok(val.into());

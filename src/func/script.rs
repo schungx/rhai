@@ -27,7 +27,7 @@ impl Engine {
         caches: &mut Caches,
         scope: &mut Scope,
         mut this_ptr: Option<&mut Dynamic>,
-        _environ: Option<&EncapsulatedEnviron>,
+        _env: Option<&EncapsulatedEnviron>,
         fn_def: &ScriptFuncDef,
         args: &mut FnCallArgs,
         rewind_scope: bool,
@@ -94,7 +94,7 @@ impl Engine {
         let orig_fn_resolution_caches_len = caches.fn_resolution_caches_len();
 
         #[cfg(not(feature = "no_module"))]
-        let orig_constants = _environ.map(|environ| {
+        let orig_constants = _env.map(|environ| {
             let EncapsulatedEnviron {
                 lib,
                 imports,
@@ -144,8 +144,7 @@ impl Engine {
                 _ => Err(ERR::ErrorInFunctionCall(
                     fn_def.name.to_string(),
                     #[cfg(not(feature = "no_module"))]
-                    _environ
-                        .and_then(|environ| environ.lib.id())
+                    _env.and_then(|env| env.lib.id())
                         .unwrap_or_else(|| global.source().unwrap_or(""))
                         .to_string(),
                     #[cfg(feature = "no_module")]

@@ -3677,6 +3677,7 @@ impl Engine {
         skip_parameters: bool,
     ) -> ParseResult<Expr> {
         // Build new parse state
+
         let new_state = &mut ParseState::new(
             state.external_constants,
             state.input,
@@ -3810,9 +3811,9 @@ impl Engine {
         let fn_ptr = crate::FnPtr {
             name: fn_name,
             curry: ThinVec::new(),
-            environ: None,
             #[cfg(not(feature = "no_function"))]
-            fn_def: Some(fn_def.clone()),
+            env: None,
+            typ: crate::types::fn_ptr::FnPtrType::Normal,
         };
 
         let expr = Expr::DynamicConstant(Box::new(fn_ptr.into()), new_settings.pos);
