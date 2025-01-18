@@ -123,7 +123,7 @@ impl FnPtr {
             dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + 'static,
         >,
         #[cfg(feature = "sync")] func: Box<
-            dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + Semd + Sync + 'static,
+            dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + Send + Sync + 'static,
         >,
     ) -> RhaiResultOf<Self> {
         let mut fp = Self::new(name)?;
