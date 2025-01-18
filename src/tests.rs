@@ -72,7 +72,7 @@ fn check_struct_sizes() {
     assert_eq!(
         size_of::<FnPtr>(),
         48 - if cfg!(feature = "no_function") {
-            WORD_SIZE
+            2 * WORD_SIZE
         } else {
             0
         }
