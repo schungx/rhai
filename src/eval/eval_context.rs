@@ -1,7 +1,14 @@
 //! Evaluation context.
 
 use super::{Caches, GlobalRuntimeState};
-use crate::{expose_under_internals, Dynamic, Engine, Scope};
+use crate::ast::FnCallHashes;
+use crate::tokenizer::{is_valid_function_name, Token};
+use crate::types::dynamic::Variant;
+use crate::{
+    calc_fn_hash, expose_under_internals, Dynamic, Engine, FnArgsVec, FuncArgs, Position,
+    RhaiResult, RhaiResultOf, Scope, StaticVec, ERR,
+};
+use std::any::type_name;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -184,4 +191,245 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
                 .eval_expr(self.global, self.caches, self.scope, this_ptr, expr),
         }
     }
+
+    /// Call a function inside the [evaluation context][`EvalContext`] with the provided arguments.
+    pub fn call_fn<T: Variant + Clone>(
+        &mut self,
+        fn_name: impl AsRef<str>,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let engine = self.engine();
+
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+
+        let is_ref_mut = if let Some(this_ptr) = self.this_ptr.as_deref_mut() {
+            args.insert(0, this_ptr);
+            true
+        } else {
+            false
+        };
+
+        _call_fn_raw(
+            engine,
+            self.global,
+            self.caches,
+            self.scope,
+            fn_name,
+            args,
+            false,
+            is_ref_mut,
+            false,
+        )
+        .and_then(|result| {
+            result.try_cast_result().map_err(|r| {
+                let result_type = engine.map_type_name(r.type_name());
+                let cast_type = match type_name::<T>() {
+                    typ if typ.contains("::") => engine.map_type_name(typ),
+                    typ => typ,
+                };
+                ERR::ErrorMismatchOutputType(cast_type.into(), result_type.into(), Position::NONE)
+                    .into()
+            })
+        })
+    }
+    /// Call a registered native Rust function inside the [evaluation context][`EvalContext`] with
+    /// the provided arguments.
+    ///
+    /// This is often useful because Rust functions typically only want to cross-call other
+    /// registered Rust functions and not have to worry about scripted functions hijacking the
+    /// process unknowingly (or deliberately).
+    pub fn call_native_fn<T: Variant + Clone>(
+        &mut self,
+        fn_name: impl AsRef<str>,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let engine = self.engine();
+
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+
+        let is_ref_mut = if let Some(this_ptr) = self.this_ptr.as_deref_mut() {
+            args.insert(0, this_ptr);
+            true
+        } else {
+            false
+        };
+
+        _call_fn_raw(
+            engine,
+            self.global,
+            self.caches,
+            self.scope,
+            fn_name,
+            args,
+            true,
+            is_ref_mut,
+            false,
+        )
+        .and_then(|result| {
+            result.try_cast_result().map_err(|r| {
+                let result_type = engine.map_type_name(r.type_name());
+                let cast_type = match type_name::<T>() {
+                    typ if typ.contains("::") => engine.map_type_name(typ),
+                    typ => typ,
+                };
+                ERR::ErrorMismatchOutputType(cast_type.into(), result_type.into(), Position::NONE)
+                    .into()
+            })
+        })
+    }
+    /// Call a function (native Rust or scripted) inside the [evaluation context][`EvalContext`].
+    ///
+    /// If `is_method_call` is [`true`], the first argument is assumed to be the `this` pointer for
+    /// a script-defined function (or the object of a method call).
+    ///
+    /// # WARNING - Low Level API
+    ///
+    /// This function is very low level.
+    ///
+    /// # Arguments
+    ///
+    /// All arguments may be _consumed_, meaning that they may be replaced by `()`. This is to avoid
+    /// unnecessarily cloning the arguments.
+    ///
+    /// **DO NOT** reuse the arguments after this call. If they are needed afterwards, clone them
+    /// _before_ calling this function.
+    ///
+    /// If `is_ref_mut` is [`true`], the first argument is assumed to be passed by reference and is
+    /// not consumed.
+    #[inline(always)]
+    pub fn call_fn_raw(
+        &mut self,
+        fn_name: impl AsRef<str>,
+        is_ref_mut: bool,
+        is_method_call: bool,
+        args: &mut [&mut Dynamic],
+    ) -> RhaiResult {
+        let name = fn_name.as_ref();
+        let native_only = !is_valid_function_name(name);
+        #[cfg(not(feature = "no_function"))]
+        let native_only = native_only && !crate::parser::is_anonymous_fn(name);
+
+        _call_fn_raw(
+            self.engine(),
+            self.global,
+            self.caches,
+            self.scope,
+            fn_name,
+            args,
+            native_only,
+            is_ref_mut,
+            is_method_call,
+        )
+    }
+    /// Call a registered native Rust function inside the [evaluation context][`EvalContext`].
+    ///
+    /// This is often useful because Rust functions typically only want to cross-call other
+    /// registered Rust functions and not have to worry about scripted functions hijacking the
+    /// process unknowingly (or deliberately).
+    ///
+    /// # WARNING - Low Level API
+    ///
+    /// This function is very low level.
+    ///
+    /// # Arguments
+    ///
+    /// All arguments may be _consumed_, meaning that they may be replaced by `()`. This is to avoid
+    /// unnecessarily cloning the arguments.
+    ///
+    /// **DO NOT** reuse the arguments after this call. If they are needed afterwards, clone them
+    /// _before_ calling this function.
+    ///
+    /// If `is_ref_mut` is [`true`], the first argument is assumed to be passed by reference and is
+    /// not consumed.
+    #[inline(always)]
+    pub fn call_native_fn_raw(
+        &mut self,
+        fn_name: impl AsRef<str>,
+        is_ref_mut: bool,
+        args: &mut [&mut Dynamic],
+    ) -> RhaiResult {
+        _call_fn_raw(
+            self.engine(),
+            self.global,
+            self.caches,
+            self.scope,
+            fn_name,
+            args,
+            true,
+            is_ref_mut,
+            false,
+        )
+    }
+}
+
+/// Call a function (native Rust or scripted) inside the [evaluation context][`EvalContext`].
+fn _call_fn_raw(
+    engine: &Engine,
+    global: &mut GlobalRuntimeState,
+    caches: &mut Caches,
+    scope: &mut Scope,
+    fn_name: impl AsRef<str>,
+    args: &mut [&mut Dynamic],
+    native_only: bool,
+    is_ref_mut: bool,
+    is_method_call: bool,
+) -> RhaiResult {
+    defer! { let orig_level = global.level; global.level += 1 }
+
+    let fn_name = fn_name.as_ref();
+    let op_token = Token::lookup_symbol_from_syntax(fn_name);
+    let op_token = op_token.as_ref();
+    let args_len = args.len();
+
+    if native_only {
+        let hash = calc_fn_hash(None, fn_name, args_len);
+
+        return engine
+            .exec_native_fn_call(
+                global,
+                caches,
+                fn_name,
+                op_token,
+                hash,
+                args,
+                is_ref_mut,
+                false,
+                Position::NONE,
+            )
+            .map(|(r, ..)| r);
+    }
+
+    // Native or script
+
+    let hash = match is_method_call {
+        #[cfg(not(feature = "no_function"))]
+        true => FnCallHashes::from_script_and_native(
+            calc_fn_hash(None, fn_name, args_len - 1),
+            calc_fn_hash(None, fn_name, args_len),
+        ),
+        #[cfg(feature = "no_function")]
+        true => FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len)),
+        _ => FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len)),
+    };
+
+    engine
+        .exec_fn_call(
+            global,
+            caches,
+            Some(scope),
+            fn_name,
+            op_token,
+            hash,
+            args,
+            is_ref_mut,
+            is_method_call,
+            Position::NONE,
+        )
+        .map(|(r, ..)| r)
 }

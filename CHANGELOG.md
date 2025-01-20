@@ -14,11 +14,12 @@ Bug fixes
 New Features
 ------------
 
-* It is possible to create a function pointer (`FnPtr`) which binds to a native Rust function or closure via `FnPtr::from_dn` and `FnPtr::from_dyn_fn`. When called in script, the embedded function will be called.
+* It is possible to create a function pointer (`FnPtr`) which binds to a native Rust function or closure via `FnPtr::from_dn` and `FnPtr::from_dyn_fn`. When called in script, the embedded function will be called (thanks [`@makspll`](https://github.com/makspll) [952](https://github.com/rhaiscript/rhai/pull/952)).
 
 Enhancements
 ------------
 
+* The methods `call_fn`, `call_native_fn`, `call_fn_raw` and `call_native_fn_raw` are added to `EvalContext` (thanks [`@rawhuul`](https://github.com/rawhuul) [954](https://github.com/rhaiscript/rhai/pull/954)).
 * A new `internals` function, `Engine::collect_fn_metadata`, is added to collect all functions metadata. This is to facilitate better error reporting for missing functions (thanks [`therealprof`](https://github.com/therealprof) [945](https://github.com/rhaiscript/rhai/pull/945)).
 
 

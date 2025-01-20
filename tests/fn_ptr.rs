@@ -213,7 +213,7 @@ fn test_fn_ptr_embed() {
                 panic!();
             }
             let y = args[1].as_int().unwrap();
-            let map = &mut *args[0].write_lock::<rhai::Map>().unwrap();
+            let map = &mut *args[0].as_map_mut().unwrap();
             let x = &mut *map.get_mut("a").unwrap().write_lock::<INT>().unwrap();
             *x += y;
             Ok(Dynamic::UNIT)

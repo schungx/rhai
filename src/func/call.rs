@@ -930,7 +930,7 @@ impl Engine {
 
                 // Check if it is a map method call in OOP style
                 #[cfg(not(feature = "no_object"))]
-                if let Some(map) = target.as_ref().read_lock::<crate::Map>() {
+                if let Ok(map) = target.as_ref().as_map_ref() {
                     if let Some(val) = map.get(fn_name) {
                         if let Some(fn_ptr) = val.read_lock::<FnPtr>() {
                             // Remap the function name
