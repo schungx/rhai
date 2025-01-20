@@ -312,7 +312,7 @@ impl<'a> NativeCallContext<'a> {
                     ERR::ErrorMismatchOutputType(
                         cast_type.into(),
                         result_type.into(),
-                        Position::NONE,
+                        self.position(),
                     )
                     .into()
                 })
@@ -345,7 +345,7 @@ impl<'a> NativeCallContext<'a> {
                     ERR::ErrorMismatchOutputType(
                         cast_type.into(),
                         result_type.into(),
-                        Position::NONE,
+                        self.position(),
                     )
                     .into()
                 })
@@ -445,7 +445,7 @@ impl<'a> NativeCallContext<'a> {
                     args,
                     is_ref_mut,
                     false,
-                    Position::NONE,
+                    self.position(),
                 )
                 .map(|(r, ..)| r);
         }
@@ -474,7 +474,7 @@ impl<'a> NativeCallContext<'a> {
                 args,
                 is_ref_mut,
                 is_method_call,
-                Position::NONE,
+                self.position(),
             )
             .map(|(r, ..)| r)
     }
