@@ -99,6 +99,15 @@ impl FnPtr {
     /// # Errors
     ///
     /// Returns an error if the function name is not a valid identifier or is a reserved keyword.
+    ///
+    /// # WARNING - Unstable API
+    ///
+    /// This API is volatile and may change in the future.
+    ///
+    /// # Callback Function Signature
+    ///
+    /// `Fn(context: NativeCallContext, &mut [&mut Dynamic]) -> Result<Dynamic, Box<EvalAltResult>>`
+    #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
     #[inline(always)]
     pub fn from_fn(
         name: impl Into<ImmutableString>,
@@ -109,6 +118,7 @@ impl FnPtr {
             + Sync
             + 'static,
     ) -> RhaiResultOf<Self> {
+        #[allow(deprecated)]
         Self::from_dyn_fn(name, Box::new(func))
     }
     /// Create a new function pointer from a native Rust function.
@@ -116,6 +126,15 @@ impl FnPtr {
     /// # Errors
     ///
     /// Returns an error if the function name is not a valid identifier or is a reserved keyword.
+    ///
+    /// # WARNING - Unstable API
+    ///
+    /// This API is volatile and may change in the future.
+    ///
+    /// # Callback Function Signature
+    ///
+    /// `Fn(context: NativeCallContext, &mut [&mut Dynamic]) -> Result<Dynamic, Box<EvalAltResult>>`
+    #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
     #[inline]
     pub fn from_dyn_fn(
         name: impl Into<ImmutableString>,
