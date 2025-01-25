@@ -1,8 +1,9 @@
 //! This is a bare-bones `no-std` application that evaluates
 //! a simple expression and uses the result as the return value.
 
+#![no_main]
 #![no_std]
-#![feature(alloc_error_handler, start, core_intrinsics, lang_items, link_cfg)]
+#![feature(alloc_error_handler, core_intrinsics, lang_items, link_cfg)]
 
 extern crate alloc;
 extern crate wee_alloc;
@@ -18,8 +19,8 @@ extern "C" {}
 
 use rhai::{Engine, INT};
 
-#[start]
-fn main(_argc: isize, _argv: *const *const u8) -> isize {
+#[no_mangle]
+pub extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
     // Notice that this is a _raw_ engine.
     // To do anything useful, load a few packages from `rhai::packages`.
     let engine = Engine::new_raw();
