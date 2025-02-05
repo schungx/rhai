@@ -312,7 +312,7 @@ pub fn derive_custom_type(input: TokenStream) -> TokenStream {
 /// Macro to automatically expose a Rust function, type-def or use statement as `pub` when under the
 /// `internals` feature.
 ///
-/// If the `internals` is not enabled, the item will be exposed as `pub(crate)`.
+/// If the `internals` feature is not enabled, the item will be exposed as `pub(crate)`.
 ///
 /// In order to avoid confusion, there must not be any visibility modifier on the item.
 #[proc_macro_attribute]
