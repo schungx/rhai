@@ -2,7 +2,7 @@ use crate::eval::calc_index;
 use crate::plugin::*;
 use crate::{
     def_package, ExclusiveRange, InclusiveRange, Position, RhaiResultOf, ERR, INT, INT_BITS,
-    UNSIGNED_INT,
+    MAX_USIZE_INT, UNSIGNED_INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -106,6 +106,12 @@ mod bit_field_functions {
     pub fn get_bits_range_inclusive(value: INT, range: InclusiveRange) -> RhaiResultOf<INT> {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
+
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        if to > MAX_USIZE_INT || (to as usize) >= INT_BITS {
+            return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
+        }
+
         get_bits(value, from, to - from + 1)
     }
     /// Return a portion of bits in the number as a new number.
@@ -126,6 +132,11 @@ mod bit_field_functions {
         if bits <= 0 {
             return Ok(0);
         }
+        let bits = if bits > MAX_USIZE_INT {
+            MAX_USIZE_INT
+        } else {
+            bits
+        };
 
         let bit = calc_index(INT_BITS, start, true, || {
             ERR::ErrorBitFieldBounds(INT_BITS, start, Position::NONE).into()
