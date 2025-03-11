@@ -1195,23 +1195,23 @@ pub trait InputStream {
 ///
 /// # Returns
 ///
-/// | Type                      | Return Value                        |`state.is_within_text_terminated_by`  |
-/// |---------------------------|:-----------------------------------:|:------------------------------------:|
-/// |`#"hello"#`                |`StringConstant("hello")`            |`None`                                |
-/// |`#"hello`_{EOF}_           |`StringConstant("hello")`            |`Some("#")`                           |
-/// |`####"hello`_{EOF}_        |`StringConstant("hello")`            |`Some("####")`                        |
-/// |`#" "hello" "`_{EOF}_      |`LexError`                           |`None`                                |
-/// |`#""hello""#`              |`StringConstant("\"hello\"")`        |`None`                                |
-/// |`##"hello #"# world"##`    |`StringConstant("hello #\"# world")` |`None`                                |
-/// |`#"R"#`                    |`StringConstant("R")`                |`None`                                |
-/// |`#"\x52"#`                 |`StringConstant("\\x52")`            |`None`                                |
+/// | Type                      | Return Value                                                 |`state.is_within_text_terminated_by`  |
+/// |---------------------------|:------------------------------------------------------------:|:------------------------------------:|
+/// |`#"hello"#`                |[`StringConstant("hello")`][Token::StringConstant]            |`None`                                |
+/// |`#"hello`_{EOF}_           |[`StringConstant("hello")`][Token::StringConstant]            |`Some("#")`                           |
+/// |`####"hello`_{EOF}_        |[`StringConstant("hello")`][Token::StringConstant]            |`Some("####")`                        |
+/// |`#" "hello" "`_{EOF}_      |[`LexError`]                                                  |`None`                                |
+/// |`#""hello""#`              |[`StringConstant("\"hello\"")`][Token::StringConstant]        |`None`                                |
+/// |`##"hello #"# world"##`    |[`StringConstant("hello #\"# world")`][Token::StringConstant] |`None`                                |
+/// |`#"R"#`                    |[`StringConstant("R")`][Token::StringConstant]                |`None`                                |
+/// |`#"\x52"#`                 |[`StringConstant("\\x52")`][Token::StringConstant]            |`None`                                |
 ///
-/// This function does _not_ throw a `LexError` for an unterminated raw string at _{EOF}_
+/// This function does _not_ throw a [`LexError`] for an unterminated raw string at _{EOF}_
 ///
 /// This is to facilitate using this function to parse a script line-by-line, where the end of the
 /// line (i.e. _{EOF}_) is not necessarily the end of the script.
 ///
-/// Any time a [`StringConstant`][`Token::StringConstant`] is returned with
+/// Any time a [`StringConstant`][Token::StringConstant] is returned with
 /// `state.is_within_text_terminated_by` set to `Some(_)` is one of the above conditions.
 pub fn parse_raw_string_literal(
     stream: &mut (impl InputStream + ?Sized),
@@ -1321,18 +1321,18 @@ pub fn parse_raw_string_literal(
 ///
 /// # Returns
 ///
-/// | Type                            | Return Value               |`state.is_within_text_terminated_by`|
-/// |---------------------------------|:--------------------------:|:----------------------------------:|
-/// |`"hello"`                        |`StringConstant("hello")`   |`None`                              |
-/// |`"hello`_{LF}_ or _{EOF}_        |`LexError`                  |`None`                              |
-/// |`"hello\`_{EOF}_ or _{LF}{EOF}_  |`StringConstant("hello")`   |`Some('"')`                         |
-/// |`` `hello``_{EOF}_               |`StringConstant("hello")`   |``Some('`')``                       |
-/// |`` `hello``_{LF}{EOF}_           |`StringConstant("hello\n")` |``Some('`')``                       |
-/// |`` `hello ${``                   |`InterpolatedString("hello ")`<br/>next token is `{`|`None`      |
-/// |`` } hello` ``                   |`StringConstant(" hello")`  |`None`                              |
-/// |`} hello`_{EOF}_                 |`StringConstant(" hello")`  |``Some('`')``                       |
+/// | Type                            | Return Value                                        |`state.is_within_text_terminated_by`|
+/// |---------------------------------|:---------------------------------------------------:|:----------------------------------:|
+/// |`"hello"`                        |[`StringConstant("hello")`][Token::StringConstant]   |`None`                              |
+/// |`"hello`_{LF}_ or _{EOF}_        |[`LexError`]                                         |`None`                              |
+/// |`"hello\`_{EOF}_ or _{LF}{EOF}_  |[`StringConstant("hello")`][Token::StringConstant]   |`Some('"')`                         |
+/// |`` `hello``_{EOF}_               |[`StringConstant("hello")`][Token::StringConstant]   |``Some('`')``                       |
+/// |`` `hello``_{LF}{EOF}_           |[`StringConstant("hello\n")`][Token::StringConstant] |``Some('`')``                       |
+/// |`` `hello ${``                   |[`InterpolatedString("hello ")`][Token::InterpolatedString]<br/>next token is `{`|`None`  |
+/// |`` } hello` ``                   |[`StringConstant(" hello")`][Token::StringConstant]  |`None`                              |
+/// |`} hello`_{EOF}_                 |[`StringConstant(" hello")`][Token::StringConstant]  |``Some('`')``                       |
 ///
-/// This function does not throw a `LexError` for the following conditions:
+/// This function does not throw a [`LexError`] for the following conditions:
 ///
 /// * Unterminated literal string at _{EOF}_
 ///
@@ -1341,7 +1341,7 @@ pub fn parse_raw_string_literal(
 /// This is to facilitate using this function to parse a script line-by-line, where the end of the
 /// line (i.e. _{EOF}_) is not necessarily the end of the script.
 ///
-/// Any time a [`StringConstant`][`Token::StringConstant`] is returned with
+/// Any time a [`StringConstant`][Token::StringConstant] is returned with
 /// `state.is_within_text_terminated_by` set to `Some(_)` is one of the above conditions.
 pub fn parse_string_literal(
     stream: &mut (impl InputStream + ?Sized),

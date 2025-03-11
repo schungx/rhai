@@ -163,12 +163,12 @@ fn test_get_set_chain_without_write_back() {
 
     engine
         .register_type::<Inner>()
-        .register_get_set("value", |t: &mut Inner| t.value, |_: NativeCallContext, _: &mut Inner, new: INT| panic!("Inner::value setter called with {}", new))
+        .register_get_set("value", |t: &mut Inner| t.value, |_: NativeCallContext, _: &mut Inner, new: INT| -> () { panic!("Inner::value setter called with {}", new) })
         .register_type::<Outer>()
-        .register_get_set("inner", |_: NativeCallContext, t: &mut Outer| t.inner.clone(), |_: &mut Outer, new: Inner| panic!("Outer::inner setter called with {:?}", new));
+        .register_get_set("inner", |_: NativeCallContext, t: &mut Outer| t.inner.clone(), |_: &mut Outer, new: Inner| -> () { panic!("Outer::inner setter called with {:?}", new) });
 
     #[cfg(not(feature = "no_index"))]
-    engine.register_indexer_get_set(|t: &mut Outer, n: INT| Inner { value: t.inner.value * n }, |_: &mut Outer, n: INT, new: Inner| panic!("Outer::inner index setter called with {} and {:?}", n, new));
+    engine.register_indexer_get_set(|t: &mut Outer, n: INT| Inner { value: t.inner.value * n }, |_: &mut Outer, n: INT, new: Inner| -> () { panic!("Outer::inner index setter called with {} and {:?}", n, new) });
 
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "outer.inner.value").unwrap(), 42);
 

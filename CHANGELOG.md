@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.22.0
+==============
+
+Bug fixes
+---------
+
+* (Fuzzing) An integer-overflow bug from an inclusive range in `get_bits` is fixed.
+
+
 Version 1.21.0
 ==============
 
