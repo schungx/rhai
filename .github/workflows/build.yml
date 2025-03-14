@@ -25,6 +25,7 @@ jobs:
             ~/.cargo/git/db/
             target
           key: "${{ runner.os }}-cargo-build-msrv-${{ hashFiles('**/Cargo.lock') }}"
+      - run: cp Cargo.msrv.lock Cargo.lock
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
