@@ -15,8 +15,8 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v1
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin
@@ -25,6 +25,7 @@ jobs:
             ~/.cargo/git/db/
             target
           key: "${{ runner.os }}-cargo-build-msrv-${{ hashFiles('**/Cargo.lock') }}"
+      - run: cp Cargo.msrv.lock Cargo.lock
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -81,7 +82,7 @@ jobs:
       fail-fast: false
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup Toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -106,7 +107,7 @@ jobs:
           #- {os: macos-latest, flags: "--profile macos", experimental: false}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup Toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -133,7 +134,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Generic Wasm Toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -158,7 +159,7 @@ jobs:
     continue-on-error: true
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup Toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -187,7 +188,7 @@ jobs:
           - {toolchain: stable, os: windows-latest, experimental: false, flags: "--features metadata"}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Setup Toolchain
       uses: actions-rs/toolchain@v1
       with:
