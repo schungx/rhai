@@ -2288,6 +2288,8 @@ impl Dynamic {
     }
     /// Return `true` if the [`Dynamic`] holds a [`FnPtr`].
     ///
+    /// Note that there is no accompanying `as_fnptr()` method, use [`cast()`](Self::cast) to obtain the [`FnPtr`].
+    ///
     /// # Shared Value
     ///
     /// Under the `sync` feature, a _shared_ value may deadlock.
