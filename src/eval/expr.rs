@@ -83,14 +83,13 @@ impl Engine {
                     } else {
                         // Create a new environment with the current module
                         crate::ast::EncapsulatedEnviron {
-                            #[cfg(not(feature = "no_function"))]
                             lib: global.lib.first().unwrap().clone(),
                             #[cfg(not(feature = "no_module"))]
                             imports: global
                                 .iter_imports_raw()
                                 .map(|(n, m)| (n.clone(), m.clone()))
                                 .collect(),
-                            #[cfg(not(feature = "no_function"))]
+                            #[cfg(not(feature = "no_module"))]
                             constants: global.constants.clone(),
                         }
                         .into()

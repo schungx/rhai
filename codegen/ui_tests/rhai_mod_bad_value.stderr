@@ -4,8 +4,10 @@ error: expecting string literal
 11 | #[rhai_mod(name = true)]
    |                   ^^^^
 
-error[E0433]: failed to resolve: use of undeclared crate or module `test_module`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_module`
   --> ui_tests/rhai_mod_bad_value.rs:24:8
    |
 24 |     if test_module::test_fn(n) {
-   |        ^^^^^^^^^^^ use of undeclared crate or module `test_module`
+   |        ^^^^^^^^^^^ use of unresolved module or unlinked crate `test_module`
+   |
+   = help: if you wanted to use a crate named `test_module`, use `cargo add test_module` to add it to your `Cargo.toml`

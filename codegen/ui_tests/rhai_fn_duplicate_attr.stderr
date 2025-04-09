@@ -10,8 +10,10 @@ error[E0425]: cannot find value `n` in this scope
 13 |     if test_module::test_fn(n) {
    |                             ^ not found in this scope
 
-error[E0433]: failed to resolve: use of undeclared crate or module `test_module`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_module`
   --> ui_tests/rhai_fn_duplicate_attr.rs:13:8
    |
 13 |     if test_module::test_fn(n) {
-   |        ^^^^^^^^^^^ use of undeclared crate or module `test_module`
+   |        ^^^^^^^^^^^ use of unresolved module or unlinked crate `test_module`
+   |
+   = help: if you wanted to use a crate named `test_module`, use `cargo add test_module` to add it to your `Cargo.toml`
