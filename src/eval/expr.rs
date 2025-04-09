@@ -68,17 +68,41 @@ impl Engine {
 
                 // Scripted function with the same name
                 #[cfg(not(feature = "no_function"))]
-                if let Some(fn_def) = global
+                if let Some(func) = global
                     .lib
                     .iter()
-                    .flat_map(|m| m.iter_script_fn())
-                    .find_map(|(_, _, f, _, func)| if f == v.1 { Some(func) } else { None })
+                    .flat_map(|m| m.iter_fn())
+                    .filter(|(f, _)| f.is_script())
+                    .filter(|(_, m)| m.name == v.1.as_str())
+                    .map(|(f, _)| f)
+                    .next()
                 {
+                    // Embedded environment for scripted function
+                    let env = if let Some(env) = func.get_encapsulated_environ_raw() {
+                        env.clone()
+                    } else {
+                        // Create a new environment with the current module
+                        crate::ast::EncapsulatedEnviron {
+                            #[cfg(not(feature = "no_function"))]
+                            lib: global.lib.first().unwrap().clone(),
+                            #[cfg(not(feature = "no_module"))]
+                            imports: global
+                                .iter_imports_raw()
+                                .map(|(n, m)| (n.clone(), m.clone()))
+                                .collect(),
+                            #[cfg(not(feature = "no_function"))]
+                            constants: global.constants.clone(),
+                        }
+                        .into()
+                    };
+
                     let val: Dynamic = crate::FnPtr {
                         name: v.1.clone(),
                         curry: <_>::default(),
-                        env: None,
-                        typ: crate::types::fn_ptr::FnPtrType::Script(fn_def.clone()),
+                        env: Some(env),
+                        typ: crate::types::fn_ptr::FnPtrType::Script(
+                            func.get_script_fn_def().cloned().unwrap(),
+                        ),
                     }
                     .into();
                     return Ok(val.into());
