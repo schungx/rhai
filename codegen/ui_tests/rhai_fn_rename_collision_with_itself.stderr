@@ -10,8 +10,10 @@ error: duplicated function renamed 'foo'
 12 |     #[rhai_fn(name = "foo", name = "bar", name = "foo")]
    |               ^^^^
 
-error[E0433]: failed to resolve: use of undeclared crate or module `test_module`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_module`
   --> ui_tests/rhai_fn_rename_collision_with_itself.rs:20:8
    |
 20 |     if test_module::test_fn(n) {
-   |        ^^^^^^^^^^^ use of undeclared crate or module `test_module`
+   |        ^^^^^^^^^^^ use of unresolved module or unlinked crate `test_module`
+   |
+   = help: if you wanted to use a crate named `test_module`, use `cargo add test_module` to add it to your `Cargo.toml`

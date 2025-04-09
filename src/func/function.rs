@@ -265,6 +265,22 @@ impl RhaiFunc {
             Self::Script { env, .. } => env.as_deref(),
         }
     }
+    /// Get a reference to the shared encapsulated environment of the function definition.
+    ///
+    /// Not available under `no_function` or `no_module`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn get_encapsulated_environ_raw(&self) -> Option<&Shared<EncapsulatedEnviron>> {
+        match self {
+            Self::Pure { .. }
+            | Self::Method { .. }
+            | Self::Iterator { .. }
+            | Self::Plugin { .. } => None,
+
+            #[cfg(not(feature = "no_function"))]
+            Self::Script { env, .. } => env.as_ref(),
+        }
+    }
     /// Get a reference to an iterator function.
     #[inline]
     #[must_use]

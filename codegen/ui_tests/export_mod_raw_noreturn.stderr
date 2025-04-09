@@ -4,8 +4,10 @@ error: functions marked with 'return_raw' must return Result<T, Box<EvalAltResul
 11 | #[rhai_fn(return_raw)]
    |           ^^^^^^^^^^
 
-error[E0433]: failed to resolve: use of undeclared crate or module `test_mod`
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_mod`
   --> ui_tests/export_mod_raw_noreturn.rs:22:5
    |
 22 |     test_mod::test_fn(&mut n);
-   |     ^^^^^^^^ use of undeclared crate or module `test_mod`
+   |     ^^^^^^^^ use of unresolved module or unlinked crate `test_mod`
+   |
+   = help: if you wanted to use a crate named `test_mod`, use `cargo add test_mod` to add it to your `Cargo.toml`

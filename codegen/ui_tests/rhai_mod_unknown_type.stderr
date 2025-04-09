@@ -9,8 +9,9 @@ error[E0412]: cannot find type `Pointer` in this scope
    |
 help: a struct with a similar name exists
    |
-12 |     pub fn test_fn(input: Point) -> bool {
-   |                           ~~~~~
+12 -     pub fn test_fn(input: Pointer) -> bool {
+12 +     pub fn test_fn(input: Point) -> bool {
+   |
 help: consider importing this trait
    |
 11 +     use std::fmt::Pointer;

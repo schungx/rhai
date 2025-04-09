@@ -8,6 +8,7 @@ Bug fixes
 ---------
 
 * (Fuzzing) An integer-overflow bug from an inclusive range in `get_bits` is fixed.
+* Passing function as a function pointer into a function in an imported module now correctly encapsulates the current environment into the generated function pointer (thanks [`@dcihlar`](https://github.com/dcihlar)).
 
 
 Version 1.21.0
