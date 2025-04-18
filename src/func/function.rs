@@ -249,28 +249,16 @@ impl RhaiFunc {
             Self::Script { fn_def, .. } => Some(fn_def),
         }
     }
-    /// Get a reference to the shared encapsulated environment of the function definition.
-    ///
-    /// Not available under `no_function` or `no_module`.
-    #[inline]
+    /// Get a reference to the encapsulated environment of the function definition (if any).
+    #[inline(always)]
     #[must_use]
     pub fn get_encapsulated_environ(&self) -> Option<&EncapsulatedEnviron> {
-        match self {
-            Self::Pure { .. }
-            | Self::Method { .. }
-            | Self::Iterator { .. }
-            | Self::Plugin { .. } => None,
-
-            #[cfg(not(feature = "no_function"))]
-            Self::Script { env, .. } => env.as_deref(),
-        }
+        self.get_shared_encapsulated_environ().map(AsRef::as_ref)
     }
-    /// Get a reference to the shared encapsulated environment of the function definition.
-    ///
-    /// Not available under `no_function` or `no_module`.
+    /// Get a reference to the shared encapsulated environment of the function definition (if any).
     #[inline]
     #[must_use]
-    pub(crate) fn get_encapsulated_environ_raw(&self) -> Option<&Shared<EncapsulatedEnviron>> {
+    pub(crate) fn get_shared_encapsulated_environ(&self) -> Option<&Shared<EncapsulatedEnviron>> {
         match self {
             Self::Pure { .. }
             | Self::Method { .. }

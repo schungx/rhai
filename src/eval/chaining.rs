@@ -512,7 +512,14 @@ impl Engine {
             // Short-circuit for indexing with literal: {expr}[1]
             #[cfg(not(feature = "no_index"))]
             (_, ChainType::Indexing) if rhs.get_literal_value().is_some() => {
-                idx_values.push(rhs.get_literal_value().unwrap())
+                let mut _value = rhs.get_literal_value().unwrap();
+
+                #[cfg(not(feature = "no_function"))]
+                if let Some(mut fn_ptr) = _value.write_lock::<crate::FnPtr>() {
+                    fn_ptr.env = Some(crate::Shared::new((&*global).into()));
+                }
+
+                idx_values.push(_value)
             }
             // Short-circuit for simple method call: {expr}.func()
             #[cfg(not(feature = "no_object"))]

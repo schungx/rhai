@@ -933,3 +933,19 @@ pub struct EncapsulatedEnviron {
     #[cfg(not(feature = "no_function"))]
     pub constants: Option<crate::eval::SharedGlobalConstants>,
 }
+
+#[cfg(not(feature = "no_function"))]
+impl From<&crate::eval::GlobalRuntimeState> for EncapsulatedEnviron {
+    fn from(value: &crate::eval::GlobalRuntimeState) -> Self {
+        Self {
+            lib: value.lib.first().unwrap().clone(),
+            #[cfg(not(feature = "no_module"))]
+            imports: value
+                .iter_imports_raw()
+                .map(|(n, m)| (n.clone(), m.clone()))
+                .collect(),
+            #[cfg(not(feature = "no_module"))]
+            constants: value.constants.clone(),
+        }
+    }
+}

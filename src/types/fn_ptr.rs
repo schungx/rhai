@@ -73,7 +73,12 @@ impl fmt::Debug for FnPtr {
     #[cold]
     #[inline(never)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let ff = &mut f.debug_tuple(&self.typ.to_string());
+        let name = match self {
+            #[cfg(not(feature = "no_function"))]
+            _ if self.env.is_some() => format!("{}+", self.typ),
+            _ => self.typ.to_string(),
+        };
+        let ff = &mut f.debug_tuple(&name);
         ff.field(&self.name);
         self.curry.iter().for_each(|curry| {
             ff.field(curry);
