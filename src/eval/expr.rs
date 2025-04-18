@@ -78,21 +78,11 @@ impl Engine {
                     .next()
                 {
                     // Embedded environment for scripted function
-                    let env = if let Some(env) = func.get_encapsulated_environ_raw() {
+                    let env = if let Some(env) = func.get_shared_encapsulated_environ() {
                         env.clone()
                     } else {
                         // Create a new environment with the current module
-                        crate::ast::EncapsulatedEnviron {
-                            lib: global.lib.first().unwrap().clone(),
-                            #[cfg(not(feature = "no_module"))]
-                            imports: global
-                                .iter_imports_raw()
-                                .map(|(n, m)| (n.clone(), m.clone()))
-                                .collect(),
-                            #[cfg(not(feature = "no_module"))]
-                            constants: global.constants.clone(),
-                        }
-                        .into()
+                        crate::Shared::new((&*global).into())
                     };
 
                     let val: Dynamic = crate::FnPtr {
@@ -263,7 +253,17 @@ impl Engine {
             Expr::FloatConstant(x, ..) => Ok((*x).into()),
             Expr::CharConstant(x, ..) => Ok((*x).into()),
             Expr::Unit(..) => Ok(Dynamic::UNIT),
-            Expr::DynamicConstant(x, ..) => Ok(x.as_ref().clone()),
+            Expr::DynamicConstant(x, ..) => {
+                let mut _x = x.as_ref().clone();
+
+                #[cfg(not(feature = "no_function"))]
+                if let Some(mut fn_ptr) = _x.write_lock::<crate::FnPtr>() {
+                    // Create a new environment with the current module
+                    fn_ptr.env = Some(crate::Shared::new((&*global).into()));
+                }
+
+                Ok(_x)
+            }
 
             Expr::FnCall(x, pos) => {
                 self.eval_fn_call_expr(global, caches, scope, this_ptr, x, *pos)

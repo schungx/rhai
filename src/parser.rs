@@ -3813,7 +3813,7 @@ impl Engine {
             curry: ThinVec::new(),
             #[cfg(not(feature = "no_function"))]
             env: None,
-            typ: crate::types::fn_ptr::FnPtrType::Normal,
+            typ: crate::types::fn_ptr::FnPtrType::Script(fn_def.clone()),
         };
 
         let expr = Expr::DynamicConstant(Box::new(fn_ptr.into()), new_settings.pos);
