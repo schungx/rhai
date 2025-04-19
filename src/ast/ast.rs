@@ -1,7 +1,9 @@
 //! Module defining the AST (abstract syntax tree).
 
 use super::{ASTFlags, Expr, FnAccess, Stmt};
-use crate::{expose_under_internals, Dynamic, FnNamespace, ImmutableString, Position, ThinVec};
+use crate::{
+    expose_under_internals, Dynamic, FnNamespace, ImmutableString, Position, StaticVec, ThinVec,
+};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -749,7 +751,7 @@ impl AST {
                     || !options.intersects(ASTFlags::CONSTANT) && include_variables =>
             {
                 let (name, expr, ..) = &**x;
-                expr.get_literal_value()
+                expr.get_literal_value(None)
                     .map(|value| (name.as_str(), options.intersects(ASTFlags::CONSTANT), value))
             }
             _ => None,
@@ -922,9 +924,9 @@ impl ASTNode<'_> {
 /// 3) global constants
 #[derive(Debug, Clone)]
 pub struct EncapsulatedEnviron {
-    /// Functions defined within the same [`AST`][crate::AST].
+    /// Stack of loaded [modules][crate::Module] containing script-defined functions.
     #[cfg(not(feature = "no_function"))]
-    pub lib: crate::SharedModule,
+    pub lib: StaticVec<crate::SharedModule>,
     /// Imported [modules][crate::Module].
     #[cfg(not(feature = "no_module"))]
     pub imports: crate::ThinVec<(ImmutableString, crate::SharedModule)>,
@@ -938,7 +940,7 @@ pub struct EncapsulatedEnviron {
 impl From<&crate::eval::GlobalRuntimeState> for EncapsulatedEnviron {
     fn from(value: &crate::eval::GlobalRuntimeState) -> Self {
         Self {
-            lib: value.lib.first().unwrap().clone(),
+            lib: value.lib.clone(),
             #[cfg(not(feature = "no_module"))]
             imports: value
                 .iter_imports_raw()

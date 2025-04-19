@@ -1224,7 +1224,7 @@ impl Engine {
                 def_case = Some(index);
             } else {
                 for expr in case_expr_list {
-                    let value = expr.get_literal_value().ok_or_else(|| {
+                    let value = expr.get_literal_value(None).ok_or_else(|| {
                         PERR::ExprExpected("a literal".into()).into_err(expr.start_position())
                     })?;
 

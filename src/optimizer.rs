@@ -224,7 +224,7 @@ fn optimize_stmt_block(
 
                     let value = if options.intersects(ASTFlags::CONSTANT) && x.1.is_constant() {
                         // constant literal
-                        Some(Cow::Owned(x.1.get_literal_value().unwrap()))
+                        Some(Cow::Owned(x.1.get_literal_value(None).unwrap()))
                     } else {
                         // variable
                         None
@@ -525,7 +525,7 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
                 },
             ) = &mut **x;
 
-            let value = match_expr.get_literal_value().unwrap();
+            let value = match_expr.get_literal_value(None).unwrap();
             let hasher = &mut get_hasher();
             value.hash(hasher);
             let hash = hasher.finish();
@@ -896,7 +896,7 @@ fn move_constant_arg(arg_expr: &mut Expr) -> bool {
         Expr::FloatConstant(..) => false,
 
         _ => {
-            if let Some(value) = arg_expr.get_literal_value() {
+            if let Some(value) = arg_expr.get_literal_value(None) {
                 *arg_expr = Expr::DynamicConstant(value.into(), arg_expr.start_position());
                 true
             } else {
@@ -956,7 +956,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
             (Expr::Variable(..) | Expr::ThisPtr(..), rhs) => optimize_expr(rhs, state, true),
             // const.type_of()
             (lhs, Expr::MethodCall(x, pos)) if lhs.is_constant() && x.name == KEYWORD_TYPE_OF && x.args.is_empty() => {
-                if let Some(value) = lhs.get_literal_value() {
+                if let Some(value) = lhs.get_literal_value(None) {
                     state.set_dirty();
                     let typ = state.engine.map_type_name(value.type_name()).into();
                     *expr = Expr::from_dynamic(typ, *pos);
@@ -965,7 +965,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
             // const.is_shared()
             #[cfg(not(feature = "no_closure"))]
             (lhs, Expr::MethodCall(x, pos)) if lhs.is_constant() && x.name == crate::engine::KEYWORD_IS_SHARED && x.args.is_empty() => {
-                if lhs.get_literal_value().is_some() {
+                if lhs.get_literal_value(None).is_some() {
                     state.set_dirty();
                     *expr = Expr::from_dynamic(Dynamic::FALSE, *pos);
                 }
@@ -1058,7 +1058,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         // `... ${const} ...`
         Expr::InterpolatedString(..) if expr.is_constant() => {
             state.set_dirty();
-            *expr = Expr::StringConstant(expr.get_literal_value().unwrap().cast::<ImmutableString>(), expr.position());
+            *expr = Expr::StringConstant(expr.get_literal_value(None).unwrap().cast::<ImmutableString>(), expr.position());
         }
         // `... ${ ... } ...`
         Expr::InterpolatedString(x, ..) => {
@@ -1084,7 +1084,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_index"))]
         Expr::Array(..) if expr.is_constant() => {
             state.set_dirty();
-            *expr = Expr::DynamicConstant(expr.get_literal_value().unwrap().into(), expr.position());
+            *expr = Expr::DynamicConstant(expr.get_literal_value(None).unwrap().into(), expr.position());
         }
         // [ items .. ]
         #[cfg(not(feature = "no_index"))]
@@ -1093,7 +1093,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_object"))]
         Expr::Map(..) if expr.is_constant() => {
             state.set_dirty();
-            *expr = Expr::DynamicConstant(expr.get_literal_value().unwrap().into(), expr.position());
+            *expr = Expr::DynamicConstant(expr.get_literal_value(None).unwrap().into(), expr.position());
         }
         // #{ key:value, .. }
         #[cfg(not(feature = "no_object"))]
@@ -1177,8 +1177,8 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                                 && matches!(x.args[0], Expr::DynamicConstant(ref v, ..) if v.is_fnptr())
                                 && x.constant_args()
         => {
-            let mut fn_ptr = x.args[0].get_literal_value().unwrap().cast::<FnPtr>();
-            fn_ptr.extend(x.args.iter().skip(1).map(|arg_expr| arg_expr.get_literal_value().unwrap()));
+            let mut fn_ptr = x.args[0].get_literal_value(None).unwrap().cast::<FnPtr>();
+            fn_ptr.extend(x.args.iter().skip(1).map(|arg_expr| arg_expr.get_literal_value(None).unwrap()));
             state.set_dirty();
             *expr = Expr::DynamicConstant(Box::new(fn_ptr.into()), *pos);
         }
@@ -1192,7 +1192,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         Expr::FnCall(x, pos) if state.optimization_level == OptimizationLevel::Simple // simple optimizations
                                 && x.constant_args() // all arguments are constants
         => {
-            let arg_values = &mut x.args.iter().map(|arg_expr| arg_expr.get_literal_value().unwrap()).collect::<FnArgsVec<_>>();
+            let arg_values = &mut x.args.iter().map(|arg_expr| arg_expr.get_literal_value(None).unwrap()).collect::<FnArgsVec<_>>();
             let arg_types = arg_values.iter().map(Dynamic::type_id).collect::<FnArgsVec<_>>();
 
             match x.name.as_str() {
@@ -1242,7 +1242,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
             let _has_script_fn = !x.hashes.is_native_only() && state.global.lib.iter().find_map(|m| m.get_script_fn(&x.name, x.args.len())).is_some();
 
             if !_has_script_fn {
-                let arg_values = &mut x.args.iter().map(Expr::get_literal_value).collect::<Option<FnArgsVec<_>>>().unwrap();
+                let arg_values = &mut x.args.iter().map(|a| a.get_literal_value(None)).collect::<Option<FnArgsVec<_>>>().unwrap();
 
                 let result = match x.name.as_str() {
                     KEYWORD_TYPE_OF if arg_values.len() == 1 => Some(state.engine.map_type_name(arg_values[0].type_name()).into()),
