@@ -693,19 +693,13 @@ impl Engine {
         arg_expr: &Expr,
     ) -> RhaiResultOf<(Dynamic, Position)> {
         // Literal values
-        if let Some(mut _value) = arg_expr.get_literal_value() {
+        if let Some(value) = arg_expr.get_literal_value(Some(global)) {
             self.track_operation(global, arg_expr.start_position())?;
 
             #[cfg(feature = "debugging")]
             self.dbg(global, caches, scope, this_ptr, arg_expr)?;
 
-            #[cfg(not(feature = "no_function"))]
-            if let Some(mut fn_ptr) = _value.write_lock::<crate::FnPtr>() {
-                // Create a new environment with the current module
-                fn_ptr.env = Some(crate::Shared::new((&*global).into()));
-            }
-
-            return Ok((_value, arg_expr.start_position()));
+            return Ok((value, arg_expr.start_position()));
         }
 
         // Do not match function exit for arguments

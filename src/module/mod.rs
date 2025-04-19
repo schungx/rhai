@@ -2353,7 +2353,7 @@ impl Module {
         #[cfg(not(feature = "no_function"))]
         let env = Shared::new(crate::ast::EncapsulatedEnviron {
             #[cfg(not(feature = "no_function"))]
-            lib: ast.shared_lib().clone(),
+            lib: std::iter::once(ast.shared_lib().clone()).collect(),
             imports,
             #[cfg(not(feature = "no_function"))]
             constants,

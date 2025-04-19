@@ -106,7 +106,7 @@ impl Engine {
                 .cloned()
                 .for_each(|(n, m)| global.push_import(n, m));
 
-            global.lib.push(lib.clone());
+            global.lib.extend(lib.clone());
 
             std::mem::replace(&mut global.constants, constants.clone())
         });
@@ -144,7 +144,8 @@ impl Engine {
                 _ => Err(ERR::ErrorInFunctionCall(
                     fn_def.name.to_string(),
                     #[cfg(not(feature = "no_module"))]
-                    _env.and_then(|env| env.lib.id())
+                    _env.and_then(|env| env.lib.last())
+                        .and_then(|m| m.id())
                         .unwrap_or_else(|| global.source().unwrap_or(""))
                         .to_string(),
                     #[cfg(feature = "no_module")]

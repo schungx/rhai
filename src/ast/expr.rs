@@ -2,6 +2,7 @@
 
 use super::{ASTFlags, ASTNode, Ident, Stmt, StmtBlock};
 use crate::engine::KEYWORD_FN_PTR;
+use crate::eval::GlobalRuntimeState;
 use crate::tokenizer::Token;
 use crate::types::dynamic::Union;
 use crate::{
@@ -467,9 +468,22 @@ impl Expr {
     /// Returns [`None`] if the expression is not a literal constant.
     #[inline]
     #[must_use]
-    pub fn get_literal_value(&self) -> Option<Dynamic> {
+    pub fn get_literal_value(&self, global: Option<&GlobalRuntimeState>) -> Option<Dynamic> {
         Some(match self {
-            Self::DynamicConstant(x, ..) => x.as_ref().clone(),
+            Self::DynamicConstant(x, ..) => {
+                let mut _value = x.as_ref().clone();
+
+                if let Some(global) = global {
+                    #[cfg(not(feature = "no_function"))]
+                    if let Some(mut fn_ptr) = _value.write_lock::<FnPtr>() {
+                        // Create a new environment with the current module
+                        fn_ptr.env = Some(crate::Shared::new(global.into()));
+                    }
+                }
+
+                _value
+            }
+
             Self::IntegerConstant(x, ..) => (*x).into(),
             #[cfg(not(feature = "no_float"))]
             Self::FloatConstant(x, ..) => (*x).into(),
@@ -481,7 +495,7 @@ impl Expr {
             #[cfg(not(feature = "no_index"))]
             Self::Array(x, ..) if self.is_constant() => {
                 let mut arr = crate::Array::with_capacity(x.len());
-                arr.extend(x.iter().map(|v| v.get_literal_value().unwrap()));
+                arr.extend(x.iter().map(|v| v.get_literal_value(global).unwrap()));
                 Dynamic::from_array(arr)
             }
 
@@ -490,7 +504,7 @@ impl Expr {
                 let mut map = x.1.clone();
 
                 for (k, v) in &x.0 {
-                    *map.get_mut(k.as_str()).unwrap() = v.get_literal_value().unwrap();
+                    *map.get_mut(k.as_str()).unwrap() = v.get_literal_value(global).unwrap();
                 }
 
                 Dynamic::from_map(map)
@@ -500,7 +514,7 @@ impl Expr {
             Self::InterpolatedString(x, ..) if self.is_constant() => {
                 let mut s = SmartString::new_const();
                 for segment in x {
-                    let v = segment.get_literal_value().unwrap();
+                    let v = segment.get_literal_value(global).unwrap();
                     write!(&mut s, "{v}").unwrap();
                 }
                 s.into()

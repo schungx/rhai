@@ -32,7 +32,7 @@ pub struct GlobalRuntimeState {
 
     /// The current stack of loaded [modules][crate::Module] containing script-defined functions.
     #[cfg(not(feature = "no_function"))]
-    pub lib: crate::ThinVec<crate::SharedModule>,
+    pub lib: crate::StaticVec<crate::SharedModule>,
     /// Source of the current context.
     ///
     /// No source if the string is empty.
@@ -88,7 +88,7 @@ impl Engine {
             #[cfg(not(feature = "no_module"))]
             modules: crate::ThinVec::new(),
             #[cfg(not(feature = "no_function"))]
-            lib: crate::ThinVec::new(),
+            lib: crate::StaticVec::new(),
             source: None,
             num_operations: 0,
             #[cfg(not(feature = "no_module"))]
