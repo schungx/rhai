@@ -919,7 +919,7 @@ impl ASTNode<'_> {
 /// _(internals)_ Encapsulated AST environment.
 /// Exported under the `internals` feature only.
 ///
-/// 1) functions defined within the same AST
+/// 1) stack of scripted functions defined
 /// 2) the stack of imported [modules][crate::Module]
 /// 3) global constants
 #[derive(Debug, Clone)]

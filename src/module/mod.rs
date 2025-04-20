@@ -2323,17 +2323,18 @@ impl Module {
         let mut module = Self::new();
 
         // Extra modules left become sub-modules
-        let mut imports = crate::ThinVec::new();
-
-        if result.is_ok() {
+        let imports = if result.is_ok() {
             global
                 .scan_imports_raw()
                 .skip(orig_imports_len)
-                .for_each(|(k, m)| {
-                    imports.push((k.clone(), m.clone()));
-                    module.set_sub_module(k.clone(), m.clone());
-                });
-        }
+                .map(|(k, m)| (k.clone(), m.clone()))
+                .collect()
+        } else {
+            crate::ThinVec::new()
+        };
+        imports.iter().for_each(|(k, m)| {
+            module.set_sub_module(k.clone(), m.clone());
+        });
 
         // Restore global state
         #[cfg(not(feature = "no_function"))]

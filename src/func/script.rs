@@ -94,22 +94,22 @@ impl Engine {
         let orig_fn_resolution_caches_len = caches.fn_resolution_caches_len();
 
         #[cfg(not(feature = "no_module"))]
-        let orig_constants = _env.map(|environ| {
-            let EncapsulatedEnviron {
-                lib,
-                imports,
-                constants,
-            } = environ;
+        let orig_constants = _env.map(
+            |EncapsulatedEnviron {
+                 lib,
+                 imports,
+                 constants,
+             }| {
+                imports
+                    .iter()
+                    .cloned()
+                    .for_each(|(n, m)| global.push_import(n, m));
 
-            imports
-                .iter()
-                .cloned()
-                .for_each(|(n, m)| global.push_import(n, m));
+                global.lib.extend(lib.clone());
 
-            global.lib.extend(lib.clone());
-
-            std::mem::replace(&mut global.constants, constants.clone())
-        });
+                std::mem::replace(&mut global.constants, constants.clone())
+            },
+        );
 
         #[cfg(feature = "debugging")]
         if self.is_debugger_registered() {
