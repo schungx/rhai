@@ -24,6 +24,19 @@ fn test_float_scientific() {
     assert!(engine.compile("123.456e1.23").is_err());
 }
 
+#[cfg(not(feature = "unchecked"))]
+#[cfg(not(feature = "f32_float"))]
+#[test]
+fn test_float_epsilon() {
+    let engine = Engine::new();
+
+    assert!(engine.eval::<bool>("1e-19 < 1e-18").unwrap());
+    assert!(!engine.eval::<bool>("0 < 1e-16").unwrap());
+    assert!(engine.eval::<bool>("0 < 1e-15").unwrap());
+    assert!(engine.eval::<bool>("0.00000000000000000001 < 0.00000000000000000001000000000000001").unwrap());
+    assert!(!engine.eval::<bool>("0.00000000000000000001 < 0.000000000000000000010000000000000001").unwrap());
+}
+
 #[test]
 fn test_float_parse() {
     let engine = Engine::new();

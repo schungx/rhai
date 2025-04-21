@@ -6,6 +6,7 @@ use super::call::FnCallArgs;
 use super::native::FnBuiltin;
 #[allow(clippy::enum_glob_use)]
 use crate::tokenizer::{Token, Token::*};
+use crate::types::dynamic::Union;
 use crate::{
     Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, NativeCallContext, RhaiResult,
     SmartString, INT,
@@ -85,9 +86,6 @@ fn is_numeric(typ: TypeId) -> bool {
 /// The return function will be registered as a _method_, so the first parameter cannot be consumed.
 #[must_use]
 pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<FnBuiltin> {
-    let type1 = x.type_id();
-    let type2 = y.type_id();
-
     macro_rules! impl_op {
         ($xx:ident $op:tt $yy:ident) => { Some((|_, args| {
             let x = &*args[0].read_lock::<$xx>().unwrap();
@@ -150,9 +148,137 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
         }, false)) };
     }
 
+    #[cfg(not(feature = "no_float"))]
+    macro_rules! impl_float {
+        ($xx:ident, $yy:ident) => {
+            return match op {
+                Plus                => impl_op!(FLOAT => $xx + $yy),
+                Minus               => impl_op!(FLOAT => $xx - $yy),
+                Multiply            => impl_op!(FLOAT => $xx * $yy),
+                Divide              => impl_op!(FLOAT => $xx / $yy),
+                Modulo              => impl_op!(FLOAT => $xx % $yy),
+                PowerOf             => impl_op!(FLOAT => $xx.powf($yy as FLOAT)),
+
+                #[cfg(feature = "unchecked")]
+                EqualsTo            => impl_op!(FLOAT => $xx == $yy),
+                #[cfg(not(feature = "unchecked"))]
+                EqualsTo            => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::TRUE); }
+                    Ok(((x - y).abs()/max <= FLOAT::EPSILON).into())
+                }, false)),
+
+                #[cfg(feature = "unchecked")]
+                NotEqualsTo         => impl_op!(FLOAT => $xx != $yy),
+                #[cfg(not(feature = "unchecked"))]
+                NotEqualsTo         => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::FALSE); }
+                    Ok(((x - y).abs()/max > FLOAT::EPSILON).into())
+                }, false)),
+
+                #[cfg(feature = "unchecked")]
+                GreaterThan         => impl_op!(FLOAT => $xx > $yy),
+                #[cfg(not(feature = "unchecked"))]
+                GreaterThan         => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::FALSE); }
+                    Ok(((x - y)/max > FLOAT::EPSILON).into())
+                }, false)),
+
+                #[cfg(feature = "unchecked")]
+                GreaterThanEqualsTo => impl_op!(FLOAT => $xx >= $yy),
+                #[cfg(not(feature = "unchecked"))]
+                GreaterThanEqualsTo => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::TRUE); }
+                    Ok(((x - y)/max > -FLOAT::EPSILON).into())
+                }, false)),
+
+                #[cfg(feature = "unchecked")]
+                LessThan            => impl_op!(FLOAT => $xx < $yy),
+                #[cfg(not(feature = "unchecked"))]
+                LessThan            => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::FALSE); }
+                    Ok(((y - x)/max > FLOAT::EPSILON).into())
+                }, false)),
+
+                #[cfg(feature = "unchecked")]
+                LessThanEqualsTo    => impl_op!(FLOAT => $xx <= $yy),
+                #[cfg(not(feature = "unchecked"))]
+                LessThanEqualsTo    => Some((|_, args| {
+                    let x = args[0].$xx().unwrap() as FLOAT;
+                    let y = args[1].$yy().unwrap() as FLOAT;
+                    let max = if x * y == 0.0 { 1.0 } else { x.abs().max(y.abs()) };
+                    if max == 0.0 { return Ok(Dynamic::TRUE); }
+                    Ok(((y - x)/max > -FLOAT::EPSILON).into())
+                }, false)),
+
+                _                   => None,
+            }
+        };
+    }
+
+    #[cfg(feature = "decimal")]
+    macro_rules! impl_decimal {
+        ($xx:ident, $yy:ident) => {
+            {
+                #[cfg(not(feature = "unchecked"))]
+                #[allow(clippy::wildcard_imports)]
+                use crate::packages::arithmetic::decimal_functions::builtin::*;
+
+                #[cfg(not(feature = "unchecked"))]
+                match op {
+                    Plus     => return impl_op!(from Decimal => add($xx, $yy)),
+                    Minus    => return impl_op!(from Decimal => subtract($xx, $yy)),
+                    Multiply => return impl_op!(from Decimal => multiply($xx, $yy)),
+                    Divide   => return impl_op!(from Decimal => divide($xx, $yy)),
+                    Modulo   => return impl_op!(from Decimal => modulo($xx, $yy)),
+                    PowerOf  => return impl_op!(from Decimal => power($xx, $yy)),
+                    _        => ()
+                }
+
+                #[cfg(feature = "unchecked")]
+                use rust_decimal::MathematicalOps;
+
+                #[cfg(feature = "unchecked")]
+                match op {
+                    Plus     => return impl_op!(from Decimal => $xx + $yy),
+                    Minus    => return impl_op!(from Decimal => $xx - $yy),
+                    Multiply => return impl_op!(from Decimal => $xx * $yy),
+                    Divide   => return impl_op!(from Decimal => $xx / $yy),
+                    Modulo   => return impl_op!(from Decimal => $xx % $yy),
+                    PowerOf  => return impl_op!(from Decimal => $xx.powd($yy)),
+                    _        => ()
+                }
+
+                return match op {
+                    EqualsTo            => impl_op!(from Decimal => $xx == $yy),
+                    NotEqualsTo         => impl_op!(from Decimal => $xx != $yy),
+                    GreaterThan         => impl_op!(from Decimal => $xx > $yy),
+                    GreaterThanEqualsTo => impl_op!(from Decimal => $xx >= $yy),
+                    LessThan            => impl_op!(from Decimal => $xx < $yy),
+                    LessThanEqualsTo    => impl_op!(from Decimal => $xx <= $yy),
+                    _                   => None
+                };
+            }
+        };
+    }
+
     // Check for common patterns
-    if type1 == type2 {
-        if type1 == TypeId::of::<INT>() {
+    match (&x.0, &y.0, op) {
+        (Union::Int(..), Union::Int(..), _) => {
             #[cfg(not(feature = "unchecked"))]
             #[allow(clippy::wildcard_imports)]
             use crate::packages::arithmetic::arith_basic::INT::functions::*;
@@ -217,7 +343,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
             };
         }
 
-        if type1 == TypeId::of::<bool>() {
+        (Union::Bool(..), Union::Bool(..), _) => {
             return match op {
                 EqualsTo => impl_op!(bool => as_bool == as_bool),
                 NotEqualsTo => impl_op!(bool => as_bool != as_bool),
@@ -232,7 +358,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
             };
         }
 
-        if type1 == TypeId::of::<ImmutableString>() {
+        (Union::Str(..), Union::Str(..), _) => {
             return match op {
                 Plus => Some((
                     |_ctx, args| {
@@ -259,7 +385,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
             };
         }
 
-        if type1 == TypeId::of::<char>() {
+        (Union::Char(..), Union::Char(..), _) => {
             return match op {
                 Plus => Some((
                     |_ctx, args| {
@@ -288,7 +414,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
         }
 
         #[cfg(not(feature = "no_index"))]
-        if type1 == TypeId::of::<crate::Blob>() {
+        (Union::Blob(..), Union::Blob(..), _) => {
             use crate::Blob;
 
             return match op {
@@ -320,7 +446,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
             };
         }
 
-        if type1 == TypeId::of::<()>() {
+        (Union::Unit(..), Union::Unit(..), _) => {
             return match op {
                 EqualsTo => Some((const_true_fn, false)),
                 NotEqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
@@ -330,253 +456,165 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
             };
         }
 
-        // Handle ranges here because ranges are implemented as custom type
-        if type1 == TypeId::of::<ExclusiveRange>() {
-            return match op {
-                EqualsTo => impl_op!(ExclusiveRange == ExclusiveRange),
-                NotEqualsTo => impl_op!(ExclusiveRange != ExclusiveRange),
-                _ => None,
-            };
+        #[cfg(not(feature = "no_float"))]
+        (Union::Float(..), Union::Float(..), _) => {
+            impl_float!(as_float, as_float)
         }
 
-        if type1 == TypeId::of::<InclusiveRange>() {
-            return match op {
-                EqualsTo => impl_op!(InclusiveRange == InclusiveRange),
-                NotEqualsTo => impl_op!(InclusiveRange != InclusiveRange),
-                _ => None,
-            };
-        }
-    }
-
-    #[cfg(not(feature = "no_float"))]
-    macro_rules! impl_float {
-        ($x:ty, $xx:ident, $y:ty, $yy:ident) => {
-            if (type1, type2) == (TypeId::of::<$x>(), TypeId::of::<$y>()) {
-                return match op {
-                    Plus                => impl_op!(FLOAT => $xx + $yy),
-                    Minus               => impl_op!(FLOAT => $xx - $yy),
-                    Multiply            => impl_op!(FLOAT => $xx * $yy),
-                    Divide              => impl_op!(FLOAT => $xx / $yy),
-                    Modulo              => impl_op!(FLOAT => $xx % $yy),
-                    PowerOf             => impl_op!(FLOAT => $xx.powf($yy as FLOAT)),
-
-                    #[cfg(feature = "unchecked")]
-                    EqualsTo            => impl_op!(FLOAT => $xx == $yy),
-                    #[cfg(not(feature = "unchecked"))]
-                    EqualsTo            => Some((|_, args| {
-                        let x = args[0].$xx().unwrap() as FLOAT;
-                        let y = args[1].$yy().unwrap() as FLOAT;
-                        Ok(((x - y).abs() <= FLOAT::EPSILON).into())
-                    }, false)),
-
-                    #[cfg(feature = "unchecked")]
-                    NotEqualsTo         => impl_op!(FLOAT => $xx != $yy),
-                    #[cfg(not(feature = "unchecked"))]
-                    NotEqualsTo         => Some((|_, args| {
-                        let x = args[0].$xx().unwrap() as FLOAT;
-                        let y = args[1].$yy().unwrap() as FLOAT;
-                        Ok(((x - y).abs() > FLOAT::EPSILON).into())
-                    }, false)),
-
-                    GreaterThan         => impl_op!(FLOAT => $xx > $yy),
-                    GreaterThanEqualsTo => impl_op!(FLOAT => $xx >= $yy),
-                    LessThan            => impl_op!(FLOAT => $xx < $yy),
-                    LessThanEqualsTo    => impl_op!(FLOAT => $xx <= $yy),
-                    _                   => None,
-                };
-            }
-        };
-    }
-
-    #[cfg(not(feature = "no_float"))]
-    {
-        impl_float!(FLOAT, as_float, FLOAT, as_float);
-        impl_float!(FLOAT, as_float, INT, as_int);
-        impl_float!(INT, as_int, FLOAT, as_float);
-    }
-
-    #[cfg(feature = "decimal")]
-    macro_rules! impl_decimal {
-        ($x:ty, $xx:ident, $y:ty, $yy:ident) => {
-            if (type1, type2) == (TypeId::of::<$x>(), TypeId::of::<$y>()) {
-                #[cfg(not(feature = "unchecked"))]
-                #[allow(clippy::wildcard_imports)]
-                use crate::packages::arithmetic::decimal_functions::builtin::*;
-
-                #[cfg(not(feature = "unchecked"))]
-                match op {
-                    Plus     => return impl_op!(from Decimal => add($xx, $yy)),
-                    Minus    => return impl_op!(from Decimal => subtract($xx, $yy)),
-                    Multiply => return impl_op!(from Decimal => multiply($xx, $yy)),
-                    Divide   => return impl_op!(from Decimal => divide($xx, $yy)),
-                    Modulo   => return impl_op!(from Decimal => modulo($xx, $yy)),
-                    PowerOf  => return impl_op!(from Decimal => power($xx, $yy)),
-                    _        => ()
-                }
-
-                #[cfg(feature = "unchecked")]
-                use rust_decimal::MathematicalOps;
-
-                #[cfg(feature = "unchecked")]
-                match op {
-                    Plus     => return impl_op!(from Decimal => $xx + $yy),
-                    Minus    => return impl_op!(from Decimal => $xx - $yy),
-                    Multiply => return impl_op!(from Decimal => $xx * $yy),
-                    Divide   => return impl_op!(from Decimal => $xx / $yy),
-                    Modulo   => return impl_op!(from Decimal => $xx % $yy),
-                    PowerOf  => return impl_op!(from Decimal => $xx.powd($yy)),
-                    _        => ()
-                }
-
-                return match op {
-                    EqualsTo            => impl_op!(from Decimal => $xx == $yy),
-                    NotEqualsTo         => impl_op!(from Decimal => $xx != $yy),
-                    GreaterThan         => impl_op!(from Decimal => $xx > $yy),
-                    GreaterThanEqualsTo => impl_op!(from Decimal => $xx >= $yy),
-                    LessThan            => impl_op!(from Decimal => $xx < $yy),
-                    LessThanEqualsTo    => impl_op!(from Decimal => $xx <= $yy),
-                    _                   => None
-                };
-            }
-        };
-    }
-
-    #[cfg(feature = "decimal")]
-    {
-        impl_decimal!(Decimal, as_decimal, Decimal, as_decimal);
-        impl_decimal!(Decimal, as_decimal, INT, as_int);
-        impl_decimal!(INT, as_int, Decimal, as_decimal);
-    }
-
-    // Ranges
-    if *op == ExclusiveRange && type1 == TypeId::of::<INT>() && type2 == TypeId::of::<()>() {
-        return Some((
-            |_ctx, args| Ok((args[0].as_int().unwrap()..INT::MAX).into()),
-            false,
-        ));
-    } else if *op == ExclusiveRange && type1 == TypeId::of::<()>() && type2 == TypeId::of::<INT>() {
-        return Some((
-            |_ctx, args| Ok((0..args[1].as_int().unwrap()).into()),
-            false,
-        ));
-    } else if *op == ExclusiveRange && type1 == TypeId::of::<INT>() && type2 == TypeId::of::<()>() {
-        return Some((
-            |_ctx, args| Ok((args[0].as_int().unwrap()..=INT::MAX).into()),
-            false,
-        ));
-    } else if *op == ExclusiveRange && type1 == TypeId::of::<()>() && type2 == TypeId::of::<INT>() {
-        return Some((
-            |_ctx, args| Ok((0..=args[1].as_int().unwrap()).into()),
-            false,
-        ));
-    }
-
-    // char op string
-    if (type1, type2) == (TypeId::of::<char>(), TypeId::of::<ImmutableString>()) {
-        fn get_s1s2(args: &FnCallArgs) -> ([Option<char>; 2], [Option<char>; 2]) {
-            let x = args[0].as_char().unwrap();
-            let y = &*args[1].as_immutable_string_ref().unwrap();
-            let s1 = [Some(x), None];
-            let mut y = y.chars();
-            let s2 = [y.next(), y.next()];
-            (s1, s2)
+        #[cfg(not(feature = "no_float"))]
+        (Union::Float(..), Union::Int(..), _) => {
+            impl_float!(as_float, as_int)
         }
 
-        return match op {
-            Plus => Some((
-                |_ctx, args| {
-                    let x = args[0].as_char().unwrap();
-                    let y = &*args[1].as_immutable_string_ref().unwrap();
-
-                    let mut result = SmartString::new_const();
-                    result.push(x);
-                    result.push_str(y);
-
-                    #[cfg(not(feature = "unchecked"))]
-                    _ctx.unwrap().engine().throw_on_size((0, 0, result.len()))?;
-
-                    Ok(result.into())
-                },
-                CHECKED_BUILD,
-            )),
-            EqualsTo => impl_op!(get_s1s2(==)),
-            NotEqualsTo => impl_op!(get_s1s2(!=)),
-            GreaterThan => impl_op!(get_s1s2(>)),
-            GreaterThanEqualsTo => impl_op!(get_s1s2(>=)),
-            LessThan => impl_op!(get_s1s2(<)),
-            LessThanEqualsTo => impl_op!(get_s1s2(<=)),
-            _ => None,
-        };
-    }
-    // string op char
-    if (type1, type2) == (TypeId::of::<ImmutableString>(), TypeId::of::<char>()) {
-        fn get_s1s2(args: &FnCallArgs) -> ([Option<char>; 2], [Option<char>; 2]) {
-            let x = &*args[0].as_immutable_string_ref().unwrap();
-            let y = args[1].as_char().unwrap();
-            let mut x = x.chars();
-            let s1 = [x.next(), x.next()];
-            let s2 = [Some(y), None];
-            (s1, s2)
+        #[cfg(not(feature = "no_float"))]
+        (Union::Int(..), Union::Float(..), _) => {
+            impl_float!(as_int, as_float)
         }
 
-        return match op {
-            Plus => Some((
-                |_ctx, args| {
-                    let x = &*args[0].as_immutable_string_ref().unwrap();
-                    let y = args[1].as_char().unwrap();
-                    let result = x + y;
+        #[cfg(feature = "decimal")]
+        (Union::Decimal(..), Union::Decimal(..), _) => {
+            impl_decimal!(as_decimal, as_decimal)
+        }
+        #[cfg(feature = "decimal")]
+        (Union::Decimal(..), Union::Int(..), _) => {
+            impl_decimal!(as_decimal, as_int)
+        }
+        #[cfg(feature = "decimal")]
+        (Union::Int(..), Union::Decimal(..), _) => {
+            impl_decimal!(as_int, as_decimal)
+        }
 
-                    #[cfg(not(feature = "unchecked"))]
-                    _ctx.unwrap().engine().throw_on_size((0, 0, result.len()))?;
-
-                    Ok(result.into())
-                },
-                CHECKED_BUILD,
-            )),
-            Minus => Some((
-                |_, args| {
-                    let x = &*args[0].as_immutable_string_ref().unwrap();
-                    let y = args[1].as_char().unwrap();
-                    Ok((x - y).into())
-                },
+        // Ranges
+        (Union::Int(..), Union::Unit(..), ExclusiveRange) => {
+            return Some((
+                |_ctx, args| Ok((args[0].as_int().unwrap()..INT::MAX).into()),
                 false,
-            )),
-            EqualsTo => impl_op!(get_s1s2(==)),
-            NotEqualsTo => impl_op!(get_s1s2(!=)),
-            GreaterThan => impl_op!(get_s1s2(>)),
-            GreaterThanEqualsTo => impl_op!(get_s1s2(>=)),
-            LessThan => impl_op!(get_s1s2(<)),
-            LessThanEqualsTo => impl_op!(get_s1s2(<=)),
-            _ => None,
-        };
-    }
-    // () op string
-    if (type1, type2) == (TypeId::of::<()>(), TypeId::of::<ImmutableString>()) {
-        return match op {
-            Plus => Some((|_, args| Ok(args[1].clone()), false)),
-            EqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
-                Some((const_false_fn, false))
-            }
-            NotEqualsTo => Some((const_true_fn, false)),
-            _ => None,
-        };
-    }
-    // string op ()
-    if (type1, type2) == (TypeId::of::<ImmutableString>(), TypeId::of::<()>()) {
-        return match op {
-            Plus => Some((|_, args| Ok(args[0].clone()), false)),
-            EqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
-                Some((const_false_fn, false))
-            }
-            NotEqualsTo => Some((const_true_fn, false)),
-            _ => None,
-        };
-    }
+            ))
+        }
+        (Union::Unit(..), Union::Int(..), ExclusiveRange) => {
+            return Some((
+                |_ctx, args| Ok((0..args[1].as_int().unwrap()).into()),
+                false,
+            ))
+        }
+        (Union::Int(..), Union::Unit(..), InclusiveRange) => {
+            return Some((
+                |_ctx, args| Ok((args[0].as_int().unwrap()..=INT::MAX).into()),
+                false,
+            ))
+        }
+        (Union::Unit(..), Union::Int(..), InclusiveRange) => {
+            return Some((
+                |_ctx, args| Ok((0..=args[1].as_int().unwrap()).into()),
+                false,
+            ))
+        }
 
-    // blob
-    #[cfg(not(feature = "no_index"))]
-    if type1 == TypeId::of::<crate::Blob>() {
-        if type2 == TypeId::of::<char>() {
+        // char op string
+        (Union::Char(..), Union::Str(..), _) => {
+            fn get_s1s2(args: &FnCallArgs) -> ([Option<char>; 2], [Option<char>; 2]) {
+                let x = args[0].as_char().unwrap();
+                let y = &*args[1].as_immutable_string_ref().unwrap();
+                let s1 = [Some(x), None];
+                let mut y = y.chars();
+                let s2 = [y.next(), y.next()];
+                (s1, s2)
+            }
+
+            return match op {
+                Plus => Some((
+                    |_ctx, args| {
+                        let x = args[0].as_char().unwrap();
+                        let y = &*args[1].as_immutable_string_ref().unwrap();
+
+                        let mut result = SmartString::new_const();
+                        result.push(x);
+                        result.push_str(y);
+
+                        #[cfg(not(feature = "unchecked"))]
+                        _ctx.unwrap().engine().throw_on_size((0, 0, result.len()))?;
+
+                        Ok(result.into())
+                    },
+                    CHECKED_BUILD,
+                )),
+                EqualsTo => impl_op!(get_s1s2(==)),
+                NotEqualsTo => impl_op!(get_s1s2(!=)),
+                GreaterThan => impl_op!(get_s1s2(>)),
+                GreaterThanEqualsTo => impl_op!(get_s1s2(>=)),
+                LessThan => impl_op!(get_s1s2(<)),
+                LessThanEqualsTo => impl_op!(get_s1s2(<=)),
+                _ => None,
+            };
+        }
+        // string op char
+        (Union::Str(..), Union::Char(..), _) => {
+            fn get_s1s2(args: &FnCallArgs) -> ([Option<char>; 2], [Option<char>; 2]) {
+                let x = &*args[0].as_immutable_string_ref().unwrap();
+                let y = args[1].as_char().unwrap();
+                let mut x = x.chars();
+                let s1 = [x.next(), x.next()];
+                let s2 = [Some(y), None];
+                (s1, s2)
+            }
+
+            return match op {
+                Plus => Some((
+                    |_ctx, args| {
+                        let x = &*args[0].as_immutable_string_ref().unwrap();
+                        let y = args[1].as_char().unwrap();
+                        let result = x + y;
+
+                        #[cfg(not(feature = "unchecked"))]
+                        _ctx.unwrap().engine().throw_on_size((0, 0, result.len()))?;
+
+                        Ok(result.into())
+                    },
+                    CHECKED_BUILD,
+                )),
+                Minus => Some((
+                    |_, args| {
+                        let x = &*args[0].as_immutable_string_ref().unwrap();
+                        let y = args[1].as_char().unwrap();
+                        Ok((x - y).into())
+                    },
+                    false,
+                )),
+                EqualsTo => impl_op!(get_s1s2(==)),
+                NotEqualsTo => impl_op!(get_s1s2(!=)),
+                GreaterThan => impl_op!(get_s1s2(>)),
+                GreaterThanEqualsTo => impl_op!(get_s1s2(>=)),
+                LessThan => impl_op!(get_s1s2(<)),
+                LessThanEqualsTo => impl_op!(get_s1s2(<=)),
+                _ => None,
+            };
+        }
+        // () op string
+        (Union::Unit(..), Union::Str(..), _) => {
+            return match op {
+                Plus => Some((|_, args| Ok(args[1].clone()), false)),
+                EqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
+                    Some((const_false_fn, false))
+                }
+                NotEqualsTo => Some((const_true_fn, false)),
+                _ => None,
+            }
+        }
+        // string op ()
+        (Union::Str(..), Union::Unit(..), _) => {
+            return match op {
+                Plus => Some((|_, args| Ok(args[0].clone()), false)),
+                EqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
+                    Some((const_false_fn, false))
+                }
+                NotEqualsTo => Some((const_true_fn, false)),
+                _ => None,
+            };
+        }
+
+        // blob
+        #[cfg(not(feature = "no_index"))]
+        (Union::Blob(..), Union::Char(..), _) => {
             return match op {
                 Plus => Some((
                     |_ctx, args| {
@@ -595,21 +633,35 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                     CHECKED_BUILD,
                 )),
                 _ => None,
-            };
+            }
         }
+
+        _ => (),
     }
 
-    // Non-compatible ranges
-    if (type1, type2)
-        == (
-            TypeId::of::<ExclusiveRange>(),
-            TypeId::of::<InclusiveRange>(),
-        )
-        || (type1, type2)
-            == (
-                TypeId::of::<InclusiveRange>(),
-                TypeId::of::<ExclusiveRange>(),
-            )
+    // Check detailed types
+
+    let type1 = x.type_id();
+    let type2 = y.type_id();
+
+    if type1 == TypeId::of::<ExclusiveRange>() && type2 == TypeId::of::<ExclusiveRange>() {
+        return match op {
+            EqualsTo => impl_op!(ExclusiveRange == ExclusiveRange),
+            NotEqualsTo => impl_op!(ExclusiveRange != ExclusiveRange),
+            _ => None,
+        };
+    }
+    if type1 == TypeId::of::<InclusiveRange>() && type2 == TypeId::of::<InclusiveRange>() {
+        return match op {
+            EqualsTo => impl_op!(InclusiveRange == InclusiveRange),
+            NotEqualsTo => impl_op!(InclusiveRange != InclusiveRange),
+            _ => None,
+        };
+    }
+
+    // Incompatible ranges
+    if (type1 == TypeId::of::<ExclusiveRange>() && type2 == TypeId::of::<InclusiveRange>())
+        || (type1 == TypeId::of::<InclusiveRange>() && type2 == TypeId::of::<ExclusiveRange>())
     {
         return match op {
             NotEqualsTo => Some((const_true_fn, false)),
@@ -619,7 +671,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
     }
 
     // Default comparison operators for different, non-numeric types
-    if type2 != type1 {
+    if type1 != type2 {
         return match op {
             NotEqualsTo if !is_numeric(type1) || !is_numeric(type2) => Some((const_true_fn, false)),
             EqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo
@@ -631,7 +683,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
         };
     }
 
-    // Beyond here, type1 == type2
+    // Same type but no built-in
     None
 }
 
@@ -640,9 +692,6 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
 /// The return function is registered as a _method_, so the first parameter cannot be consumed.
 #[must_use]
 pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<FnBuiltin> {
-    let type1 = x.type_id();
-    let type2 = y.type_id();
-
     macro_rules! impl_op {
         ($x:ty = x $op:tt $yy:ident) => { Some((|_, args| {
             let x = args[0].$yy().unwrap();
@@ -694,9 +743,60 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
         }, false)) };
     }
 
+    #[cfg(not(feature = "no_float"))]
+    macro_rules! impl_float {
+        ($x:ident, $xx:ident, $yy:ident) => {
+            return match op {
+                PlusAssign      => impl_op!($x += $yy),
+                MinusAssign     => impl_op!($x -= $yy),
+                MultiplyAssign  => impl_op!($x *= $yy),
+                DivideAssign    => impl_op!($x /= $yy),
+                ModuloAssign    => impl_op!($x %= $yy),
+                PowerOfAssign   => impl_op!($x => $xx.powf($yy as $x)),
+                _               => None,
+            }
+        }
+    }
+
+    #[cfg(feature = "decimal")]
+    macro_rules! impl_decimal {
+        ($x:ident, $xx:ident, $yy:ident) => {
+            {
+                #[cfg(not(feature = "unchecked"))]
+                #[allow(clippy::wildcard_imports)]
+                use crate::packages::arithmetic::decimal_functions::builtin::*;
+
+                #[cfg(not(feature = "unchecked"))]
+                return match op {
+                    PlusAssign      => impl_op!(from $x => add($xx, $yy)),
+                    MinusAssign     => impl_op!(from $x => subtract($xx, $yy)),
+                    MultiplyAssign  => impl_op!(from $x => multiply($xx, $yy)),
+                    DivideAssign    => impl_op!(from $x => divide($xx, $yy)),
+                    ModuloAssign    => impl_op!(from $x => modulo($xx, $yy)),
+                    PowerOfAssign   => impl_op!(from $x => power($xx, $yy)),
+                    _               => None,
+                };
+
+                #[cfg(feature = "unchecked")]
+                use rust_decimal::MathematicalOps;
+
+                #[cfg(feature = "unchecked")]
+                return match op {
+                    PlusAssign      => impl_op!(from $x += $yy),
+                    MinusAssign     => impl_op!(from $x -= $yy),
+                    MultiplyAssign  => impl_op!(from $x *= $yy),
+                    DivideAssign    => impl_op!(from $x /= $yy),
+                    ModuloAssign    => impl_op!(from $x %= $yy),
+                    PowerOfAssign   => impl_op!(from $x => $xx.powd($yy)),
+                    _               => None,
+                };
+            }
+        };
+    }
+
     // Check for common patterns
-    if type1 == type2 {
-        if type1 == TypeId::of::<INT>() {
+    match (&x.0, &y.0, op) {
+        (Union::Int(..), Union::Int(..), _) => {
             #[cfg(not(feature = "unchecked"))]
             #[allow(clippy::wildcard_imports)]
             use crate::packages::arithmetic::arith_basic::INT::functions::*;
@@ -757,37 +857,35 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
             };
         }
 
-        if type1 == TypeId::of::<bool>() {
+        (Union::Bool(..), Union::Bool(..), _) => {
             return match op {
                 AndAssign => impl_op!(bool = x && as_bool),
                 OrAssign => impl_op!(bool = x || as_bool),
                 XOrAssign => impl_op!(bool = x ^ as_bool),
                 _ => None,
-            };
+            }
         }
 
-        if type1 == TypeId::of::<char>() {
-            return match op {
-                PlusAssign => Some((
-                    |_, args| {
-                        let y = args[1].as_char().unwrap();
-                        let x = &mut *args[0].write_lock::<Dynamic>().unwrap();
+        // char += char
+        (Union::Char(..), Union::Char(..), PlusAssign) => {
+            return Some((
+                |_, args| {
+                    let y = args[1].as_char().unwrap();
+                    let x = &mut *args[0].write_lock::<Dynamic>().unwrap();
 
-                        let mut buf = SmartString::new_const();
-                        buf.push(x.as_char().unwrap());
-                        buf.push(y);
+                    let mut buf = SmartString::new_const();
+                    buf.push(x.as_char().unwrap());
+                    buf.push(y);
 
-                        *x = buf.into();
+                    *x = buf.into();
 
-                        Ok(Dynamic::UNIT)
-                    },
-                    false,
-                )),
-                _ => None,
-            };
+                    Ok(Dynamic::UNIT)
+                },
+                false,
+            ));
         }
 
-        if type1 == TypeId::of::<ImmutableString>() {
+        (Union::Str(..), Union::Str(..), _) => {
             return match op {
                 PlusAssign => Some((
                     |_ctx, args| {
@@ -821,160 +919,109 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
             };
         }
 
+        // array += array
         #[cfg(not(feature = "no_index"))]
-        if type1 == TypeId::of::<crate::Array>() {
+        (Union::Array(..), Union::Array(..), PlusAssign) => {
             #[allow(clippy::wildcard_imports)]
             use crate::packages::array_basic::array_functions::*;
 
-            return match op {
-                PlusAssign => Some((
-                    |_ctx, args| {
-                        let x = args[1].take().into_array().unwrap();
-
-                        if x.is_empty() {
-                            return Ok(Dynamic::UNIT);
-                        }
-
-                        #[cfg(not(feature = "unchecked"))]
-                        if !args[0].as_array_ref().unwrap().is_empty() {
-                            _ctx.unwrap().engine().check_data_size(
-                                &*args[0].read_lock().unwrap(),
-                                crate::Position::NONE,
-                            )?;
-                        }
-
-                        let array = &mut *args[0].as_array_mut().unwrap();
-
-                        append(array, x);
-
-                        Ok(Dynamic::UNIT)
-                    },
-                    CHECKED_BUILD,
-                )),
-                _ => None,
-            };
-        }
-
-        #[cfg(not(feature = "no_index"))]
-        if type1 == TypeId::of::<crate::Blob>() {
-            #[allow(clippy::wildcard_imports)]
-            use crate::packages::blob_basic::blob_functions::*;
-
-            return match op {
-                PlusAssign => Some((
-                    |_ctx, args| {
-                        let blob2 = args[1].take().into_blob().unwrap();
-                        let blob1 = &mut *args[0].as_blob_mut().unwrap();
-
-                        #[cfg(not(feature = "unchecked"))]
-                        _ctx.unwrap()
-                            .engine()
-                            .throw_on_size((blob1.len() + blob2.len(), 0, 0))?;
-
-                        append(blob1, blob2);
-
-                        Ok(Dynamic::UNIT)
-                    },
-                    CHECKED_BUILD,
-                )),
-                _ => None,
-            };
-        }
-    }
-
-    #[cfg(not(feature = "no_float"))]
-    macro_rules! impl_float {
-        ($x:ident, $xx:ident, $y:ty, $yy:ident) => {
-            if (type1, type2) == (TypeId::of::<$x>(), TypeId::of::<$y>()) {
-                return match op {
-                    PlusAssign      => impl_op!($x += $yy),
-                    MinusAssign     => impl_op!($x -= $yy),
-                    MultiplyAssign  => impl_op!($x *= $yy),
-                    DivideAssign    => impl_op!($x /= $yy),
-                    ModuloAssign    => impl_op!($x %= $yy),
-                    PowerOfAssign   => impl_op!($x => $xx.powf($yy as $x)),
-                    _               => None,
-                };
-            }
-        }
-    }
-
-    #[cfg(not(feature = "no_float"))]
-    {
-        impl_float!(FLOAT, as_float, FLOAT, as_float);
-        impl_float!(FLOAT, as_float, INT, as_int);
-    }
-
-    #[cfg(feature = "decimal")]
-    macro_rules! impl_decimal {
-        ($x:ident, $xx:ident, $y:ty, $yy:ident) => {
-            if (type1, type2) == (TypeId::of::<$x>(), TypeId::of::<$y>()) {
-                #[cfg(not(feature = "unchecked"))]
-                #[allow(clippy::wildcard_imports)]
-                use crate::packages::arithmetic::decimal_functions::builtin::*;
-
-                #[cfg(not(feature = "unchecked"))]
-                return match op {
-                    PlusAssign      => impl_op!(from $x => add($xx, $yy)),
-                    MinusAssign     => impl_op!(from $x => subtract($xx, $yy)),
-                    MultiplyAssign  => impl_op!(from $x => multiply($xx, $yy)),
-                    DivideAssign    => impl_op!(from $x => divide($xx, $yy)),
-                    ModuloAssign    => impl_op!(from $x => modulo($xx, $yy)),
-                    PowerOfAssign   => impl_op!(from $x => power($xx, $yy)),
-                    _               => None,
-                };
-
-                #[cfg(feature = "unchecked")]
-                use rust_decimal::MathematicalOps;
-
-                #[cfg(feature = "unchecked")]
-                return match op {
-                    PlusAssign      => impl_op!(from $x += $yy),
-                    MinusAssign     => impl_op!(from $x -= $yy),
-                    MultiplyAssign  => impl_op!(from $x *= $yy),
-                    DivideAssign    => impl_op!(from $x /= $yy),
-                    ModuloAssign    => impl_op!(from $x %= $yy),
-                    PowerOfAssign   => impl_op!(from $x => $xx.powd($yy)),
-                    _               => None,
-                };
-            }
-        };
-    }
-
-    #[cfg(feature = "decimal")]
-    {
-        impl_decimal!(Decimal, as_decimal, Decimal, as_decimal);
-        impl_decimal!(Decimal, as_decimal, INT, as_int);
-    }
-
-    // string op= char
-    if (type1, type2) == (TypeId::of::<ImmutableString>(), TypeId::of::<char>()) {
-        return match op {
-            PlusAssign => Some((
+            return Some((
                 |_ctx, args| {
-                    let mut buf = [0_u8; 4];
-                    let ch = &*args[1].as_char().unwrap().encode_utf8(&mut buf);
-                    let mut x = args[0].as_immutable_string_mut().unwrap();
+                    let x = args[1].take().into_array().unwrap();
+
+                    if x.is_empty() {
+                        return Ok(Dynamic::UNIT);
+                    }
 
                     #[cfg(not(feature = "unchecked"))]
-                    _ctx.unwrap()
-                        .engine()
-                        .throw_on_size((0, 0, x.len() + ch.len()))?;
+                    if !args[0].as_array_ref().unwrap().is_empty() {
+                        _ctx.unwrap().engine().check_data_size(
+                            &*args[0].read_lock().unwrap(),
+                            crate::Position::NONE,
+                        )?;
+                    }
 
-                    *x += ch;
+                    let array = &mut *args[0].as_array_mut().unwrap();
+
+                    append(array, x);
 
                     Ok(Dynamic::UNIT)
                 },
                 CHECKED_BUILD,
-            )),
-            MinusAssign => impl_op!(ImmutableString -= as_char as char),
-            _ => None,
-        };
-    }
-    // char op= string
-    if (type1, type2) == (TypeId::of::<char>(), TypeId::of::<ImmutableString>()) {
-        return match op {
-            PlusAssign => Some((
+            ));
+        }
+
+        // blob += blob
+        #[cfg(not(feature = "no_index"))]
+        (Union::Blob(..), Union::Blob(..), PlusAssign) => {
+            #[allow(clippy::wildcard_imports)]
+            use crate::packages::blob_basic::blob_functions::*;
+
+            return Some((
+                |_ctx, args| {
+                    let blob2 = args[1].take().into_blob().unwrap();
+                    let blob1 = &mut *args[0].as_blob_mut().unwrap();
+
+                    #[cfg(not(feature = "unchecked"))]
+                    _ctx.unwrap()
+                        .engine()
+                        .throw_on_size((blob1.len() + blob2.len(), 0, 0))?;
+
+                    append(blob1, blob2);
+
+                    Ok(Dynamic::UNIT)
+                },
+                CHECKED_BUILD,
+            ));
+        }
+
+        #[cfg(not(feature = "no_float"))]
+        (Union::Float(..), Union::Float(..), _) => {
+            impl_float!(FLOAT, as_float, as_float)
+        }
+
+        #[cfg(not(feature = "no_float"))]
+        (Union::Float(..), Union::Int(..), _) => {
+            impl_float!(FLOAT, as_float, as_int)
+        }
+
+        #[cfg(feature = "decimal")]
+        (Union::Decimal(..), Union::Decimal(..), _) => {
+            impl_decimal!(Decimal, as_decimal, as_decimal)
+        }
+
+        #[cfg(feature = "decimal")]
+        (Union::Decimal(..), Union::Int(..), _) => {
+            impl_decimal!(Decimal, as_decimal, as_int)
+        }
+
+        // string op= char
+        (Union::Str(..), Union::Char(..), _) => {
+            return match op {
+                PlusAssign => Some((
+                    |_ctx, args| {
+                        let mut buf = [0_u8; 4];
+                        let ch = &*args[1].as_char().unwrap().encode_utf8(&mut buf);
+                        let mut x = args[0].as_immutable_string_mut().unwrap();
+
+                        #[cfg(not(feature = "unchecked"))]
+                        _ctx.unwrap()
+                            .engine()
+                            .throw_on_size((0, 0, x.len() + ch.len()))?;
+
+                        *x += ch;
+
+                        Ok(Dynamic::UNIT)
+                    },
+                    CHECKED_BUILD,
+                )),
+                MinusAssign => impl_op!(ImmutableString -= as_char as char),
+                _ => None,
+            }
+        }
+        // char += string
+        (Union::Char(..), Union::Str(..), PlusAssign) => {
+            return Some((
                 |_ctx, args| {
                     let ch = {
                         let s = &*args[1].as_immutable_string_ref().unwrap();
@@ -999,19 +1046,16 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                     Ok(Dynamic::UNIT)
                 },
                 CHECKED_BUILD,
-            )),
-            _ => None,
-        };
-    }
+            ));
+        }
 
-    // array op= any
-    #[cfg(not(feature = "no_index"))]
-    if type1 == TypeId::of::<crate::Array>() {
-        #[allow(clippy::wildcard_imports)]
-        use crate::packages::array_basic::array_functions::*;
+        // array += any
+        #[cfg(not(feature = "no_index"))]
+        (Union::Array(..), _, PlusAssign) => {
+            #[allow(clippy::wildcard_imports)]
+            use crate::packages::array_basic::array_functions::*;
 
-        return match op {
-            PlusAssign => Some((
+            return Some((
                 |_ctx, args| {
                     {
                         let x = args[1].take();
@@ -1027,98 +1071,86 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                     Ok(Dynamic::UNIT)
                 },
                 CHECKED_BUILD,
-            )),
-            _ => None,
-        };
+            ));
+        }
+
+        // blob += int
+        #[cfg(not(feature = "no_index"))]
+        (Union::Blob(..), Union::Int(..), PlusAssign) => {
+            #[allow(clippy::wildcard_imports)]
+            use crate::packages::blob_basic::blob_functions::*;
+
+            return Some((
+                |_ctx, args| {
+                    let x = args[1].as_int().unwrap();
+                    let blob = &mut *args[0].as_blob_mut().unwrap();
+
+                    #[cfg(not(feature = "unchecked"))]
+                    _ctx.unwrap()
+                        .engine()
+                        .throw_on_size((blob.len() + 1, 0, 0))?;
+
+                    push(blob, x);
+
+                    Ok(Dynamic::UNIT)
+                },
+                CHECKED_BUILD,
+            ));
+        }
+
+        // blob += char
+        #[cfg(not(feature = "no_index"))]
+        (Union::Blob(..), Union::Char(..), PlusAssign) => {
+            #[allow(clippy::wildcard_imports)]
+            use crate::packages::blob_basic::blob_functions::*;
+
+            return Some((
+                |_ctx, args| {
+                    let x = args[1].as_char().unwrap();
+                    let blob = &mut *args[0].as_blob_mut().unwrap();
+
+                    #[cfg(not(feature = "unchecked"))]
+                    _ctx.unwrap()
+                        .engine()
+                        .throw_on_size((blob.len() + 1, 0, 0))?;
+
+                    append_char(blob, x);
+
+                    Ok(Dynamic::UNIT)
+                },
+                CHECKED_BUILD,
+            ));
+        }
+
+        // blob += string
+        #[cfg(not(feature = "no_index"))]
+        (Union::Blob(..), Union::Str(..), PlusAssign) => {
+            #[allow(clippy::wildcard_imports)]
+            use crate::packages::blob_basic::blob_functions::*;
+
+            return Some((
+                |_ctx, args| {
+                    let (first, second) = args.split_first_mut().unwrap();
+                    let blob = &mut *first.as_blob_mut().unwrap();
+                    let s = &*second[0].as_immutable_string_ref().unwrap();
+
+                    if s.is_empty() {
+                        return Ok(Dynamic::UNIT);
+                    }
+
+                    #[cfg(not(feature = "unchecked"))]
+                    _ctx.unwrap()
+                        .engine()
+                        .throw_on_size((blob.len() + s.len(), 0, 0))?;
+
+                    append_str(blob, s);
+
+                    Ok(Dynamic::UNIT)
+                },
+                CHECKED_BUILD,
+            ));
+        }
+
+        _ => None,
     }
-
-    #[cfg(not(feature = "no_index"))]
-    {
-        use crate::Blob;
-
-        // blob op= int
-        if (type1, type2) == (TypeId::of::<Blob>(), TypeId::of::<INT>()) {
-            #[allow(clippy::wildcard_imports)]
-            use crate::packages::blob_basic::blob_functions::*;
-
-            return match op {
-                PlusAssign => Some((
-                    |_ctx, args| {
-                        let x = args[1].as_int().unwrap();
-                        let blob = &mut *args[0].as_blob_mut().unwrap();
-
-                        #[cfg(not(feature = "unchecked"))]
-                        _ctx.unwrap()
-                            .engine()
-                            .throw_on_size((blob.len() + 1, 0, 0))?;
-
-                        push(blob, x);
-
-                        Ok(Dynamic::UNIT)
-                    },
-                    CHECKED_BUILD,
-                )),
-                _ => None,
-            };
-        }
-
-        // blob op= char
-        if (type1, type2) == (TypeId::of::<Blob>(), TypeId::of::<char>()) {
-            #[allow(clippy::wildcard_imports)]
-            use crate::packages::blob_basic::blob_functions::*;
-
-            return match op {
-                PlusAssign => Some((
-                    |_ctx, args| {
-                        let x = args[1].as_char().unwrap();
-                        let blob = &mut *args[0].as_blob_mut().unwrap();
-
-                        #[cfg(not(feature = "unchecked"))]
-                        _ctx.unwrap()
-                            .engine()
-                            .throw_on_size((blob.len() + 1, 0, 0))?;
-
-                        append_char(blob, x);
-
-                        Ok(Dynamic::UNIT)
-                    },
-                    CHECKED_BUILD,
-                )),
-                _ => None,
-            };
-        }
-
-        // blob op= string
-        if (type1, type2) == (TypeId::of::<Blob>(), TypeId::of::<ImmutableString>()) {
-            #[allow(clippy::wildcard_imports)]
-            use crate::packages::blob_basic::blob_functions::*;
-
-            return match op {
-                PlusAssign => Some((
-                    |_ctx, args| {
-                        let (first, second) = args.split_first_mut().unwrap();
-                        let blob = &mut *first.as_blob_mut().unwrap();
-                        let s = &*second[0].as_immutable_string_ref().unwrap();
-
-                        if s.is_empty() {
-                            return Ok(Dynamic::UNIT);
-                        }
-
-                        #[cfg(not(feature = "unchecked"))]
-                        _ctx.unwrap()
-                            .engine()
-                            .throw_on_size((blob.len() + s.len(), 0, 0))?;
-
-                        append_str(blob, s);
-
-                        Ok(Dynamic::UNIT)
-                    },
-                    CHECKED_BUILD,
-                )),
-                _ => None,
-            };
-        }
-    }
-
-    None
 }

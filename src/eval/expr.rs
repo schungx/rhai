@@ -244,27 +244,26 @@ impl Engine {
         #[cfg(feature = "debugging")]
         defer! { global if Some(reset) => move |g| g.debugger_mut().reset_status(reset) }
 
-        match expr {
-            // Constants
-            Expr::IntegerConstant(x, ..) => Ok((*x).into()),
-            Expr::StringConstant(x, ..) => Ok(x.clone().into()),
-            Expr::BoolConstant(x, ..) => Ok((*x).into()),
+        // Constants
+        let is_simple_constant = match expr {
+            Expr::DynamicConstant(..)
+            | Expr::IntegerConstant(..)
+            | Expr::CharConstant(..)
+            | Expr::StringConstant(..)
+            | Expr::BoolConstant(..)
+            | Expr::Unit(..) => true,
             #[cfg(not(feature = "no_float"))]
-            Expr::FloatConstant(x, ..) => Ok((*x).into()),
-            Expr::CharConstant(x, ..) => Ok((*x).into()),
-            Expr::Unit(..) => Ok(Dynamic::UNIT),
-            Expr::DynamicConstant(x, ..) => {
-                let mut _x = x.as_ref().clone();
-
-                #[cfg(not(feature = "no_function"))]
-                if let Some(mut fn_ptr) = _x.write_lock::<crate::FnPtr>() {
-                    // Create a new environment with the current module
-                    fn_ptr.env = Some(crate::Shared::new((&*global).into()));
-                }
-
-                Ok(_x)
+            Expr::FloatConstant(..) => true,
+            _ => false,
+        };
+        if is_simple_constant {
+            if let Some(value) = expr.get_literal_value(Some(global)) {
+                return Ok(value);
             }
+        }
 
+        // Other expressions
+        match expr {
             Expr::FnCall(x, pos) => {
                 self.eval_fn_call_expr(global, caches, scope, this_ptr, x, *pos)
             }
