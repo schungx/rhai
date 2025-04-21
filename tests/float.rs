@@ -24,6 +24,8 @@ fn test_float_scientific() {
     assert!(engine.compile("123.456e1.23").is_err());
 }
 
+#[cfg(not(feature = "unchecked"))]
+#[cfg(not(feature = "f32_float"))]
 #[test]
 fn test_float_epsilon() {
     let engine = Engine::new();
