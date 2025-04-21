@@ -12,7 +12,7 @@ use crate::tokenizer::{is_valid_function_name, Token};
 use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
 use crate::{
     calc_fn_hash, calc_fn_hash_full, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position,
-    RhaiResult, RhaiResultOf, Scope, Shared, SmartString, ERR,
+    RhaiResult, RhaiResultOf, Scope, Shared, ERR,
 };
 #[cfg(feature = "no_std")]
 use hashbrown::hash_map::Entry;
@@ -29,9 +29,6 @@ use std::{
 #[cfg(not(feature = "no_float"))]
 #[cfg(feature = "no_std")]
 use num_traits::Float;
-
-#[cfg(not(feature = "no_float"))]
-use crate::FLOAT;
 
 /// Arguments to a function call, which is a list of [`&mut Dynamic`][Dynamic].
 pub type FnCallArgs<'a> = [&'a mut Dynamic];
@@ -1759,9 +1756,6 @@ impl Engine {
 
         // Short-circuit native binary operator call if under Fast Operators mode
         if self.fast_operators() && args.len() == 2 && op_token.is_some() {
-            #[allow(clippy::wildcard_imports)]
-            use Token::*;
-
             let mut lhs = self
                 .get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), &args[0])?
                 .0
@@ -1775,174 +1769,17 @@ impl Engine {
             #[allow(clippy::unnecessary_unwrap)]
             let op_token = op_token.unwrap();
 
-            // For extremely simple primary data operations, do it directly
-            // to avoid the overhead of calling a function.
-            match (&lhs.0, &rhs.0) {
-                (Union::Unit(..), Union::Unit(..)) => match op_token {
-                    EqualsTo => return Ok(Dynamic::TRUE),
-                    NotEqualsTo | GreaterThan | GreaterThanEqualsTo | LessThan
-                    | LessThanEqualsTo => return Ok(Dynamic::FALSE),
-                    _ => (),
-                },
-                (Union::Bool(b1, ..), Union::Bool(b2, ..)) => match op_token {
-                    EqualsTo => return Ok((b1 == b2).into()),
-                    NotEqualsTo => return Ok((b1 != b2).into()),
-                    GreaterThan | GreaterThanEqualsTo | LessThan | LessThanEqualsTo => {
-                        return Ok(Dynamic::FALSE)
-                    }
-                    Pipe => return Ok((*b1 || *b2).into()),
-                    Ampersand => return Ok((*b1 && *b2).into()),
-                    _ => (),
-                },
-                (Union::Int(n1, ..), Union::Int(n2, ..)) => {
-                    #[cfg(not(feature = "unchecked"))]
-                    #[allow(clippy::wildcard_imports)]
-                    use crate::packages::arithmetic::arith_basic::INT::functions::*;
+            if lhs.is_variant() && rhs.is_variant() {
+                // For custom types, give registered functions a chance to run first before considering the built-in fallback
+            } else {
+                // For other types, try to get a built-in
+                if let Some((func, need_context)) = get_builtin_binary_op_fn(op_token, &lhs, &rhs) {
+                    // We may not need to bump the level because built-in's do not need it.
+                    //defer! { let orig_level = global.level; global.level += 1 }
 
-                    #[cfg(not(feature = "unchecked"))]
-                    match op_token {
-                        EqualsTo => return Ok((n1 == n2).into()),
-                        NotEqualsTo => return Ok((n1 != n2).into()),
-                        GreaterThan => return Ok((n1 > n2).into()),
-                        GreaterThanEqualsTo => return Ok((n1 >= n2).into()),
-                        LessThan => return Ok((n1 < n2).into()),
-                        LessThanEqualsTo => return Ok((n1 <= n2).into()),
-                        Plus => return add(*n1, *n2).map(Into::into),
-                        Minus => return subtract(*n1, *n2).map(Into::into),
-                        Multiply => return multiply(*n1, *n2).map(Into::into),
-                        Divide => return divide(*n1, *n2).map(Into::into),
-                        Modulo => return modulo(*n1, *n2).map(Into::into),
-                        _ => (),
-                    }
-                    #[cfg(feature = "unchecked")]
-                    match op_token {
-                        EqualsTo => return Ok((n1 == n2).into()),
-                        NotEqualsTo => return Ok((n1 != n2).into()),
-                        GreaterThan => return Ok((n1 > n2).into()),
-                        GreaterThanEqualsTo => return Ok((n1 >= n2).into()),
-                        LessThan => return Ok((n1 < n2).into()),
-                        LessThanEqualsTo => return Ok((n1 <= n2).into()),
-                        Plus => return Ok((n1 + n2).into()),
-                        Minus => return Ok((n1 - n2).into()),
-                        Multiply => return Ok((n1 * n2).into()),
-                        Divide => return Ok((n1 / n2).into()),
-                        Modulo => return Ok((n1 % n2).into()),
-                        _ => (),
-                    }
-                }
-                #[cfg(not(feature = "no_float"))]
-                (Union::Float(f1, ..), Union::Float(f2, ..)) => match op_token {
-                    #[cfg(feature = "unchecked")]
-                    EqualsTo => return Ok((**f1 == **f2).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    EqualsTo => return Ok(((**f1 - **f2).abs() <= FLOAT::EPSILON).into()),
-                    #[cfg(feature = "unchecked")]
-                    NotEqualsTo => return Ok((**f1 != **f2).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    NotEqualsTo => return Ok(((**f1 - **f2).abs() > FLOAT::EPSILON).into()),
-                    GreaterThan => return Ok((**f1 > **f2).into()),
-                    GreaterThanEqualsTo => return Ok((**f1 >= **f2).into()),
-                    LessThan => return Ok((**f1 < **f2).into()),
-                    LessThanEqualsTo => return Ok((**f1 <= **f2).into()),
-                    Plus => return Ok((**f1 + **f2).into()),
-                    Minus => return Ok((**f1 - **f2).into()),
-                    Multiply => return Ok((**f1 * **f2).into()),
-                    Divide => return Ok((**f1 / **f2).into()),
-                    Modulo => return Ok((**f1 % **f2).into()),
-                    _ => (),
-                },
-                #[cfg(not(feature = "no_float"))]
-                (Union::Float(f1, ..), Union::Int(n2, ..)) => match op_token {
-                    #[cfg(feature = "unchecked")]
-                    EqualsTo => return Ok((**f1 == (*n2 as FLOAT)).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    EqualsTo => return Ok(((**f1 - (*n2 as FLOAT)).abs() <= FLOAT::EPSILON).into()),
-                    #[cfg(feature = "unchecked")]
-                    NotEqualsTo => return Ok((**f1 != (*n2 as FLOAT)).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    NotEqualsTo => {
-                        return Ok(((**f1 - (*n2 as FLOAT)).abs() > FLOAT::EPSILON).into())
-                    }
-                    GreaterThan => return Ok((**f1 > (*n2 as FLOAT)).into()),
-                    GreaterThanEqualsTo => return Ok((**f1 >= (*n2 as FLOAT)).into()),
-                    LessThan => return Ok((**f1 < (*n2 as FLOAT)).into()),
-                    LessThanEqualsTo => return Ok((**f1 <= (*n2 as FLOAT)).into()),
-                    Plus => return Ok((**f1 + (*n2 as FLOAT)).into()),
-                    Minus => return Ok((**f1 - (*n2 as FLOAT)).into()),
-                    Multiply => return Ok((**f1 * (*n2 as FLOAT)).into()),
-                    Divide => return Ok((**f1 / (*n2 as FLOAT)).into()),
-                    Modulo => return Ok((**f1 % (*n2 as FLOAT)).into()),
-                    _ => (),
-                },
-                #[cfg(not(feature = "no_float"))]
-                (Union::Int(n1, ..), Union::Float(f2, ..)) => match op_token {
-                    #[cfg(feature = "unchecked")]
-                    EqualsTo => return Ok(((*n1 as FLOAT) == **f2).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    EqualsTo => return Ok((((*n1 as FLOAT) - **f2).abs() <= FLOAT::EPSILON).into()),
-                    #[cfg(feature = "unchecked")]
-                    NotEqualsTo => return Ok(((*n1 as FLOAT) != **f2).into()),
-                    #[cfg(not(feature = "unchecked"))]
-                    NotEqualsTo => {
-                        return Ok((((*n1 as FLOAT) - **f2).abs() > FLOAT::EPSILON).into())
-                    }
-                    GreaterThan => return Ok(((*n1 as FLOAT) > **f2).into()),
-                    GreaterThanEqualsTo => return Ok(((*n1 as FLOAT) >= **f2).into()),
-                    LessThan => return Ok(((*n1 as FLOAT) < **f2).into()),
-                    LessThanEqualsTo => return Ok(((*n1 as FLOAT) <= **f2).into()),
-                    Plus => return Ok(((*n1 as FLOAT) + **f2).into()),
-                    Minus => return Ok(((*n1 as FLOAT) - **f2).into()),
-                    Multiply => return Ok(((*n1 as FLOAT) * **f2).into()),
-                    Divide => return Ok(((*n1 as FLOAT) / **f2).into()),
-                    Modulo => return Ok(((*n1 as FLOAT) % **f2).into()),
-                    _ => (),
-                },
-                (Union::Str(s1, ..), Union::Str(s2, ..)) => match op_token {
-                    EqualsTo => return Ok((s1 == s2).into()),
-                    NotEqualsTo => return Ok((s1 != s2).into()),
-                    GreaterThan => return Ok((s1 > s2).into()),
-                    GreaterThanEqualsTo => return Ok((s1 >= s2).into()),
-                    LessThan => return Ok((s1 < s2).into()),
-                    LessThanEqualsTo => return Ok((s1 <= s2).into()),
-                    Plus => {
-                        #[cfg(not(feature = "unchecked"))]
-                        self.throw_on_size((0, 0, s1.len() + s2.len()))?;
-                        return Ok((s1 + s2).into());
-                    }
-                    Minus => return Ok((s1 - s2).into()),
-                    _ => (),
-                },
-                (Union::Char(c1, ..), Union::Char(c2, ..)) => match op_token {
-                    EqualsTo => return Ok((c1 == c2).into()),
-                    NotEqualsTo => return Ok((c1 != c2).into()),
-                    GreaterThan => return Ok((c1 > c2).into()),
-                    GreaterThanEqualsTo => return Ok((c1 >= c2).into()),
-                    LessThan => return Ok((c1 < c2).into()),
-                    LessThanEqualsTo => return Ok((c1 <= c2).into()),
-                    Plus => {
-                        let mut result = SmartString::new_const();
-                        result.push(*c1);
-                        result.push(*c2);
-
-                        #[cfg(not(feature = "unchecked"))]
-                        self.throw_on_size((0, 0, result.len()))?;
-
-                        return Ok(result.into());
-                    }
-                    _ => (),
-                },
-                (Union::Variant(..), _) | (_, Union::Variant(..)) => (),
-                _ => {
-                    if let Some((func, need_context)) =
-                        get_builtin_binary_op_fn(op_token, &lhs, &rhs)
-                    {
-                        // We may not need to bump the level because built-in's do not need it.
-                        //defer! { let orig_level = global.level; global.level += 1 }
-
-                        let context =
-                            need_context.then(|| (self, name.as_str(), None, &*global, pos).into());
-                        return func(context, &mut [&mut lhs, &mut rhs]);
-                    }
+                    let context =
+                        need_context.then(|| (self, name.as_str(), None, &*global, pos).into());
+                    return func(context, &mut [&mut lhs, &mut rhs]);
                 }
             }
 

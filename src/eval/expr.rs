@@ -245,8 +245,21 @@ impl Engine {
         defer! { global if Some(reset) => move |g| g.debugger_mut().reset_status(reset) }
 
         // Constants
-        if let Some(value) = expr.get_literal_value(Some(global)) {
-            return Ok(value);
+        let is_simple_constant = match expr {
+            Expr::DynamicConstant(..)
+            | Expr::IntegerConstant(..)
+            | Expr::CharConstant(..)
+            | Expr::StringConstant(..)
+            | Expr::BoolConstant(..)
+            | Expr::Unit(..) => true,
+            #[cfg(not(feature = "no_float"))]
+            Expr::FloatConstant(..) => true,
+            _ => false,
+        };
+        if is_simple_constant {
+            if let Some(value) = expr.get_literal_value(Some(global)) {
+                return Ok(value);
+            }
         }
 
         // Other expressions
