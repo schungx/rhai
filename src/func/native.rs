@@ -610,10 +610,10 @@ pub fn locked_write<T>(value: &Locked<T>) -> Option<LockGuardMut<T>> {
     }
 }
 
-/// General Rust function trail object.
+/// General Rust function trait object.
 #[cfg(not(feature = "sync"))]
 pub type FnAny = dyn Fn(Option<NativeCallContext>, &mut FnCallArgs) -> RhaiResult;
-/// General Rust function trail object.
+/// General Rust function trait object.
 #[cfg(feature = "sync")]
 pub type FnAny = dyn Fn(Option<NativeCallContext>, &mut FnCallArgs) -> RhaiResult + Send + Sync;
 
