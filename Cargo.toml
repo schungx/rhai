@@ -118,9 +118,9 @@ no_std = ["no-std-compat", "num-traits/libm", "core-error", "libm", "hashbrown",
 #! ### JavaScript Interface for WASM
 
 ## Use [`wasm-bindgen`](https://crates.io/crates/wasm-bindgen) as JavaScript interface.
-wasm-bindgen = ["getrandom?/js", "instant/wasm-bindgen"]
+wasm-bindgen = ["getrandom/js", "instant/wasm-bindgen"]
 ## Use [`stdweb`](https://crates.io/crates/stdweb) as JavaScript interface.
-stdweb = ["getrandom?/js", "instant/stdweb"]
+stdweb = ["getrandom/js", "instant/stdweb"]
 
 #! ### Features used in testing environments only
 
