@@ -27,7 +27,7 @@ bitflags = { version = "2.3.3", default-features = false }
 smartstring = { version = "1.0.0", default-features = false }
 rhai_codegen = { version = "2.1.0", path = "codegen" }
 
-no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
+no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat.git", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
 libm = { version = "0.2.0", default-features = false, optional = true }
 hashbrown = { version = "0.15.0", optional = true }
 core-error = { version = "0.0.0", default-features = false, features = ["alloc"], optional = true }
