@@ -10,6 +10,7 @@ Bug fixes
 * (Fuzzing) An integer-overflow bug from an inclusive range in `get_bits` is fixed.
 * Passing function as a function pointer into a function in an imported module now correctly encapsulates the current environment into the generated function pointer (thanks [`@dcihlar`](https://github.com/dcihlar) [976](https://github.com/rhaiscript/rhai/pull/976)). The same for passing a closure (thanks again, [`@dcihlar`](https://github.com/dcihlar) [979](https://github.com/rhaiscript/rhai/pull/979)).
 * Revised epsilon-based floating-point comparisons (thanks [`@HactarCE`](https://github.com/HactarCE)).
+* Unneeded optional dependencies are no longer pulled in with features (thanks [`@HactarCE`](https://github.com/HactarCE) [987](https://github.com/rhaiscript/rhai/pull/987)).
 
 
 Version 1.21.0
