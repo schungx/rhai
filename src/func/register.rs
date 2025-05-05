@@ -74,7 +74,7 @@ pub fn by_value<T: Variant + Clone>(data: &mut Dynamic) -> T {
 /// # Type Parameters
 ///
 /// * `A` - a tuple containing parameter types, with `&mut T` represented by `Mut<T>`.
-/// * `N` - a constant generic containing the number of parameters, must be consistent with `ARGS`.
+/// * `N` - a constant generic containing the number of parameters, must be consistent with `A`.
 /// * `X` - a constant boolean generic indicating whether there is a `NativeCallContext` parameter.
 /// * `R` - return type of the function; if the function returns `Result`, it is the unwrapped inner value type.
 /// * `F` - a constant boolean generic indicating whether the function is fallible (i.e. returns `Result<T, Box<EvalAltResult>>`).
@@ -238,7 +238,7 @@ macro_rules! def_register {
         // conflicting implementations since &T: Any and T: Any cannot be distinguished
         //def_register!(imp $p0 => Ref<$p0> => &$p0     => by_ref   $(, $p => $p => $p => by_value)*);
 
-        def_register!($($p: $n),*);
+        def_register!($($p:$n),*);
     };
 }
 

@@ -130,8 +130,8 @@ pub enum EvalAltResult {
 
 impl Error for EvalAltResult {}
 
-impl fmt::Display for EvalAltResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl EvalAltResult {
+    fn display(&self, f: &mut fmt::Formatter<'_>, call_src: &str) -> fmt::Result {
         match self {
             Self::ErrorSystem(s, err) if s.is_empty() => write!(f, "{err}")?,
             Self::ErrorSystem(s, err) => write!(f, "{s}: {err}")?,
@@ -140,15 +140,17 @@ impl fmt::Display for EvalAltResult {
 
             #[cfg(not(feature = "no_function"))]
             Self::ErrorInFunctionCall(s, src, err, ..) if crate::parser::is_anonymous_fn(s) => {
-                write!(f, "{err}\nin closure call")?;
+                err.display(f, src)?;
+                write!(f, "\nin closure call")?;
                 if !src.is_empty() {
-                    write!(f, " @ '{src}'")?;
+                    write!(f, " (from '{src}')")?;
                 }
             }
             Self::ErrorInFunctionCall(s, src, err, ..) => {
-                write!(f, "{err}\nin call to function '{s}'")?;
+                err.display(f, src)?;
+                write!(f, "\nin call to function '{s}'")?;
                 if !src.is_empty() {
-                    write!(f, " @ '{src}'")?;
+                    write!(f, " (from '{src}')")?;
                 }
             }
 
@@ -263,12 +265,22 @@ impl fmt::Display for EvalAltResult {
             Self::ErrorCustomSyntax(s, tokens, ..) => write!(f, "{s}: {}", tokens.join(" "))?,
         }
 
-        // Do not write any position if None
+        if !call_src.is_empty() {
+            write!(f, " @ '{call_src}'")?;
+        }
+
         if !self.position().is_none() {
             write!(f, " ({})", self.position())?;
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Display for EvalAltResult {
+    #[inline(always)]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display(f, "")
     }
 }
 
