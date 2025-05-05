@@ -226,10 +226,16 @@ impl<'a> NativeCallContext<'a> {
     pub const fn fn_name(&self) -> &str {
         self.fn_name
     }
+    /// The current source.
+    #[inline(always)]
+    #[must_use]
+    pub const fn fn_source(&self) -> Option<&str> {
+        self.source
+    }
     /// [Position] of the function call.
     #[inline(always)]
     #[must_use]
-    pub const fn position(&self) -> Position {
+    pub const fn call_position(&self) -> Position {
         self.pos
     }
     /// Current nesting level of function calls.
@@ -237,12 +243,6 @@ impl<'a> NativeCallContext<'a> {
     #[must_use]
     pub const fn call_level(&self) -> usize {
         self.global.level
-    }
-    /// The current source.
-    #[inline(always)]
-    #[must_use]
-    pub const fn source(&self) -> Option<&str> {
-        self.source
     }
     /// Custom state kept in a [`Dynamic`].
     #[inline(always)]
@@ -312,7 +312,7 @@ impl<'a> NativeCallContext<'a> {
                     ERR::ErrorMismatchOutputType(
                         cast_type.into(),
                         result_type.into(),
-                        self.position(),
+                        self.call_position(),
                     )
                     .into()
                 })
@@ -345,7 +345,7 @@ impl<'a> NativeCallContext<'a> {
                     ERR::ErrorMismatchOutputType(
                         cast_type.into(),
                         result_type.into(),
-                        self.position(),
+                        self.call_position(),
                     )
                     .into()
                 })
@@ -445,7 +445,7 @@ impl<'a> NativeCallContext<'a> {
                     args,
                     is_ref_mut,
                     false,
-                    self.position(),
+                    self.call_position(),
                 )
                 .map(|(r, ..)| r);
         }
@@ -474,7 +474,7 @@ impl<'a> NativeCallContext<'a> {
                 args,
                 is_ref_mut,
                 is_method_call,
-                self.position(),
+                self.call_position(),
             )
             .map(|(r, ..)| r)
     }
