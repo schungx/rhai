@@ -357,7 +357,7 @@ impl FnPtr {
                     fn_def,
                     args,
                     true,
-                    context.position(),
+                    context.call_position(),
                 );
             }
             _ => (),
@@ -506,7 +506,7 @@ impl FnPtr {
             .map_err(|err| {
                 Box::new(ERR::ErrorInFunctionCall(
                     fn_name.to_string(),
-                    ctx.source().unwrap_or("").to_string(),
+                    ctx.fn_source().unwrap_or("").to_string(),
                     err,
                     Position::NONE,
                 ))

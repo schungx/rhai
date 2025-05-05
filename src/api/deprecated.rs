@@ -435,6 +435,35 @@ impl NativeCallContext<'_> {
         unimplemented!("`NativeCallContext::new` is deprecated");
     }
 
+    /// The current source.
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated.
+    /// Use [`fn_source`][NativeCallContext::fn_source] instead.
+    ///
+    /// This method will be removed in the next major version.
+    #[inline(always)]
+    #[must_use]
+    #[deprecated(since = "1.22.0", note = "use `fn_source` instead.")]
+    pub const fn source(&self) -> Option<&str> {
+        self.fn_source()
+    }
+
+    /// [Position] of the function call.
+    /// # Deprecated
+    ///
+    /// This method is deprecated.
+    /// Use [`call_position`][NativeCallContext::call_position] instead.
+    ///
+    /// This method will be removed in the next major version.
+    #[inline(always)]
+    #[must_use]
+    #[deprecated(since = "1.22.0", note = "use `call_position` instead.")]
+    pub const fn position(&self) -> Position {
+        self.call_position()
+    }
+
     /// Call a function inside the call context.
     ///
     /// # Deprecated
