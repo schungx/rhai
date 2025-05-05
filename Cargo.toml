@@ -27,7 +27,7 @@ bitflags = { version = "2.3.3", default-features = false }
 smartstring = { version = "1.0.0", default-features = false }
 rhai_codegen = { version = "2.1.0", path = "codegen" }
 
-no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
+no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat.git", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
 libm = { version = "0.2.0", default-features = false, optional = true }
 hashbrown = { version = "0.15.0", optional = true }
 core-error = { version = "0.0.0", default-features = false, features = ["alloc"], optional = true }
@@ -54,7 +54,7 @@ std = ["once_cell/std", "ahash/std", "num-traits/std", "smartstring/std"]
 #! ### Enable Special Functionalities
 
 ## Require that all data types implement `Send + Sync` (for multi-threaded usage).
-sync = ["no-std-compat/compat_sync"]
+sync = ["no-std-compat?/compat_sync"]
 ## Add support for the [`Decimal`](https://crates.io/crates/rust_decimal) data type (acts as the system floating-point type under `no_float`).
 decimal = ["rust_decimal"]
 ## Enable serialization/deserialization of Rhai data types via [`serde`](https://crates.io/crates/serde).
@@ -70,7 +70,7 @@ debugging = ["internals"]
 ## Features and dependencies required by `bin` tools: `decimal`, `metadata`, `serde`, `debugging` and [`rustyline`](https://crates.io/crates/rustyline).
 bin-features = ["decimal", "metadata", "serde", "debugging", "rustyline"]
 ## Enable fuzzing via the [`arbitrary`](https://crates.io/crates/arbitrary) crate.
-fuzz = ["arbitrary", "rust_decimal/rust-fuzz", "serde"]
+fuzz = ["arbitrary", "rust_decimal?/rust-fuzz", "serde"]
 
 #! ### System Configuration Features
 
