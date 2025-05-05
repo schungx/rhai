@@ -12,6 +12,11 @@ Bug fixes
 * Revised epsilon-based floating-point comparisons (thanks [`@HactarCE`](https://github.com/HactarCE) [981](https://github.com/rhaiscript/rhai/pull/981)).
 * Unneeded optional dependencies are no longer pulled in with features (thanks [`@HactarCE`](https://github.com/HactarCE) [987](https://github.com/rhaiscript/rhai/pull/987)).
 
+Enhancements
+------------
+
+* Improve display of function call errors by displaying the caller function's source together with line number info (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE)).
+
 
 Version 1.21.0
 ==============
