@@ -11,6 +11,7 @@ Bug fixes
 * Passing function as a function pointer into a function in an imported module now correctly encapsulates the current environment into the generated function pointer (thanks [`@dcihlar`](https://github.com/dcihlar) [#976](https://github.com/rhaiscript/rhai/pull/976)). The same for passing a closure (thanks again, [`@dcihlar`](https://github.com/dcihlar) [#979](https://github.com/rhaiscript/rhai/pull/979)).
 * Revised epsilon-based floating-point comparisons (thanks [`@HactarCE`](https://github.com/HactarCE) [#981](https://github.com/rhaiscript/rhai/pull/981)).
 * Unneeded optional dependencies are no longer pulled in with features (thanks [`@HactarCE`](https://github.com/HactarCE) [#987](https://github.com/rhaiscript/rhai/pull/987)).
+* `Engine::collect_fn_metadata` now properly includes the namespaces of functions in static modules (thanks [`@therealprof`](https://github.com/therealprof) and [`@elkowar`](https://github.com/elkowar)).
 
 Enhancements
 ------------

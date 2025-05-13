@@ -829,17 +829,17 @@ impl Engine {
             .for_each(|v| list.push(v));
 
         #[cfg(not(feature = "no_module"))]
-        if let Some(ctx) = _ctx {
-            use crate::engine::NAMESPACE_SEPARATOR;
-            use crate::SmartString;
-
+        {
             // Recursively scan modules for script-defined functions.
-            fn scan_module<T>(
+            fn scan_module_recursive<T>(
                 list: &mut Vec<T>,
                 namespace: &str,
                 module: &Module,
                 mapper: impl Fn(crate::module::FuncInfo) -> Option<T> + Copy,
             ) {
+                use crate::engine::NAMESPACE_SEPARATOR;
+                use crate::SmartString;
+
                 module
                     .iter_fn()
                     .filter_map(|(_func, f)| {
@@ -852,33 +852,24 @@ impl Engine {
                     })
                     .for_each(|v| list.push(v));
 
-                for (name, m) in module.iter_sub_modules() {
+                module.iter_sub_modules().for_each(|(name, m)| {
                     use std::fmt::Write;
-
                     let mut ns = SmartString::new_const();
                     write!(&mut ns, "{namespace}{NAMESPACE_SEPARATOR}{name}").unwrap();
-                    scan_module(list, &ns, m, mapper);
-                }
+                    scan_module_recursive(list, &ns, m, mapper);
+                });
             }
 
-            for (ns, m) in ctx.global_runtime_state().iter_imports_raw() {
-                scan_module(&mut list, ns, m, mapper);
+            if let Some(ctx) = _ctx {
+                ctx.global_runtime_state()
+                    .iter_imports_raw()
+                    .for_each(|(ns, m)| scan_module_recursive(&mut list, ns, m, mapper));
             }
+
+            self.global_sub_modules
+                .iter()
+                .for_each(|(name, m)| scan_module_recursive(&mut list, name, m, mapper));
         }
-
-        #[cfg(not(feature = "no_module"))]
-        self.global_sub_modules
-            .values()
-            .flat_map(|m| m.iter_fn())
-            .filter_map(|(_func, f)| {
-                mapper(crate::module::FuncInfo {
-                    metadata: f,
-                    namespace: Identifier::new_const(),
-                    #[cfg(not(feature = "no_function"))]
-                    script: _func.get_script_fn_def().map(|f| (&**f).into()),
-                })
-            })
-            .for_each(|v| list.push(v));
 
         list
     }
