@@ -266,6 +266,7 @@ mod sample_functions {
     ///
     /// print(result);      // prints "42 123"
     /// ```
+    #[rhai_fn(global)]
     pub fn test(x: INT, y: INT) -> MyType {
         format!("{x} {y}")
     }
@@ -281,7 +282,7 @@ mod sample_functions {
     ///
     /// print(x);       // prints 170
     /// ```
-    #[rhai_fn(name = "test")]
+    #[rhai_fn(name = "test", global)]
     pub fn test2(x: &mut INT, y: INT, z: &str) {
         *x += y + (z.len() as INT);
         println!("{x} {y} {z}");
@@ -317,7 +318,7 @@ fn main() {
     }
 
     // Register sample functions
-    engine.register_global_module(exported_module!(sample_functions).into());
+    engine.register_static_module("test", exported_module!(sample_functions).into());
 
     // Create scope
     let mut scope = Scope::new();

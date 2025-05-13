@@ -7,16 +7,17 @@ Version 1.22.0
 Bug fixes
 ---------
 
-* (Fuzzing) An integer-overflow bug from an inclusive range in `get_bits` is fixed ([963](https://github.com/rhaiscript/rhai/pull/963)).
-* Passing function as a function pointer into a function in an imported module now correctly encapsulates the current environment into the generated function pointer (thanks [`@dcihlar`](https://github.com/dcihlar) [976](https://github.com/rhaiscript/rhai/pull/976)). The same for passing a closure (thanks again, [`@dcihlar`](https://github.com/dcihlar) [979](https://github.com/rhaiscript/rhai/pull/979)).
-* Revised epsilon-based floating-point comparisons (thanks [`@HactarCE`](https://github.com/HactarCE) [981](https://github.com/rhaiscript/rhai/pull/981)).
-* Unneeded optional dependencies are no longer pulled in with features (thanks [`@HactarCE`](https://github.com/HactarCE) [987](https://github.com/rhaiscript/rhai/pull/987)).
+* (Fuzzing) An integer-overflow bug from an inclusive range in `get_bits` is fixed ([#963](https://github.com/rhaiscript/rhai/pull/963)).
+* Passing function as a function pointer into a function in an imported module now correctly encapsulates the current environment into the generated function pointer (thanks [`@dcihlar`](https://github.com/dcihlar) [#976](https://github.com/rhaiscript/rhai/pull/976)). The same for passing a closure (thanks again, [`@dcihlar`](https://github.com/dcihlar) [#979](https://github.com/rhaiscript/rhai/pull/979)).
+* Revised epsilon-based floating-point comparisons (thanks [`@HactarCE`](https://github.com/HactarCE) [#981](https://github.com/rhaiscript/rhai/pull/981)).
+* Unneeded optional dependencies are no longer pulled in with features (thanks [`@HactarCE`](https://github.com/HactarCE) [#987](https://github.com/rhaiscript/rhai/pull/987)).
+* `Engine::collect_fn_metadata` now properly includes the namespaces of functions in static modules (thanks [`@therealprof`](https://github.com/therealprof) and [`@elkowar`](https://github.com/elkowar)).
 
 Enhancements
 ------------
 
-* Improve display of function call errors by displaying the caller function's source together with line number info (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [988](https://github.com/rhaiscript/rhai/pull/988)).
-* `source` and `position` in `NativeCallContext` are now `fn_source` and `call_position`. A new method `call_source` is added to return the source (if any) of the caller function (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [989](https://github.com/rhaiscript/rhai/pull/989)).
+* Improve display of function call errors by displaying the caller function's source together with line number info (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [#988](https://github.com/rhaiscript/rhai/pull/988)).
+* `source` and `position` in `NativeCallContext` are now `fn_source` and `call_position`. A new method `call_source` is added to return the source (if any) of the caller function (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [#989](https://github.com/rhaiscript/rhai/pull/989)).
 
 
 Version 1.21.0
@@ -25,20 +26,20 @@ Version 1.21.0
 Bug fixes
 ---------
 
-* Fixed bug in raw strings (thanks [`@benatkin`](https://github.com/benatkin) [944](https://github.com/rhaiscript/rhai/pull/944)).
+* Fixed bug in raw strings (thanks [`@benatkin`](https://github.com/benatkin) [#944](https://github.com/rhaiscript/rhai/pull/944)).
 * `get_fn_metadata_list` function is marked `volatile`.
-* `no-std` plus `sync` should now build correctly (thanks [`stargazing-dino`](https://github.com/stargazing-dino) [947](https://github.com/rhaiscript/rhai/pull/947)).
+* `no-std` plus `sync` should now build correctly (thanks [`stargazing-dino`](https://github.com/stargazing-dino) [#947](https://github.com/rhaiscript/rhai/pull/947)).
 
 New Features
 ------------
 
-* It is possible to create a function pointer (`FnPtr`) which binds to a native Rust function or closure via `FnPtr::from_dn` and `FnPtr::from_dyn_fn`. When called in script, the embedded function will be called (thanks [`@makspll`](https://github.com/makspll) [952](https://github.com/rhaiscript/rhai/pull/952)).
+* It is possible to create a function pointer (`FnPtr`) which binds to a native Rust function or closure via `FnPtr::from_dn` and `FnPtr::from_dyn_fn`. When called in script, the embedded function will be called (thanks [`@makspll`](https://github.com/makspll) [#952](https://github.com/rhaiscript/rhai/pull/952)).
 
 Enhancements
 ------------
 
-* The methods `call_fn`, `call_native_fn`, `call_fn_raw` and `call_native_fn_raw` are added to `EvalContext` (thanks [`@rawhuul`](https://github.com/rawhuul) [954](https://github.com/rhaiscript/rhai/pull/954)).
-* A new `internals` function, `Engine::collect_fn_metadata`, is added to collect all functions metadata. This is to facilitate better error reporting for missing functions (thanks [`therealprof`](https://github.com/therealprof) [945](https://github.com/rhaiscript/rhai/pull/945)).
+* The methods `call_fn`, `call_native_fn`, `call_fn_raw` and `call_native_fn_raw` are added to `EvalContext` (thanks [`@rawhuul`](https://github.com/rawhuul) [#954](https://github.com/rhaiscript/rhai/pull/954)).
+* A new `internals` function, `Engine::collect_fn_metadata`, is added to collect all functions metadata. This is to facilitate better error reporting for missing functions (thanks [`therealprof`](https://github.com/therealprof) [#945](https://github.com/rhaiscript/rhai/pull/945)).
 
 
 Version 1.20.1
@@ -47,7 +48,7 @@ Version 1.20.1
 Bug fixes
 ---------
 
-* Fixed bug in raw strings with newlines (thanks [`@benatkin`](https://github.com/benatkin) [940](https://github.com/rhaiscript/rhai/pull/940)).
+* Fixed bug in raw strings with newlines (thanks [`@benatkin`](https://github.com/benatkin) [#940](https://github.com/rhaiscript/rhai/pull/940)).
 
 Enhancements
 ------------
@@ -63,19 +64,19 @@ Bug fixes
 
 * (Fuzzing) An integer-overflow bug from an inclusive range in the bits iterator is fixed.
 * (Fuzzing) An integer-underflow bug from an inclusive range is fixed.
-* Copy strings if the strings interner is busy instead of panicing (thanks [`@irevoire`](https://github.com/irevoire) [917](https://github.com/rhaiscript/rhai/pull/917)).
-* Deserialization of `Scope` now works correctly (thanks [`@AngelicosPhosphoros`](https://github.com/AngelicosPhosphoros) [918](https://github.com/rhaiscript/rhai/pull/918)).
-* Support for `thumbv6m` target is fixed (thanks [`chxry`](https://github.com/chxry) [919](https://github.com/rhaiscript/rhai/pull/919))
+* Copy strings if the strings interner is busy instead of panicing (thanks [`@irevoire`](https://github.com/irevoire) [#917](https://github.com/rhaiscript/rhai/pull/917)).
+* Deserialization of `Scope` now works correctly (thanks [`@AngelicosPhosphoros`](https://github.com/AngelicosPhosphoros) [#918](https://github.com/rhaiscript/rhai/pull/918)).
+* Support for `thumbv6m` target is fixed (thanks [`chxry`](https://github.com/chxry) [#919](https://github.com/rhaiscript/rhai/pull/919))
 
 New features
 ------------
 
-* Added support for _raw strings_ with the syntax `##..#" ... "#..##` (thanks [`@cellomath`](https://github.com/cellomath) [908](https://github.com/rhaiscript/rhai/pull/908) [910](https://github.com/rhaiscript/rhai/pull/910)).
+* Added support for _raw strings_ with the syntax `##..#" ... "#..##` (thanks [`@cellomath`](https://github.com/cellomath) [#908](https://github.com/rhaiscript/rhai/pull/908) [#910](https://github.com/rhaiscript/rhai/pull/910)).
 
 Enhancements
 ------------
 
-* New `as_immutable_string_ref`, `as_array_ref`, `as_blob_ref`, `as_map_ref` plus their `_mut` variants for `Dynamic` (thanks [`@madonuko`](https://github.com/madonuko) [904](https://github.com/rhaiscript/rhai/pull/904)).
+* New `as_immutable_string_ref`, `as_array_ref`, `as_blob_ref`, `as_map_ref` plus their `_mut` variants for `Dynamic` (thanks [`@madonuko`](https://github.com/madonuko) [#904](https://github.com/rhaiscript/rhai/pull/904)).
 * The `break`, `return` and `throw` statements can now be simply used as `switch` case statement expressions. Previously it is required that the statement be wrapped in a block.
 
 
@@ -86,11 +87,11 @@ Bug fixes
 ---------
 
 * Variable resolver now correctly resolves variables that are captured in a closure.
-* `NativeCallContext<'_>` (with a lifetime parameter) now parses correctly in the `#[export_module]` macro. This is to allow for `rust_2018_idioms` lints (thanks [`@ltabis`](https://github.com/ltabis) [864](https://github.com/rhaiscript/rhai/issues/864)).
-* The `sync` feature now works properly in `no-std` builds (thanks [`@misssonder`](https://github.com/misssonder) [874](https://github.com/rhaiscript/rhai/pull/874)).
+* `NativeCallContext<'_>` (with a lifetime parameter) now parses correctly in the `#[export_module]` macro. This is to allow for `rust_2018_idioms` lints (thanks [`@ltabis`](https://github.com/ltabis) [#864](https://github.com/rhaiscript/rhai/issues/864)).
+* The `sync` feature now works properly in `no-std` builds (thanks [`@misssonder`](https://github.com/misssonder) [#874](https://github.com/rhaiscript/rhai/pull/874)).
 * More data-race conditions are caught and returned as errors instead of panicking.
 * Missing `min` and `max` functions where both operands are floats or `Decimal` are added.
-* Fixed stack overflow when calling closures recursively (thanks [`@MageWeiG`](https://github.com/MageWeiG) [880](https://github.com/rhaiscript/rhai/issues/880)).
+* Fixed stack overflow when calling closures recursively (thanks [`@MageWeiG`](https://github.com/MageWeiG) [#880](https://github.com/rhaiscript/rhai/issues/880)).
 * `Engine::call_fn` and `Engine::call_fn_with_options` now correctly use the `AST`'s `source` field.
 * (Fuzzing) Fixed crash when using `..=` in strings.
 * (Fuzzing) A recursive stack-overflow bug in `Dynamic::is_hashable` is fixed.
@@ -114,7 +115,7 @@ Bug fixes
 * The position of an undefined operation call now points to the operator instead of the first operand.
 * The `optimize` command in `rhai-repl` now works properly and cycles through `None`->`Simple`->`Full`.
 * `Engine::call_fn_XXX` no longer return errors unnecessarily wrapped in `EvalAltResult::ErrorInFunctionCall`.
-* Some tests that panic on 32-bit architecture are fixed (thanks [`@alexanderkjall`](https://github.com/alexanderkjall) [851](https://github.com/rhaiscript/rhai/issues/851)).
+* Some tests that panic on 32-bit architecture are fixed (thanks [`@alexanderkjall`](https://github.com/alexanderkjall) [#851](https://github.com/rhaiscript/rhai/issues/851)).
 * The optimizer no longer goes into an infinite loop when optimizing a `try` statement with an empty body.
 
 Deprecated API's

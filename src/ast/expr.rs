@@ -224,7 +224,7 @@ impl fmt::Debug for FnCallExpr {
 impl FnCallExpr {
     /// Does this function call contain a qualified namespace?
     ///
-    /// Not available under [`no_module`]
+    /// Not available under `no_module`
     #[cfg(not(feature = "no_module"))]
     #[inline(always)]
     #[must_use]

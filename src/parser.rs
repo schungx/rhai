@@ -72,10 +72,10 @@ pub struct ParseState<'a, 't, 'f> {
     /// An indicator that, when set to `false`, disables variable capturing into externals one
     /// single time up until the nearest consumed Identifier token.
     ///
-    /// If set to `false` the next call to [`access_var`][ParseState::access_var] will not capture
+    /// If set to `false` the next call to `Engine::access_var` will not capture
     /// the variable.
     ///
-    /// All consequent calls to [`access_var`][ParseState::access_var] will not be affected.
+    /// All consequent calls to `Engine::access_var` will not be affected.
     pub allow_capture: bool,
     /// Encapsulates a local stack with imported [module][crate::Module] names.
     #[cfg(not(feature = "no_module"))]
