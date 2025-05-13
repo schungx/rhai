@@ -20,7 +20,7 @@ categories = ["no-std", "embedded", "wasm", "parser-implementations"]
 [dependencies]
 smallvec = { version = "1.7.0", default-features = false, features = ["union", "const_new", "const_generics"] }
 thin-vec = { version = "0.2.13", default-features = false }
-ahash = { version = "0.8.4", default-features = false, features = ["compile-time-rng"] }
+ahash = { version = "0.8.4,<0.8.11", default-features = false, features = ["compile-time-rng"] }
 num-traits = { version = "0.2.14", default-features = false }
 once_cell = { version = "1.20.1", default-features = false, features = ["race", "portable-atomic", "alloc"] }
 bitflags = { version = "2.3.3", default-features = false }
