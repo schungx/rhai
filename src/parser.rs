@@ -3215,12 +3215,7 @@ impl Engine {
             // { - statements block
             Token::LeftBrace => Ok(self.parse_block(state, settings.level_up()?)?),
 
-            // fn ...
-            #[cfg(not(feature = "no_function"))]
-            Token::Fn if !settings.has_flag(ParseSettingFlags::GLOBAL_LEVEL) => {
-                Err(PERR::WrongFnDefinition.into_err(token_pos))
-            }
-
+            // fn | private fn...
             #[cfg(not(feature = "no_function"))]
             Token::Fn | Token::Private => {
                 let access = if matches!(token, Token::Private) {
@@ -3231,6 +3226,9 @@ impl Engine {
                 };
 
                 match state.input.next().unwrap() {
+                    (Token::Fn, _) if !settings.has_flag(ParseSettingFlags::GLOBAL_LEVEL) => {
+                        Err(PERR::WrongFnDefinition.into_err(token_pos))
+                    }
                     #[cfg(not(feature = "unchecked"))]
                     (Token::Fn, pos) if state.lib.len() >= self.max_functions() => {
                         Err(PERR::TooManyFunctions.into_err(pos))
