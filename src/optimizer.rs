@@ -1411,9 +1411,12 @@ impl Engine {
         AST::new(
             match optimization_level {
                 OptimizationLevel::None => statements,
-                OptimizationLevel::Simple | OptimizationLevel::Full => {
-                    self.optimize_top_level(statements, scope, &[lib.clone()], optimization_level)
-                }
+                OptimizationLevel::Simple | OptimizationLevel::Full => self.optimize_top_level(
+                    statements,
+                    scope,
+                    std::slice::from_ref(&lib),
+                    optimization_level,
+                ),
             },
             #[cfg(not(feature = "no_function"))]
             lib,

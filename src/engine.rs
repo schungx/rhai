@@ -203,7 +203,6 @@ impl fmt::Debug for Engine {
 
 impl Default for Engine {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::new()
     }

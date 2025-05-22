@@ -161,7 +161,6 @@ macro_rules! def_package {
 
         impl Default for $package {
             #[inline(always)]
-            #[must_use]
             fn default() -> Self {
                 Self::new()
             }

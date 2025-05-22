@@ -134,7 +134,6 @@ impl Position {
 
 impl Default for Position {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::START
     }
@@ -201,7 +200,6 @@ pub struct Span {
 
 impl Default for Span {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::NONE
     }

@@ -38,7 +38,6 @@ pub struct AST {
 
 impl Default for AST {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::empty()
     }
@@ -804,7 +803,6 @@ impl<A: Into<Self>> AddAssign<A> for AST {
 
 impl Borrow<[Stmt]> for AST {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &[Stmt] {
         self.statements()
     }
@@ -812,7 +810,6 @@ impl Borrow<[Stmt]> for AST {
 
 impl AsRef<[Stmt]> for AST {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &[Stmt] {
         self.statements()
     }
@@ -821,7 +818,6 @@ impl AsRef<[Stmt]> for AST {
 #[cfg(not(feature = "no_function"))]
 impl Borrow<crate::Module> for AST {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &crate::Module {
         self.shared_lib()
     }
@@ -830,7 +826,6 @@ impl Borrow<crate::Module> for AST {
 #[cfg(not(feature = "no_function"))]
 impl AsRef<crate::Module> for AST {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &crate::Module {
         self.shared_lib().as_ref()
     }
@@ -839,7 +834,6 @@ impl AsRef<crate::Module> for AST {
 #[cfg(not(feature = "no_function"))]
 impl Borrow<crate::SharedModule> for AST {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &crate::SharedModule {
         self.shared_lib()
     }
@@ -848,7 +842,6 @@ impl Borrow<crate::SharedModule> for AST {
 #[cfg(not(feature = "no_function"))]
 impl AsRef<crate::SharedModule> for AST {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &crate::SharedModule {
         self.shared_lib()
     }

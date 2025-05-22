@@ -153,7 +153,6 @@ impl Expression<'_> {
 
 impl Borrow<Expr> for Expression<'_> {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &Expr {
         self.0
     }
@@ -161,7 +160,6 @@ impl Borrow<Expr> for Expression<'_> {
 
 impl AsRef<Expr> for Expression<'_> {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &Expr {
         self.0
     }
@@ -171,7 +169,6 @@ impl Deref for Expression<'_> {
     type Target = Expr;
 
     #[inline(always)]
-    #[must_use]
     fn deref(&self) -> &Self::Target {
         self.0
     }

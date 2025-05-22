@@ -342,7 +342,6 @@ pub enum Expr {
 
 impl Default for Expr {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::Unit(Position::NONE)
     }

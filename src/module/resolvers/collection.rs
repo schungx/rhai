@@ -115,7 +115,6 @@ impl IntoIterator for ModuleResolversCollection {
     type IntoIter = smallvec::IntoIter<[Box<dyn ModuleResolver>; STATIC_VEC_INLINE_SIZE]>;
 
     #[inline(always)]
-    #[must_use]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }

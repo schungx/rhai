@@ -129,7 +129,6 @@ impl IntoIterator for StaticModuleResolver {
     type IntoIter = IntoIter<SmartString, SharedModule>;
 
     #[inline(always)]
-    #[must_use]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }

@@ -115,7 +115,6 @@ impl IntoIterator for Scope<'_> {
     type Item = (String, Dynamic, Vec<ImmutableString>);
     type IntoIter = Box<dyn Iterator<Item = Self::Item>>;
 
-    #[must_use]
     fn into_iter(self) -> Self::IntoIter {
         Box::new(
             self.values
@@ -137,7 +136,6 @@ impl<'a> IntoIterator for &'a Scope<'_> {
     type Item = (&'a str, &'a Dynamic, &'a [ImmutableString]);
     type IntoIter = Box<dyn Iterator<Item = Self::Item> + 'a>;
 
-    #[must_use]
     fn into_iter(self) -> Self::IntoIter {
         Box::new(
             self.values

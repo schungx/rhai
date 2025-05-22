@@ -29,7 +29,6 @@ impl fmt::Debug for Ident {
 
 impl Borrow<str> for Ident {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &str {
         self.name.as_ref()
     }
@@ -37,7 +36,6 @@ impl Borrow<str> for Ident {
 
 impl AsRef<str> for Ident {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &str {
         self.name.as_ref()
     }
