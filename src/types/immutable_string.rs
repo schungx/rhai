@@ -60,7 +60,6 @@ impl Deref for ImmutableString {
 
 impl AsRef<str> for ImmutableString {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &str {
         &self.0
     }
@@ -68,7 +67,6 @@ impl AsRef<str> for ImmutableString {
 
 impl AsRef<SmartString> for ImmutableString {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &SmartString {
         &self.0
     }
@@ -76,7 +74,6 @@ impl AsRef<SmartString> for ImmutableString {
 
 impl Borrow<str> for ImmutableString {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &str {
         &self.0
     }
@@ -84,7 +81,6 @@ impl Borrow<str> for ImmutableString {
 
 impl Borrow<SmartString> for ImmutableString {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &SmartString {
         &self.0
     }
@@ -188,7 +184,6 @@ impl FromStr for ImmutableString {
 
 impl FromIterator<char> for ImmutableString {
     #[inline]
-    #[must_use]
     fn from_iter<T: IntoIterator<Item = char>>(iter: T) -> Self {
         Self(iter.into_iter().collect::<SmartString>().into())
     }
@@ -196,7 +191,6 @@ impl FromIterator<char> for ImmutableString {
 
 impl<'a> FromIterator<&'a char> for ImmutableString {
     #[inline]
-    #[must_use]
     fn from_iter<T: IntoIterator<Item = &'a char>>(iter: T) -> Self {
         Self(iter.into_iter().copied().collect::<SmartString>().into())
     }
@@ -204,7 +198,6 @@ impl<'a> FromIterator<&'a char> for ImmutableString {
 
 impl<'a> FromIterator<&'a str> for ImmutableString {
     #[inline]
-    #[must_use]
     fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
         Self(iter.into_iter().collect::<SmartString>().into())
     }
@@ -212,7 +205,6 @@ impl<'a> FromIterator<&'a str> for ImmutableString {
 
 impl FromIterator<String> for ImmutableString {
     #[inline]
-    #[must_use]
     fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
         Self(iter.into_iter().collect::<SmartString>().into())
     }
@@ -220,7 +212,6 @@ impl FromIterator<String> for ImmutableString {
 
 impl FromIterator<SmartString> for ImmutableString {
     #[inline]
-    #[must_use]
     fn from_iter<T: IntoIterator<Item = SmartString>>(iter: T) -> Self {
         Self(iter.into_iter().collect::<SmartString>().into())
     }

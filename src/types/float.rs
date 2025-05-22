@@ -28,7 +28,6 @@ impl Hash for FloatWrapper<crate::FLOAT> {
 
 impl<F: Float> AsRef<F> for FloatWrapper<F> {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &F {
         &self.0
     }
@@ -36,7 +35,6 @@ impl<F: Float> AsRef<F> for FloatWrapper<F> {
 
 impl<F: Float> AsMut<F> for FloatWrapper<F> {
     #[inline(always)]
-    #[must_use]
     fn as_mut(&mut self) -> &mut F {
         &mut self.0
     }

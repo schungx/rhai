@@ -16,7 +16,6 @@ impl<'de> IntoDeserializer<'de, RhaiError> for &'de Dynamic {
     type Deserializer = DynamicDeserializer<'de>;
 
     #[inline(always)]
-    #[must_use]
     fn into_deserializer(self) -> Self::Deserializer {
         DynamicDeserializer(self)
     }

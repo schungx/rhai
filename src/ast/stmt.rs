@@ -219,7 +219,6 @@ impl IntoIterator for RangeCase {
     type IntoIter = Box<dyn Iterator<Item = Self::Item>>;
 
     #[inline]
-    #[must_use]
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::ExclusiveInt(r, ..) => Box::new(r),
@@ -481,7 +480,6 @@ impl StmtBlock {
 
 impl Borrow<[Stmt]> for StmtBlock {
     #[inline(always)]
-    #[must_use]
     fn borrow(&self) -> &[Stmt] {
         &self.block
     }
@@ -489,7 +487,6 @@ impl Borrow<[Stmt]> for StmtBlock {
 
 impl AsRef<[Stmt]> for StmtBlock {
     #[inline(always)]
-    #[must_use]
     fn as_ref(&self) -> &[Stmt] {
         &self.block
     }
@@ -497,7 +494,6 @@ impl AsRef<[Stmt]> for StmtBlock {
 
 impl AsMut<[Stmt]> for StmtBlock {
     #[inline(always)]
-    #[must_use]
     fn as_mut(&mut self) -> &mut [Stmt] {
         &mut self.block
     }
@@ -671,7 +667,6 @@ pub enum Stmt {
 
 impl Default for Stmt {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self::Noop(Position::NONE)
     }
