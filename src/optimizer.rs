@@ -915,6 +915,8 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         KEYWORD_EVAL,  // arbitrary scripts
     ];
 
+    let start_pos = expr.position();
+
     match expr {
         // {}
         Expr::Stmt(x) if x.is_empty() => { state.set_dirty(); *expr = Expr::Unit(x.position()) }
@@ -1099,36 +1101,103 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_object"))]
         Expr::Map(x, ..) => x.0.iter_mut().for_each(|(.., expr)| optimize_expr(expr, state, false)),
         // lhs && rhs
-        Expr::And(x, ..) => match (&mut x.lhs, &mut x.rhs) {
-            // true && rhs -> rhs
-            (Expr::BoolConstant(true, ..), rhs) => { state.set_dirty(); optimize_expr(rhs, state, false); *expr = rhs.take(); }
-            // false && rhs -> false
-            (Expr::BoolConstant(false, pos), ..) => { state.set_dirty(); *expr = Expr::BoolConstant(false, *pos); }
-            // lhs && true -> lhs
-            (lhs, Expr::BoolConstant(true, ..)) => { state.set_dirty(); optimize_expr(lhs, state, false); *expr = lhs.take(); }
-            // lhs && rhs
-            (lhs, rhs) => { optimize_expr(lhs, state, false); optimize_expr(rhs, state, false); }
+        Expr::And(x, ..) => {
+            let mut is_false = None;
+            let mut n = 0 ;
+
+            while n < x.len() {
+                match x[n] {
+                    // true && rhs -> rhs
+                    Expr::BoolConstant(true, ..) => { state.set_dirty(); x.remove(n); }
+                    // false && rhs -> false
+                    Expr::BoolConstant(false, pos) => {
+                        if x.iter().take(n).all(Expr::is_pure) {
+                            is_false = Some(pos);
+                            state.set_dirty();
+                        }
+                        if x.len() > n + 1 {
+                            x.truncate(n + 1);
+                            state.set_dirty();
+                        }
+                        break;
+                    }
+                    _ => { optimize_expr(&mut x[n], state, false); n += 1; }
+                }
+            }
+
+            if let Some(pos) = is_false {
+                state.set_dirty();
+                *expr = Expr::BoolConstant(false, pos);
+            } else if x.is_empty() {
+                state.set_dirty();
+                *expr = Expr::BoolConstant(true, start_pos);
+            } else if x.len() == 1 {
+                state.set_dirty();
+                *expr = x[0].take();
+            }
         },
         // lhs || rhs
-        Expr::Or(ref mut x, ..) => match (&mut x.lhs, &mut x.rhs) {
-            // false || rhs -> rhs
-            (Expr::BoolConstant(false, ..), rhs) => { state.set_dirty(); optimize_expr(rhs, state, false); *expr = rhs.take(); }
-            // true || rhs -> true
-            (Expr::BoolConstant(true, pos), ..) => { state.set_dirty(); *expr = Expr::BoolConstant(true, *pos); }
-            // lhs || false
-            (lhs, Expr::BoolConstant(false, ..)) => { state.set_dirty(); optimize_expr(lhs, state, false); *expr = lhs.take(); }
-            // lhs || rhs
-            (lhs, rhs) => { optimize_expr(lhs, state, false); optimize_expr(rhs, state, false); }
+        Expr::Or(ref mut x, ..) => {
+            let mut is_true = None;
+            let mut n = 0 ;
+
+            while n < x.len() {
+                match x[n] {
+                    // false || rhs -> rhs
+                    Expr::BoolConstant(false, ..) => { state.set_dirty(); x.remove(n); }
+                    // true || rhs -> true
+                    Expr::BoolConstant(true, pos) => {
+                        if x.iter().take(n).all(Expr::is_pure) {
+                            is_true = Some(pos);
+                            state.set_dirty();
+                        }
+                        if x.len() > n + 1 {
+                            x.truncate(n + 1);
+                            state.set_dirty();
+                        }
+                        break;
+                    }
+                    _ => { optimize_expr(&mut x[n], state, false); n += 1; }
+                }
+            }
+
+            if let Some(pos) = is_true {
+                state.set_dirty();
+                *expr = Expr::BoolConstant(true, pos);
+            } else if x.is_empty() {
+                state.set_dirty();
+                *expr = Expr::BoolConstant(false, start_pos);
+            } else if x.len() == 1 {
+                state.set_dirty();
+                *expr = x[0].take();
+            }
         },
         // () ?? rhs -> rhs
-        Expr::Coalesce(x, ..) if matches!(x.lhs, Expr::Unit(..)) => {
-            state.set_dirty();
-            *expr = x.rhs.take();
-        },
-        // lhs:constant ?? rhs -> lhs
-        Expr::Coalesce(x, ..) if x.lhs.is_constant() => {
-            state.set_dirty();
-            *expr = x.lhs.take();
+        Expr::Coalesce(x, ..) => {
+            let mut n = 0 ;
+
+            while n < x.len() {
+                match &x[n] {
+                    // () ?? rhs -> rhs
+                    Expr::Unit(..) => { state.set_dirty(); x.remove(n); }
+                    e if e.is_constant() => {
+                        if x.len() > n + 1 {
+                            x.truncate(n + 1);
+                            state.set_dirty();
+                        }
+                        break;
+                    }
+                    _ => { optimize_expr(&mut x[n], state, false); n += 1; }
+                }
+            }
+
+            if x.is_empty() {
+                state.set_dirty();
+                *expr = Expr::BoolConstant(false, start_pos);
+            } else if x.len() == 1 {
+                state.set_dirty();
+                *expr = x[0].take();
+            }
         },
 
         // !true or !false

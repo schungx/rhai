@@ -78,7 +78,6 @@ pub struct DefinitionsConfig {
 
 impl Default for DefinitionsConfig {
     #[inline(always)]
-    #[must_use]
     fn default() -> Self {
         Self {
             write_headers: false,

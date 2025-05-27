@@ -48,7 +48,6 @@ fn test_build_type() {
         type IntoIter = std::vec::IntoIter<Self::Item>;
 
         #[inline]
-        #[must_use]
         fn into_iter(self) -> Self::IntoIter {
             vec![self.x, self.y, self.z].into_iter()
         }
