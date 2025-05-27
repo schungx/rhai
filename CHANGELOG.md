@@ -19,6 +19,7 @@ Enhancements
 
 * Improve display of function call errors by displaying the caller function's source together with line number info (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [#988](https://github.com/rhaiscript/rhai/pull/988)).
 * `source` and `position` in `NativeCallContext` are now `fn_source` and `call_position`. A new method `call_source` is added to return the source (if any) of the caller function (thanks [`@rhizoome`](https://github.com/rhizoome) and [`@HactarCE`](https://github.com/HactarCE) [#989](https://github.com/rhaiscript/rhai/pull/989)).
+* The `&&`, `||` and `??` operators are optimized to allow efficient chaining ([#994](https://github.com/rhaiscript/rhai/pull/994)).
 
 
 Version 1.21.0

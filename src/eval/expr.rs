@@ -363,35 +363,51 @@ impl Engine {
                 Ok(Dynamic::from_map(map))
             }
 
-            Expr::And(x, ..) => Ok((self
-                .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), &x.lhs)?
-                .as_bool()
-                .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, x.lhs.position()))?
-                && self
-                    .eval_expr(global, caches, scope, this_ptr, &x.rhs)?
-                    .as_bool()
-                    .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, x.rhs.position()))?)
-            .into()),
+            Expr::And(x, ..) => {
+                let mut value = Dynamic::TRUE;
 
-            Expr::Or(x, ..) => Ok((self
-                .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), &x.lhs)?
-                .as_bool()
-                .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, x.lhs.position()))?
-                || self
-                    .eval_expr(global, caches, scope, this_ptr, &x.rhs)?
-                    .as_bool()
-                    .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, x.rhs.position()))?)
-            .into()),
+                for expr in &***x {
+                    if !self
+                        .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), expr)?
+                        .as_bool()
+                        .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, expr.position()))?
+                    {
+                        value = Dynamic::FALSE;
+                        break;
+                    }
+                }
+
+                Ok(value)
+            }
+
+            Expr::Or(x, ..) => {
+                let mut value = Dynamic::FALSE;
+
+                for expr in &***x {
+                    if self
+                        .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), expr)?
+                        .as_bool()
+                        .map_err(|typ| self.make_type_mismatch_err::<bool>(typ, expr.position()))?
+                    {
+                        value = Dynamic::TRUE;
+                        break;
+                    }
+                }
+
+                Ok(value)
+            }
 
             Expr::Coalesce(x, ..) => {
-                let value =
-                    self.eval_expr(global, caches, scope, this_ptr.as_deref_mut(), &x.lhs)?;
+                let mut value = Dynamic::UNIT;
 
-                if value.is_unit() {
-                    self.eval_expr(global, caches, scope, this_ptr, &x.rhs)
-                } else {
-                    Ok(value)
+                for expr in &***x {
+                    value = self.eval_expr(global, caches, scope, this_ptr.as_deref_mut(), expr)?;
+
+                    if !value.is_unit() {
+                        break;
+                    }
                 }
+                Ok(value)
             }
 
             #[cfg(not(feature = "no_custom_syntax"))]

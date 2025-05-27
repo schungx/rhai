@@ -2336,20 +2336,62 @@ impl Engine {
             };
 
             root = match op_token {
-                Token::Or => {
-                    let rhs = op_base.args[1].take().ensure_bool_expr()?;
-                    let lhs = op_base.args[0].take().ensure_bool_expr()?;
-                    Expr::Or(BinaryExpr { lhs, rhs }.into(), pos)
-                }
                 Token::And => {
-                    let rhs = op_base.args[1].take().ensure_bool_expr()?;
-                    let lhs = op_base.args[0].take().ensure_bool_expr()?;
-                    Expr::And(BinaryExpr { lhs, rhs }.into(), pos)
+                    let mut lhs = op_base.args[0].take().ensure_bool_expr()?;
+                    let mut rhs = op_base.args[1].take().ensure_bool_expr()?;
+
+                    if let Expr::And(ref mut x, ..) = lhs {
+                        if let Expr::And(x2, ..) = rhs {
+                            x.extend(x2.into_iter());
+                        } else {
+                            x.push(rhs);
+                        }
+                        lhs
+                    } else if let Expr::And(ref mut x, ..) = rhs {
+                        x.insert(0, lhs);
+                        rhs.set_position(pos);
+                        rhs
+                    } else {
+                        Expr::And(Box::new(vec![lhs, rhs].into()), pos)
+                    }
+                }
+                Token::Or => {
+                    let mut lhs = op_base.args[0].take().ensure_bool_expr()?;
+                    let mut rhs = op_base.args[1].take().ensure_bool_expr()?;
+
+                    if let Expr::Or(ref mut x, ..) = lhs {
+                        if let Expr::Or(x2, ..) = rhs {
+                            x.extend(x2.into_iter());
+                        } else {
+                            x.push(rhs);
+                        }
+                        lhs
+                    } else if let Expr::Or(ref mut x, ..) = rhs {
+                        x.insert(0, lhs);
+                        rhs.set_position(pos);
+                        rhs
+                    } else {
+                        Expr::Or(Box::new(vec![lhs, rhs].into()), pos)
+                    }
                 }
                 Token::DoubleQuestion => {
-                    let rhs = op_base.args[1].take();
-                    let lhs = op_base.args[0].take();
-                    Expr::Coalesce(BinaryExpr { lhs, rhs }.into(), pos)
+                    let mut lhs = op_base.args[0].take();
+                    let mut rhs = op_base.args[1].take();
+
+                    if let Expr::Coalesce(ref mut x, ..) = lhs {
+                        if let Expr::Coalesce(x2, ..) = rhs {
+                            x.extend(x2.into_iter());
+                        } else {
+                            x.push(rhs);
+                        }
+                        lhs
+                    } else if let Expr::Coalesce(ref mut x, ..) = rhs {
+                        x.insert(0, lhs);
+                        rhs.set_position(pos);
+                        rhs
+                    } else {
+                        Expr::Coalesce(Box::new(vec![lhs, rhs].into()), pos)
+                    }
                 }
                 Token::In | Token::NotIn => {
                     // Swap the arguments

@@ -330,11 +330,11 @@ pub enum Expr {
     /// * [`BREAK`][ASTFlags::BREAK] = terminate the chain (recurse into the chain if unset)
     Index(Box<BinaryExpr>, ASTFlags, Position),
     /// lhs `&&` rhs
-    And(Box<BinaryExpr>, Position),
+    And(Box<StaticVec<Expr>>, Position),
     /// lhs `||` rhs
-    Or(Box<BinaryExpr>, Position),
+    Or(Box<StaticVec<Expr>>, Position),
     /// lhs `??` rhs
-    Coalesce(Box<BinaryExpr>, Position),
+    Coalesce(Box<StaticVec<Expr>>, Position),
     /// Custom syntax
     #[cfg(not(feature = "no_custom_syntax"))]
     Custom(Box<CustomExpr>, Position),
@@ -448,10 +448,11 @@ impl fmt::Debug for Expr {
                     display_pos = *pos;
                 }
 
-                f.debug_struct(op_name)
-                    .field("lhs", &x.lhs)
-                    .field("rhs", &x.rhs)
-                    .finish()
+                let mut f = f.debug_tuple(op_name);
+                x.iter().for_each(|expr| {
+                    f.field(expr);
+                });
+                f.finish()
             }
             #[cfg(not(feature = "no_custom_syntax"))]
             Self::Custom(x, ..) => f.debug_tuple("Custom").field(x).finish(),
@@ -707,11 +708,9 @@ impl Expr {
                 }
             }
 
-            Self::And(x, ..)
-            | Self::Or(x, ..)
-            | Self::Coalesce(x, ..)
-            | Self::Index(x, ..)
-            | Self::Dot(x, ..) => x.lhs.start_position(),
+            Self::And(x, ..) | Self::Or(x, ..) | Self::Coalesce(x, ..) => x[0].start_position(),
+
+            Self::Index(x, ..) | Self::Dot(x, ..) => x.lhs.start_position(),
 
             Self::FnCall(.., pos) => *pos,
 
@@ -765,7 +764,7 @@ impl Expr {
             Self::Map(x, ..) => x.0.iter().map(|(.., v)| v).all(Self::is_pure),
 
             Self::And(x, ..) | Self::Or(x, ..) | Self::Coalesce(x, ..) => {
-                x.lhs.is_pure() && x.rhs.is_pure()
+                x.iter().all(Expr::is_pure)
             }
 
             Self::Stmt(x) => x.iter().all(Stmt::is_pure),
@@ -892,16 +891,19 @@ impl Expr {
                     }
                 }
             }
-            Self::Index(x, ..)
-            | Self::Dot(x, ..)
-            | Self::And(x, ..)
-            | Self::Or(x, ..)
-            | Self::Coalesce(x, ..) => {
+            Self::Index(x, ..) | Self::Dot(x, ..) => {
                 if !x.lhs.walk(path, on_node) {
                     return false;
                 }
                 if !x.rhs.walk(path, on_node) {
                     return false;
+                }
+            }
+            Self::And(x, ..) | Self::Or(x, ..) | Self::Coalesce(x, ..) => {
+                for expr in &***x {
+                    if !expr.walk(path, on_node) {
+                        return false;
+                    }
                 }
             }
             Self::FnCall(x, ..) => {
