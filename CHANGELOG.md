@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.22.1
+==============
+
+Bug fixes
+---------
+
+* Do not mask out version 0.8.11 for `ahash`.
+
+
 Version 1.22.0
 ==============
 
