@@ -1,6 +1,12 @@
 Rhai Release Notes
 ==================
 
+Version 1.22.2
+==============
+
+This version removes the version restriction on `ahash` which may break code for `no-std` builds.
+
+
 Version 1.22.1
 ==============
 
