@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.23.0
+==============
+
+Bug fixes
+---------
+
+* Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
+
+
 Version 1.22.2
 ==============
 

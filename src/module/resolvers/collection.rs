@@ -1,5 +1,6 @@
+use crate::eval::GlobalRuntimeState;
 use crate::{
-    Engine, ModuleResolver, Position, RhaiResultOf, SharedModule, StaticVec, ERR,
+    Engine, ModuleResolver, Position, RhaiResultOf, Scope, SharedModule, StaticVec, AST, ERR,
     STATIC_VEC_INLINE_SIZE,
 };
 #[cfg(feature = "no_std")]
@@ -157,12 +158,55 @@ impl ModuleResolver for ModuleResolversCollection {
                 Ok(module) => return Ok(module),
                 Err(err) => match *err {
                     ERR::ErrorModuleNotFound(..) => continue,
-                    ERR::ErrorInModule(_, err, _) => return Err(err),
+                    ERR::ErrorInModule(..) => return Err(err),
                     _ => unreachable!("ModuleResolver::resolve returns error that is not ErrorModuleNotFound or ErrorInModule"),
                 },
             }
         }
 
         Err(ERR::ErrorModuleNotFound(path.into(), pos).into())
+    }
+
+    fn resolve_raw(
+        &self,
+        engine: &Engine,
+        global: &mut GlobalRuntimeState,
+        scope: &mut Scope,
+        path: &str,
+        pos: Position,
+    ) -> RhaiResultOf<SharedModule> {
+        for resolver in &self.0 {
+            match resolver.resolve_raw(engine,global, scope, path, pos) {
+                Ok(module) => return Ok(module),
+                Err(err) => match *err {
+                    ERR::ErrorModuleNotFound(..) => continue,
+                    ERR::ErrorInModule(..) => return Err(err),
+                    _ => unreachable!("ModuleResolver::resolve returns error that is not ErrorModuleNotFound or ErrorInModule"),
+                },
+            }
+        }
+
+        Err(ERR::ErrorModuleNotFound(path.into(), pos).into())
+    }
+
+    fn resolve_ast(
+        &self,
+        engine: &Engine,
+        source: Option<&str>,
+        path: &str,
+        pos: Position,
+    ) -> Option<RhaiResultOf<AST>> {
+        for resolver in &self.0 {
+            match resolver.resolve_ast(engine, source, path, pos) {
+                None => continue,
+                Some(Err(err)) => match *err {
+                    ERR::ErrorModuleNotFound(..) => continue,
+                    _ => unreachable!("ModuleResolver::resolve_ast returns error that is not ErrorModuleNotFound or ErrorInModule"),
+                },
+                r => return r,
+            }
+        }
+
+        None
     }
 }
