@@ -924,10 +924,13 @@ impl Engine {
                         },
                     )
                     .or_else(|| {
-                        Some(
-                            self.module_resolver()
-                                .resolve_raw(self, global, scope, &path, path_pos),
-                        )
+                        match self
+                            .module_resolver()
+                            .resolve_raw(self, global, scope, &path, path_pos)
+                        {
+                            Err(err) if matches!(*err, ERR::ErrorModuleNotFound(..)) => None,
+                            result => Some(result),
+                        }
                     })
                     .unwrap_or_else(|| {
                         Err(ERR::ErrorModuleNotFound(path.to_string(), path_pos).into())
