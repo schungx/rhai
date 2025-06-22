@@ -247,3 +247,46 @@ fn test_build_type_operators() {
     assert!(!engine.eval::<bool>("let a = new_xyz(1); let b = new_xyz(2); a > b").unwrap());
     assert!(!engine.eval::<bool>("let a = new_xyz(1); let b = new_xyz(2); a >= b").unwrap());
 }
+
+#[test]
+fn test_build_type_generics() {
+    #[derive(Debug, Clone, CustomType, Eq, PartialEq)]
+    #[rhai_type(name = "Foo", extra = Self::build_extra )]
+    struct Foo<T> {
+        x: T,
+    }
+
+    impl<T: Clone + 'static> Foo<T> {
+        fn build_extra(builder: &mut TypeBuilder<Self>) {
+            builder.with_fn("new_foo", |x: T| Self { x });
+        }
+    }
+
+    let mut engine = Engine::new();
+
+    engine.build_type::<Foo<i64>>();
+    assert_eq!(
+        engine
+            .eval::<Foo<i64>>(
+                r#"
+                    let foo = new_foo(3);
+                    foo
+                "#
+            )
+            .unwrap(),
+        Foo { x: 3 }
+    );
+
+    engine.build_type::<Foo<&str>>();
+    assert_eq!(
+        engine
+            .eval::<Foo<&str>>(
+                r#"
+                    let foo = new_foo("howdy!");
+                    foo
+                "#
+            )
+            .unwrap(),
+        Foo { x: "howdy!" }
+    );
+}
