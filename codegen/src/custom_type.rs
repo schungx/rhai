@@ -2,7 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     punctuated::Punctuated, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Field, Fields,
-    MetaNameValue, Path, Token,
+    Lifetime, MetaNameValue, Path, Token, TraitBound,
 };
 
 const ATTR: &str = "rhai_type";
@@ -131,8 +131,26 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
         quote! { #method; }
     };
 
+    let generics = input.generics;
+    let mut impl_generics = generics.clone();
+    for param in impl_generics.type_params_mut() {
+        param.bounds.push(
+            TraitBound {
+                paren_token: None,
+                modifier: syn::TraitBoundModifier::None,
+                lifetimes: None,
+                path: syn::parse("::core::clone::Clone".parse().unwrap()).unwrap(),
+            }
+            .into(),
+        );
+
+        param
+            .bounds
+            .push(Lifetime::new("'static", Span::call_site()).into());
+    }
+
     quote! {
-        impl CustomType for #type_name {
+        impl #impl_generics CustomType for #type_name #generics {
             fn build(mut builder: TypeBuilder<Self>) {
                 #(#errors)*
                 #register
