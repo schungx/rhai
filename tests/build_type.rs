@@ -272,10 +272,10 @@ fn test_build_type_generics() {
 
     let mut engine = Engine::new();
 
-    engine.build_type::<Foo<i64>>();
+    engine.build_type::<Foo<INT>>();
     assert_eq!(
         engine
-            .eval::<Foo<i64>>(
+            .eval::<Foo<INT>>(
                 r#"
                     let foo = new_foo(3);
                     foo
