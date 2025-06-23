@@ -9,6 +9,11 @@ Bug fixes
 
 * Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
 
+Enhancements
+-----------
+
+* `CustomType` derive macro now supports generic types (thanks [`@ProphetOSpam`](https://github.com/ProphetOSpam) [#999](https://github.com/rhaiscript/rhai/pull/999)). The `rhai_codegen` crate dependency is bumped to `3.0.0` or later.
+
 
 Version 1.22.2
 ==============
