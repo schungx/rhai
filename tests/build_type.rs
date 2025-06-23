@@ -256,7 +256,15 @@ fn test_build_type_generics() {
         x: T,
     }
 
+    #[cfg(not(feature = "sync"))]
     impl<T: Clone + 'static> Foo<T> {
+        fn build_extra(builder: &mut TypeBuilder<Self>) {
+            builder.with_fn("new_foo", |x: T| Self { x });
+        }
+    }
+
+    #[cfg(feature = "sync")]
+    impl<T: Send + Sync + Clone + 'static> Foo<T> {
         fn build_extra(builder: &mut TypeBuilder<Self>) {
             builder.with_fn("new_foo", |x: T| Self { x });
         }
@@ -264,10 +272,10 @@ fn test_build_type_generics() {
 
     let mut engine = Engine::new();
 
-    engine.build_type::<Foo<i64>>();
+    engine.build_type::<Foo<INT>>();
     assert_eq!(
         engine
-            .eval::<Foo<i64>>(
+            .eval::<Foo<INT>>(
                 r#"
                     let foo = new_foo(3);
                     foo
@@ -277,16 +285,16 @@ fn test_build_type_generics() {
         Foo { x: 3 }
     );
 
-    engine.build_type::<Foo<&str>>();
+    engine.build_type::<Foo<String>>();
     assert_eq!(
         engine
-            .eval::<Foo<&str>>(
+            .eval::<Foo<String>>(
                 r#"
                     let foo = new_foo("howdy!");
                     foo
                 "#
             )
             .unwrap(),
-        Foo { x: "howdy!" }
+        Foo { x: String::from("howdy!") }
     );
 }
