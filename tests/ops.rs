@@ -64,10 +64,19 @@ fn test_ops_custom_types() {
         .register_type_with_name::<Test2>("Test2")
         .register_fn("new_ts1", || Test1)
         .register_fn("new_ts2", || Test2)
-        .register_fn("==", |_: Test1, _: Test2| true);
+        .register_fn("==", |_: Test1, _: Test2| true)
+        .register_fn(">", |_: Test1, _: INT| true)
+        .register_fn("<=", |_: INT, _: Test2| true);
 
     assert!(engine.eval::<bool>("let x = new_ts1(); let y = new_ts2(); x == y").unwrap());
     assert!(engine.eval::<bool>("let x = new_ts1(); let y = new_ts2(); x != y").unwrap());
     assert!(!engine.eval::<bool>("let x = new_ts1(); x == ()").unwrap());
     assert!(engine.eval::<bool>("let x = new_ts1(); x != ()").unwrap());
+    assert!(engine.eval::<bool>("let x = new_ts1(); x > 123").unwrap());
+    assert!(!engine.eval::<bool>("let x = new_ts1(); x >= 'x'").unwrap());
+    assert!(!engine.eval::<bool>("let x = new_ts1(); 123 < x").unwrap());
+    assert!(engine.eval::<bool>("let y = new_ts2(); 0 <= y").unwrap());
+    assert!(!engine.eval::<bool>(r#"let y = new_ts2(); "y" <= y"#).unwrap());
+    assert!(!engine.eval::<bool>("let y = new_ts2(); 0 > y").unwrap());
+    assert!(!engine.eval::<bool>("let y = new_ts2(); y > 0").unwrap());
 }
