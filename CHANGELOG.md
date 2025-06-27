@@ -8,6 +8,7 @@ Bug fixes
 ---------
 
 * Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
+* Registered functions for comparison operators with only one operand being a custom type now works properly (thanks [`@mkeeter`](https://github.com/mkeeter) [#1000](https://github.com/rhaiscript/rhai/pull/1000)).
 
 Enhancements
 -----------

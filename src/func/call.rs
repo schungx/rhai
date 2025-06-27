@@ -1769,7 +1769,7 @@ impl Engine {
             #[allow(clippy::unnecessary_unwrap)]
             let op_token = op_token.unwrap();
 
-            if lhs.is_variant() && rhs.is_variant() {
+            if lhs.is_variant() || rhs.is_variant() {
                 // For custom types, give registered functions a chance to run first before considering the built-in fallback
             } else {
                 // For other types, try to get a built-in
