@@ -451,7 +451,7 @@ pub mod array_functions {
     #[rhai_fn(name = "splice")]
     pub fn splice_inclusive_range(array: &mut Array, range: InclusiveRange, replace: Array) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         splice(array, start, end - start + 1, replace);
     }
     /// Replace a portion of the array with another array.
@@ -521,7 +521,7 @@ pub mod array_functions {
     #[rhai_fn(name = "extract")]
     pub fn extract_inclusive_range(array: &mut Array, range: InclusiveRange) -> Array {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         extract(array, start, end - start + 1)
     }
     /// Copy a portion of the array and return it as a new array.
@@ -1773,7 +1773,7 @@ pub mod array_functions {
     #[rhai_fn(name = "drain")]
     pub fn drain_inclusive_range(array: &mut Array, range: InclusiveRange) -> Array {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         drain_range(array, start, end - start + 1)
     }
     /// Remove all elements within a portion of the array and return them as a new array.
@@ -1920,7 +1920,7 @@ pub mod array_functions {
     #[rhai_fn(name = "retain")]
     pub fn retain_inclusive_range(array: &mut Array, range: InclusiveRange) -> Array {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         retain_range(array, start, end - start + 1)
     }
     /// Remove all elements not within a portion of the array and return them as a new array.

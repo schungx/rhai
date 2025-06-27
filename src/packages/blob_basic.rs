@@ -603,7 +603,7 @@ pub mod blob_functions {
     #[rhai_fn(name = "splice")]
     pub fn splice_range_inclusive(blob: &mut Blob, range: InclusiveRange, replace: Blob) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         splice(blob, start, end - start + 1, replace);
     }
     /// Replace a portion of the BLOB with another BLOB.
@@ -677,7 +677,7 @@ pub mod blob_functions {
     #[rhai_fn(name = "extract")]
     pub fn extract_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> Blob {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         extract(blob, start, end - start + 1)
     }
     /// Copy a portion of the BLOB and return it as a new BLOB.
@@ -834,7 +834,7 @@ pub mod blob_functions {
     #[rhai_fn(name = "drain")]
     pub fn drain_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> Blob {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         drain(blob, start, end - start + 1)
     }
     /// Remove all bytes within a portion of the BLOB and return them as a new BLOB.
@@ -928,7 +928,7 @@ pub mod blob_functions {
     #[rhai_fn(name = "retain")]
     pub fn retain_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> Blob {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         retain(blob, start, end - start + 1)
     }
     /// Remove all bytes not within a portion of the BLOB and return them as a new BLOB.
@@ -1040,7 +1040,7 @@ mod parse_int_functions {
     #[rhai_fn(name = "parse_le_int")]
     pub fn parse_le_int_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> INT {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         parse_le_int(blob, start, end - start + 1)
     }
     /// Parse the bytes beginning at the `start` position in the BLOB as an `INT`
@@ -1106,7 +1106,7 @@ mod parse_int_functions {
     #[rhai_fn(name = "parse_be_int")]
     pub fn parse_be_int_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> INT {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         parse_be_int(blob, start, end - start + 1)
     }
     /// Parse the bytes beginning at the `start` position in the BLOB as an `INT`
@@ -1182,7 +1182,7 @@ mod parse_float_functions {
     #[rhai_fn(name = "parse_le_float")]
     pub fn parse_le_float_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> FLOAT {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         parse_le_float(blob, start, end - start + 1)
     }
     /// Parse the bytes beginning at the `start` position in the BLOB as a `FLOAT`
@@ -1218,7 +1218,7 @@ mod parse_float_functions {
     #[rhai_fn(name = "parse_be_float")]
     pub fn parse_be_float_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> FLOAT {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         parse_be_float(blob, start, end - start + 1)
     }
     /// Parse the bytes beginning at the `start` position in the BLOB as a `FLOAT`
@@ -1296,7 +1296,7 @@ mod write_int_functions {
     #[rhai_fn(name = "write_le")]
     pub fn write_le_int_range_inclusive(blob: &mut Blob, range: InclusiveRange, value: INT) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_le_int(blob, start, end - start + 1, value);
     }
     /// Write an `INT` value to the bytes beginning at the `start` position in the BLOB
@@ -1357,7 +1357,7 @@ mod write_int_functions {
     #[rhai_fn(name = "write_be")]
     pub fn write_be_int_range_inclusive(blob: &mut Blob, range: InclusiveRange, value: INT) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_be_int(blob, start, end - start + 1, value);
     }
     /// Write an `INT` value to the bytes beginning at the `start` position in the BLOB
@@ -1428,7 +1428,7 @@ mod write_float_functions {
     #[rhai_fn(name = "write_le")]
     pub fn write_le_float_range_inclusive(blob: &mut Blob, range: InclusiveRange, value: FLOAT) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_le_float(blob, start, end - start + 1, value);
     }
     /// Write a `FLOAT` value to the bytes beginning at the `start` position in the BLOB
@@ -1465,7 +1465,7 @@ mod write_float_functions {
     #[rhai_fn(name = "write_be")]
     pub fn write_be_float_range_inclusive(blob: &mut Blob, range: InclusiveRange, value: FLOAT) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_be_float(blob, start, end - start + 1, value);
     }
     /// Write a `FLOAT` value to the bytes beginning at the `start` position in the BLOB
@@ -1546,7 +1546,7 @@ mod write_string_functions {
     #[rhai_fn(name = "write_utf8")]
     pub fn write_utf8_string_range_inclusive(blob: &mut Blob, range: InclusiveRange, string: &str) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_string(blob, start, end - start + 1, string, false);
     }
     /// Write a string to the bytes within an inclusive `range` in the BLOB in UTF-8 encoding.
@@ -1614,7 +1614,7 @@ mod write_string_functions {
         string: &str,
     ) {
         let start = INT::max(*range.start(), 0);
-        let end = INT::max(*range.end(), start);
+        let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
         write_string(blob, start, end - start + 1, string, true);
     }
     /// Write an ASCII string to the bytes within an exclusive `range` in the BLOB.
