@@ -7,8 +7,9 @@ Version 1.23.0
 Bug fixes
 ---------
 
+* (Fuzzing) Fixed crash when using `..=` in arrays, BLOB's, bit-fields and iterators ([#1004](https://github.com/rhaiscript/rhai/pull/1004)).
 * Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
-* Registered functions for comparison operators with only one operand being a custom type now works properly (thanks [`@mkeeter`](https://github.com/mkeeter) [#1000](https://github.com/rhaiscript/rhai/pull/1000)).
+* Registered functions for comparison operators with only one operand being a custom type now works properly (thanks [`@mkeeter`](https://github.com/mkeeter) [#1003](https://github.com/rhaiscript/rhai/pull/1003)).
 
 Enhancements
 -----------

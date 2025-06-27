@@ -199,6 +199,12 @@ mod bit_field_functions {
     ) -> RhaiResultOf<()> {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
+
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        if to > MAX_USIZE_INT || (to as usize) >= INT_BITS {
+            return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
+        }
+
         set_bits(value, from, to - from + 1, new_value)
     }
     /// Replace a portion of bits in the number with a new value.
