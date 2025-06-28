@@ -1,9 +1,11 @@
 //! Module that defines the public evaluation API of [`Engine`].
 
+use crate::ast::{Expr, FnCallHashes};
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::parser::ParseState;
+use crate::tokenizer::Token;
 use crate::types::dynamic::Variant;
-use crate::{Dynamic, Engine, Position, RhaiResult, RhaiResultOf, Scope, AST, ERR};
+use crate::{calc_fn_hash, Dynamic, Engine, Position, RhaiResult, RhaiResultOf, Scope, AST, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -255,6 +257,72 @@ impl Engine {
         }
 
         Ok(r)
+    }
+
+    /// Evaluate a binary operator with two operands with the [`Engine`].
+    ///
+    /// This method is very useful for simply comparing two [`Dynamic`] values --
+    /// simply use the `==` operator to compare them.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # fn main() -> Result<(), Box<rhai::EvalAltResult>> {
+    /// use rhai::Engine;
+    ///
+    /// let engine = Engine::new();
+    ///
+    /// // Compare two values
+    /// let result = engine.eval_binary_op::<bool>("==", "abc", 123_i64)?;
+    /// assert!(!result);
+    ///
+    /// // Rhai by default equates floating-point integers with normal integers.
+    /// let result = engine.eval_binary_op::<bool>("==", 123.0, 123_i64)?;
+    /// assert!(result);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline(always)]
+    pub fn eval_binary_op<T: Variant + Clone>(
+        &self,
+        op: impl AsRef<str>,
+        lhs: impl Into<Dynamic>,
+        rhs: impl Into<Dynamic>,
+    ) -> RhaiResultOf<T> {
+        let lhs = lhs.into();
+        let lhs = Expr::DynamicConstant(lhs.into(), Position::NONE);
+        let rhs = rhs.into();
+        let rhs = Expr::DynamicConstant(rhs.into(), Position::NONE);
+
+        let op = op.as_ref();
+
+        self.make_function_call(
+            &mut self.new_global_runtime_state(),
+            &mut Caches::new(),
+            &mut Scope::new(),
+            None,
+            op,
+            Token::lookup_symbol_from_syntax(op).as_ref(),
+            Some(&lhs),
+            &[rhs],
+            FnCallHashes::from_native_only(calc_fn_hash(None, op, 2)),
+            false,
+            Position::NONE,
+        )?
+        .try_cast_result::<T>()
+        .map_err(|v| {
+            let typename = match type_name::<T>() {
+                typ if typ.contains("::") => self.map_type_name(typ),
+                typ => typ,
+            };
+
+            ERR::ErrorMismatchOutputType(
+                typename.into(),
+                self.map_type_name(v.type_name()).into(),
+                Position::NONE,
+            )
+            .into()
+        })
     }
 }
 
