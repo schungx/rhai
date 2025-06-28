@@ -275,10 +275,13 @@ impl Engine {
     /// // Compare two values
     /// let result = engine.eval_binary_op::<bool>("==", "abc", 123_i64)?;
     /// assert!(!result);
+    /// # #[cfg(not(feature = "no_float"))]
+    /// # {
     ///
     /// // Rhai by default equates floating-point integers with normal integers.
     /// let result = engine.eval_binary_op::<bool>("==", 123.0, 123_i64)?;
     /// assert!(result);
+    /// # }
     /// # Ok(())
     /// # }
     /// ```
