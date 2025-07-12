@@ -750,7 +750,7 @@ impl Engine {
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, None, env, &*fn_def, &mut args, true, pos,
+                            global, caches, scope, None, env, fn_def, &mut args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
@@ -1247,15 +1247,12 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, arg_pos))?;
 
-                return Ok(if num_params > crate::MAX_USIZE_INT {
-                    Dynamic::FALSE
-                } else if num_params >= 0 {
-                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                    let hash_script = calc_fn_hash(None, &fn_name, num_params as usize);
-                    self.has_script_fn(global, caches, hash_script).into()
-                } else {
-                    Dynamic::FALSE
-                });
+                return Ok(usize::try_from(num_params)
+                    .map(|num_params| {
+                        let hash_script = calc_fn_hash(None, &fn_name, num_params);
+                        self.has_script_fn(global, caches, hash_script).into()
+                    })
+                    .unwrap_or(Dynamic::FALSE));
             }
 
             // Handle is_def_fn(this_type, fn_name, arity)
@@ -1289,18 +1286,15 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, arg_pos))?;
 
-                return Ok(if num_params > crate::MAX_USIZE_INT {
-                    Dynamic::FALSE
-                } else if num_params >= 0 {
-                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                    let hash_script = crate::calc_typed_method_hash(
-                        calc_fn_hash(None, &fn_name, num_params as usize),
-                        &this_type,
-                    );
-                    self.has_script_fn(global, caches, hash_script).into()
-                } else {
-                    Dynamic::FALSE
-                });
+                return Ok(usize::try_from(num_params)
+                    .map(|num_params| {
+                        let hash_script = crate::calc_typed_method_hash(
+                            calc_fn_hash(None, &fn_name, num_params),
+                            &this_type,
+                        );
+                        self.has_script_fn(global, caches, hash_script).into()
+                    })
+                    .unwrap_or(Dynamic::FALSE));
             }
 
             // Handle is_def_var(fn_name)
@@ -1766,14 +1760,13 @@ impl Engine {
                 .0
                 .flatten();
 
-            #[allow(clippy::unnecessary_unwrap)]
-            let op_token = op_token.unwrap();
-
             if lhs.is_variant() || rhs.is_variant() {
                 // For custom types, give registered functions a chance to run first before considering the built-in fallback
             } else {
                 // For other types, try to get a built-in
-                if let Some((func, need_context)) = get_builtin_binary_op_fn(op_token, &lhs, &rhs) {
+                if let Some((func, need_context)) =
+                    get_builtin_binary_op_fn(op_token.unwrap(), &lhs, &rhs)
+                {
                     // We may not need to bump the level because built-in's do not need it.
                     //defer! { let orig_level = global.level; global.level += 1 }
 
@@ -1784,7 +1777,6 @@ impl Engine {
             }
 
             let operands = &mut [&mut lhs, &mut rhs];
-            let op_token = Some(op_token);
 
             return self
                 .exec_fn_call(

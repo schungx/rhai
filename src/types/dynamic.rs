@@ -1856,7 +1856,7 @@ impl Dynamic {
     /// Returns [`None`] also if the value is _shared_.
     #[inline]
     #[must_use]
-    pub(crate) fn downcast_ref<T: Any + Clone + ?Sized>(&self) -> Option<&T> {
+    pub(crate) fn downcast_ref<T: Any + Clone>(&self) -> Option<&T> {
         // Coded this way in order to maximally leverage potentials for dead-code removal.
 
         if TypeId::of::<T>() == TypeId::of::<INT>() {
@@ -1959,7 +1959,7 @@ impl Dynamic {
     /// Returns [`None`] also if the value is _shared_.
     #[inline]
     #[must_use]
-    pub(crate) fn downcast_mut<T: Any + Clone + ?Sized>(&mut self) -> Option<&mut T> {
+    pub(crate) fn downcast_mut<T: Any + Clone>(&mut self) -> Option<&mut T> {
         // Coded this way in order to maximally leverage potentials for dead-code removal.
 
         if TypeId::of::<T>() == TypeId::of::<INT>() {

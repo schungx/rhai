@@ -2,8 +2,9 @@ use crate::eval::calc_index;
 use crate::plugin::*;
 use crate::{
     def_package, ExclusiveRange, InclusiveRange, Position, RhaiResultOf, ERR, INT, INT_BITS,
-    MAX_USIZE_INT, UNSIGNED_INT,
+    UNSIGNED_INT,
 };
+use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -107,8 +108,7 @@ mod bit_field_functions {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        if to > MAX_USIZE_INT || (to as usize) >= INT_BITS {
+        if to >= 0 && usize::try_from(to).map(|x| x >= INT_BITS).unwrap_or(true) {
             return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
         }
 
@@ -132,21 +132,19 @@ mod bit_field_functions {
         if bits <= 0 {
             return Ok(0);
         }
-        let bits = if bits > MAX_USIZE_INT {
-            MAX_USIZE_INT
-        } else {
-            bits
-        };
 
         let bit = calc_index(INT_BITS, start, true, || {
             ERR::ErrorBitFieldBounds(INT_BITS, start, Position::NONE).into()
         })?;
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let bits = if bit + bits as usize > INT_BITS {
-            INT_BITS - bit
+        let bits = if let Ok(bits) = usize::try_from(bits) {
+            if bits.checked_add(bit).map(|x| x > INT_BITS).unwrap_or(true) {
+                INT_BITS - bit
+            } else {
+                bits
+            }
         } else {
-            bits as usize
+            INT_BITS - bit
         };
 
         if bit == 0 && bits == INT_BITS {
@@ -154,8 +152,7 @@ mod bit_field_functions {
         }
 
         // 2^bits - 1
-        #[allow(clippy::cast_possible_truncation)]
-        let mask = ((2 as UNSIGNED_INT).pow(bits as u32) - 1) as INT;
+        let mask = ((2 as UNSIGNED_INT).pow(u32::try_from(bits).unwrap()) - 1) as INT;
 
         Ok(((value & (mask << bit)) >> bit) & mask)
     }
@@ -200,8 +197,7 @@ mod bit_field_functions {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        if to > MAX_USIZE_INT || (to as usize) >= INT_BITS {
+        if to >= 0 && usize::try_from(to).map(|x| x >= INT_BITS).unwrap_or(true) {
             return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
         }
 
@@ -236,11 +232,14 @@ mod bit_field_functions {
             ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE).into()
         })?;
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let bits = if bit + bits as usize > INT_BITS {
-            INT_BITS - bit
+        let bits = if let Ok(bits) = usize::try_from(bits) {
+            if bits.checked_add(bit).map(|x| x > INT_BITS).unwrap_or(true) {
+                INT_BITS - bit
+            } else {
+                bits
+            }
         } else {
-            bits as usize
+            INT_BITS - bit
         };
 
         if bit == 0 && bits == INT_BITS {
@@ -249,8 +248,7 @@ mod bit_field_functions {
         }
 
         // 2^bits - 1
-        #[allow(clippy::cast_possible_truncation)]
-        let mask = ((2 as UNSIGNED_INT).pow(bits as u32) - 1) as INT;
+        let mask = ((2 as UNSIGNED_INT).pow(u32::try_from(bits).unwrap()) - 1) as INT;
 
         *value &= !(mask << bit);
         *value |= (new_value & mask) << bit;

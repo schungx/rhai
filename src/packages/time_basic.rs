@@ -3,6 +3,7 @@
 use super::arithmetic::make_err as make_arithmetic_err;
 use crate::plugin::*;
 use crate::{def_package, Dynamic, RhaiResult, RhaiResultOf, INT};
+use std::convert::TryFrom;
 
 #[cfg(not(feature = "no_float"))]
 use crate::FLOAT;
@@ -65,16 +66,17 @@ mod time_functions {
         {
             let seconds = timestamp.elapsed().as_secs();
 
-            if cfg!(not(feature = "unchecked")) && seconds > (INT::MAX as u64) {
+            let Ok(seconds) = INT::try_from(seconds) else {
                 return Err(make_arithmetic_err(format!(
                     "Integer overflow for timestamp.elapsed: {seconds}"
                 )));
-            }
+            };
+
             if timestamp > Instant::now() {
                 return Err(make_arithmetic_err("Time-stamp is later than now"));
             }
 
-            Ok((seconds as INT).into())
+            Ok(seconds.into())
         }
     }
 
@@ -94,23 +96,23 @@ mod time_functions {
         if timestamp2 > timestamp1 {
             let seconds = (timestamp2 - timestamp1).as_secs();
 
-            if cfg!(not(feature = "unchecked")) && seconds > (INT::MAX as u64) {
+            let Ok(seconds) = INT::try_from(seconds) else {
                 return Err(make_arithmetic_err(format!(
-                    "Integer overflow for timestamp duration: -{seconds}"
+                    "Integer overflow for timestamp.elapsed: {seconds}"
                 )));
-            }
+            };
 
-            Ok((-(seconds as INT)).into())
+            Ok((-seconds).into())
         } else {
             let seconds = (timestamp1 - timestamp2).as_secs();
 
-            if cfg!(not(feature = "unchecked")) && seconds > (INT::MAX as u64) {
+            let Ok(seconds) = INT::try_from(seconds) else {
                 return Err(make_arithmetic_err(format!(
-                    "Integer overflow for timestamp duration: {seconds}"
+                    "Integer overflow for timestamp.elapsed: {seconds}"
                 )));
-            }
+            };
 
-            Ok((seconds as INT).into())
+            Ok(seconds.into())
         }
     }
 
@@ -200,10 +202,10 @@ mod time_functions {
     #[inline]
     fn add_impl(timestamp: Instant, seconds: INT) -> RhaiResultOf<Instant> {
         if seconds < 0 {
-            subtract_inner(timestamp, seconds.unsigned_abs() as u64)
+            #[allow(clippy::useless_conversion)]
+            subtract_inner(timestamp, u64::try_from(seconds.unsigned_abs()).unwrap())
         } else {
-            #[allow(clippy::cast_sign_loss)]
-            add_inner(timestamp, seconds as u64)
+            add_inner(timestamp, u64::try_from(seconds).unwrap())
         }
         .ok_or_else(|| {
             make_arithmetic_err(format!(
@@ -222,10 +224,9 @@ mod time_functions {
     #[inline]
     fn subtract_impl(timestamp: Instant, seconds: INT) -> RhaiResultOf<Instant> {
         if seconds < 0 {
-            add_inner(timestamp, seconds.unsigned_abs() as u64)
+            add_inner(timestamp, u64::try_from(seconds.unsigned_abs()).unwrap())
         } else {
-            #[allow(clippy::cast_sign_loss)]
-            subtract_inner(timestamp, seconds as u64)
+            subtract_inner(timestamp, u64::try_from(seconds).unwrap())
         }
         .ok_or_else(|| {
             make_arithmetic_err(format!(

@@ -5,9 +5,9 @@ use serde::{
     de::{Error, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
-use std::fmt;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
+use std::{convert::TryFrom, fmt};
 
 #[cfg(feature = "decimal")]
 use num_traits::FromPrimitive;
@@ -113,8 +113,8 @@ impl<'de> Visitor<'de> for DynamicVisitor {
     }
     #[inline]
     fn visit_u64<E: Error>(self, v: u64) -> Result<Self::Value, E> {
-        if v <= INT::MAX as u64 {
-            return Ok(Dynamic::from(v as INT));
+        if let Ok(v) = INT::try_from(v) {
+            return Ok(Dynamic::from_int(v));
         }
 
         #[cfg(feature = "decimal")]

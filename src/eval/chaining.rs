@@ -11,7 +11,10 @@ use crate::{
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{convert::TryInto, hash::Hash};
+use std::{
+    convert::{TryFrom, TryInto},
+    hash::Hash,
+};
 
 /// Function call hashes to index getters and setters.
 static INDEXER_HASHES: OnceCell<(u64, u64)> = OnceCell::new();
@@ -217,18 +220,12 @@ impl Engine {
                         ERR::ErrorBitFieldBounds(crate::INT_BITS, start, idx_pos).into()
                     })?;
                     let end = super::calc_index(crate::INT_BITS, end, false, || {
-                        if end >= 0
-                            && end < crate::MAX_USIZE_INT
-                            && (end as usize) <= crate::INT_BITS
-                        {
-                            // Handle largest value
-                            Ok(end as usize)
-                        } else {
-                            ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos).into()
-                        }
+                        usize::try_from(end)
+                            .ok()
+                            .and_then(|x| (x <= crate::INT_BITS).then_some(x))
+                            .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos))
                     })?;
 
-                    #[allow(clippy::cast_possible_truncation)]
                     if end <= start {
                         (0, 0)
                     } else if end == crate::INT_BITS && start == 0 {
@@ -236,10 +233,10 @@ impl Engine {
                         (0, -1)
                     } else {
                         (
-                            start as u8,
+                            u8::try_from(start).unwrap(),
                             // 2^bits - 1
-                            (((2 as crate::UNSIGNED_INT).pow((end - start) as u32) - 1)
-                                as crate::INT)
+                            (((2 as crate::UNSIGNED_INT).pow(u32::try_from(end - start).unwrap())
+                                - 1) as crate::INT)
                                 << start,
                         )
                     }
@@ -258,7 +255,6 @@ impl Engine {
                         ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos).into()
                     })?;
 
-                    #[allow(clippy::cast_possible_truncation)]
                     if end < start {
                         (0, 0)
                     } else if end == crate::INT_BITS - 1 && start == 0 {
@@ -266,10 +262,11 @@ impl Engine {
                         (0, -1)
                     } else {
                         (
-                            start as u8,
+                            u8::try_from(start).unwrap(),
                             // 2^bits - 1
-                            (((2 as crate::UNSIGNED_INT).pow((end - start + 1) as u32) - 1)
-                                as crate::INT)
+                            (((2 as crate::UNSIGNED_INT)
+                                .pow(u32::try_from(end - start + 1).unwrap())
+                                - 1) as crate::INT)
                                 << start,
                         )
                     }
@@ -299,8 +296,7 @@ impl Engine {
                 })?;
 
                 let bit_value = (*value & (1 << bit)) != 0;
-                #[allow(clippy::cast_possible_truncation)]
-                let bit = bit as u8;
+                let bit = u8::try_from(bit).unwrap();
 
                 Ok(Target::Bit {
                     source: target,
@@ -315,18 +311,15 @@ impl Engine {
                 match idx.as_int() {
                     Ok(index) => {
                         let (ch, offset) = if index >= 0 {
-                            #[allow(clippy::absurd_extreme_comparisons)]
-                            if index >= crate::MAX_USIZE_INT {
+                            let Ok(offset) = usize::try_from(index) else {
                                 return Err(ERR::ErrorStringBounds(
                                     s.chars().count(),
                                     index,
                                     idx_pos,
                                 )
                                 .into());
-                            }
+                            };
 
-                            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                            let offset = index as usize;
                             (
                                 s.chars().nth(offset).ok_or_else(|| {
                                     ERR::ErrorStringBounds(s.chars().count(), index, idx_pos)
@@ -334,20 +327,15 @@ impl Engine {
                                 offset,
                             )
                         } else {
-                            let abs_index = index.unsigned_abs();
-
-                            #[allow(clippy::unnecessary_cast)]
-                            if abs_index as u64 > usize::MAX as u64 {
+                            let Ok(offset) = usize::try_from(index.unsigned_abs()) else {
                                 return Err(ERR::ErrorStringBounds(
                                     s.chars().count(),
                                     index,
                                     idx_pos,
                                 )
                                 .into());
-                            }
+                            };
 
-                            #[allow(clippy::cast_possible_truncation)]
-                            let offset = abs_index as usize;
                             (
                                 // Count from end if negative
                                 s.chars().rev().nth(offset - 1).ok_or_else(|| {

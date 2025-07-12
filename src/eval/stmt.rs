@@ -721,23 +721,25 @@ impl Engine {
                         self.track_operation(global, body.position())?;
                     }
                 } else {
-                    for (i, iter_value) in iter_func(iter_obj).enumerate() {
+                    let mut index_value: INT = -1;
+
+                    for iter_value in iter_func(iter_obj) {
+                        #[cfg(not(feature = "unchecked"))]
+                        {
+                            index_value = index_value.checked_add(1).ok_or_else(|| {
+                                ERR::ErrorArithmetic(
+                                    format!("for-loop counter overflow: {index_value}"),
+                                    var_name.pos,
+                                )
+                            })?;
+                        }
+                        #[cfg(feature = "unchecked")]
+                        {
+                            index_value += 1;
+                        }
+
                         // Increment counter
                         if let Some(counter_index) = counter_index {
-                            // As the variable increments from 0, this should always work
-                            // since any overflow will first be caught below.
-                            let index_value = i as INT;
-
-                            #[cfg(not(feature = "unchecked"))]
-                            #[allow(clippy::absurd_extreme_comparisons)]
-                            if index_value > crate::MAX_USIZE_INT {
-                                return Err(ERR::ErrorArithmetic(
-                                    format!("for-loop counter overflow: {i}"),
-                                    counter.as_ref().unwrap().pos,
-                                )
-                                .into());
-                            }
-
                             *scope.get_mut_by_index(counter_index).write_lock().unwrap() =
                                 Dynamic::from_int(index_value);
                         }

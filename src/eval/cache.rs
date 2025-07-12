@@ -44,7 +44,7 @@ impl FnResolutionCache {
 ///
 /// The following caches are contained inside this type:
 /// * A stack of [function resolution caches][FnResolutionCache]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Caches {
     fn_resolution: StaticVec<FnResolutionCache>,
 }

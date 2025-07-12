@@ -167,20 +167,6 @@ type UNSIGNED_INT = u64;
 #[allow(non_camel_case_types)]
 type UNSIGNED_INT = u32;
 
-/// The maximum integer that can fit into a [`usize`].
-#[cfg(not(target_pointer_width = "32"))]
-const MAX_USIZE_INT: INT = INT::MAX;
-
-/// The maximum integer that can fit into a [`usize`].
-#[cfg(not(feature = "only_i32"))]
-#[cfg(target_pointer_width = "32")]
-const MAX_USIZE_INT: INT = usize::MAX as INT;
-
-/// The maximum integer that can fit into a [`usize`].
-#[cfg(feature = "only_i32")]
-#[cfg(target_pointer_width = "32")]
-const MAX_USIZE_INT: INT = INT::MAX;
-
 /// Number of bits in [`INT`].
 ///
 /// It is 64 unless the `only_i32` feature is enabled when it will be 32.

@@ -1,6 +1,6 @@
 use super::iter_basic::CharsStream;
 use crate::plugin::*;
-use crate::{def_package, FnPtr, ImmutableString, SmartString, INT, MAX_USIZE_INT};
+use crate::{def_package, FnPtr, ImmutableString, SmartString, INT};
 use std::any::TypeId;
 use std::fmt::{Binary, LowerHex, Octal, Write};
 #[cfg(feature = "no_std")]
@@ -35,7 +35,7 @@ def_package! {
         lib.set_iterator::<CharsStream>();
 
         lib.set_iter(TypeId::of::<ImmutableString>(), |value| Box::new(
-            CharsStream::new(value.cast::<ImmutableString>().as_str(), 0, MAX_USIZE_INT).map(Into::into)
+            CharsStream::new(value.cast::<ImmutableString>().as_str(), 0, INT::MAX).map(Into::into)
         ));
     }
 }

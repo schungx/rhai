@@ -2342,7 +2342,7 @@ impl Engine {
 
                     if let Expr::And(ref mut x, ..) = lhs {
                         if let Expr::And(x2, ..) = rhs {
-                            x.extend(x2.into_iter());
+                            x.extend(*x2);
                         } else {
                             x.push(rhs);
                         }
@@ -2380,7 +2380,7 @@ impl Engine {
 
                     if let Expr::Coalesce(ref mut x, ..) = lhs {
                         if let Expr::Coalesce(x2, ..) = rhs {
-                            x.extend(x2.into_iter());
+                            x.extend(*x2);
                         } else {
                             x.push(rhs);
                         }

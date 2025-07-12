@@ -2,6 +2,7 @@ use crate::def_package;
 use crate::plugin::*;
 use crate::types::dynamic::Tag;
 use crate::{Dynamic, RhaiResult, RhaiResultOf, ERR, INT};
+use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -159,8 +160,9 @@ mod core_functions {
             return;
         }
 
-        #[allow(clippy::cast_sign_loss)]
-        std::thread::sleep(std::time::Duration::from_secs(seconds as u64));
+        std::thread::sleep(std::time::Duration::from_secs(
+            u64::try_from(seconds).unwrap(),
+        ));
     }
 
     /// Parse a JSON string into a value.
@@ -292,12 +294,14 @@ mod reflection_functions {
     /// Return an array of object maps containing metadata of all script-defined functions
     /// matching the specified name and arity (number of parameters).
     #[rhai_fn(name = "get_fn_metadata_list", volatile)]
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn get_fn_metadata2(ctx: NativeCallContext, name: &str, params: INT) -> Array {
-        if !(0..=crate::MAX_USIZE_INT).contains(&params) {
+        if params < 0 {
             return Array::new();
         }
+        let Ok(params) = usize::try_from(params) else {
+            return Array::new();
+        };
 
-        collect(ctx, |_, _, n, p, _| p == (params as usize) && n == name)
+        collect(ctx, |_, _, n, p, _| p == params && n == name)
     }
 }

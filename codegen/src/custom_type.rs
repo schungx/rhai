@@ -46,7 +46,7 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
                                 }
                             } else {
                                 let key = path.get_ident().unwrap().to_string();
-                                let msg = format!("invalid option: '{}'", key);
+                                let msg = format!("invalid option: '{key}'");
                                 errors.push(syn::Error::new(path.span(), msg).into_compile_error());
                             }
                         }
@@ -57,7 +57,7 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
                         // any other identifier
                         Expr::Path(path) if path.path.get_ident().is_some() => {
                             let key = path.path.get_ident().unwrap().to_string();
-                            let msg = format!("invalid option: '{}'", key);
+                            let msg = format!("invalid option: '{key}'");
                             errors.push(syn::Error::new(path.span(), msg).into_compile_error());
                         }
                         // Error
