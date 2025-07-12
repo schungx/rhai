@@ -295,6 +295,7 @@ fn test_serde_de_primary_types() {
     #[cfg(feature = "no_float")]
     #[cfg(feature = "decimal")]
     {
+        use std::str::FromStr;
         let d: Dynamic = Decimal::from_str("123.456").unwrap().into();
 
         assert_eq!(123.456, from_dynamic::<f64>(&d).unwrap());
@@ -645,9 +646,12 @@ fn test_serde_json() -> serde_json::Result<()> {
 fn test_serde_json_numbers() -> serde_json::Result<()> {
     use std::str::FromStr;
 
-    let d: Dynamic = serde_json::from_str("100000000000").unwrap();
-    assert!(d.is::<INT>());
-    assert_eq!(d.as_int().unwrap(), 100000000000);
+    #[cfg(not(feature = "only_i32"))]
+    {
+        let d: Dynamic = serde_json::from_str("100000000000").unwrap();
+        assert!(d.is::<INT>());
+        assert_eq!(d.as_int().unwrap(), 100000000000);
+    }
 
     let d: Dynamic = serde_json::from_str("10000000000000000000").unwrap();
     assert!(d.is::<Decimal>());

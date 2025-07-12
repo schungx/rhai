@@ -2,6 +2,7 @@
 
 use crate::plugin::*;
 use crate::{def_package, FuncRegistration, Position, RhaiResultOf, ERR, INT};
+use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -120,8 +121,7 @@ mod int_functions {
             );
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        INT::from_str_radix(string.trim(), radix as u32).map_err(|err| {
+        INT::from_str_radix(string.trim(), u32::try_from(radix).unwrap()).map_err(|err| {
             ERR::ErrorArithmetic(
                 format!("Error parsing integer number '{string}': {err}"),
                 Position::NONE,
@@ -444,91 +444,86 @@ mod decimal_functions {
     /// Always round mid-point towards the closest even number.
     #[rhai_fn(name = "round", return_raw)]
     pub fn round_dp(x: Decimal, digits: INT) -> RhaiResultOf<Decimal> {
-        if cfg!(not(feature = "unchecked")) {
-            if digits < 0 {
-                return Err(make_err(format!(
-                    "Invalid number of digits for rounding: {digits}"
-                )));
-            }
-            if cfg!(not(feature = "only_i32")) && digits > (u32::MAX as INT) {
-                return Ok(x);
-            }
+        #[cfg(not(feature = "unchecked"))]
+        if digits < 0 {
+            return Err(make_err(format!(
+                "Invalid number of digits for rounding: {digits}"
+            )));
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        Ok(x.round_dp(digits as u32))
+        let Ok(digits) = u32::try_from(digits) else {
+            return Ok(x);
+        };
+
+        Ok(x.round_dp(digits))
     }
     /// Round the decimal number to the specified number of `digits` after the decimal point and return it.
     /// Always round away from zero.
     #[rhai_fn(return_raw)]
     pub fn round_up(x: Decimal, digits: INT) -> RhaiResultOf<Decimal> {
-        if cfg!(not(feature = "unchecked")) {
-            if digits < 0 {
-                return Err(make_err(format!(
-                    "Invalid number of digits for rounding: {digits}"
-                )));
-            }
-            if cfg!(not(feature = "only_i32")) && digits > (u32::MAX as INT) {
-                return Ok(x);
-            }
+        #[cfg(not(feature = "unchecked"))]
+        if digits < 0 {
+            return Err(make_err(format!(
+                "Invalid number of digits for rounding: {digits}"
+            )));
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        Ok(x.round_dp_with_strategy(digits as u32, RoundingStrategy::AwayFromZero))
+        let Ok(digits) = u32::try_from(digits) else {
+            return Ok(x);
+        };
+
+        Ok(x.round_dp_with_strategy(digits, RoundingStrategy::AwayFromZero))
     }
     /// Round the decimal number to the specified number of `digits` after the decimal point and return it.
     /// Always round towards zero.
     #[rhai_fn(return_raw)]
     pub fn round_down(x: Decimal, digits: INT) -> RhaiResultOf<Decimal> {
-        if cfg!(not(feature = "unchecked")) {
-            if digits < 0 {
-                return Err(make_err(format!(
-                    "Invalid number of digits for rounding: {digits}"
-                )));
-            }
-            if cfg!(not(feature = "only_i32")) && digits > (u32::MAX as INT) {
-                return Ok(x);
-            }
+        #[cfg(not(feature = "unchecked"))]
+        if digits < 0 {
+            return Err(make_err(format!(
+                "Invalid number of digits for rounding: {digits}"
+            )));
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        Ok(x.round_dp_with_strategy(digits as u32, RoundingStrategy::ToZero))
+        let Ok(digits) = u32::try_from(digits) else {
+            return Ok(x);
+        };
+
+        Ok(x.round_dp_with_strategy(digits, RoundingStrategy::ToZero))
     }
     /// Round the decimal number to the specified number of `digits` after the decimal point and return it.
     /// Always round mid-points away from zero.
     #[rhai_fn(return_raw)]
     pub fn round_half_up(x: Decimal, digits: INT) -> RhaiResultOf<Decimal> {
-        if cfg!(not(feature = "unchecked")) {
-            if digits < 0 {
-                return Err(make_err(format!(
-                    "Invalid number of digits for rounding: {digits}"
-                )));
-            }
-            if cfg!(not(feature = "only_i32")) && digits > (u32::MAX as INT) {
-                return Ok(x);
-            }
+        #[cfg(not(feature = "unchecked"))]
+        if digits < 0 {
+            return Err(make_err(format!(
+                "Invalid number of digits for rounding: {digits}"
+            )));
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        Ok(x.round_dp_with_strategy(digits as u32, RoundingStrategy::MidpointAwayFromZero))
+        let Ok(digits) = u32::try_from(digits) else {
+            return Ok(x);
+        };
+
+        Ok(x.round_dp_with_strategy(digits, RoundingStrategy::MidpointAwayFromZero))
     }
     /// Round the decimal number to the specified number of `digits` after the decimal point and return it.
     /// Always round mid-points towards zero.
     #[rhai_fn(return_raw)]
     pub fn round_half_down(x: Decimal, digits: INT) -> RhaiResultOf<Decimal> {
-        if cfg!(not(feature = "unchecked")) {
-            if digits < 0 {
-                return Err(make_err(format!(
-                    "Invalid number of digits for rounding: {digits}"
-                )));
-            }
-            if cfg!(not(feature = "only_i32")) && digits > (u32::MAX as INT) {
-                return Ok(x);
-            }
+        #[cfg(not(feature = "unchecked"))]
+        if digits < 0 {
+            return Err(make_err(format!(
+                "Invalid number of digits for rounding: {digits}"
+            )));
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        Ok(x.round_dp_with_strategy(digits as u32, RoundingStrategy::MidpointTowardZero))
+        let Ok(digits) = u32::try_from(digits) else {
+            return Ok(x);
+        };
+
+        Ok(x.round_dp_with_strategy(digits, RoundingStrategy::MidpointTowardZero))
     }
     /// Convert the decimal number into an integer.
     #[rhai_fn(return_raw)]

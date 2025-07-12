@@ -4,11 +4,11 @@ use crate::eval::{calc_index, calc_offset_len};
 use crate::plugin::*;
 use crate::{
     def_package, Array, Blob, Dynamic, ExclusiveRange, InclusiveRange, NativeCallContext,
-    RhaiResultOf, INT, INT_BYTES, MAX_USIZE_INT,
+    RhaiResultOf, INT, INT_BYTES,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{any::TypeId, borrow::Cow, mem};
+use std::{any::TypeId, borrow::Cow, convert::TryFrom, mem};
 
 #[cfg(not(feature = "no_float"))]
 use crate::{FLOAT, FLOAT_BYTES};
@@ -74,18 +74,19 @@ pub mod blob_functions {
         len: INT,
         value: INT,
     ) -> RhaiResultOf<Blob> {
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.clamp(0, MAX_USIZE_INT) as usize;
+        if len <= 0 {
+            return Ok(Blob::new());
+        }
+
         let _ctx = ctx;
+        let len = usize::try_from(len).unwrap_or(usize::MAX);
 
         // Check if blob will be over max size limit
         #[cfg(not(feature = "unchecked"))]
         _ctx.engine().throw_on_size((len, 0, 0))?;
 
-        let mut blob = Blob::new();
-        #[allow(clippy::cast_sign_loss)]
-        blob.resize(len, (value & 0x0000_00ff) as u8);
-        Ok(blob)
+        let byte = u8::try_from(value & 0x00ff).unwrap();
+        Ok(vec![byte; len])
     }
     /// Convert the BLOB into an array of integers.
     ///
@@ -156,8 +157,7 @@ pub mod blob_functions {
     /// ```
     #[rhai_fn(name = "contains")]
     pub fn contains(blob: &mut Blob, value: INT) -> bool {
-        #[allow(clippy::cast_sign_loss)]
-        blob.contains(&((value & 0x0000_00ff) as u8))
+        blob.contains(&u8::try_from(value & 0x00ff).unwrap())
     }
     /// Get the byte value at the `index` position in the BLOB.
     ///
@@ -227,10 +227,7 @@ pub mod blob_functions {
             return;
         }
 
-        #[allow(clippy::cast_sign_loss)]
-        {
-            blob[index] = (value & 0x0000_00ff) as u8;
-        }
+        blob[index] = u8::try_from(value & 0x00ff).unwrap();
     }
     /// Add a new byte `value` to the end of the BLOB.
     ///
@@ -247,8 +244,7 @@ pub mod blob_functions {
     /// ```
     #[rhai_fn(name = "push", name = "append")]
     pub fn push(blob: &mut Blob, value: INT) {
-        #[allow(clippy::cast_sign_loss)]
-        blob.push((value & 0x0000_00ff) as u8);
+        blob.push(u8::try_from(value & 0x00ff).unwrap());
     }
     /// Add another BLOB to the end of the BLOB.
     ///
@@ -327,20 +323,19 @@ pub mod blob_functions {
     /// print(b);       // prints "[4242184242]"
     /// ```
     pub fn insert(blob: &mut Blob, index: INT, value: INT) {
-        #[allow(clippy::cast_sign_loss)]
-        let value = (value & 0x0000_00ff) as u8;
+        let byte = u8::try_from(value & 0x00ff).unwrap();
 
         if blob.is_empty() {
-            blob.push(value);
+            blob.push(byte);
             return;
         }
 
         let (index, ..) = calc_offset_len(blob.len(), index, 0);
 
         if index >= blob.len() {
-            blob.push(value);
+            blob.push(byte);
         } else {
-            blob.insert(index, value);
+            blob.insert(index, byte);
         }
     }
     /// Pad the BLOB to at least the specified length with copies of a specified byte `value`.
@@ -367,12 +362,10 @@ pub mod blob_functions {
         if len <= 0 {
             return Ok(());
         }
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
 
-        #[allow(clippy::cast_sign_loss)]
-        let value = (value & 0x0000_00ff) as u8;
         let _ctx = ctx;
+
+        let len = usize::try_from(len).unwrap_or(usize::MAX);
 
         // Check if blob will be over max size limit
         #[cfg(not(feature = "unchecked"))]
@@ -384,8 +377,10 @@ pub mod blob_functions {
             .into());
         }
 
+        let byte = u8::try_from(value & 0x00ff).unwrap();
+
         if len > blob.len() {
-            blob.resize(len, value);
+            blob.resize(len, byte);
         }
 
         Ok(())
@@ -491,22 +486,19 @@ pub mod blob_functions {
     /// print(b);           // prints "[010203]"
     /// ```
     pub fn truncate(blob: &mut Blob, len: INT) {
+        if blob.is_empty() {
+            return;
+        }
         if len <= 0 {
             blob.clear();
             return;
         }
-        if blob.is_empty() {
+
+        let Ok(len) = usize::try_from(len) else {
             return;
-        }
+        };
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
-
-        if len > 0 {
-            blob.truncate(len);
-        } else {
-            blob.clear();
-        }
+        blob.truncate(len);
     }
     /// Cut off the head of the BLOB, leaving a tail of the specified length.
     ///
@@ -528,24 +520,19 @@ pub mod blob_functions {
     ///
     /// print(b);           // prints "[030405]"
     /// ```
-    #[allow(
-        clippy::cast_sign_loss,
-        clippy::needless_pass_by_value,
-        clippy::cast_possible_truncation
-    )]
     pub fn chop(blob: &mut Blob, len: INT) {
         if blob.is_empty() {
             return;
         }
-        if len > MAX_USIZE_INT {
-            // len > BLOB length
-            return;
-        }
-
         if len <= 0 {
             blob.clear();
-        } else if (len as usize) < blob.len() {
-            blob.drain(0..blob.len() - len as usize);
+            return;
+        }
+        if let Ok(len) = usize::try_from(len) {
+            if len >= blob.len() {
+                return;
+            }
+            blob.drain(0..blob.len() - len);
         }
     }
     /// Reverse the BLOB.
@@ -988,7 +975,7 @@ mod parse_int_functions {
             return 0;
         }
 
-        let len = usize::min(len, INT_BYTES);
+        let len = len.min(INT_BYTES);
 
         let mut buf = [0_u8; INT_BYTES];
 
@@ -1251,7 +1238,7 @@ mod write_int_functions {
             return;
         }
 
-        let len = usize::min(len, INT_BYTES);
+        let len = len.min(INT_BYTES);
 
         let buf = if is_le {
             value.to_le_bytes()

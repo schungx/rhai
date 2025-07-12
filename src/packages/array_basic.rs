@@ -7,11 +7,11 @@ use crate::plugin::*;
 use crate::types::fn_ptr::FnPtrType;
 use crate::{
     def_package, Array, Dynamic, ExclusiveRange, FnPtr, InclusiveRange, NativeCallContext,
-    Position, RhaiResultOf, ERR, INT, MAX_USIZE_INT,
+    Position, RhaiResultOf, ERR, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{any::TypeId, cmp::Ordering, mem};
+use std::{any::TypeId, cmp::Ordering, convert::TryFrom, mem};
 
 def_package! {
     /// Package of basic array utilities.
@@ -226,13 +226,9 @@ pub mod array_functions {
         len: INT,
         item: Dynamic,
     ) -> RhaiResultOf<()> {
-        if len <= 0 {
+        let Ok(len) = usize::try_from(len) else {
             return Ok(());
-        }
-
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
-
+        };
         if len <= array.len() {
             return Ok(());
         }
@@ -347,16 +343,17 @@ pub mod array_functions {
     /// print(x);       // prints "[1, 2, 3]"
     /// ```
     pub fn truncate(array: &mut Array, len: INT) {
+        if array.is_empty() {
+            return;
+        }
         if len <= 0 {
             array.clear();
             return;
         }
-        if array.is_empty() {
-            return;
-        }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
+        let Ok(len) = usize::try_from(len) else {
+            return;
+        };
 
         if len > 0 {
             array.truncate(len);
@@ -383,20 +380,19 @@ pub mod array_functions {
     /// print(x);       // prints "[3, 4, 5]"
     /// ```
     pub fn chop(array: &mut Array, len: INT) {
+        if array.is_empty() {
+            return;
+        }
         if len <= 0 {
             array.clear();
             return;
         }
-        if array.is_empty() {
+
+        let Ok(len) = usize::try_from(len) else {
             return;
-        }
+        };
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
-
-        if len == 0 {
-            array.clear();
-        } else if len < array.len() {
+        if len < array.len() {
             array.drain(0..array.len() - len);
         }
     }

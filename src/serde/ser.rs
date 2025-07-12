@@ -5,9 +5,9 @@ use serde::ser::{
     Error, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple, SerializeTupleStruct,
 };
 use serde::{Serialize, Serializer};
-use std::fmt;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
+use std::{convert::TryFrom, fmt};
 
 #[cfg(feature = "decimal")]
 use num_traits::FromPrimitive;
@@ -185,12 +185,9 @@ impl Serializer for &mut DynamicSerializer {
 
     #[inline]
     fn serialize_u32(self, v: u32) -> RhaiResultOf<Self::Ok> {
-        #[cfg(not(feature = "only_i32"))]
-        return Ok(Dynamic::from(v as INT));
-
-        #[cfg(feature = "only_i32")]
-        if v <= INT::MAX as u32 {
-            return Ok(Dynamic::from(v as INT));
+        #[allow(irrefutable_let_patterns, clippy::unnecessary_fallible_conversions)]
+        if let Ok(v) = INT::try_from(v) {
+            return Ok(Dynamic::from_int(v));
         }
 
         #[allow(unreachable_code)]
@@ -209,8 +206,8 @@ impl Serializer for &mut DynamicSerializer {
 
     #[inline]
     fn serialize_u64(self, v: u64) -> RhaiResultOf<Self::Ok> {
-        if v <= INT::MAX as u64 {
-            return Ok(Dynamic::from(v as INT));
+        if let Ok(v) = INT::try_from(v) {
+            return Ok(Dynamic::from_int(v));
         }
 
         #[cfg(feature = "decimal")]

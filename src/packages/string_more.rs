@@ -1,11 +1,11 @@
 use crate::plugin::*;
 use crate::{
     def_package, Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, RhaiResultOf,
-    SmartString, INT, MAX_USIZE_INT,
+    SmartString, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{any::TypeId, mem};
+use std::{any::TypeId, convert::TryFrom, mem};
 
 use super::string_basic::{print_with_func, FUNC_TO_STRING};
 
@@ -280,9 +280,10 @@ mod string_functions {
             clear(string);
             return;
         }
+        let Ok(len) = usize::try_from(len) else {
+            return;
+        };
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
         if let Some((index, _)) = string.char_indices().nth(len) {
             let copy = string.make_mut();
             copy.truncate(index);
@@ -358,19 +359,21 @@ mod string_functions {
         if string.is_empty() || len <= 0 {
             return ctx.engine().const_empty_string();
         }
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
+        if let Ok(len) = usize::try_from(len) {
+            if len < string.chars().count() {
+                let s = string.make_mut();
 
-        let mut chars = Vec::<char>::with_capacity(len);
+                let chars = (0..len.min(s.len()))
+                    .filter_map(|_| s.pop())
+                    .collect::<Vec<_>>();
 
-        for _ in 0..len {
-            match string.make_mut().pop() {
-                Some(c) => chars.push(c),
-                None => break,
+                return chars.into_iter().rev().collect::<SmartString>().into();
             }
         }
 
-        chars.into_iter().rev().collect::<SmartString>().into()
+        let mut r = ctx.engine().const_empty_string();
+        mem::swap(string, &mut r);
+        r
     }
 
     /// Convert the string to all upper-case and return it as a new string.
@@ -604,16 +607,11 @@ mod string_functions {
             return -1;
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let start = if start < 0 {
-            let abs_start = start.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_start as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_start) = usize::try_from(start.unsigned_abs()) else {
                 return -1 as INT;
-            }
+            };
 
-            let abs_start = abs_start as usize;
             let chars: Vec<_> = string.chars().collect();
             let num_chars = chars.len();
 
@@ -628,19 +626,19 @@ mod string_functions {
             }
         } else if start == 0 {
             0
-        } else if start > MAX_USIZE_INT || start as usize >= string.chars().count() {
-            return -1 as INT;
+        } else if let Ok(start) = usize::try_from(start) {
+            if start >= string.chars().count() {
+                return -1;
+            }
+            string.chars().take(start).collect::<String>().len()
         } else {
-            string
-                .chars()
-                .take(start as usize)
-                .collect::<String>()
-                .len()
+            return -1;
         };
 
-        string[start..].find(character).map_or(-1 as INT, |index| {
-            string[0..start + index].chars().count() as INT
-        })
+        string[start..]
+            .find(character)
+            .and_then(|index| INT::try_from(string[0..start + index].chars().count()).ok())
+            .unwrap_or(-1)
     }
     /// Find the specified `character` in the string and return the first index where it is found.
     /// If the `character` is not found, `-1` is returned.
@@ -689,16 +687,11 @@ mod string_functions {
             return -1;
         }
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let start = if start < 0 {
-            let abs_start = start.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_start as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_start) = usize::try_from(start.unsigned_abs()) else {
                 return -1 as INT;
-            }
+            };
 
-            let abs_start = abs_start as usize;
             let chars = string.chars().collect::<Vec<_>>();
             let num_chars = chars.len();
 
@@ -713,21 +706,19 @@ mod string_functions {
             }
         } else if start == 0 {
             0
-        } else if start > MAX_USIZE_INT || start as usize >= string.chars().count() {
-            return -1 as INT;
+        } else if let Ok(start) = usize::try_from(start) {
+            if start >= string.chars().count() {
+                return -1;
+            }
+            string.chars().take(start).collect::<String>().len()
         } else {
-            string
-                .chars()
-                .take(start as usize)
-                .collect::<String>()
-                .len()
+            return -1;
         };
 
         string[start..]
             .find(find_string)
-            .map_or(-1 as INT, |index| {
-                string[0..start + index].chars().count() as INT
-            })
+            .and_then(|index| INT::try_from(string[0..start + index].chars().count()).ok())
+            .unwrap_or(-1)
     }
     /// Find the specified `character` in the string and return the first index where it is found.
     /// If the `character` is not found, `-1` is returned.
@@ -771,12 +762,9 @@ mod string_functions {
     /// ```
     pub fn get(string: &str, index: INT) -> Dynamic {
         if index >= 0 {
-            if index > MAX_USIZE_INT {
+            let Ok(index) = usize::try_from(index) else {
                 return Dynamic::UNIT;
-            }
-
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let index = index as usize;
+            };
 
             string
                 .chars()
@@ -784,15 +772,9 @@ mod string_functions {
                 .map_or_else(|| Dynamic::UNIT, Into::into)
         } else {
             // Count from end if negative
-            let abs_index = index.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_index as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_index) = usize::try_from(index.unsigned_abs()) else {
                 return Dynamic::UNIT;
-            }
-
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let abs_index = abs_index as usize;
+            };
 
             string
                 .chars()
@@ -826,12 +808,9 @@ mod string_functions {
     /// ```
     pub fn set(string: &mut ImmutableString, index: INT, character: char) {
         if index >= 0 {
-            if index > MAX_USIZE_INT {
+            let Ok(index) = usize::try_from(index) else {
                 return;
-            }
-
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let index = index as usize;
+            };
 
             *string = string
                 .chars()
@@ -839,15 +818,9 @@ mod string_functions {
                 .map(|(i, ch)| if i == index { character } else { ch })
                 .collect();
         } else {
-            let abs_index = index.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_index as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_index) = usize::try_from(index.unsigned_abs()) else {
                 return;
-            }
-
-            #[allow(clippy::cast_possible_truncation)]
-            let abs_index = abs_index as usize;
+            };
             let string_len = string.chars().count();
 
             if abs_index <= string_len {
@@ -916,7 +889,6 @@ mod string_functions {
     ///
     /// print(text.sub_string(-8, 3));  // prints ", w"
     /// ```
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn sub_string(
         ctx: NativeCallContext,
         string: &str,
@@ -934,15 +906,9 @@ mod string_functions {
         }
 
         let offset = if start < 0 {
-            let abs_start = start.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_start as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_start) = usize::try_from(start.unsigned_abs()) else {
                 return ctx.engine().const_empty_string();
-            }
-
-            #[allow(clippy::cast_possible_truncation)]
-            let abs_start = abs_start as usize;
+            };
 
             chars.extend(string.chars());
 
@@ -951,22 +917,31 @@ mod string_functions {
             } else {
                 chars.len() - abs_start
             }
-        } else if start > MAX_USIZE_INT || start as usize >= string.chars().count() {
-            return ctx.engine().const_empty_string();
+        } else if let Ok(start) = usize::try_from(start) {
+            if start >= string.chars().count() {
+                return ctx.engine().const_empty_string();
+            }
+            start
         } else {
-            start as usize
+            return ctx.engine().const_empty_string();
         };
 
         if chars.is_empty() {
             chars.extend(string.chars());
         }
 
-        let len = len.min(MAX_USIZE_INT) as usize;
-
-        let len = if offset + len > chars.len() {
-            chars.len() - offset
+        let len = if let Ok(len) = usize::try_from(len) {
+            if len
+                .checked_add(offset)
+                .map(|x| x > chars.len())
+                .unwrap_or(true)
+            {
+                chars.len() - offset
+            } else {
+                len
+            }
         } else {
-            len
+            chars.len() - offset
         };
 
         chars
@@ -1068,7 +1043,6 @@ mod string_functions {
     /// print(text);        // prints ", w"
     /// ```
     #[rhai_fn(name = "crop")]
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn crop(ctx: NativeCallContext, string: &mut ImmutableString, start: INT, len: INT) {
         if string.is_empty() {
             return;
@@ -1086,14 +1060,9 @@ mod string_functions {
         }
 
         let offset = if start < 0 {
-            let abs_start = start.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_start as u64 > MAX_USIZE_INT as u64 {
+            let Ok(abs_start) = usize::try_from(start.unsigned_abs()) else {
                 return;
-            }
-
-            let abs_start = abs_start as usize;
+            };
 
             chars.extend(string.chars());
 
@@ -1102,23 +1071,33 @@ mod string_functions {
             } else {
                 chars.len() - abs_start
             }
-        } else if start > MAX_USIZE_INT || start as usize >= string.chars().count() {
+        } else if let Ok(start) = usize::try_from(start) {
+            if start >= string.chars().count() {
+                string.make_mut().clear();
+                return;
+            }
+            start
+        } else {
             string.make_mut().clear();
             return;
-        } else {
-            start as usize
         };
 
         if chars.is_empty() {
             chars.extend(string.chars());
         }
 
-        let len = len.min(MAX_USIZE_INT) as usize;
-
-        let len = if offset + len > chars.len() {
-            chars.len() - offset
+        let len = if let Ok(len) = usize::try_from(len) {
+            if len
+                .checked_add(offset)
+                .map(|x| x > chars.len())
+                .unwrap_or(true)
+            {
+                chars.len() - offset
+            } else {
+                len
+            }
         } else {
-            len
+            chars.len() - offset
         };
 
         let copy = string.make_mut();
@@ -1278,8 +1257,15 @@ mod string_functions {
         if len <= 0 {
             return Ok(());
         }
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
+
+        let Ok(len) = usize::try_from(len) else {
+            return Err(crate::ERR::ErrorDataTooLarge(
+                "Length of string".to_string(),
+                crate::Position::NONE,
+            )
+            .into());
+        };
+
         let _ctx = ctx;
 
         // Check if string will be over max size limit
@@ -1342,8 +1328,14 @@ mod string_functions {
         if len <= 0 {
             return Ok(());
         }
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let len = len.min(MAX_USIZE_INT) as usize;
+        let Ok(len) = usize::try_from(len) else {
+            return Err(crate::ERR::ErrorDataTooLarge(
+                "Length of string".to_string(),
+                crate::Position::NONE,
+            )
+            .into());
+        };
+
         let _ctx = ctx;
 
         // Check if string will be over max size limit
@@ -1474,19 +1466,15 @@ mod string_functions {
         /// print(text.split(-99));     // prints ["", "hello, world!"]
         /// ```
         #[rhai_fn(name = "split")]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         pub fn split_at(ctx: NativeCallContext, string: &mut ImmutableString, index: INT) -> Array {
             if index <= 0 {
-                let abs_index = index.unsigned_abs();
-
-                #[allow(clippy::unnecessary_cast)]
-                if abs_index as u64 > MAX_USIZE_INT as u64 {
+                let Ok(abs_index) = usize::try_from(index.unsigned_abs()) else {
                     return vec![
                         ctx.engine().const_empty_string().into(),
                         string.clone().into(),
                     ];
-                }
-                let abs_index = abs_index as usize;
+                };
+
                 let num_chars = string.chars().count();
 
                 if abs_index > num_chars {
@@ -1499,15 +1487,15 @@ mod string_functions {
                     let prefix_len = prefix.len();
                     vec![prefix.into(), string[prefix_len..].into()]
                 }
-            } else if index > MAX_USIZE_INT {
+            } else if let Ok(index) = usize::try_from(index) {
+                let prefix: String = string.chars().take(index).collect();
+                let prefix_len = prefix.len();
+                vec![prefix.into(), string[prefix_len..].into()]
+            } else {
                 vec![
                     string.clone().into(),
                     ctx.engine().const_empty_string().into(),
                 ]
-            } else {
-                let prefix: String = string.chars().take(index as usize).collect();
-                let prefix_len = prefix.len();
-                vec![prefix.into(), string[prefix_len..].into()]
             }
         }
         /// Return an array containing all the characters of the string.
@@ -1537,9 +1525,9 @@ mod string_functions {
         /// print(text.split());        // prints ["hello,", "world!", "hello,", "foo!"]
         /// ```
         #[rhai_fn(name = "split")]
-        pub fn split_whitespace(string: &str) -> Array {
+        pub fn split_whitespace(string: &mut ImmutableString) -> Array {
             if string.is_empty() {
-                Array::new()
+                vec![string.clone().into()]
             } else {
                 string.split_whitespace().map(Into::into).collect()
             }
@@ -1553,8 +1541,12 @@ mod string_functions {
         ///
         /// print(text.split("ll"));    // prints ["he", "o, world! he", "o, foo!"]
         /// ```
-        pub fn split(string: &str, delimiter: &str) -> Array {
-            string.split(delimiter).map(Into::into).collect()
+        pub fn split(string: &mut ImmutableString, delimiter: &str) -> Array {
+            if string.is_empty() || (!delimiter.is_empty() && !string.contains(delimiter)) {
+                vec![string.clone().into()]
+            } else {
+                string.split(delimiter).map(Into::into).collect()
+            }
         }
         /// Split the string into at most the specified number of `segments` based on a `delimiter` string,
         /// returning an array of the segments.
@@ -1569,14 +1561,16 @@ mod string_functions {
         /// print(text.split("ll", 2));     // prints ["he", "o, world! hello, foo!"]
         /// ```
         #[rhai_fn(name = "split")]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        pub fn splitn(string: &str, delimiter: &str, segments: INT) -> Array {
-            if segments < 1 {
-                return [string.into()].into();
+        pub fn splitn(string: &mut ImmutableString, delimiter: &str, segments: INT) -> Array {
+            if segments <= 1
+                || string.is_empty()
+                || (!delimiter.is_empty() && !string.contains(delimiter))
+            {
+                vec![string.clone().into()]
+            } else {
+                let segments = usize::try_from(segments).unwrap_or(usize::MAX);
+                string.splitn(segments, delimiter).map(Into::into).collect()
             }
-            let segments = segments.min(MAX_USIZE_INT) as usize;
-            let pieces: usize = if segments < 1 { 1 } else { segments };
-            string.splitn(pieces, delimiter).map(Into::into).collect()
         }
         /// Split the string into segments based on a `delimiter` character, returning an array of the segments.
         ///
@@ -1588,8 +1582,12 @@ mod string_functions {
         /// print(text.split('l'));     // prints ["he", "", "o, wor", "d! he", "", "o, foo!"]
         /// ```
         #[rhai_fn(name = "split")]
-        pub fn split_char(string: &str, delimiter: char) -> Array {
-            string.split(delimiter).map(Into::into).collect()
+        pub fn split_char(string: &mut ImmutableString, delimiter: char) -> Array {
+            if string.is_empty() || !string.contains(delimiter) {
+                vec![string.clone().into()]
+            } else {
+                string.split(delimiter).map(Into::into).collect()
+            }
         }
         /// Split the string into at most the specified number of `segments` based on a `delimiter` character,
         /// returning an array of the segments.
@@ -1604,14 +1602,13 @@ mod string_functions {
         /// print(text.split('l', 3));      // prints ["he", "", "o, world! hello, foo!"]
         /// ```
         #[rhai_fn(name = "split")]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        pub fn splitn_char(string: &str, delimiter: char, segments: INT) -> Array {
-            if segments < 1 {
-                return [string.into()].into();
+        pub fn splitn_char(string: &mut ImmutableString, delimiter: char, segments: INT) -> Array {
+            if segments <= 1 || string.is_empty() || !string.contains(delimiter) {
+                [string.clone().into()].into()
+            } else {
+                let segments = usize::try_from(segments).unwrap_or(usize::MAX);
+                string.splitn(segments, delimiter).map(Into::into).collect()
             }
-            let segments = segments.min(MAX_USIZE_INT) as usize;
-            let pieces: usize = if segments < 1 { 1 } else { segments };
-            string.splitn(pieces, delimiter).map(Into::into).collect()
         }
         /// Split the string into segments based on a `delimiter` string, returning an array of the
         /// segments in _reverse_ order.
@@ -1624,8 +1621,12 @@ mod string_functions {
         /// print(text.split_rev("ll"));    // prints ["o, foo!", "o, world! he", "he"]
         /// ```
         #[rhai_fn(name = "split_rev")]
-        pub fn rsplit(string: &str, delimiter: &str) -> Array {
-            string.rsplit(delimiter).map(Into::into).collect()
+        pub fn rsplit(string: &mut ImmutableString, delimiter: &str) -> Array {
+            if string.is_empty() || (!delimiter.is_empty() && !string.contains(delimiter)) {
+                vec![string.clone().into()]
+            } else {
+                string.rsplit(delimiter).map(Into::into).collect()
+            }
         }
         /// Split the string into at most a specified number of `segments` based on a `delimiter` string,
         /// returning an array of the segments in _reverse_ order.
@@ -1640,14 +1641,19 @@ mod string_functions {
         /// print(text.split_rev("ll", 2));     // prints ["o, foo!", "hello, world! he"]
         /// ```
         #[rhai_fn(name = "split_rev")]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        pub fn rsplitn(string: &str, delimiter: &str, segments: INT) -> Array {
-            if segments < 1 {
-                return [string.into()].into();
+        pub fn rsplitn(string: &mut ImmutableString, delimiter: &str, segments: INT) -> Array {
+            if segments <= 1
+                || string.is_empty()
+                || (!delimiter.is_empty() && !string.contains(delimiter))
+            {
+                vec![string.clone().into()]
+            } else {
+                let segments = usize::try_from(segments).unwrap_or(usize::MAX);
+                string
+                    .rsplitn(segments, delimiter)
+                    .map(Into::into)
+                    .collect()
             }
-            let segments = segments.min(MAX_USIZE_INT) as usize;
-            let pieces: usize = if segments < 1 { 1 } else { segments };
-            string.rsplitn(pieces, delimiter).map(Into::into).collect()
         }
         /// Split the string into segments based on a `delimiter` character, returning an array of
         /// the segments in _reverse_ order.
@@ -1660,8 +1666,12 @@ mod string_functions {
         /// print(text.split_rev('l'));     // prints ["o, foo!", "", "d! he", "o, wor", "", "he"]
         /// ```
         #[rhai_fn(name = "split_rev")]
-        pub fn rsplit_char(string: &str, delimiter: char) -> Array {
-            string.rsplit(delimiter).map(Into::into).collect()
+        pub fn rsplit_char(string: &mut ImmutableString, delimiter: char) -> Array {
+            if string.is_empty() || !string.contains(delimiter) {
+                vec![string.clone().into()]
+            } else {
+                string.rsplit(delimiter).map(Into::into).collect()
+            }
         }
         /// Split the string into at most the specified number of `segments` based on a `delimiter` character,
         /// returning an array of the segments.
@@ -1676,14 +1686,16 @@ mod string_functions {
         /// print(text.split('l', 3));      // prints ["o, foo!", "", "hello, world! he"
         /// ```
         #[rhai_fn(name = "split_rev")]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        pub fn rsplitn_char(string: &str, delimiter: char, segments: INT) -> Array {
-            if segments < 1 {
-                return [string.into()].into();
+        pub fn rsplitn_char(string: &mut ImmutableString, delimiter: char, segments: INT) -> Array {
+            if segments <= 1 || string.is_empty() || !string.contains(delimiter) {
+                [string.clone().into()].into()
+            } else {
+                let segments = usize::try_from(segments).unwrap_or(usize::MAX);
+                string
+                    .rsplitn(segments, delimiter)
+                    .map(Into::into)
+                    .collect()
             }
-            let segments = segments.min(MAX_USIZE_INT) as usize;
-            let pieces: usize = if segments < 1 { 1 } else { segments };
-            string.rsplitn(pieces, delimiter).map(Into::into).collect()
         }
     }
 }

@@ -987,24 +987,22 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         }
         // lhs[rhs]
         #[cfg(not(feature = "no_index"))]
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         Expr::Index(x, ..) if !_chaining => match (&mut x.lhs, &mut x.rhs) {
             // array[int]
-            (Expr::Array(a, pos), Expr::IntegerConstant(i, ..)) if *i >= 0 && *i <= crate::MAX_USIZE_INT && (*i as usize) < a.len() && a.iter().all(Expr::is_pure) => {
+            (Expr::Array(a, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(*i).map(|x| x < a.len()).unwrap_or(false) && a.iter().all(Expr::is_pure) => {
                 // Array literal where everything is pure - promote the indexed item.
                 // All other items can be thrown away.
                 state.set_dirty();
-                let mut result = a[*i as usize].take();
+                let mut result = a[usize::try_from(*i).unwrap()].take();
                 result.set_position(*pos);
                 *expr = result;
             }
             // array[-int]
-            #[allow(clippy::unnecessary_cast)]
-            (Expr::Array(a, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && i.unsigned_abs() as u64 <= a.len() as u64 && a.iter().all(Expr::is_pure) => {
+            (Expr::Array(a, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && usize::try_from(i.unsigned_abs()).map(|x| x <= a.len()).unwrap_or(false) && a.iter().all(Expr::is_pure) => {
                 // Array literal where everything is pure - promote the indexed item.
                 // All other items can be thrown away.
                 state.set_dirty();
-                let index = a.len() - i.unsigned_abs() as usize;
+                let index = a.len() - usize::try_from(i.unsigned_abs()).unwrap();
                 let mut result = a[index].take();
                 result.set_position(*pos);
                 *expr = result;
@@ -1018,31 +1016,28 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                             .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
             }
             // int[int]
-            (Expr::IntegerConstant(n, pos), Expr::IntegerConstant(i, ..)) if *i >= 0 && *i <= crate::MAX_USIZE_INT && (*i as usize) < crate::INT_BITS => {
+            (Expr::IntegerConstant(n, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(*i).map(|x| x < crate::INT_BITS).unwrap_or(false) => {
                 // Bit-field literal indexing - get the bit
                 state.set_dirty();
-                *expr = Expr::BoolConstant((*n & (1 << (*i as usize))) != 0, *pos);
+                *expr = Expr::BoolConstant((*n & (1 << usize::try_from(*i).unwrap())) != 0, *pos);
             }
             // int[-int]
-            #[allow(clippy::unnecessary_cast)]
-            (Expr::IntegerConstant(n, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && i.unsigned_abs() as u64 <= crate::INT_BITS as u64 => {
+            (Expr::IntegerConstant(n, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && usize::try_from(i.unsigned_abs()).map(|x| x <= crate::INT_BITS).unwrap_or(false) => {
                 // Bit-field literal indexing - get the bit
                 state.set_dirty();
-                *expr = Expr::BoolConstant((*n & (1 << (crate::INT_BITS - i.unsigned_abs() as usize))) != 0, *pos);
+                *expr = Expr::BoolConstant((*n & (1 << (crate::INT_BITS - usize::try_from(i.unsigned_abs()).unwrap()))) != 0, *pos);
             }
             // string[int]
-            #[allow(clippy::unnecessary_cast)]
-            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if *i >= 0 && *i <= crate::MAX_USIZE_INT && (*i as usize) < s.chars().count() => {
+            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(*i).map(|x| x < s.chars().count()).unwrap_or(false) => {
                 // String literal indexing - get the character
                 state.set_dirty();
-                *expr = Expr::CharConstant(s.chars().nth(*i as usize).unwrap(), *pos);
+                *expr = Expr::CharConstant(s.chars().nth(usize::try_from(*i).unwrap()).unwrap(), *pos);
             }
             // string[-int]
-            #[allow(clippy::unnecessary_cast)]
-            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && i.unsigned_abs() as u64 <= s.chars().count() as u64 => {
+            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(i.unsigned_abs()).map(|x| x <= s.chars().count()).unwrap_or(false) => {
                 // String literal indexing - get the character
                 state.set_dirty();
-                *expr = Expr::CharConstant(s.chars().rev().nth(i.unsigned_abs() as usize - 1).unwrap(), *pos);
+                *expr = Expr::CharConstant(s.chars().rev().nth(usize::try_from(i.unsigned_abs()).unwrap() - 1).unwrap(), *pos);
             }
             // var[rhs] or this[rhs]
             (Expr::Variable(..) | Expr::ThisPtr(..), rhs) => optimize_expr(rhs, state, true),

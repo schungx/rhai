@@ -1,14 +1,13 @@
 use crate::eval::calc_index;
 use crate::plugin::*;
 use crate::FuncRegistration;
-use crate::{
-    def_package, ExclusiveRange, InclusiveRange, RhaiResultOf, ERR, INT, INT_BITS, MAX_USIZE_INT,
-};
+use crate::{def_package, ExclusiveRange, InclusiveRange, RhaiResultOf, ERR, INT, INT_BITS};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
     any::type_name,
     cmp::Ordering,
+    convert::TryFrom,
     fmt::Debug,
     iter::{ExactSizeIterator, FusedIterator},
     ops::{Range, RangeInclusive},
@@ -141,13 +140,16 @@ impl BitRange {
             ERR::ErrorBitFieldBounds(INT_BITS, from, Position::NONE).into()
         })?;
 
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let len = if len < 0 {
             0
-        } else if from + (len as usize) > INT_BITS {
-            INT_BITS - from
+        } else if let Ok(len) = usize::try_from(len) {
+            if len.checked_add(from).map(|x| x > INT_BITS).unwrap_or(true) {
+                INT_BITS - from
+            } else {
+                len
+            }
         } else {
-            len as usize
+            INT_BITS - from
         };
 
         Ok(Self(value >> from, len))
@@ -189,25 +191,26 @@ pub struct CharsStream(IntoIter<char>);
 
 impl CharsStream {
     /// Create a new [`CharsStream`].
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn new(string: &str, from: INT, len: INT) -> Self {
-        if len <= 0 || from > MAX_USIZE_INT {
+        if len <= 0 {
             return Self(Vec::new().into_iter());
         }
-        let len = len.min(MAX_USIZE_INT) as usize;
+        let len = usize::try_from(len).unwrap_or(usize::MAX);
 
         if from >= 0 {
+            let from = usize::try_from(from).unwrap_or(usize::MAX);
+
             return Self(
                 string
                     .chars()
-                    .skip(from as usize)
+                    .skip(from)
                     .take(len)
                     .collect::<Vec<_>>()
                     .into_iter(),
             );
         }
 
-        let abs_from = from.unsigned_abs() as usize;
+        let abs_from = usize::try_from(from.unsigned_abs()).unwrap_or(usize::MAX);
         let num_chars = string.chars().count();
         let offset = if num_chars < abs_from {
             0
@@ -355,7 +358,7 @@ def_package! {
             lib.set_iterable::<crate::Blob>();
         }
         lib.set_iter(TypeId::of::<ImmutableString>(), |value| Box::new(
-            CharsStream::new(value.cast::<ImmutableString>().as_str(), 0, MAX_USIZE_INT).map(Into::into)
+            CharsStream::new(value.cast::<ImmutableString>().as_str(), 0, INT::MAX).map(Into::into)
         ));
 
         // Register iterator types.

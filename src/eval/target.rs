@@ -15,33 +15,24 @@ use std::{
 /// Values going over bounds are limited to the actual length.
 #[cfg(not(feature = "no_index"))]
 #[inline]
-#[allow(
-    clippy::cast_sign_loss,
-    clippy::absurd_extreme_comparisons,
-    clippy::cast_possible_truncation
-)]
 pub fn calc_offset_len(length: usize, start: crate::INT, len: crate::INT) -> (usize, usize) {
     let start = if start < 0 {
-        let abs_start = start.unsigned_abs();
-
-        #[allow(clippy::unnecessary_cast)]
-        if abs_start as u64 > crate::MAX_USIZE_INT as u64 {
-            0
-        } else {
-            length - usize::min(abs_start as usize, length)
-        }
-    } else if start > crate::MAX_USIZE_INT || start as usize >= length {
+        usize::try_from(start.unsigned_abs()).map_or(0, |x| length - usize::min(x, length))
+    } else if usize::try_from(start).map(|x| x >= length).unwrap_or(true) {
         return (length, 0);
     } else {
-        start as usize
+        usize::try_from(start).unwrap()
     };
 
     let len = if len <= 0 {
         0
-    } else if len > crate::MAX_USIZE_INT || len as usize > length - start {
+    } else if usize::try_from(len)
+        .map(|x| x > length - start)
+        .unwrap_or(true)
+    {
         length - start
     } else {
-        len as usize
+        usize::try_from(len).unwrap()
     };
 
     (start, len)
@@ -54,11 +45,6 @@ pub fn calc_offset_len(length: usize, start: crate::INT, len: crate::INT) -> (us
 /// Values going over bounds call the provided closure to return a default value or an error.
 #[inline]
 #[allow(dead_code)]
-#[allow(
-    clippy::cast_sign_loss,
-    clippy::cast_possible_truncation,
-    clippy::absurd_extreme_comparisons
-)]
 pub fn calc_index<E>(
     length: usize,
     index: crate::INT,
@@ -69,15 +55,16 @@ pub fn calc_index<E>(
         // Empty array, do nothing
     } else if index < 0 {
         if negative_count_from_end {
-            let abs_index = index.unsigned_abs();
-
-            #[allow(clippy::unnecessary_cast)]
-            if abs_index as u64 <= crate::MAX_USIZE_INT as u64 && (abs_index as usize) <= length {
-                return Ok(length - (abs_index as usize));
+            if let Ok(abs_index) = usize::try_from(index.unsigned_abs()) {
+                if abs_index <= length {
+                    return Ok(length - abs_index);
+                }
             }
         }
-    } else if index <= crate::MAX_USIZE_INT && (index as usize) < length {
-        return Ok(index as usize);
+    } else if let Ok(index) = usize::try_from(index) {
+        if index < length {
+            return Ok(index);
+        }
     }
 
     err_func()
@@ -361,10 +348,7 @@ impl<'a> Target<'a> {
 
                 let value = &mut *source.write_lock::<crate::Blob>().unwrap();
 
-                #[allow(clippy::cast_sign_loss)]
-                {
-                    value[*index] = (new_byte & 0x00ff) as u8;
-                }
+                value[*index] = u8::try_from(new_byte & 0x00ff).unwrap();
             }
             #[cfg(not(feature = "no_index"))]
             Self::StringChar {

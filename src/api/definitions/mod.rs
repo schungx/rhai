@@ -1,6 +1,5 @@
 //! Module that defines functions to output definition files for [`Engine`].
 #![cfg(feature = "internals")]
-#![cfg(feature = "metadata")]
 
 use crate::module::FuncMetadata;
 use crate::tokenizer::{is_valid_function_name, Token};

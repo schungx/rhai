@@ -16,6 +16,7 @@ Enhancements
 
 * `CustomType` derive macro now supports generic types (thanks [`@ProphetOSpam`](https://github.com/ProphetOSpam) [#999](https://github.com/rhaiscript/rhai/pull/999)). The `rhai_codegen` crate dependency is bumped to `3.0.0` or later.
 * `Engine::eval_binary_op` is added to quickly compare two `Dynamic` values.
+* Better handling for 32-bit architectures.
 
 
 Version 1.22.2
