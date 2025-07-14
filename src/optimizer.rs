@@ -1034,7 +1034,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 *expr = Expr::CharConstant(s.chars().nth(usize::try_from(*i).unwrap()).unwrap(), *pos);
             }
             // string[-int]
-            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(i.unsigned_abs()).map(|x| x <= s.chars().count()).unwrap_or(false) => {
+            (Expr::StringConstant(s, pos), Expr::IntegerConstant(i, ..)) if *i < 0 && usize::try_from(i.unsigned_abs()).map(|x| x <= s.chars().count()).unwrap_or(false) => {
                 // String literal indexing - get the character
                 state.set_dirty();
                 *expr = Expr::CharConstant(s.chars().rev().nth(usize::try_from(i.unsigned_abs()).unwrap() - 1).unwrap(), *pos);
