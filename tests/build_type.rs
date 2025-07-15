@@ -1,5 +1,5 @@
 #![cfg(not(feature = "no_object"))]
-use rhai::{CustomType, Engine, EvalAltResult, Position, TypeBuilder, INT};
+use rhai::{CustomType, Dynamic, Engine, EvalAltResult, Position, TypeBuilder, INT};
 use std::cmp::Ordering;
 
 #[test]
@@ -170,6 +170,7 @@ fn test_build_type_macro() {
         baz: bool,
         #[rhai_type(set = Self::set_hello)]
         hello: String,
+        maybe: Option<bool>,
     }
 
     impl Foo {
@@ -191,6 +192,7 @@ fn test_build_type_macro() {
                 bar: 5,
                 baz: false,
                 hello: "hey".to_string(),
+                maybe: None,
             });
         }
     }
@@ -207,6 +209,7 @@ fn test_build_type_macro() {
                     foo.hello = "world!";
                     foo.emphasize = true;
                     foo.hello = "yo";
+                    foo.maybe = true;
                     foo
                 "#
             )
@@ -215,7 +218,8 @@ fn test_build_type_macro() {
             dummy: 0,
             bar: 5,
             baz: true,
-            hello: "world!yo!!!!!".into()
+            hello: "world!yo!!!!!".into(),
+            maybe: Some(true),
         }
     );
 }

@@ -1,4 +1,4 @@
-use rhai::{CustomType, Engine, TypeBuilder, INT};
+use rhai::{CustomType, Dynamic, Engine, EvalAltResult, Position, TypeBuilder, INT};
 
 // Sanity check to make sure everything compiles
 
@@ -21,6 +21,7 @@ pub struct Foo {
     pub(crate) baz: String,
     #[rhai_type(set = Self::set_qux)]
     pub qux: Vec<INT>,
+    pub maybe: Option<INT>,
 }
 
 impl Foo {

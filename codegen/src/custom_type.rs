@@ -183,6 +183,51 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
     }
 }
 
+// Code lifted from: https://stackoverflow.com/questions/55271857/how-can-i-get-the-t-from-an-optiont-when-using-syn
+fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
+    use syn::{GenericArgument, Path, PathArguments, PathSegment};
+
+    fn extract_type_path(ty: &syn::Type) -> Option<&Path> {
+        match *ty {
+            syn::Type::Path(ref type_path) if type_path.qself.is_none() => Some(&type_path.path),
+            _ => None,
+        }
+    }
+
+    // TODO store (with lazy static) the vec of string
+    // TODO maybe optimization, reverse the order of segments
+    fn extract_option_segment(path: &Path) -> Option<&PathSegment> {
+        let idents_of_path = path
+            .segments
+            .iter()
+            .into_iter()
+            .fold(String::new(), |mut acc, v| {
+                acc.push_str(&v.ident.to_string());
+                acc.push('|');
+                acc
+            });
+        vec!["Option|", "std|option|Option|", "core|option|Option|"]
+            .into_iter()
+            .find(|s| &idents_of_path == *s)
+            .and_then(|_| path.segments.last())
+    }
+
+    extract_type_path(ty)
+        .and_then(|path| extract_option_segment(path))
+        .and_then(|path_seg| {
+            let type_params = &path_seg.arguments;
+            // It should have only on angle-bracketed param ("<String>"):
+            match *type_params {
+                PathArguments::AngleBracketed(ref params) => params.args.first(),
+                _ => None,
+            }
+        })
+        .and_then(|generic_arg| match *generic_arg {
+            GenericArgument::Type(ref ty) => Some(ty),
+            _ => None,
+        })
+}
+
 fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut Vec<TokenStream>) {
     for (i, &field) in fields.iter().enumerate() {
         let mut map_name = None;
@@ -314,21 +359,54 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
             quote! { #index }
         };
 
+        // Handle `Option` fields
+        let option_type = extract_type_from_option(&field.ty);
+
         // Override functions
-        let get = match (get_mut_fn, get_fn) {
+
+        let get_impl = match (get_mut_fn, get_fn) {
             (Some(func), _) => func,
             (None, Some(func)) => quote! { |obj: &mut Self| #func(&*obj) },
-            (None, None) => quote! { |obj: &mut Self| obj.#field_name.clone() },
+            (None, None) => {
+                if let Some(_) = option_type {
+                    quote! { |obj: &mut Self| obj.#field_name.clone().map_or(Dynamic::UNIT, Dynamic::from) }
+                } else {
+                    quote! { |obj: &mut Self| obj.#field_name.clone() }
+                }
+            }
         };
 
-        let set = set_fn.unwrap_or_else(|| quote! { |obj: &mut Self, val| obj.#field_name = val });
+        let set_impl = set_fn.unwrap_or_else(|| {
+            if let Some(typ) = option_type {
+                quote! {
+                    |obj: &mut Self, val: Dynamic| {
+                        if val.is_unit() {
+                            obj.#field_name = None;
+                            Ok(())
+                        } else if let Some(x) = val.read_lock::<#typ>() {
+                            obj.#field_name = Some(x.clone());
+                            Ok(())
+                        } else {
+                            Err(Box::new(EvalAltResult::ErrorMismatchDataType(
+                                stringify!(#typ).to_string(),
+                                val.type_name().to_string(),
+                                Position::NONE
+                            )))
+                        }
+                    }
+                }
+            } else {
+                quote! { |obj: &mut Self, val| obj.#field_name = val }
+            }
+        });
+
         let name = map_name.unwrap_or_else(|| quote! { stringify!(#field_name) });
 
         accessors.push({
             let method = if readonly {
-                quote! { builder.with_get(#name, #get) }
+                quote! { builder.with_get(#name, #get_impl) }
             } else {
-                quote! { builder.with_get_set(#name, #get, #set) }
+                quote! { builder.with_get_set(#name, #get_impl, #set_impl) }
             };
 
             #[cfg(feature = "metadata")]
