@@ -39,7 +39,7 @@ pub struct Mut<T>(T);
 
 /// Dereference into [`DynamicWriteLock`]
 #[inline(always)]
-pub fn by_ref<T: Variant + Clone>(data: &mut Dynamic) -> DynamicWriteLock<T> {
+pub fn by_ref<T: Variant + Clone>(data: &mut Dynamic) -> DynamicWriteLock<'_, T> {
     // Directly cast the &mut Dynamic into DynamicWriteLock to access the underlying data.
     data.write_lock::<T>().unwrap()
 }

@@ -205,7 +205,7 @@ impl FileModuleResolver {
     /// The [scope][Scope] is used for compiling module scripts.
     #[inline(always)]
     #[must_use]
-    pub const fn scope(&self) -> &Scope {
+    pub const fn scope(&self) -> &Scope<'_> {
         &self.scope
     }
 

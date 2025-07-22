@@ -531,7 +531,7 @@ pub fn shared_take<T>(value: Shared<T>) -> T {
 #[inline(always)]
 #[must_use]
 #[allow(dead_code)]
-pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<T>> {
+pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<'_, T>> {
     #[cfg(not(feature = "sync"))]
     return value.try_borrow().ok();
 
@@ -573,7 +573,7 @@ pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<T>> {
 #[inline(always)]
 #[must_use]
 #[allow(dead_code)]
-pub fn locked_write<T>(value: &Locked<T>) -> Option<LockGuardMut<T>> {
+pub fn locked_write<T>(value: &Locked<T>) -> Option<LockGuardMut<'_, T>> {
     #[cfg(not(feature = "sync"))]
     return value.try_borrow_mut().ok();
 

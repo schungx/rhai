@@ -29,7 +29,7 @@ impl Engine {
     /// ```
     #[inline(always)]
     #[must_use]
-    pub fn definitions(&self) -> Definitions {
+    pub fn definitions(&self) -> Definitions<'_> {
         Definitions {
             engine: self,
             scope: None,
@@ -124,7 +124,7 @@ impl Definitions<'_> {
     /// Get the [`Scope`].
     #[inline(always)]
     #[must_use]
-    pub const fn scope(&self) -> Option<&Scope> {
+    pub const fn scope(&self) -> Option<&Scope<'_>> {
         self.scope
     }
     /// Get the configuration.

@@ -33,7 +33,7 @@ pub mod definitions;
 
 pub mod deprecated;
 
-use crate::func::{locked_read, locked_write};
+use crate::func::{locked_read, locked_write, Locked};
 use crate::types::StringsInterner;
 use crate::{Dynamic, Engine, Identifier};
 
@@ -63,7 +63,7 @@ impl Engine {
                 guard.set_max(max);
             }
         } else {
-            self.interned_strings = Some(StringsInterner::new(max).into());
+            self.interned_strings = Some(Locked::new(StringsInterner::new(max)));
         }
         self
     }
