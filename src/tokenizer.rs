@@ -1255,11 +1255,7 @@ pub fn parse_raw_string_literal(
     let mut seen_hashes: Option<usize> = None;
     let mut result = SmartString::new_const();
 
-    loop {
-        let next_char = match stream.get_next() {
-            Some(ch) => ch,
-            None => break, // Allow unterminated string
-        };
+    while let Some(next_char) = stream.get_next() {
         pos.advance();
 
         match (next_char, &mut seen_hashes) {
@@ -1284,7 +1280,7 @@ pub fn parse_raw_string_literal(
             (c, Some(count)) => {
                 // result.reserve(*count as usize +1+c.len());
                 result.push('"');
-                result.extend(repeat('#').take(*count as usize));
+                result.extend(repeat('#').take(*count));
                 result.push(c);
                 seen_hashes = None;
             }
