@@ -491,11 +491,13 @@ impl FuncMetadata {
             first = false;
 
             let (param_name, param_type) = self.params_info.get(i).map_or(("_", "?".into()), |s| {
-                let mut s = s.splitn(2, ':');
+                let (name, typ) = s.split_once(':').unwrap_or((s.trim(), "?"));
                 (
-                    s.next().unwrap_or("_").split(' ').last().unwrap(),
-                    s.next()
-                        .map_or(Cow::Borrowed("?"), |ty| def_type_name(ty, def.engine)),
+                    name.trim().split(' ').last().unwrap().trim(),
+                    match typ.trim() {
+                        "" | "?" => "?".into(),
+                        typ => def_type_name(typ, def.engine),
+                    },
                 )
             });
 

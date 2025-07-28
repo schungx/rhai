@@ -649,7 +649,7 @@ pub mod array_functions {
         for (i, item) in array.iter_mut().enumerate() {
             let ex = [(i as INT).into()];
 
-            let _ = map.call_raw_with_extra_args("map", &ctx, Some(item), [], ex, None)?;
+            let _ = map.call_raw_with_extra_args("for_each", &ctx, Some(item), [], ex, None)?;
         }
 
         Ok(())
