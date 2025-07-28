@@ -390,7 +390,7 @@ impl FnPtr {
     #[inline(always)]
     fn call_raw_with_extra_args<const N: usize, const E: usize>(
         &self,
-        fn_name: &str,
+        caller_fn: &str,
         ctx: &NativeCallContext,
         this_ptr: Option<&mut Dynamic>,
         args: [Dynamic; N],
@@ -399,10 +399,10 @@ impl FnPtr {
     ) -> RhaiResult {
         match move_this_ptr_to_args {
             Some(m) => {
-                self._call_with_extra_args::<true, N, E>(fn_name, ctx, this_ptr, args, extras, m)
+                self._call_with_extra_args::<true, N, E>(caller_fn, ctx, this_ptr, args, extras, m)
             }
             None => {
-                self._call_with_extra_args::<false, N, E>(fn_name, ctx, this_ptr, args, extras, 0)
+                self._call_with_extra_args::<false, N, E>(caller_fn, ctx, this_ptr, args, extras, 0)
             }
         }
     }
@@ -410,7 +410,7 @@ impl FnPtr {
     /// arguments attached.
     fn _call_with_extra_args<const MOVE_PTR: bool, const N: usize, const E: usize>(
         &self,
-        fn_name: &str,
+        caller_fn: &str,
         ctx: &NativeCallContext,
         mut this_ptr: Option<&mut Dynamic>,
         args: [Dynamic; N],
@@ -505,8 +505,8 @@ impl FnPtr {
             })
             .map_err(|err| {
                 Box::new(ERR::ErrorInFunctionCall(
-                    fn_name.to_string(),
-                    ctx.fn_source().unwrap_or("").to_string(),
+                    caller_fn.to_string(),
+                    ctx.call_source().unwrap_or("").to_string(),
                     err,
                     Position::NONE,
                 ))

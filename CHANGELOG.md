@@ -10,12 +10,13 @@ Bug fixes
 * (Fuzzing) Fixed crash when using `..=` in arrays, BLOB's, bit-fields and iterators ([#1004](https://github.com/rhaiscript/rhai/pull/1004)).
 * Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
 * Registered functions for comparison operators with only one operand being a custom type now works properly (thanks [`@mkeeter`](https://github.com/mkeeter) [#1003](https://github.com/rhaiscript/rhai/pull/1003)).
+* `NativeCallContext::fn_source` now correctly returns the source of the function (usually `None`). The missing `NativeCallContext::call_source` is added to return the source of caller (thanks [`@FlashSystems`](https://github.com/FlashSystems) [#1013](https://github.com/rhaiscript/rhai/pull/1013)).
 
 Enhancements
 -----------
 
 * `CustomType` derive macro now supports generic types (thanks [`@ProphetOSpam`](https://github.com/ProphetOSpam) [#999](https://github.com/rhaiscript/rhai/pull/999)). The `rhai_codegen` crate dependency is bumped to `3.0.0` or later.
-* `CustomType` derive macro now handles `Option` fields (thanks [`@agersant`](https://github.com/agersant) [#1005](https://github.com/rhaiscript/rhai/pull/1005)).
+* `CustomType` derive macro now handles `Option` fields (thanks [`@agersant`](https://github.com/agersant) [#1011](https://github.com/rhaiscript/rhai/pull/1011)).
 * `Engine::eval_binary_op` is added to quickly compare two `Dynamic` values.
 * Better handling for 32-bit architectures and enhanced safety by replacing casts with `try_from` (thanks [`@therealprof`](https://github.com/therealprof) [#1009](https://github.com/rhaiscript/rhai/pull/1009)).
 

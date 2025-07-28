@@ -124,7 +124,7 @@ pub fn map_std_type_name(name: &str, shorthands: bool) -> &str {
 /// * `INT` and `FLOAT` are expanded.
 /// * [`RhaiResult`][crate::RhaiResult] and [`RhaiResultOf<T>`][crate::RhaiResultOf] are expanded.
 #[cfg(feature = "metadata")]
-pub fn format_param_type_for_display(typ: &str, is_return_type: bool) -> std::borrow::Cow<str> {
+pub fn format_param_type_for_display(typ: &str, is_return_type: bool) -> std::borrow::Cow<'_, str> {
     const RESULT_TYPE: &str = "Result<";
     const ERROR_TYPE: &str = ",Box<EvalAltResult>>";
     const RHAI_RESULT_TYPE: &str = "RhaiResult";

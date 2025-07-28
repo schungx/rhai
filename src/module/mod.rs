@@ -125,24 +125,21 @@ impl FuncMetadata {
                 .params_info
                 .iter()
                 .map(|param| {
-                    let mut segment = param.splitn(2, ':');
-                    let name = match segment.next().unwrap().trim() {
+                    let (name, typ) = param.split_once(':').unwrap();
+                    let name = match name.trim() {
                         "" => "_",
                         s => s,
                     };
-                    let result: std::borrow::Cow<_> = segment.next().map_or_else(
-                        || name.into(),
-                        |typ| {
-                            format!(
-                                "{name}: {}",
-                                format_param_type_for_display(&type_mapper(typ), false)
-                            )
-                            .into()
-                        },
-                    );
-                    result
+                    match typ.trim() {
+                        "" => name.into(),
+                        typ => format!(
+                            "{name}: {}",
+                            format_param_type_for_display(&type_mapper(typ), false)
+                        )
+                        .into(),
+                    }
                 })
-                .collect::<crate::FnArgsVec<_>>();
+                .collect::<crate::FnArgsVec<std::borrow::Cow<_>>>();
             signature += &params.join(", ");
         }
         signature += ")";

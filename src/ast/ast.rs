@@ -658,7 +658,7 @@ impl AST {
     /// Not available under `no_function`.
     #[cfg(not(feature = "no_function"))]
     #[inline]
-    pub fn iter_functions(&self) -> impl Iterator<Item = super::ScriptFnMetadata> {
+    pub fn iter_functions(&self) -> impl Iterator<Item = super::ScriptFnMetadata<'_>> {
         self.lib
             .iter_script_fn()
             .map(|(.., fn_def)| fn_def.as_ref().into())

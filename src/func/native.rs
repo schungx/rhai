@@ -226,13 +226,19 @@ impl<'a> NativeCallContext<'a> {
     pub const fn fn_name(&self) -> &str {
         self.fn_name
     }
-    /// The current source.
+    /// Source of the function.
     #[inline(always)]
     #[must_use]
     pub const fn fn_source(&self) -> Option<&str> {
         self.source
     }
-    /// [Position] of the function call.
+    /// Source of the caller.
+    #[inline(always)]
+    #[must_use]
+    pub fn call_source(&self) -> Option<&str> {
+        self.global.source.as_deref()
+    }
+    /// [Position] of the function call in the caller.
     #[inline(always)]
     #[must_use]
     pub const fn call_position(&self) -> Position {
@@ -531,7 +537,7 @@ pub fn shared_take<T>(value: Shared<T>) -> T {
 #[inline(always)]
 #[must_use]
 #[allow(dead_code)]
-pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<T>> {
+pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<'_, T>> {
     #[cfg(not(feature = "sync"))]
     return value.try_borrow().ok();
 
@@ -573,7 +579,7 @@ pub fn locked_read<T>(value: &Locked<T>) -> Option<LockGuard<T>> {
 #[inline(always)]
 #[must_use]
 #[allow(dead_code)]
-pub fn locked_write<T>(value: &Locked<T>) -> Option<LockGuardMut<T>> {
+pub fn locked_write<T>(value: &Locked<T>) -> Option<LockGuardMut<'_, T>> {
     #[cfg(not(feature = "sync"))]
     return value.try_borrow_mut().ok();
 

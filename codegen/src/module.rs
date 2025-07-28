@@ -214,7 +214,7 @@ impl Module {
         &self.mod_all.ident
     }
 
-    pub fn exported_name(&self) -> Cow<str> {
+    pub fn exported_name(&self) -> Cow<'_, str> {
         if !self.params.name.is_empty() {
             (&self.params.name).into()
         } else {

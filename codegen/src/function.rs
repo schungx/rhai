@@ -474,7 +474,7 @@ impl ExportedFn {
         literals
     }
 
-    pub fn exported_name(&self) -> Cow<str> {
+    pub fn exported_name(&self) -> Cow<'_, str> {
         self.params
             .name
             .last()

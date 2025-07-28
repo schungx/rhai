@@ -684,29 +684,38 @@ impl Engine {
         ) {
             let separator = crate::engine::NAMESPACE_SEPARATOR;
 
-            if name.contains(separator) {
-                let mut iter = name.splitn(2, separator);
-                let sub_module = iter.next().unwrap().trim();
-                let remainder = iter.next().unwrap().trim();
-
-                if root.is_empty() || !root.contains_key(sub_module) {
-                    let mut m = Module::new();
-                    register_static_module_raw(m.get_sub_modules_mut(), remainder, module);
-                    m.build_index();
-                    root.insert(sub_module.into(), m.into());
+            if let Some((top_namespace, remainder)) = name
+                .split_once(separator)
+                .map(|(a, b)| (a.trim(), b.trim()))
+            {
+                let mut m = if root.is_empty() || !root.contains_key(top_namespace) {
+                    Module::new()
                 } else {
-                    let m = root.remove(sub_module).unwrap();
-                    let mut m = crate::func::shared_take_or_clone(m);
-                    register_static_module_raw(m.get_sub_modules_mut(), remainder, module);
-                    m.build_index();
-                    root.insert(sub_module.into(), m.into());
+                    crate::func::shared_take_or_clone(root.remove(top_namespace).unwrap())
+                };
+                register_static_module_raw(m.get_sub_modules_mut(), remainder, module);
+                m.build_index();
+                if m.id().is_none() {
+                    m.set_id(top_namespace);
                 }
+                root.insert(top_namespace.into(), m.into());
             } else if module.is_indexed() {
+                let module = if module.id().is_none() {
+                    // Make a clone copy if the module does not have an ID
+                    let mut m = crate::func::shared_take_or_clone(module);
+                    m.set_id(name);
+                    m.into()
+                } else {
+                    module
+                };
                 root.insert(name.into(), module);
             } else {
                 // Index the module (making a clone copy if necessary) if it is not indexed
                 let mut module = crate::func::shared_take_or_clone(module);
                 module.build_index();
+                if module.id().is_none() {
+                    module.set_id(name);
+                }
                 root.insert(name.into(), module.into());
             }
         }

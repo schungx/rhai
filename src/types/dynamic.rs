@@ -1788,7 +1788,7 @@ impl Dynamic {
     ///
     /// These normally shouldn't occur since most operations in Rhai are single-threaded.
     #[inline]
-    pub fn read_lock<T: Any + Clone>(&self) -> Option<DynamicReadLock<T>> {
+    pub fn read_lock<T: Any + Clone>(&self) -> Option<DynamicReadLock<'_, T>> {
         match self.0 {
             #[cfg(not(feature = "no_closure"))]
             Union::Shared(ref cell, ..) => {
@@ -1824,7 +1824,7 @@ impl Dynamic {
     ///
     /// These normally shouldn't occur since most operations in Rhai are single-threaded.
     #[inline]
-    pub fn write_lock<T: Any + Clone>(&mut self) -> Option<DynamicWriteLock<T>> {
+    pub fn write_lock<T: Any + Clone>(&mut self) -> Option<DynamicWriteLock<'_, T>> {
         match self.0 {
             #[cfg(not(feature = "no_closure"))]
             Union::Shared(ref cell, ..) => {
