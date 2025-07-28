@@ -10,6 +10,7 @@ Bug fixes
 * (Fuzzing) Fixed crash when using `..=` in arrays, BLOB's, bit-fields and iterators ([#1004](https://github.com/rhaiscript/rhai/pull/1004)).
 * Modules loaded within a `ModuleResolversCollection` now properly enable access to the `scope` etc.
 * Registered functions for comparison operators with only one operand being a custom type now works properly (thanks [`@mkeeter`](https://github.com/mkeeter) [#1003](https://github.com/rhaiscript/rhai/pull/1003)).
+* `NativeCallContext::fn_source` now correctly returns the source of the function (usually `None`). The missing `NativeCallContext::call_source` is added to return the source of caller (thanks [`@FlashSystems`](https://github.com/FlashSystems) [#1013](https://github.com/rhaiscript/rhai/pull/1013)).
 
 Enhancements
 -----------

@@ -226,13 +226,19 @@ impl<'a> NativeCallContext<'a> {
     pub const fn fn_name(&self) -> &str {
         self.fn_name
     }
-    /// The current source.
+    /// Source of the function.
     #[inline(always)]
     #[must_use]
     pub const fn fn_source(&self) -> Option<&str> {
         self.source
     }
-    /// [Position] of the function call.
+    /// Source of the caller.
+    #[inline(always)]
+    #[must_use]
+    pub fn call_source(&self) -> Option<&str> {
+        self.global.source.as_deref()
+    }
+    /// [Position] of the function call in the caller.
     #[inline(always)]
     #[must_use]
     pub const fn call_position(&self) -> Position {

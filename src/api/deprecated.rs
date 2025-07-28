@@ -435,22 +435,28 @@ impl NativeCallContext<'_> {
         unimplemented!("`NativeCallContext::new` is deprecated");
     }
 
-    /// The current source.
+    /// Source of the current function.
     ///
     /// # Deprecated
     ///
     /// This method is deprecated.
     /// Use [`fn_source`][NativeCallContext::fn_source] instead.
     ///
+    /// To get the source of the caller, use [`call_source`][NativeCallContext::call_source].
+    ///
     /// This method will be removed in the next major version.
     #[inline(always)]
     #[must_use]
-    #[deprecated(since = "1.22.0", note = "use `fn_source` instead.")]
+    #[deprecated(
+        since = "1.22.0",
+        note = "use `fn_source` instead, or `call_source` for the source of the caller."
+    )]
     pub const fn source(&self) -> Option<&str> {
         self.fn_source()
     }
 
-    /// [Position] of the function call.
+    /// [Position] of the function call in the caller.
+    ///
     /// # Deprecated
     ///
     /// This method is deprecated.
