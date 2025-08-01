@@ -125,13 +125,13 @@ impl FuncMetadata {
                 .params_info
                 .iter()
                 .map(|param| {
-                    let (name, typ) = param.split_once(':').unwrap();
+                    let (name, typ) = param.split_once(':').unwrap_or((param, ""));
                     let name = match name.trim() {
-                        "" => "_",
+                        "" | "?" | "_" => "_",
                         s => s,
                     };
                     match typ.trim() {
-                        "" => name.into(),
+                        "" | "?" | "_" => name.into(),
                         typ => format!(
                             "{name}: {}",
                             format_param_type_for_display(&type_mapper(typ), false)
