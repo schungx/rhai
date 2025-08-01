@@ -491,11 +491,11 @@ impl FuncMetadata {
             first = false;
 
             let (param_name, param_type) = self.params_info.get(i).map_or(("_", "?".into()), |s| {
-                let (name, typ) = s.split_once(':').unwrap_or((s.trim(), "?"));
+                let (name, typ) = s.split_once(':').unwrap_or((s, ""));
                 (
                     name.trim().split(' ').last().unwrap().trim(),
                     match typ.trim() {
-                        "" | "?" => "?".into(),
+                        "" | "?" | "_" => "?".into(),
                         typ => def_type_name(typ, def.engine),
                     },
                 )

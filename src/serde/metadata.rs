@@ -145,11 +145,16 @@ impl<'a> From<(&'a RhaiFunc, &'a FuncMetadata)> for FnMetadata<'a> {
                 .params_info
                 .iter()
                 .map(|s| {
-                    let (name, typ) = s.split_once(':').unwrap();
+                    let (name, typ) = s.split_once(':').unwrap_or((s.trim(), ""));
                     FnParam {
-                        name: (name.trim() != "_").then_some(name),
-                        typ: (!typ.trim().is_empty())
-                            .then(|| format_param_type_for_display(typ, false)),
+                        name: match name.trim() {
+                            "" | "?" | "_" => None,
+                            s => Some(s),
+                        },
+                        typ: match typ.trim() {
+                            "" | "?" | "_" => None,
+                            typ => Some(format_param_type_for_display(typ, false).into()),
+                        },
                     }
                 })
                 .collect(),
