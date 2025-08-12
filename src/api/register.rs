@@ -755,7 +755,7 @@ impl Engine {
             self.global_modules
                 .iter()
                 .skip(1)
-                .filter(|m| !m.is_internal() && (include_standard_packages || !m.is_standard_lib()))
+                .filter(|m| include_standard_packages || !m.is_standard_lib())
                 .flat_map(|m| m.gen_fn_signatures_with_mapper(|s| self.format_param_type(s))),
         );
 
@@ -824,7 +824,7 @@ impl Engine {
 
         self.global_modules
             .iter()
-            .filter(|m| !m.is_internal() && (include_standard_packages || !m.is_standard_lib()))
+            .filter(|m| include_standard_packages || !m.is_standard_lib())
             .flat_map(|m| m.iter_fn())
             .filter_map(|(_func, f)| {
                 mapper(crate::module::FuncInfo {
