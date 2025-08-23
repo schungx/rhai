@@ -1505,9 +1505,8 @@ impl Engine {
                 if self.custom_syntax.contains_key(&**key) =>
             {
                 let (key, syntax) = self.custom_syntax.get_key_value(&**key).unwrap();
-                let (.., pos) = state.input.next().unwrap();
-                let settings = settings.level_up_with_position(pos)?;
-                self.parse_custom_syntax(state, settings, key, syntax)?
+                let _ = state.input.next().unwrap();
+                self.parse_custom_syntax(state, settings.level_up()?, key, syntax)?
             }
 
             // Identifier
@@ -2441,7 +2440,7 @@ impl Engine {
     fn parse_custom_syntax(
         &self,
         state: &mut ParseState,
-        mut settings: ParseSettings,
+        settings: ParseSettings,
         key: impl Into<ImmutableString>,
         syntax: &crate::api::custom_syntax::CustomSyntax,
     ) -> ParseResult<Expr> {
@@ -2451,7 +2450,7 @@ impl Engine {
         const KEYWORD_SEMICOLON: &str = Token::SemiColon.literal_syntax();
         const KEYWORD_CLOSE_BRACE: &str = Token::RightBrace.literal_syntax();
 
-        let pos = settings.pos;
+        let key_pos = settings.pos;
 
         let mut inputs = FnArgsVec::new();
         let mut segments = FnArgsVec::new();
@@ -2461,8 +2460,10 @@ impl Engine {
         if syntax.scope_may_be_changed {
             // Add a barrier variable to the stack so earlier variables will not be matched.
             // Variable searches stop at the first barrier.
-            let marker = self.get_interned_string(SCOPE_SEARCH_BARRIER_MARKER);
-            state.stack.push(marker, ());
+            state.stack.push_constant_dynamic(
+                self.get_interned_string(SCOPE_SEARCH_BARRIER_MARKER),
+                Dynamic::UNIT,
+            );
         }
 
         let mut user_state = Dynamic::UNIT;
@@ -2473,24 +2474,50 @@ impl Engine {
         segments.push(required_token.clone());
 
         loop {
-            let (fwd_token, fwd_pos) = state.input.peek().unwrap();
-            settings.pos = *fwd_pos;
+            let (fwd_token, fwd_pos) = if syntax.use_look_ahead {
+                let (token, pos) = state.input.peek().unwrap();
+                (token.to_string(), *pos)
+            } else {
+                (String::new(), settings.pos)
+            };
+
             let settings = settings.level_up()?;
 
-            required_token = match parse_func(&segments, &fwd_token.to_string(), &mut user_state) {
+            required_token = match parse_func(&segments, &fwd_token, &mut user_state) {
                 Ok(Some(seg))
                     if seg.starts_with(CUSTOM_SYNTAX_MARKER_SYNTAX_VARIANT)
                         && seg.len() > CUSTOM_SYNTAX_MARKER_SYNTAX_VARIANT.len() =>
                 {
-                    inputs.push(Expr::StringConstant(self.get_interned_string(seg), pos));
+                    inputs.push(Expr::StringConstant(self.get_interned_string(seg), key_pos));
                     break;
+                }
+                Ok(Some(seg)) if syntax.use_look_ahead && seg == CUSTOM_SYNTAX_MARKER_RAW => {
+                    // If using look-ahead, the next token is always a symbol
+                    self.get_interned_string(CUSTOM_SYNTAX_MARKER_SYMBOL)
                 }
                 Ok(Some(seg)) => seg,
                 Ok(None) => break,
-                Err(err) => return Err(err.0.into_err(settings.pos)),
+                Err(err) => return Err(err.0.into_err(fwd_pos)),
             };
 
             match required_token.as_str() {
+                CUSTOM_SYNTAX_MARKER_RAW => {
+                    {
+                        state.tokenizer_control.borrow_mut().in_char_mode = true;
+                    }
+
+                    match state.input.next().unwrap() {
+                        (Token::EOF, _) => break,
+                        (Token::UnprocessedRawChar(ch), _) => {
+                            segments.push(ch.to_string().into());
+
+                            if tokens.last().unwrap() != CUSTOM_SYNTAX_MARKER_RAW {
+                                tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_RAW));
+                            }
+                        }
+                        _ => unreachable!(),
+                    }
+                }
                 CUSTOM_SYNTAX_MARKER_IDENT => {
                     let (name, pos) = parse_var_name(state.input)?;
                     let name = self.get_interned_string(name);
@@ -2544,12 +2571,13 @@ impl Engine {
                 },
                 #[cfg(not(feature = "no_function"))]
                 CUSTOM_SYNTAX_MARKER_FUNC => {
-                    let skip = match fwd_token {
-                        Token::Or | Token::Pipe => false,
-                        Token::LeftBrace => true,
-                        _ => {
-                            return Err(PERR::MissingSymbol("Expecting '{' or '|'".into())
-                                .into_err(*fwd_pos))
+                    let skip = match state.input.peek().unwrap() {
+                        (Token::Or | Token::Pipe, _) => false,
+                        (Token::LeftBrace, _) => true,
+                        (_, pos) => {
+                            return Err(
+                                PERR::MissingSymbol("Expecting '{' or '|'".into()).into_err(*pos)
+                            )
                         }
                     };
                     inputs.push(self.parse_anon_fn(state, settings, skip)?);
@@ -2652,7 +2680,7 @@ impl Engine {
                 self_terminated,
             }
             .into(),
-            pos,
+            key_pos,
         ))
     }
 

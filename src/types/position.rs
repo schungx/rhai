@@ -76,8 +76,6 @@ impl Position {
     #[inline]
     pub(crate) fn advance(&mut self) {
         assert!(!self.is_none(), "cannot advance Position::NONE");
-
-        // Advance up to maximum position
         self.pos = self.pos.saturating_add(1);
     }
     /// Go backwards by one character position.
@@ -89,7 +87,7 @@ impl Position {
     pub(crate) fn rewind(&mut self) {
         assert!(!self.is_none(), "cannot rewind Position::NONE");
         assert!(self.pos > 0, "cannot rewind at position 0");
-        self.pos -= 1;
+        self.pos = self.pos.saturating_sub(1);
     }
     /// Advance to the next line.
     #[inline]
@@ -97,10 +95,8 @@ impl Position {
         assert!(!self.is_none(), "cannot advance Position::NONE");
 
         // Advance up to maximum position
-        if self.line < u16::MAX {
-            self.line += 1;
-            self.pos = 0;
-        }
+        self.line = self.line.saturating_add(1);
+        self.pos = 0;
     }
     /// Is this [`Position`] at the beginning of a line?
     ///
