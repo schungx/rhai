@@ -433,14 +433,14 @@ fn test_custom_syntax_raw2() {
 }
 
 #[test]
-fn test_custom_syntax_raw_sql() {
+fn test_custom_syntax_raw_interpolation() {
     let mut engine = Engine::new();
 
-    engine.register_custom_syntax_with_state_raw(
+    engine.register_custom_syntax_without_look_ahead_raw(
         "SELECT",
-        |symbols, lookahead, state| {
-            // Build a SQL statement as the state
-            let mut sql: String = if state.is_unit() { Default::default() } else { state.take().cast::<ImmutableString>().into() };
+        |symbols, state| {
+            // Build a text string as the state
+            let mut text: String = if state.is_unit() { Default::default() } else { state.take().cast::<ImmutableString>().into() };
 
             // At every iteration, the last symbol is the new one
             let r = match symbols.last().unwrap().as_str() {
@@ -448,38 +448,28 @@ fn test_custom_syntax_raw_sql() {
                 ";" => None,
                 // Variable substitution -- parse the following as a block
                 "$" => Some("$block$".into()),
-                // Block parsed, replace it with `?` as SQL parameter
+                // Block parsed, replace it with `?` as parameter
                 "$block$" => {
-                    if !sql.is_empty() {
-                        sql.push(' ');
-                    }
-                    sql.push('?');
-                    Some(lookahead.into()) // Always accept the next token
+                    text.push('?');
+                    Some("$raw$".into())
                 }
                 // Otherwise simply concat the tokens
                 _ => {
-                    if !sql.is_empty() {
-                        sql.push(' ');
-                    }
-                    sql.push_str(symbols.last().unwrap().as_str());
-                    Some(lookahead.into()) // Always accept the next token
+                    text.push_str(symbols.last().unwrap().as_str());
+                    Some("$raw$".into())
                 }
             };
 
             // SQL statement done!
-            *state = sql.into();
+            *state = text.into();
 
-            match lookahead {
-                // End of script?
-                "{EOF}" => Ok(None),
-                _ => Ok(r),
-            }
+            Ok(r)
         },
         false,
         |context, inputs, state| {
-            // Our SQL statement
-            let sql = state.as_immutable_string_ref().unwrap();
-            let mut output = sql.to_string();
+            // Our text
+            let text = state.as_immutable_string_ref().unwrap();
+            let mut output = text.to_string();
 
             // Inputs will be parameters
             for input in inputs {
@@ -495,5 +485,5 @@ fn test_custom_syntax_raw_sql() {
     let mut scope = Scope::new();
     scope.push("id", 123 as INT);
 
-    assert_eq!(engine.eval_with_scope::<String>(&mut scope, "SELECT * FROM table WHERE id = ${id}").unwrap(), "SELECT * FROM table WHERE id = ?\n123");
+    assert_eq!(engine.eval_with_scope::<String>(&mut scope, "SELECT  *   FROM   //table//  WHERE  id=${id}").unwrap(), "SELECT  *   FROM   //table//  WHERE  id=?\n123");
 }

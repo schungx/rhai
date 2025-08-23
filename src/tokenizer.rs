@@ -5,6 +5,8 @@ use rhai_codegen::expose_under_internals;
 use crate::engine::Precedence;
 use crate::func::native::OnParseTokenCallback;
 use crate::{Engine, Identifier, LexError, Position, SmartString, StaticVec, INT, UNSIGNED_INT};
+#[cfg(not(feature = "no_custom_syntax"))]
+use core::fmt::Write;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -22,6 +24,9 @@ pub struct TokenizerControlBlock {
     ///
     /// This flag allows switching the tokenizer back to _text_ parsing after an interpolation stream.
     pub is_within_text: bool,
+    /// Return the next character in the input stream instead of the next token?
+    #[cfg(not(feature = "no_custom_syntax"))]
+    pub in_char_mode: bool,
     /// Global comments.
     #[cfg(feature = "metadata")]
     pub global_comments: String,
@@ -38,6 +43,8 @@ impl TokenizerControlBlock {
     pub const fn new() -> Self {
         Self {
             is_within_text: false,
+            #[cfg(not(feature = "no_custom_syntax"))]
+            in_char_mode: false,
             #[cfg(feature = "metadata")]
             global_comments: String::new(),
             compressed: None,
@@ -271,6 +278,11 @@ pub enum Token {
     /// Not available under `no_custom_syntax`.
     #[cfg(not(feature = "no_custom_syntax"))]
     Custom(Box<Identifier>),
+    /// A single character from the input stream, unprocessed.
+    ///
+    /// Not available under `no_custom_syntax`.
+    #[cfg(not(feature = "no_custom_syntax"))]
+    UnprocessedRawChar(char),
     /// End of the input stream.
     /// Used as a placeholder for the end of input.
     EOF,
@@ -295,6 +307,8 @@ impl fmt::Display for Token {
             Reserved(s) => f.write_str(s),
             #[cfg(not(feature = "no_custom_syntax"))]
             Custom(s) => f.write_str(s),
+            #[cfg(not(feature = "no_custom_syntax"))]
+            UnprocessedRawChar(c) => f.write_char(*c),
             LexError(err) => write!(f, "{err}"),
             Comment(s) => f.write_str(s),
 
@@ -2631,7 +2645,7 @@ impl<'a> Iterator for TokenIterator<'a> {
     type Item = (Token, Position);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (within_interpolated, compress_script) = {
+        let (within_interpolated, _char_mode, compress_script) = {
             let control = &mut *self.state.tokenizer_control.borrow_mut();
 
             if control.is_within_text {
@@ -2641,11 +2655,31 @@ impl<'a> Iterator for TokenIterator<'a> {
                 control.is_within_text = false;
             }
 
+            // Check if in single-character mode
+            #[cfg(not(feature = "no_custom_syntax"))]
+            let in_char_mode = std::mem::take(&mut control.in_char_mode);
+
             (
                 self.state.is_within_text_terminated_by.is_some(),
+                #[cfg(not(feature = "no_custom_syntax"))]
+                in_char_mode,
+                #[cfg(feature = "no_custom_syntax")]
+                false,
                 control.compressed.is_some(),
             )
         };
+
+        #[cfg(not(feature = "no_custom_syntax"))]
+        if _char_mode {
+            if let Some(ch) = self.stream.get_next() {
+                let pos = self.pos;
+                match ch {
+                    '\n' => self.pos.new_line(),
+                    _ => self.pos.advance(),
+                }
+                return Some((Token::UnprocessedRawChar(ch), pos));
+            }
+        }
 
         let (token, pos) = match get_next_token(&mut self.stream, &mut self.state, &mut self.pos) {
             // {EOF}

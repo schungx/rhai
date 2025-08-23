@@ -22,6 +22,8 @@ pub mod markers {
     /// Special marker for matching a function body.
     #[cfg(not(feature = "no_function"))]
     pub const CUSTOM_SYNTAX_MARKER_FUNC: &str = "$func$";
+    /// Special marker for matching a single character from the input stream.
+    pub const CUSTOM_SYNTAX_MARKER_RAW: &str = "$raw$";
     /// Special marker for matching an identifier.
     pub const CUSTOM_SYNTAX_MARKER_IDENT: &str = "$ident$";
     /// Special marker for matching a single symbol.
@@ -183,6 +185,8 @@ pub struct CustomSyntax {
     pub func: Box<FnCustomSyntaxEval>,
     /// Any variables added/removed in the scope?
     pub scope_may_be_changed: bool,
+    /// Is look-ahead enabled when parsing this custom syntax?
+    pub use_look_ahead: bool,
 }
 
 impl Engine {
@@ -240,6 +244,14 @@ impl Engine {
             });
 
             let seg = match s {
+                CUSTOM_SYNTAX_MARKER_RAW => {
+                    return Err(LexError::ImproperSymbol(
+                        String::new(),
+                        "`register_custom_syntax` does not support `$raw$`".to_string(),
+                    )
+                    .into_err(Position::NONE));
+                }
+
                 // Markers not in first position
                 CUSTOM_SYNTAX_MARKER_IDENT
                 | CUSTOM_SYNTAX_MARKER_SYMBOL
@@ -369,7 +381,7 @@ impl Engine {
     /// ## Return value
     ///
     /// * `Ok(None)`: parsing complete and there are no more symbols to match.
-    /// * `Ok(Some(symbol))`: the next symbol to match, which can also be `$expr$`, `$ident$` or `$block$`.
+    /// * `Ok(Some(symbol))`: the next symbol to match, which can also be `$expr$`, `$ident$` or `$block$` etc.
     /// * `Err(ParseError)`: error that is reflected back to the [`Engine`], normally `ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), Position::NONE)` to indicate a syntax error, but it can be any [`ParseError`][crate::ParseError].
     pub fn register_custom_syntax_with_state_raw(
         &mut self,
@@ -386,9 +398,62 @@ impl Engine {
                 parse: Box::new(parse),
                 func: Box::new(func),
                 scope_may_be_changed,
+                use_look_ahead: true,
             }
             .into(),
         );
+        self
+    }
+    /// Register a custom syntax with the [`Engine`] with custom user-defined state,
+    /// but with no look-ahead.  This enables the usage of `$raw$` to process raw script
+    /// text character-by-character, by-passing the tokenizer.
+    ///
+    /// Not available under `no_custom_syntax`.
+    ///
+    /// # WARNING - Low Level API
+    ///
+    /// This function is very low level.
+    ///
+    /// * `scope_may_be_changed` specifies variables have been added/removed by this custom syntax.
+    /// * `parse` is the parsing function.
+    /// * `func` is the implementation function.
+    ///
+    /// # Parsing Function Signature
+    ///
+    /// The parsing function has the following signature:
+    ///
+    /// `Fn(symbols: &[ImmutableString], state: &mut Dynamic) -> Result<Option<ImmutableString>, ParseError>`
+    ///
+    /// where:
+    /// * `symbols`: a slice of symbols that have been parsed so far, possibly containing `$expr$` and/or `$block$`;
+    ///   `$ident$` and other literal markers are replaced by the actual text
+    /// * `state`: a [`Dynamic`] value that contains a user-defined state
+    ///
+    /// ## Return value
+    ///
+    /// * `Ok(None)`: parsing complete and there are no more symbols to match.
+    /// * `Ok(Some(symbol))`: the next symbol to match, which can also be `$expr$`, `$ident$` or `$block$` etc.
+    ///    `$raw$` can be returned such that the next character in the script text is returned without any processing.
+    /// * `Err(ParseError)`: error that is reflected back to the [`Engine`], normally `ParseError(ParseErrorType::BadInput(LexError::ImproperSymbol(message)), Position::NONE)` to indicate a syntax error, but it can be any [`ParseError`][crate::ParseError].
+    pub fn register_custom_syntax_without_look_ahead_raw(
+        &mut self,
+        key: impl Into<Identifier>,
+        parse: impl Fn(&[ImmutableString], &mut Dynamic) -> ParseResult<Option<ImmutableString>>
+            + SendSync
+            + 'static,
+        scope_may_be_changed: bool,
+        func: impl Fn(&mut EvalContext, &[Expression], &Dynamic) -> RhaiResult + SendSync + 'static,
+    ) -> &mut Self {
+        let key = key.into();
+
+        self.register_custom_syntax_with_state_raw(
+            key.clone(),
+            move |symbols, _, state| parse(symbols, state),
+            scope_may_be_changed,
+            func,
+        );
+
+        self.custom_syntax.get_mut(&key).unwrap().use_look_ahead = false;
         self
     }
 }
