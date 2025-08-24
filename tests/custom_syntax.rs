@@ -436,9 +436,13 @@ fn test_custom_syntax_raw2() {
 fn test_custom_syntax_raw_interpolation() {
     let mut engine = Engine::new();
 
+    let raw: ImmutableString = "$raw$".into();
+    let inner: ImmutableString = "$inner$".into();
+    let ident: ImmutableString = "$ident$".into();
+
     engine.register_custom_syntax_without_look_ahead_raw(
         "SELECT",
-        |symbols, state| {
+        move |symbols, state| {
             // Build a text string as the state
             let mut text: String = if state.is_unit() { Default::default() } else { state.take().cast::<ImmutableString>().into() };
 
@@ -447,16 +451,27 @@ fn test_custom_syntax_raw_interpolation() {
                 // Terminate parsing when we see `;`
                 ";" => None,
                 // Variable substitution -- parse the following as a block
-                "$" => Some("$block$".into()),
+                "{" => Some(inner.clone()),
                 // Block parsed, replace it with `?` as parameter
-                "$block$" => {
+                "$inner$" => {
                     text.push('?');
-                    Some("$raw$".into())
+                    Some(raw.clone())
+                }
+                // Variable substitution -- parse the following as an identifier
+                "@" => {
+                    text.push('@');
+                    Some(ident.clone())
+                }
+                // Variable parsed, replace it with `?` as parameter
+                _ if text.ends_with('@') => {
+                    let _ = text.pop().unwrap();
+                    text.push('?');
+                    Some(raw.clone())
                 }
                 // Otherwise simply concat the tokens
-                _ => {
-                    text.push_str(symbols.last().unwrap().as_str());
-                    Some("$raw$".into())
+                s => {
+                    text.push_str(s);
+                    Some(raw.clone())
                 }
             };
 
@@ -484,6 +499,12 @@ fn test_custom_syntax_raw_interpolation() {
 
     let mut scope = Scope::new();
     scope.push("id", 123 as INT);
+    scope.push("max", 42 as INT);
 
-    assert_eq!(engine.eval_with_scope::<String>(&mut scope, "SELECT  *   FROM   //table//  WHERE  id=${id}").unwrap(), "SELECT  *   FROM   //table//  WHERE  id=?\n123");
+    assert_eq!(
+        engine
+            .eval_with_scope::<String>(&mut scope, "SELECT  *   FROM   //table//  WHERE  id={id} AND   value <= @max")
+            .unwrap(),
+        "SELECT  *   FROM   //table//  WHERE  id=? AND   value <= ?\n123\n42"
+    );
 }
