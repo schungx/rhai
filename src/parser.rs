@@ -1360,7 +1360,7 @@ impl Engine {
 
             // { - block statement as expression
             Token::LeftBrace if settings.has_option(LangOptions::STMT_EXPR) => {
-                match self.parse_block(state, settings.level_up()?)? {
+                match self.parse_block(state, settings.level_up()?, false)? {
                     block @ Stmt::Block(..) => Expr::Stmt(Box::new(block.into())),
                     stmt => unreachable!("Stmt::Block expected but gets {:?}", stmt),
                 }
@@ -1443,7 +1443,7 @@ impl Engine {
                 }
 
                 loop {
-                    let expr = match self.parse_block(state, settings)? {
+                    let expr = match self.parse_block(state, settings, false)? {
                         block @ Stmt::Block(..) => Expr::Stmt(Box::new(block.into())),
                         stmt => unreachable!("Stmt::Block expected but gets {:?}", stmt),
                     };
@@ -2493,7 +2493,7 @@ impl Engine {
                 }
                 Ok(Some(seg)) if syntax.use_look_ahead && seg == CUSTOM_SYNTAX_MARKER_RAW => {
                     // If using look-ahead, the next token is always a symbol
-                    self.get_interned_string(CUSTOM_SYNTAX_MARKER_SYMBOL)
+                    self.get_interned_string(CUSTOM_SYNTAX_MARKER_TOKEN)
                 }
                 Ok(Some(seg)) => seg,
                 Ok(None) => break,
@@ -2554,16 +2554,37 @@ impl Engine {
                     tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_SYMBOL));
                     inputs.push(Expr::StringConstant(symbol, pos));
                 }
+                CUSTOM_SYNTAX_MARKER_TOKEN => {
+                    let (token, pos) = match state.input.next().unwrap() {
+                        // Bad token
+                        (Token::LexError(err), pos) => Err(err.into_err(pos)),
+                        // Change to text
+                        (token, pos) => Ok((token.to_string(), pos)),
+                    }?;
+                    let token = self.get_interned_string(token);
+                    segments.push(token.clone());
+                    tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_TOKEN));
+                    inputs.push(Expr::StringConstant(token, pos));
+                }
                 CUSTOM_SYNTAX_MARKER_EXPR => {
                     inputs.push(self.parse_expr(state, settings)?);
                     let keyword = self.get_interned_string(CUSTOM_SYNTAX_MARKER_EXPR);
                     segments.push(keyword.clone());
                     tokens.push(keyword);
                 }
-                CUSTOM_SYNTAX_MARKER_BLOCK => match self.parse_block(state, settings)? {
+                CUSTOM_SYNTAX_MARKER_BLOCK => match self.parse_block(state, settings, false)? {
                     block @ Stmt::Block(..) => {
                         inputs.push(Expr::Stmt(Box::new(block.into())));
                         let keyword = self.get_interned_string(CUSTOM_SYNTAX_MARKER_BLOCK);
+                        segments.push(keyword.clone());
+                        tokens.push(keyword);
+                    }
+                    stmt => unreachable!("Stmt::Block expected but gets {:?}", stmt),
+                },
+                CUSTOM_SYNTAX_MARKER_INNER => match self.parse_block(state, settings, true)? {
+                    block @ Stmt::Block(..) => {
+                        inputs.push(Expr::Stmt(Box::new(block.into())));
+                        let keyword = self.get_interned_string(CUSTOM_SYNTAX_MARKER_INNER);
                         segments.push(keyword.clone());
                         tokens.push(keyword);
                     }
@@ -2704,7 +2725,7 @@ impl Engine {
         ensure_not_statement_expr(state.input, "a boolean")?;
         let expr = self.parse_expr(state, settings)?.ensure_bool_expr()?;
         ensure_not_assignment(state.input)?;
-        let body = self.parse_block(state, settings)?.into();
+        let body = self.parse_block(state, settings, false)?.into();
 
         // if guard { if_body } else ...
         let branch = if match_token(state.input, &Token::Else).0 {
@@ -2712,7 +2733,7 @@ impl Engine {
                 // if guard { if_body } else if ...
                 (Token::If, ..) => self.parse_if(state, settings)?,
                 // if guard { if_body } else { else-body }
-                _ => self.parse_block(state, settings)?,
+                _ => self.parse_block(state, settings, false)?,
             }
         } else {
             Stmt::Noop(Position::NONE)
@@ -2747,7 +2768,7 @@ impl Engine {
         settings.pos = token_pos;
         settings.flags |= ParseSettingFlags::BREAKABLE;
 
-        let body = self.parse_block(state, settings)?.into();
+        let body = self.parse_block(state, settings, false)?.into();
         let branch = StmtBlock::NONE;
 
         Ok(Stmt::While(
@@ -2765,7 +2786,7 @@ impl Engine {
 
         // do { body } [while|until] guard
 
-        let body = self.parse_block(state, settings)?.into();
+        let body = self.parse_block(state, settings, false)?.into();
 
         let negated = match state.input.next().unwrap() {
             (Token::While, ..) => ASTFlags::empty(),
@@ -2873,7 +2894,7 @@ impl Engine {
         };
 
         settings.flags |= ParseSettingFlags::BREAKABLE;
-        let body = self.parse_block(state, settings)?.into();
+        let body = self.parse_block(state, settings, false)?.into();
 
         state.stack.rewind(prev_stack_len);
 
@@ -3071,17 +3092,26 @@ impl Engine {
     }
 
     /// Parse a statement block.
-    fn parse_block(&self, state: &mut ParseState, settings: ParseSettings) -> ParseResult<Stmt> {
-        // Must start with {
-        let brace_start_pos = match state.input.next().unwrap() {
-            (Token::LeftBrace, pos) => pos,
-            (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-            (.., pos) => {
-                return Err(PERR::MissingToken(
-                    Token::LeftBrace.into(),
-                    "to start a statement block".into(),
-                )
-                .into_err(pos))
+    fn parse_block(
+        &self,
+        state: &mut ParseState,
+        settings: ParseSettings,
+        no_brace: bool,
+    ) -> ParseResult<Stmt> {
+        let brace_start_pos = if no_brace {
+            settings.pos
+        } else {
+            // Must start with {
+            match state.input.next().unwrap() {
+                (Token::LeftBrace, pos) => pos,
+                (Token::LexError(err), pos) => return Err(err.into_err(pos)),
+                (.., pos) => {
+                    return Err(PERR::MissingToken(
+                        Token::LeftBrace.into(),
+                        "to start a statement block".into(),
+                    )
+                    .into_err(pos))
+                }
             }
         };
         let mut settings = settings.level_up_with_position(brace_start_pos)?;
@@ -3283,7 +3313,7 @@ impl Engine {
             }
 
             // { - statements block
-            Token::LeftBrace => Ok(self.parse_block(state, settings.level_up()?)?),
+            Token::LeftBrace => Ok(self.parse_block(state, settings.level_up()?, false)?),
 
             // fn | private fn...
             #[cfg(not(feature = "no_function"))]
@@ -3474,7 +3504,7 @@ impl Engine {
         let settings = settings.level_up_with_position(eat_token(state.input, &Token::Try))?;
 
         // try { try_block }
-        let body = self.parse_block(state, settings)?.into();
+        let body = self.parse_block(state, settings, false)?.into();
 
         // try { try_block } catch
         let (matched, catch_pos) = match_token(state.input, &Token::Catch);
@@ -3510,7 +3540,7 @@ impl Engine {
         };
 
         // try { try_block } catch ( var ) { catch_block }
-        let branch = self.parse_block(state, settings)?.into();
+        let branch = self.parse_block(state, settings, false)?.into();
 
         let expr = if catch_var.is_empty() {
             Expr::Unit(catch_var.pos)
@@ -3646,7 +3676,7 @@ impl Engine {
 
         // Parse function body
         let body = match state.input.peek().unwrap() {
-            (Token::LeftBrace, ..) => self.parse_block(state, settings)?,
+            (Token::LeftBrace, ..) => self.parse_block(state, settings, false)?,
             (.., pos) => return Err(PERR::FnMissingBody(name.into()).into_err(*pos)),
         }
         .into();

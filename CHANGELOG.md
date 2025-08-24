@@ -16,11 +16,13 @@ Bug fixes
 Enhancements
 -----------
 
+* `build.rs` no longer writes to the source tree but `OUT_DIR` instead (thanks [`@matthiasbeyer`](https://github.com/matthiasbeyer) [#1018](https://github.com/rhaiscript/rhai/pull/1018))
 * `CustomType` derive macro now supports generic types (thanks [`@ProphetOSpam`](https://github.com/ProphetOSpam) [#999](https://github.com/rhaiscript/rhai/pull/999)). The `rhai_codegen` crate dependency is bumped to `3.0.0` or later.
 * `CustomType` derive macro now handles `Option` fields (thanks [`@agersant`](https://github.com/agersant) [#1011](https://github.com/rhaiscript/rhai/pull/1011)).
 * `Engine::eval_binary_op` is added to quickly compare two `Dynamic` values.
 * Better handling for 32-bit architectures and enhanced safety by replacing casts with `try_from` (thanks [`@therealprof`](https://github.com/therealprof) [#1009](https://github.com/rhaiscript/rhai/pull/1009)).
-* `Engine::register_custom_syntax_without_look_ahead_raw` is added to allow the use of `$raw$` in custom synax, which returns the script text character-by-character without processing, by-passing the tokenizer. This in turn allows for parsing arbitrary syntax.
+* The new symbol types `$token$`, `$inner$`, and `$raw$` can now be used in custom syntax definitions ([#1023](https://github.com/rhaiscript/rhai/pull/1023)).
+* `Engine::register_custom_syntax_without_look_ahead_raw` is added to allow the use of `$raw$` in custom syntax, which returns the script text character-by-character without processing, by-passing the tokenizer. This in turn allows for parsing arbitrary syntax.  ([#1022](https://github.com/rhaiscript/rhai/pull/1022))
 
 
 Version 1.22.2
