@@ -4,8 +4,7 @@
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::types::dynamic::Variant;
 use crate::{
-    Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope, StaticVec,
-    AST, ERR,
+    Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope, AST, ERR,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -23,6 +22,8 @@ pub struct CallFnOptions<'t> {
     pub eval_ast: bool,
     /// Rewind the [`Scope`] after the function call? Default `true`.
     pub rewind_scope: bool,
+    /// Call only scripted functions from the [`AST`] instead of functions in all namespaces.
+    pub in_all_namespaces: bool,
 }
 
 impl Default for CallFnOptions<'_> {
@@ -42,6 +43,7 @@ impl<'a> CallFnOptions<'a> {
             tag: None,
             eval_ast: true,
             rewind_scope: true,
+            in_all_namespaces: false,
         }
     }
     /// Bind to the `this` pointer.
@@ -70,6 +72,13 @@ impl<'a> CallFnOptions<'a> {
     #[must_use]
     pub const fn rewind_scope(mut self, value: bool) -> Self {
         self.rewind_scope = value;
+        self
+    }
+    /// Call functions in all namespaces instead of only scripted functions within the [`AST`].
+    #[inline(always)]
+    #[must_use]
+    pub fn in_all_namespaces(mut self, value: bool) -> Self {
+        self.in_all_namespaces = value;
         self
     }
 }
@@ -118,14 +127,17 @@ impl Engine {
         &self,
         scope: &mut Scope,
         ast: &AST,
-        name: impl AsRef<str>,
+        fn_name: impl AsRef<str>,
         args: impl FuncArgs,
     ) -> RhaiResultOf<T> {
-        self.call_fn_with_options(<_>::default(), scope, ast, name, args)
+        self.call_fn_with_options(<_>::default(), scope, ast, fn_name, args)
     }
     /// Call a script function defined in an [`AST`] with multiple [`Dynamic`] arguments.
-    ///
     /// Options are provided via the [`CallFnOptions`] type.
+    ///
+    /// If [`in_all_namespaces`](CallFnOptions::in_all_namespaces) is specified, the function will
+    /// be searched in all namespaces instead, so registered native Rust functions etc. are also found.
+    ///
     /// This is an advanced API.
     ///
     /// Not available under `no_function`.
@@ -167,17 +179,17 @@ impl Engine {
         options: CallFnOptions,
         scope: &mut Scope,
         ast: &AST,
-        name: impl AsRef<str>,
+        fn_name: impl AsRef<str>,
         args: impl FuncArgs,
     ) -> RhaiResultOf<T> {
-        let mut arg_values = StaticVec::new_const();
+        let mut arg_values = FnArgsVec::new_const();
         args.parse(&mut arg_values);
 
         self._call_fn(
             options,
             scope,
             ast,
-            name.as_ref(),
+            fn_name.as_ref(),
             arg_values.as_mut(),
             &mut self.new_global_runtime_state(),
             &mut Caches::new(),
@@ -194,7 +206,7 @@ impl Engine {
             })
         })
     }
-    /// Call a script function defined in an [`AST`] with multiple [`Dynamic`] arguments.
+    /// Make a function call with multiple [`Dynamic`] arguments.
     ///
     /// # Arguments
     ///
@@ -230,6 +242,7 @@ impl Engine {
             std::mem::replace(&mut global.embedded_module_resolver, ast.resolver.clone());
 
         let rewind_scope = options.rewind_scope;
+        let in_all_namespaces = options.in_all_namespaces;
 
         defer! { global => move |g| {
             #[cfg(not(feature = "no_module"))]
@@ -259,28 +272,34 @@ impl Engine {
             #[cfg(not(feature = "no_closure"))]
             crate::func::ensure_no_data_race(name, args, false)?;
 
-            ast.shared_lib()
-                .get_script_fn(name, args.len())
-                .map_or_else(
-                    || Err(ERR::ErrorFunctionNotFound(name.into(), Position::NONE).into()),
-                    |fn_def| {
-                        self.call_script_fn(
-                            global,
-                            caches,
-                            scope,
-                            this_ptr.as_deref_mut(),
-                            None,
-                            fn_def,
-                            args,
-                            rewind_scope,
-                            Position::NONE,
-                        )
-                    },
+            if let Some(fn_def) = ast.shared_lib().get_script_fn(name, args.len()) {
+                self.call_script_fn(
+                    global,
+                    caches,
+                    scope,
+                    this_ptr.as_deref_mut(),
+                    None,
+                    fn_def,
+                    args,
+                    rewind_scope,
+                    Position::NONE,
                 )
                 .or_else(|err| match *err {
                     ERR::Exit(out, ..) => Ok(out),
                     _ => Err(err),
                 })
+            } else if !in_all_namespaces {
+                Err(ERR::ErrorFunctionNotFound(name.into(), Position::NONE).into())
+            } else {
+                let has_this = if let Some(this_ptr) = this_ptr.as_deref_mut() {
+                    args.insert(0, this_ptr);
+                    true
+                } else {
+                    false
+                };
+
+                self.eval_fn_call_with_arguments::<Dynamic>(name, args, has_this, has_this)
+            }
         });
 
         #[cfg(feature = "debugging")]

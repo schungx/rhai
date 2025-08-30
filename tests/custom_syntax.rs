@@ -436,9 +436,9 @@ fn test_custom_syntax_raw2() {
 fn test_custom_syntax_raw_interpolation() {
     let mut engine = Engine::new();
 
-    let raw: ImmutableString = "$raw$".into();
-    let inner: ImmutableString = "$inner$".into();
-    let ident: ImmutableString = "$ident$".into();
+    let raw_str: ImmutableString = "$raw$".into();
+    let inner_str: ImmutableString = "$inner$".into();
+    let ident_str: ImmutableString = "$ident$".into();
 
     engine.register_custom_syntax_without_look_ahead_raw(
         "SELECT",
@@ -451,27 +451,27 @@ fn test_custom_syntax_raw_interpolation() {
                 // Terminate parsing when we see `;`
                 ";" => None,
                 // Variable substitution -- parse the following as a block
-                "{" => Some(inner.clone()),
+                "{" => Some(inner_str.clone()),
                 // Block parsed, replace it with `?` as parameter
                 "$inner$" => {
                     text.push('?');
-                    Some(raw.clone())
+                    Some(raw_str.clone())
                 }
                 // Variable substitution -- parse the following as an identifier
                 "@" => {
                     text.push('@');
-                    Some(ident.clone())
+                    Some(ident_str.clone())
                 }
                 // Variable parsed, replace it with `?` as parameter
                 _ if text.ends_with('@') => {
                     let _ = text.pop().unwrap();
                     text.push('?');
-                    Some(raw.clone())
+                    Some(raw_str.clone())
                 }
                 // Otherwise simply concat the tokens
                 s => {
                     text.push_str(s);
-                    Some(raw.clone())
+                    Some(raw_str.clone())
                 }
             };
 

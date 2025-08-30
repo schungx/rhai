@@ -4,9 +4,10 @@ use std::any::TypeId;
 
 #[test]
 fn test_call_fn() {
-    let engine = Engine::new();
+    let mut engine = Engine::new();
     let mut scope = Scope::new();
 
+    engine.register_fn("test", |x: INT, y: bool| if y { x + 1 } else { x - 1 });
     scope.push("foo", 42 as INT);
 
     let ast = engine
@@ -55,6 +56,13 @@ fn test_call_fn() {
     assert_eq!(scope.get_value::<INT>("bar").expect("variable bar should exist"), 21);
 
     assert!(!scope.contains("scale"));
+
+    let options = CallFnOptions::new().in_all_namespaces(true);
+
+    assert!(engine.call_fn::<INT>(&mut scope, &ast, "test", (41 as INT, true)).is_err());
+
+    let r = engine.call_fn_with_options::<INT>(options, &mut scope, &ast, "test", (41 as INT, true)).unwrap();
+    assert_eq!(r, 42);
 }
 
 #[test]
