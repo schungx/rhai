@@ -375,11 +375,14 @@ impl Engine {
         let name = fn_name.as_ref();
         let op_token = Token::lookup_symbol_from_syntax(name);
 
-        let hashes = if is_method_call {
-            FnCallHashes::from_script_and_native(
-                calc_fn_hash(None, name, args.len() - 1),
-                calc_fn_hash(None, name, args.len()),
-            )
+        let hashes = if cfg!(not(feature = "no_function")) && is_method_call {
+            #[cfg(not(feature = "no_function"))]
+            {
+                FnCallHashes::from_script_and_native(
+                    calc_fn_hash(None, name, args.len() - 1),
+                    calc_fn_hash(None, name, args.len()),
+                )
+            }
         } else {
             FnCallHashes::from_hash(calc_fn_hash(None, name, args.len()))
         };

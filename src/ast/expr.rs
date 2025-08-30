@@ -473,8 +473,8 @@ impl Expr {
             Self::DynamicConstant(x, ..) => {
                 let mut _value = x.as_ref().clone();
 
+                #[cfg(not(feature = "no_function"))]
                 if let Some(global) = global {
-                    #[cfg(not(feature = "no_function"))]
                     if let Some(mut fn_ptr) = _value.write_lock::<FnPtr>() {
                         // Create a new environment with the current module
                         fn_ptr.env = Some(crate::Shared::new(global.into()));

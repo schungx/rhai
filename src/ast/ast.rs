@@ -1,9 +1,7 @@
 //! Module defining the AST (abstract syntax tree).
 
 use super::{ASTFlags, Expr, FnAccess, Stmt};
-use crate::{
-    expose_under_internals, Dynamic, FnNamespace, ImmutableString, Position, StaticVec, ThinVec,
-};
+use crate::{expose_under_internals, Dynamic, FnNamespace, ImmutableString, Position, ThinVec};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -919,7 +917,7 @@ impl ASTNode<'_> {
 pub struct EncapsulatedEnviron {
     /// Stack of loaded [modules][crate::Module] containing script-defined functions.
     #[cfg(not(feature = "no_function"))]
-    pub lib: StaticVec<crate::SharedModule>,
+    pub lib: crate::StaticVec<crate::SharedModule>,
     /// Imported [modules][crate::Module].
     #[cfg(not(feature = "no_module"))]
     pub imports: crate::ThinVec<(ImmutableString, crate::SharedModule)>,
