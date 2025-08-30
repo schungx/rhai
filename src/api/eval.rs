@@ -5,7 +5,10 @@ use crate::eval::{Caches, GlobalRuntimeState};
 use crate::parser::ParseState;
 use crate::tokenizer::Token;
 use crate::types::dynamic::Variant;
-use crate::{calc_fn_hash, Dynamic, Engine, Position, RhaiResult, RhaiResultOf, Scope, AST, ERR};
+use crate::{
+    calc_fn_hash, Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope,
+    AST, ERR,
+};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -326,6 +329,81 @@ impl Engine {
             )
             .into()
         })
+    }
+    /// Evaluate an arbitrary function call in the [`Engine`].
+    #[inline(always)]
+    pub fn eval_fn_call<T: Variant + Clone>(
+        &self,
+        fn_name: impl AsRef<str>,
+        mut this_ptr: Option<&mut Dynamic>,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let mut has_this = false;
+        let arg_values = &mut FnArgsVec::new_const();
+        args.parse(arg_values);
+        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+
+        if let Some(this_ptr) = this_ptr.as_deref_mut() {
+            args.insert(0, this_ptr);
+            has_this = true;
+        }
+
+        self.eval_fn_call_with_arguments::<T>(fn_name, args, has_this, has_this)?
+            .try_cast_result::<T>()
+            .map_err(|v| {
+                let typename = match type_name::<T>() {
+                    typ if typ.contains("::") => self.map_type_name(typ),
+                    typ => typ,
+                };
+
+                ERR::ErrorMismatchOutputType(
+                    typename.into(),
+                    self.map_type_name(v.type_name()).into(),
+                    Position::NONE,
+                )
+                .into()
+            })
+    }
+    /// Evaluate a function call with the [`Engine`].
+    pub(crate) fn eval_fn_call_with_arguments<T: Variant + Clone>(
+        &self,
+        fn_name: impl AsRef<str>,
+        args: &mut [&mut Dynamic],
+        is_ref_mut: bool,
+        is_method_call: bool,
+    ) -> RhaiResult {
+        let name = fn_name.as_ref();
+        let op_token = Token::lookup_symbol_from_syntax(name);
+
+        let hashes = if is_method_call {
+            #[cfg(feature = "no_function")]
+            {
+                panic!("method calls are not supported under `no_function`")
+            }
+            #[cfg(not(feature = "no_function"))]
+            {
+                FnCallHashes::from_script_and_native(
+                    calc_fn_hash(None, name, args.len() - 1),
+                    calc_fn_hash(None, name, args.len()),
+                )
+            }
+        } else {
+            FnCallHashes::from_hash(calc_fn_hash(None, name, args.len()))
+        };
+
+        self.exec_fn_call(
+            &mut self.new_global_runtime_state(),
+            &mut Caches::new(),
+            None,
+            name,
+            op_token.as_ref(),
+            hashes,
+            args,
+            is_ref_mut,
+            is_method_call,
+            Position::NONE,
+        )
+        .map(|(v, ..)| v)
     }
 }
 
