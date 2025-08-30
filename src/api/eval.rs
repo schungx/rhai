@@ -375,7 +375,11 @@ impl Engine {
         let name = fn_name.as_ref();
         let op_token = Token::lookup_symbol_from_syntax(name);
 
-        let hashes = if cfg!(not(feature = "no_function")) && is_method_call {
+        let hashes = if is_method_call {
+            #[cfg(feature = "no_function")]
+            {
+                panic!("method calls are not supported under `no_function`")
+            }
             #[cfg(not(feature = "no_function"))]
             {
                 FnCallHashes::from_script_and_native(
