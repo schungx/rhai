@@ -29,7 +29,7 @@ rhai_codegen = { version = "3.1.0", path = "codegen" }
 
 no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat.git", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
 libm = { version = "0.2.0", default-features = false, optional = true }
-hashbrown = { version = "0.15.0", optional = true }
+hashbrown = { version = "0.16.0", optional = true }
 core-error = { version = "0.0.0", default-features = false, features = ["alloc"], optional = true }
 serde = { version = "1.0.136", default-features = false, features = ["derive", "alloc"], optional = true }
 serde_json = { version = "1.0.45", default-features = false, features = ["alloc"], optional = true }
