@@ -22,7 +22,7 @@ fn test_functions() {
     #[cfg(not(feature = "no_object"))]
     assert_eq!(engine.eval::<INT>("fn mul2() { this *= 2; } let x = 21; x.mul2(); x").unwrap(), 42);
 
-    assert!(engine.eval::<INT>("fn/*\0„").is_err());
+    let _ = engine.eval::<INT>("fn/*\0„").unwrap_err();
 }
 
 #[test]
@@ -296,7 +296,7 @@ fn test_functions_bang() {
         84
     );
 
-    assert!(engine
+    let _ = engine
         .eval::<INT>(
             "
                 fn foo(y) { x += y; x }
@@ -305,9 +305,9 @@ fn test_functions_bang() {
                 let y = 999;
 
                 foo(1) + x
-            "
+            ",
         )
-        .is_err());
+        .unwrap_err();
 
     #[cfg(not(feature = "no_object"))]
     assert!(matches!(

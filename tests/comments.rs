@@ -25,7 +25,7 @@ fn test_comments() {
     let _ = engine.run(" /**\n\u{1680}  */");
 
     #[cfg(not(feature = "no_function"))]
-    assert!(engine.compile("fn/*").is_err());
+    let _ = engine.compile("fn/*").unwrap_err();
 }
 
 #[cfg(not(feature = "no_function"))]
@@ -47,14 +47,14 @@ fn test_comments_doc() {
 
     assert_eq!(ast.iter_functions().next().unwrap().comments[0], "/// Hello world");
 
-    assert!(engine
+    let _ = engine
         .compile(
             "
                 /// Hello world
                 let x = 42;
-            "
+            ",
         )
-        .is_err());
+        .unwrap_err();
 
     engine
         .compile(
@@ -85,12 +85,12 @@ fn test_comments_doc() {
     #[cfg(feature = "no_position")]
     assert_eq!(ast.iter_functions().next().unwrap().comments[0], "/** Hello world\n                ** how are you?\n                **/",);
 
-    assert!(engine
+    let _ = engine
         .compile(
             "
                 /** Hello world */
                 let x = 42;
-            "
+            ",
         )
-        .is_err());
+        .unwrap_err();
 }

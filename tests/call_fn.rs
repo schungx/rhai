@@ -59,7 +59,7 @@ fn test_call_fn() {
 
     let options = CallFnOptions::new().in_all_namespaces(true);
 
-    assert!(engine.call_fn::<INT>(&mut scope, &ast, "test", (41 as INT, true)).is_err());
+    let _ = engine.call_fn::<INT>(&mut scope, &ast, "test", (41 as INT, true)).unwrap_err();
 
     let r = engine.call_fn_with_options::<INT>(options, &mut scope, &ast, "test", (41 as INT, true)).unwrap();
     assert_eq!(r, 42);

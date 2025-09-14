@@ -285,7 +285,7 @@ fn test_get_set_indexer() {
         42
     );
 
-    assert!(engine
+    let _ = engine
         .eval::<INT>(
             r#"
                 let my_map = new_map();
@@ -293,7 +293,7 @@ fn test_get_set_indexer() {
                 my_map["not_found"]
             "#,
         )
-        .is_err());
+        .unwrap_err();
 
     assert_eq!(
         engine

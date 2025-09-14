@@ -14,6 +14,6 @@ fn test_chars() {
     #[cfg(not(feature = "no_index"))]
     assert_eq!(engine.eval::<String>(r#"let y="hello"; y[2]='$'; y"#).unwrap(), "he$lo");
 
-    assert!(engine.eval::<char>(r"'\uhello'").is_err());
-    assert!(engine.eval::<char>("''").is_err());
+    let _ = engine.eval::<char>(r"'\uhello'").unwrap_err();
+    let _ = engine.eval::<char>("''").unwrap_err();
 }

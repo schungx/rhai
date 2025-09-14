@@ -424,9 +424,9 @@ fn test_var_def_filter() {
     assert_eq!(engine.eval::<INT>("let y = 42; let y = 123; let z = y + 1; z").unwrap(), 124);
     assert!(matches!(engine.compile("let x = 42;").unwrap_err().err_type(), ParseErrorType::ForbiddenVariable(s) if s == "x"));
     assert!(matches!(*engine.run_ast(&ast).expect_err("should err"), EvalAltResult::ErrorForbiddenVariable(s, _) if s == "x"));
-    assert!(engine.run("const x = 42;").is_err());
-    assert!(engine.run("let y = 42; { let x = y + 1; }").is_err());
-    assert!(engine.run("let y = 42; { let x = y + 1; }").is_err());
+    let _ = engine.run("const x = 42;").unwrap_err();
+    let _ = engine.run("let y = 42; { let x = y + 1; }").unwrap_err();
+    let _ = engine.run("let y = 42; { let x = y + 1; }").unwrap_err();
     engine.run("let y = 42; { let z = y + 1; { let x = z + 1; } }").unwrap();
 }
 
