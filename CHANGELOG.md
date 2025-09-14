@@ -1,14 +1,14 @@
 Rhai Release Notes
 ==================
 
-Version 1.23.1
+Version 1.23.3
 ==============
 
 This version maintains compatibility by restricting the [`ahash`](https://crates.io/crates/ahash)
 dependency to `<=0.8.11` because higher versions break `no-std` builds.
 
 
-Version 1.23.2
+Version 1.23.4
 ==============
 
 Bug fixes
