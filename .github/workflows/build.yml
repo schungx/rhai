@@ -6,6 +6,7 @@ on:
       - main
       - master
       - fix
+      - backcompat
   pull_request: {}
 
 env:
