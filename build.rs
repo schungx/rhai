@@ -23,7 +23,7 @@ fn main() {
     contents = contents.replace("{{HASHING_SEED}}", &seed);
 
     File::create("src/config/hashing_env.rs")
-        .expect("cannot create `config.rs`")
+        .expect("cannot create `hashing_env.rs`")
         .write_all(contents.as_bytes())
         .expect("cannot write to `config/hashing_env.rs`");
 }
