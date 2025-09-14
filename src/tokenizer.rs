@@ -1141,7 +1141,30 @@ impl Token {
 impl From<Token> for String {
     #[inline(always)]
     fn from(token: Token) -> Self {
+        token.into()
+    }
+}
+
+impl From<&Token> for String {
+    #[inline(always)]
+    fn from(token: &Token) -> Self {
         token.to_string()
+    }
+}
+
+impl From<Token> for SmartString {
+    #[inline(always)]
+    fn from(token: Token) -> Self {
+        token.into()
+    }
+}
+
+impl From<&Token> for SmartString {
+    #[inline(always)]
+    fn from(token: &Token) -> Self {
+        let mut buf = Self::new_const();
+        write!(&mut buf, "{token}").unwrap();
+        buf
     }
 }
 
