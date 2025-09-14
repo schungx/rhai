@@ -5,13 +5,12 @@ use rhai_codegen::expose_under_internals;
 use crate::engine::Precedence;
 use crate::func::native::OnParseTokenCallback;
 use crate::{Engine, Identifier, LexError, Position, SmartString, StaticVec, INT, UNSIGNED_INT};
-#[cfg(not(feature = "no_custom_syntax"))]
-use core::fmt::Write;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
     cell::RefCell,
     char, fmt,
+    fmt::Write,
     iter::{repeat, FusedIterator, Peekable},
     rc::Rc,
     str::{Chars, FromStr},
@@ -1141,7 +1140,30 @@ impl Token {
 impl From<Token> for String {
     #[inline(always)]
     fn from(token: Token) -> Self {
+        (&token).into()
+    }
+}
+
+impl From<&Token> for String {
+    #[inline(always)]
+    fn from(token: &Token) -> Self {
         token.to_string()
+    }
+}
+
+impl From<Token> for SmartString {
+    #[inline(always)]
+    fn from(token: Token) -> Self {
+        (&token).into()
+    }
+}
+
+impl From<&Token> for SmartString {
+    #[inline(always)]
+    fn from(token: &Token) -> Self {
+        let mut buf = Self::new_const();
+        write!(&mut buf, "{token}").unwrap();
+        buf
     }
 }
 

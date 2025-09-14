@@ -19,8 +19,8 @@ fn test_module() {
 #[test]
 fn test_module_syntax() {
     let engine = Engine::new();
-    assert!(engine.compile("abc.def::xyz").is_err());
-    assert!(engine.compile("abc.def::xyz()").is_err());
+    let _ = engine.compile("abc.def::xyz").unwrap_err();
+    let _ = engine.compile("abc.def::xyz()").unwrap_err();
 }
 
 #[test]
@@ -71,11 +71,11 @@ fn test_module_sub_module() {
     assert_eq!(engine.eval::<String>("type_of(())").unwrap(), "Don't Panic");
 
     assert_eq!(engine.eval::<INT>("question::MYSTIC_NUMBER").unwrap(), 42);
-    assert!(engine.eval::<INT>("MYSTIC_NUMBER").is_err());
+    let _ = engine.eval::<INT>("MYSTIC_NUMBER").unwrap_err();
     assert_eq!(engine.eval::<INT>("question::life::universe::answer").unwrap(), 41);
     assert_eq!(engine.eval::<INT>("question::life::universe::answer + 1").unwrap(), 42);
     assert_eq!(engine.eval::<INT>("question::life::universe::inc(question::life::universe::answer)").unwrap(), 42);
-    assert!(engine.eval::<INT>("inc(question::life::universe::answer)").is_err());
+    let _ = engine.eval::<INT>("inc(question::life::universe::answer)").unwrap_err();
     #[cfg(not(feature = "no_object"))]
     assert_eq!(engine.eval::<INT>("question::MYSTIC_NUMBER.doubled").unwrap(), 84);
     #[cfg(not(feature = "no_object"))]
@@ -119,14 +119,14 @@ fn test_module_resolver() {
         42
     );
 
-    assert!(engine
+    let _ = engine
         .eval::<INT>(
             r#"
                 import "hello" as h;
                 sum(h::answer, -10, 3, 7)
-            "#
+            "#,
         )
-        .is_err());
+        .unwrap_err();
 
     assert_eq!(
         engine
@@ -280,7 +280,7 @@ fn test_module_resolver() {
 
         assert_eq!(engine.eval_ast::<INT>(&ast).unwrap(), 84);
 
-        assert!(engine.eval::<INT>(script).is_err());
+        let _ = engine.eval::<INT>(script).unwrap_err();
 
         let result = engine.call_fn::<INT>(&mut Scope::new(), &ast, "foo", (2 as INT,)).unwrap();
 

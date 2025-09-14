@@ -22,8 +22,8 @@ fn test_bit_fields() {
     assert_eq!(engine.eval::<INT>("let x = 10; x[0] = true; x[1] = false; x").unwrap(), 9);
     assert_eq!(engine.eval::<INT>("let x = 10; get_bits(x, 1, 3)").unwrap(), 5);
     assert_eq!(engine.eval::<INT>("let x = 10; x[1..=3]").unwrap(), 5);
-    assert!(engine.eval::<INT>("let x = 10; x[1..99]").is_err());
-    assert!(engine.eval::<INT>("let x = 10; x[-1..3]").is_err());
+    let _ = engine.eval::<INT>("let x = 10; x[1..99]").unwrap_err();
+    let _ = engine.eval::<INT>("let x = 10; x[-1..3]").unwrap_err();
     assert_eq!(engine.eval::<INT>("let x = 10; set_bits(x, 1, 3, 7); x").unwrap(), 14);
     #[cfg(target_pointer_width = "64")]
     #[cfg(not(feature = "only_i32"))]

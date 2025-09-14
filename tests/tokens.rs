@@ -64,7 +64,7 @@ fn test_tokens_custom_operator_symbol() {
     assert_eq!(engine.eval_expression::<INT>("1 + 2 * 3 # 4 - 5 / 6").unwrap(), 15);
 
     // Register a custom operator named `=>`
-    assert!(engine.register_custom_operator("=>", 160).is_err());
+    let _ = engine.register_custom_operator("=>", 160).unwrap_err();
     engine.disable_symbol("=>");
     engine.register_custom_operator("=>", 160).unwrap();
     engine.register_fn("=>", |x: INT, y: INT| (x * y) - (x + y));
@@ -84,7 +84,7 @@ fn test_tokens_unicode_xid_ident() {
     assert_eq!(result.unwrap(), 42);
 
     #[cfg(not(feature = "unicode-xid-ident"))]
-    assert!(result.is_err());
+    let _ = result.unwrap_err();
 
     let result = engine.eval::<INT>(
         "
@@ -92,5 +92,5 @@ fn test_tokens_unicode_xid_ident() {
             _1()
         ",
     );
-    assert!(result.is_err());
+    let _ = result.unwrap_err();
 }

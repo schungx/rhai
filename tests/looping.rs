@@ -74,7 +74,7 @@ fn test_loop_expression() {
 
     engine.set_allow_loop_expressions(false);
 
-    assert!(engine
+    let _ = engine
         .eval::<INT>(
             "
 				let x = 0;
@@ -85,7 +85,7 @@ fn test_loop_expression() {
 				};
 
 				value
-		    "
+		    ",
         )
-        .is_err());
+        .unwrap_err();
 }

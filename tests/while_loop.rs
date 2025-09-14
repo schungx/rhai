@@ -96,7 +96,7 @@ fn test_infinite_loops() {
 
     engine.set_max_operations(1024);
 
-    assert!(engine.run("loop {}").is_err());
-    assert!(engine.run("while true {}").is_err());
-    assert!(engine.run("do {} while true").is_err());
+    let _ = engine.run("loop {}").unwrap_err();
+    let _ = engine.run("while true {}").unwrap_err();
+    let _ = engine.run("do {} while true").unwrap_err();
 }

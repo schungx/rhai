@@ -24,7 +24,7 @@ fn test_hex_literal() {
     assert_eq!(engine.eval::<INT>("let x = 0xffffffff; x").unwrap(), -1);
 
     #[cfg(not(feature = "no_float"))]
-    assert!(engine.compile("0xabcd.123").is_err());
+    let _ = engine.compile("0xabcd.123").unwrap_err();
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn test_octal_literal() {
     assert_eq!(engine.eval::<INT>("let x = 0o1234; x").unwrap(), 668);
 
     #[cfg(not(feature = "no_float"))]
-    assert!(engine.compile("0o77.123").is_err());
+    let _ = engine.compile("0o77.123").unwrap_err();
 }
 
 #[test]
@@ -53,5 +53,5 @@ fn test_binary_literal() {
     assert_eq!(engine.eval::<INT>("let x = 0b11111111_11111111_11111111_11111111; x").unwrap(), -1);
 
     #[cfg(not(feature = "no_float"))]
-    assert!(engine.compile("0b101.101").is_err());
+    let _ = engine.compile("0b101.101").unwrap_err();
 }

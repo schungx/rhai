@@ -15,13 +15,13 @@ fn test_expressions() {
     #[cfg(not(feature = "no_function"))]
     {
         assert_eq!(engine.eval_expression_with_scope::<INT>(&mut scope, "[1, 2, 3, 4].map(|x| x * x).reduce(|a, v| a + v, 0)").unwrap(), 30);
-        assert!(engine
+        let _ = engine
             .eval_expression_with_scope::<INT>(&mut scope, "[1, 2, 3, 4].map(|x| { let r = 2; x * r }).reduce(|a, v| a + v, 0)")
-            .is_err());
+            .unwrap_err();
     }
-    assert!(engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { let y = 42; y } else { 123 }").is_err());
-    assert!(engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { 42 } else { let y = 123; y }").is_err());
-    assert!(engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { 42 } else {}").is_err());
+    let _ = engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { let y = 42; y } else { 123 }").unwrap_err();
+    let _ = engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { 42 } else { let y = 123; y }").unwrap_err();
+    let _ = engine.eval_expression_with_scope::<INT>(&mut scope, "if x > 0 { 42 } else {}").unwrap_err();
 
     assert_eq!(
         engine
@@ -38,7 +38,7 @@ fn test_expressions() {
             .unwrap(),
         42
     );
-    assert!(engine
+    let _ = engine
         .eval_expression_with_scope::<INT>(
             &mut scope,
             "
@@ -50,15 +50,15 @@ fn test_expressions() {
                         y
                     }
                 }
-            "
+            ",
         )
-        .is_err());
+        .unwrap_err();
 
-    assert!(engine.compile_expression("40 + 2;").is_err());
-    assert!(engine.compile_expression("40 + { 2 }").is_err());
-    assert!(engine.compile_expression("x = 42").is_err());
-    assert!(engine.compile_expression("let x = 42").is_err());
-    assert!(engine.compile_expression("do { break 42; } while true").is_err());
+    let _ = engine.compile_expression("40 + 2;").unwrap_err();
+    let _ = engine.compile_expression("40 + { 2 }").unwrap_err();
+    let _ = engine.compile_expression("x = 42").unwrap_err();
+    let _ = engine.compile_expression("let x = 42").unwrap_err();
+    let _ = engine.compile_expression("do { break 42; } while true").unwrap_err();
 
     engine.compile("40 + { let x = 2; x }").unwrap();
 }

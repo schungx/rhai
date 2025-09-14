@@ -2320,7 +2320,7 @@ impl Engine {
             settings = settings.level_up()?;
             settings.pos = pos;
 
-            let op = op_token.to_string();
+            let op: SmartString = (&op_token).into();
             let hash = calc_fn_hash(None, &op, 2);
             let native_only = !is_valid_function_name(&op);
 
@@ -2476,9 +2476,9 @@ impl Engine {
         loop {
             let (fwd_token, fwd_pos) = if syntax.use_look_ahead {
                 let (token, pos) = state.input.peek().unwrap();
-                (token.to_string(), *pos)
+                (token.into(), *pos)
             } else {
-                (String::new(), settings.pos)
+                (SmartString::new_const(), settings.pos)
             };
 
             let settings = settings.level_up()?;
@@ -2555,11 +2555,11 @@ impl Engine {
                     inputs.push(Expr::StringConstant(symbol, pos));
                 }
                 CUSTOM_SYNTAX_MARKER_TOKEN => {
-                    let (token, pos) = match state.input.next().unwrap() {
+                    let (token, pos): (SmartString, _) = match state.input.next().unwrap() {
                         // Bad token
                         (Token::LexError(err), pos) => Err(err.into_err(pos)),
                         // Change to text
-                        (token, pos) => Ok((token.to_string(), pos)),
+                        (token, pos) => Ok((token.into(), pos)),
                     }?;
                     let token = self.get_interned_string(token);
                     segments.push(token.clone());

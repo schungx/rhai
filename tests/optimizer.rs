@@ -123,7 +123,7 @@ fn test_optimizer_scope() {
 
     let ast = engine.compile_with_scope(&scope, SCRIPT).unwrap();
 
-    assert!(engine.eval_ast_with_scope::<INT>(&mut scope, &ast).is_err());
+    let _ = engine.eval_ast_with_scope::<INT>(&mut scope, &ast).unwrap_err();
 }
 
 #[cfg(not(feature = "no_function"))]
