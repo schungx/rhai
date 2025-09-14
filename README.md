@@ -29,6 +29,16 @@ Targets and builds
 * Minimum Rust version 1.66.0
 
 
+Versions
+--------
+
+The [`ahash`](https://crates.io/crates/ahash) crate that Rhai depends on has a breaking change since version `0.8.12` which bumps [`getrandom`](https://crates.io/crates/getrandom) to version `0.3`, braking certain `no-std` and `wasm` builds.
+
+Version [`1.23.1`](https://crates.io/crates/rhai/1.23.1): Use this version when building for `no-std`
+
+Version [`1.23.2`](https://crates.io/crates/rhai/1.23.2): This is the main version for `std` builds.
+
+
 Standard features
 -----------------
 
