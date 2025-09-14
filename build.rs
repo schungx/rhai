@@ -1,15 +1,20 @@
-use std::env;
+use std::{
+    env,
+    fs::File,
+    io::{Read, Write},
+};
 
 fn main() {
-    let out_dir = env::var_os("OUT_DIR").unwrap();
-
     // Tell Cargo that if the given environment variable changes, to rerun this build script.
     println!("cargo:rerun-if-changed=build.template");
     println!("cargo:rerun-if-env-changed=RHAI_AHASH_SEED");
     println!("cargo:rerun-if-env-changed=RHAI_HASHING_SEED");
+    let mut contents = String::new();
 
-    let mut contents =
-        std::fs::read_to_string("build.template").expect("cannot read from `build.template`");
+    File::open("build.template")
+        .expect("cannot open `build.template`")
+        .read_to_string(&mut contents)
+        .expect("cannot read from `build.template`");
 
     let seed = env::var("RHAI_HASHING_SEED")
         .or_else(|_| env::var("RHAI_AHASH_SEED"))
@@ -17,12 +22,8 @@ fn main() {
 
     contents = contents.replace("{{HASHING_SEED}}", &seed);
 
-    let hashing_env_path = std::path::Path::new(&out_dir).join("hashing_env.rs");
-
-    std::fs::write(&hashing_env_path, contents).unwrap_or_else(|error| {
-        panic!(
-            "cannot write to `{}`: {error:?}",
-            hashing_env_path.display()
-        )
-    });
+    File::create("src/config/hashing_env.rs")
+        .expect("cannot create `config.rs`")
+        .write_all(contents.as_bytes())
+        .expect("cannot write to `config/hashing_env.rs`");
 }
