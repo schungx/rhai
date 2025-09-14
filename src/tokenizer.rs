@@ -1140,7 +1140,7 @@ impl Token {
 impl From<Token> for String {
     #[inline(always)]
     fn from(token: Token) -> Self {
-        token.into()
+        (&token).into()
     }
 }
 
@@ -1154,7 +1154,7 @@ impl From<&Token> for String {
 impl From<Token> for SmartString {
     #[inline(always)]
     fn from(token: Token) -> Self {
-        token.into()
+        (&token).into()
     }
 }
 
