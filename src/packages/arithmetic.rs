@@ -198,9 +198,21 @@ def_package! {
     pub ArithmeticPackage(lib) {
         lib.set_standard_lib(true);
 
-        combine_with_exported_module!(lib, "int", int_functions);
+        // Only register integer functions that are not built-in
+        combine_with_exported_module!(lib, "int", non_builtin_int_functions);
+
+        // Avoid dead code warnings
+        #[cfg(not(feature = "unchecked"))]
+        {
+            let _ = arith_basic::INT::functions::is_zero;
+            let _ = arith_basic::INT::functions::is_odd;
+            let _ = arith_basic::INT::functions::is_even;
+        }
+
+        // Register other arithmetic functions for integers
         reg_functions!(lib += signed_basic; INT);
 
+        // Basic arithmetic for other integer types
         #[cfg(not(feature = "only_i32"))]
         #[cfg(not(feature = "only_i64"))]
         {
@@ -231,8 +243,14 @@ def_package! {
     }
 }
 
+#[cfg(not(feature = "unchecked"))]
+gen_arithmetic_functions!(arith_basic => INT);
+
+gen_signed_functions!(signed_basic => INT);
+
+/// These integer functions are not part of the built-in set so they must be registered.
 #[export_module]
-mod int_functions {
+mod non_builtin_int_functions {
     /// Return true if the number is zero.
     #[rhai_fn(get = "is_zero", name = "is_zero")]
     pub const fn is_zero(x: INT) -> bool {
@@ -249,9 +267,6 @@ mod int_functions {
         x % 2 == 0
     }
 }
-
-gen_arithmetic_functions!(arith_basic => INT);
-gen_signed_functions!(signed_basic => INT);
 
 #[cfg(not(feature = "no_float"))]
 #[export_module]

@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.24.0
+==============
+
+Bug fixes
+---------
+
+* The binary bit-wise operators `&`, `|` and `^` now work correctly with `INT` operands.
+
+
 Version 1.23.3
 ==============
 

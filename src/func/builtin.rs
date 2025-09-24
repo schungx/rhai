@@ -293,6 +293,9 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                 PowerOf => return impl_op!(INT => power(as_int, as_int)),
                 RightShift => return impl_op!(INT => Ok(shift_right(as_int, as_int))),
                 LeftShift => return impl_op!(INT => Ok(shift_left(as_int, as_int))),
+                Ampersand => return impl_op!(INT => Ok(binary_and(as_int, as_int))),
+                Pipe => return impl_op!(INT => Ok(binary_or(as_int, as_int))),
+                XOr => return impl_op!(INT => Ok(binary_xor(as_int, as_int))),
                 _ => (),
             }
 
@@ -324,6 +327,9 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                         false,
                     ))
                 }
+                Ampersand => return impl_op!(INT => as_int & as_int),
+                Pipe => return impl_op!(INT => as_int | as_int),
+                XOr => return impl_op!(INT => as_int ^ as_int),
                 _ => (),
             }
 
@@ -811,6 +817,9 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                 PowerOfAssign => return impl_op!(INT => power(as_int, as_int)),
                 RightShiftAssign => return impl_op!(INT => Ok(shift_right(as_int, as_int))),
                 LeftShiftAssign => return impl_op!(INT => Ok(shift_left(as_int, as_int))),
+                AndAssign => return impl_op!(INT => Ok(binary_and(as_int, as_int))),
+                OrAssign => return impl_op!(INT => Ok(binary_or(as_int, as_int))),
+                XOrAssign => return impl_op!(INT => Ok(binary_xor(as_int, as_int))),
                 _ => (),
             }
 
@@ -846,6 +855,9 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                         false,
                     ))
                 }
+                AndAssign => return impl_op!(INT &= as_int),
+                OrAssign => return impl_op!(INT |= as_int),
+                XOrAssign => return impl_op!(INT ^= as_int),
                 _ => (),
             }
 
