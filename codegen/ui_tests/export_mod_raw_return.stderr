@@ -1,7 +1,7 @@
 error[E0599]: `bool` is not an iterator
   --> ui_tests/export_mod_raw_return.rs:12:33
    |
-9  | #[export_module]
+ 9 | #[export_module]
    | ---------------- in this procedural macro expansion
 ...
 12 | pub fn test_fn(input: Point) -> bool {

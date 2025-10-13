@@ -155,7 +155,7 @@ pub mod blob_functions {
     ///
     /// print(text.contains('x'));      // prints false
     /// ```
-    #[rhai_fn(name = "contains")]
+    #[rhai_fn(name = "contains", pure)]
     pub fn contains(blob: &mut Blob, value: INT) -> bool {
         blob.contains(&u8::try_from(value & 0x00ff).unwrap())
     }
@@ -178,6 +178,7 @@ pub mod blob_functions {
     ///
     /// print(b.get(99));       // prints 0
     /// ```
+    #[rhai_fn(pure)]
     pub fn get(blob: &mut Blob, index: INT) -> INT {
         if blob.is_empty() {
             return 0;
@@ -1003,7 +1004,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());              // prints "0302"
     /// ```
-    #[rhai_fn(name = "parse_le_int")]
+    #[rhai_fn(name = "parse_le_int", pure)]
     pub fn parse_le_int_range(blob: &mut Blob, range: ExclusiveRange) -> INT {
         let start = INT::max(range.start, 0);
         let end = INT::max(range.end, start);
@@ -1024,7 +1025,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());              // prints "040302"
     /// ```
-    #[rhai_fn(name = "parse_le_int")]
+    #[rhai_fn(name = "parse_le_int", pure)]
     pub fn parse_le_int_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> INT {
         let start = INT::max(*range.start(), 0);
         let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
@@ -1051,6 +1052,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());      // prints "0302"
     /// ```
+    #[rhai_fn(pure)]
     pub fn parse_le_int(blob: &mut Blob, start: INT, len: INT) -> INT {
         parse_int(blob, start, len, true)
     }
@@ -1069,7 +1071,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());              // prints "02030000...00"
     /// ```
-    #[rhai_fn(name = "parse_be_int")]
+    #[rhai_fn(name = "parse_be_int", pure)]
     pub fn parse_be_int_range(blob: &mut Blob, range: ExclusiveRange) -> INT {
         let start = INT::max(range.start, 0);
         let end = INT::max(range.end, start);
@@ -1090,7 +1092,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());              // prints "0203040000...00"
     /// ```
-    #[rhai_fn(name = "parse_be_int")]
+    #[rhai_fn(name = "parse_be_int", pure)]
     pub fn parse_be_int_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> INT {
         let start = INT::max(*range.start(), 0);
         let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
@@ -1117,6 +1119,7 @@ mod parse_int_functions {
     ///
     /// print(x.to_hex());      // prints "02030000...00"
     /// ```
+    #[rhai_fn(pure)]
     pub fn parse_be_int(blob: &mut Blob, start: INT, len: INT) -> INT {
         parse_int(blob, start, len, false)
     }
@@ -1155,7 +1158,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in `range` < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in `range` > number of bytes for `FLOAT`, extra bytes are ignored.
-    #[rhai_fn(name = "parse_le_float")]
+    #[rhai_fn(name = "parse_le_float", pure)]
     pub fn parse_le_float_range(blob: &mut Blob, range: ExclusiveRange) -> FLOAT {
         let start = INT::max(range.start, 0);
         let end = INT::max(range.end, start);
@@ -1166,7 +1169,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in `range` < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in `range` > number of bytes for `FLOAT`, extra bytes are ignored.
-    #[rhai_fn(name = "parse_le_float")]
+    #[rhai_fn(name = "parse_le_float", pure)]
     pub fn parse_le_float_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> FLOAT {
         let start = INT::max(*range.start(), 0);
         let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
@@ -1183,6 +1186,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in range < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in range > number of bytes for `FLOAT`, extra bytes are ignored.
+    #[rhai_fn(pure)]
     pub fn parse_le_float(blob: &mut Blob, start: INT, len: INT) -> FLOAT {
         parse_float(blob, start, len, true)
     }
@@ -1191,7 +1195,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in `range` < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in `range` > number of bytes for `FLOAT`, extra bytes are ignored.
-    #[rhai_fn(name = "parse_be_float")]
+    #[rhai_fn(name = "parse_be_float", pure)]
     pub fn parse_be_float_range(blob: &mut Blob, range: ExclusiveRange) -> FLOAT {
         let start = INT::max(range.start, 0);
         let end = INT::max(range.end, start);
@@ -1202,7 +1206,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in `range` < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in `range` > number of bytes for `FLOAT`, extra bytes are ignored.
-    #[rhai_fn(name = "parse_be_float")]
+    #[rhai_fn(name = "parse_be_float", pure)]
     pub fn parse_be_float_range_inclusive(blob: &mut Blob, range: InclusiveRange) -> FLOAT {
         let start = INT::max(*range.start(), 0);
         let end = INT::min(INT::max(*range.end(), start), INT::MAX - 1);
@@ -1219,6 +1223,7 @@ mod parse_float_functions {
     ///
     /// * If number of bytes in range < number of bytes for `FLOAT`, zeros are padded.
     /// * If number of bytes in range > number of bytes for `FLOAT`, extra bytes are ignored.
+    #[rhai_fn(pure)]
     pub fn parse_be_float(blob: &mut Blob, start: INT, len: INT) -> FLOAT {
         parse_float(blob, start, len, false)
     }
