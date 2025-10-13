@@ -43,6 +43,7 @@ mod map_functions {
     ///
     /// print(m.contains("x"));     // prints false
     /// ```
+    #[rhai_fn(pure)]
     pub fn contains(map: &mut Map, property: &str) -> bool {
         map.contains_key(property)
     }
@@ -59,6 +60,7 @@ mod map_functions {
     ///
     /// print(m.get("x"));      // prints empty (for '()')
     /// ```
+    #[rhai_fn(pure)]
     pub fn get(map: &mut Map, property: &str) -> Dynamic {
         if map.is_empty() {
             return Dynamic::UNIT;
@@ -295,6 +297,51 @@ mod map_functions {
 
         map.values().cloned().collect()
     }
+    /// Iterate through all the elements in the object map, applying a `mapper` function to each
+    /// element in turn, and return the results as a new object map.
+    ///
+    /// # Function Parameters
+    ///
+    /// * `key`: current key
+    /// * `value` _(optional)_: copy of element (bound to `this` if omitted)
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let x = #{a:1, b:2, c:3, d:4, e:5};
+    ///
+    /// let y = x.map(|k| this * 2);
+    ///
+    /// print(y);       // prints #{"a":2, "b":4, "c":6, "d":8, "e":10}
+    ///
+    /// let y = x.filter(|k, v| v + k.len());
+    ///
+    /// print(y);       // prints #{"a":2, "b":3, "c":5, "d":6, "e":7}
+    /// ```
+    #[rhai_fn(return_raw, pure)]
+    pub fn map(ctx: NativeCallContext, map: &mut Map, mapper: FnPtr) -> RhaiResultOf<Map> {
+        if map.is_empty() {
+            return Ok(Map::new());
+        }
+
+        let mut result = Map::new();
+
+        for (key, item) in map.iter_mut() {
+            result.insert(
+                key.clone(),
+                mapper.call_raw_with_extra_args(
+                    "filter",
+                    &ctx,
+                    Some(item),
+                    [key.into()],
+                    [],
+                    Some(1),
+                )?,
+            );
+        }
+
+        Ok(result)
+    }
     /// Iterate through all the elements in the object map, applying a `filter` function to each
     /// and return a new collection of all elements that return `true` as a new object map.
     ///
@@ -316,7 +363,7 @@ mod map_functions {
     ///
     /// print(y);       // prints #{"a":1, "b":2, "c":3}
     /// ```
-    #[rhai_fn(return_raw)]
+    #[rhai_fn(return_raw, pure)]
     pub fn filter(ctx: NativeCallContext, map: &mut Map, filter: FnPtr) -> RhaiResultOf<Map> {
         if map.is_empty() {
             return Ok(Map::new());
@@ -470,6 +517,7 @@ mod map_functions {
     ///
     /// print(m.to_json());     // prints {"a":1, "b":2, "c":3}
     /// ```
+    #[rhai_fn(pure)]
     pub fn to_json(map: &mut Map) -> String {
         #[cfg(feature = "metadata")]
         return serde_json::to_string(map).unwrap_or_else(|_| "ERROR".into());

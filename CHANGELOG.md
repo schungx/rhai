@@ -8,6 +8,13 @@ Bug fixes
 ---------
 
 * The binary bit-wise operators `&`, `|` and `^` now work correctly with `INT` operands.
+* The methods `contains`, `get`, `filter` and `to_json` for object maps are now marked pure.
+* The methods `contains`, `get`, `parse_le_int`, `parse_be_int`, `parse_le_float` and `parse_be_float` for BLOB's are now marked pure.
+
+Enhancements
+------------
+
+* The method `map` is added to object maps.
 
 
 Version 1.23.3
