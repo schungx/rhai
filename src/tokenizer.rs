@@ -1823,21 +1823,21 @@ fn get_next_token_inner(
                             }
                         }
                         #[cfg(not(feature = "no_float"))]
-                        'e' if !_has_e && radix_base.is_none() => {
+                        ch @ ('e' | 'E') if !_has_e && radix_base.is_none() => {
                             stream.get_next().unwrap();
 
                             // Check if followed by digits or +/-
                             match stream.peek_next() {
-                                // digits after e - accept the e (no decimal points allowed)
+                                // digits after e/E - accept the e/E (no decimal points allowed)
                                 Some('0'..='9') => {
-                                    result.push_str("e");
+                                    result.push(ch);
                                     pos.advance();
                                     _has_e = true;
                                     _has_period = true;
                                 }
-                                // +/- after e - accept the e and the sign (no decimal points allowed)
+                                // +/- after e/E - accept the e/E and the sign (no decimal points allowed)
                                 Some('+' | '-') => {
-                                    result.push_str("e");
+                                    result.push(ch);
                                     pos.advance();
                                     result.push(stream.get_next().unwrap());
                                     pos.advance();
@@ -1846,7 +1846,7 @@ fn get_next_token_inner(
                                 }
                                 // Not a floating-point number
                                 _ => {
-                                    stream.unget('e');
+                                    stream.unget(ch);
                                     break;
                                 }
                             }
