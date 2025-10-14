@@ -21,6 +21,11 @@ fn test_float_scientific() {
     assert!(engine.eval::<bool>("123.456 == 1.23456e+2").unwrap());
     assert!(engine.eval::<bool>("123.456 == 123456e-3").unwrap());
 
+    // Test uppercase 'E' as well
+    assert!(engine.eval::<bool>("123.456 == 1.23456E2").unwrap());
+    assert!(engine.eval::<bool>("123.456 == 1.23456E+2").unwrap());
+    assert!(engine.eval::<bool>("123.456 == 123456E-3").unwrap());
+
     let _ = engine.compile("123.456e1.23").unwrap_err();
 }
 
