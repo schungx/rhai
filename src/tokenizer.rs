@@ -1828,16 +1828,16 @@ fn get_next_token_inner(
 
                             // Check if followed by digits or +/-
                             match stream.peek_next() {
-                                // digits after e/E - accept the e/E (no decimal points allowed)
+                                // digits after e/E - accept as 'e' (no decimal points allowed)
                                 Some('0'..='9') => {
-                                    result.push(ch);
+                                    result.push('e');
                                     pos.advance();
                                     _has_e = true;
                                     _has_period = true;
                                 }
-                                // +/- after e/E - accept the e/E and the sign (no decimal points allowed)
+                                // +/- after e/E - accept as 'e' and the sign (no decimal points allowed)
                                 Some('+' | '-') => {
-                                    result.push(ch);
+                                    result.push('e');
                                     pos.advance();
                                     result.push(stream.get_next().unwrap());
                                     pos.advance();
