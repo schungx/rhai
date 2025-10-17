@@ -16,6 +16,7 @@ Enhancements
 ------------
 
 * The method `map` is added to object maps.
+* The string methods `starts_with` and `ends_with` now work with character argument ([#1040](https://github.com/rhaiscript/rhai/pull/1040)).
 
 
 Version 1.23.3
