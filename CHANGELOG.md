@@ -10,13 +10,14 @@ Bug fixes
 * The binary bit-wise operators `&`, `|` and `^` now work correctly with `INT` operands ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * The methods `contains`, `get`, `filter` and `to_json` for object maps are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * The methods `contains`, `get`, `parse_le_int`, `parse_be_int`, `parse_le_float` and `parse_be_float` for BLOB's are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
-* `E` can now be used in scientific notation for floating-point and decimal literals (thanks [`@BrynCooke`](https://github.com/BrynCooke) [#1039](https://github.com/rhaiscript/rhai/pull/1039))
+* `E` can now be used in scientific notation for floating-point and decimal literals (thanks [`@BrynCooke`](https://github.com/BrynCooke) [#1039](https://github.com/rhaiscript/rhai/pull/1039)).
+* The `drain` and `retain` methods for object maps no longer empty the target map upon errors ([#1041](https://github.com/rhaiscript/rhai/pull/1041)).
 
 Enhancements
 ------------
 
 * The method `map` is added to object maps.
-* The string methods `starts_with` and `ends_with` now work with character argument ([#1040](https://github.com/rhaiscript/rhai/pull/1040)).
+* The string methods `starts_with` and `ends_with` now work with character argument ([#1042](https://github.com/rhaiscript/rhai/pull/1042)).
 
 
 Version 1.23.3
