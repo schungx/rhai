@@ -567,6 +567,21 @@ mod string_functions {
     pub fn starts_with(string: &str, match_string: &str) -> bool {
         string.starts_with(match_string)
     }
+    /// Return `true` if the string starts with a specified character.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let text = "hello, world!";
+    ///
+    /// print(text.starts_with('h'));       // prints true
+    ///
+    /// print(text.starts_with('w'));       // prints false
+    /// ```
+    #[rhai_fn(name = "starts_with")]
+    pub fn starts_with_char(string: &str, character: char) -> bool {
+        string.starts_with(character)
+    }
     /// Return `true` if the string ends with a specified string.
     ///
     /// # Example
@@ -580,6 +595,21 @@ mod string_functions {
     /// ```
     pub fn ends_with(string: &str, match_string: &str) -> bool {
         string.ends_with(match_string)
+    }
+    /// Return `true` if the string ends with a specified character.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let text = "hello, world!";
+    ///
+    /// print(text.ends_with('w'));         // prints true
+    ///
+    /// print(text.ends_with('h'));         // prints false
+    /// ```
+    #[rhai_fn(name = "ends_with")]
+    pub fn ends_with_char(string: &str, character: char) -> bool {
+        string.ends_with(character)
     }
 
     /// Find the specified `character` in the string, starting from the specified `start` position,
