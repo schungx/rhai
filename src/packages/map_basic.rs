@@ -416,29 +416,40 @@ mod map_functions {
 
         let mut drained = Map::new();
         let mut retained = Map::new();
+        let mut error = None;
 
         for (key, mut value) in mem::take(map).into_iter() {
-            if filter
-                .call_raw_with_extra_args(
-                    "drain",
-                    &ctx,
-                    Some(&mut value),
-                    [key.clone().into()],
-                    [],
-                    Some(1),
-                )?
-                .as_bool()
-                .unwrap_or(false)
-            {
-                drained.insert(key, value);
-            } else {
+            if error.is_some() {
                 retained.insert(key, value);
+                continue;
+            }
+
+            match filter.call_raw_with_extra_args(
+                "drain",
+                &ctx,
+                Some(&mut value),
+                [key.clone().into()],
+                [],
+                Some(1),
+            ) {
+                Ok(r) => {
+                    if r.as_bool().unwrap_or(false) {
+                        drained.insert(key, value);
+                    } else {
+                        retained.insert(key, value);
+                    }
+                }
+                Err(err) => error = Some(err),
             }
         }
 
         *map = retained;
 
-        Ok(drained)
+        if let Some(err) = error {
+            Err(err)
+        } else {
+            Ok(drained)
+        }
     }
     /// Remove all elements in the object map that do not return `true` when applied the `filter` function and
     /// return them as a new object map.
@@ -473,29 +484,40 @@ mod map_functions {
 
         let mut drained = Map::new();
         let mut retained = Map::new();
+        let mut error = None;
 
         for (key, mut value) in mem::take(map).into_iter() {
-            if filter
-                .call_raw_with_extra_args(
-                    "retain",
-                    &ctx,
-                    Some(&mut value),
-                    [key.clone().into()],
-                    [],
-                    Some(1),
-                )?
-                .as_bool()
-                .unwrap_or(false)
-            {
+            if error.is_some() {
                 retained.insert(key, value);
-            } else {
-                drained.insert(key, value);
+                continue;
+            }
+
+            match filter.call_raw_with_extra_args(
+                "retain",
+                &ctx,
+                Some(&mut value),
+                [key.clone().into()],
+                [],
+                Some(1),
+            ) {
+                Ok(r) => {
+                    if r.as_bool().unwrap_or(false) {
+                        retained.insert(key, value);
+                    } else {
+                        drained.insert(key, value);
+                    }
+                }
+                Err(err) => error = Some(err),
             }
         }
 
         *map = retained;
 
-        Ok(drained)
+        if let Some(err) = error {
+            Err(err)
+        } else {
+            Ok(drained)
+        }
     }
 
     /// Return the JSON representation of the object map.
