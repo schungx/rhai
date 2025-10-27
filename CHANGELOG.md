@@ -11,7 +11,8 @@ Bug fixes
 * The methods `contains`, `get`, `filter` and `to_json` for object maps are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * The methods `contains`, `get`, `parse_le_int`, `parse_be_int`, `parse_le_float` and `parse_be_float` for BLOB's are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * `E` can now be used in scientific notation for floating-point and decimal literals (thanks [`@BrynCooke`](https://github.com/BrynCooke) [#1039](https://github.com/rhaiscript/rhai/pull/1039)).
-* The `drain` and `retain` methods for object maps no longer empty the target map upon errors ([#1041](https://github.com/rhaiscript/rhai/pull/1041)).
+* The `drain` and `retain` methods for object maps no longer empty the target map upon errors ([#1043](https://github.com/rhaiscript/rhai/pull/1043)).
+* Using a reserved keyword as a function parameter now returns the `VariableExpected` parser error (thanks [`@TheAwiteb`](https://github.com/TheAwiteb) [#1047](https://github.com/rhaiscript/rhai/pull/1047)).
 
 Enhancements
 ------------

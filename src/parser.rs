@@ -672,7 +672,7 @@ impl Engine {
                 }
                 .into_fn_call_expr(settings.pos));
             }
-            // id...
+            // id(...
             _ => (),
         }
 
