@@ -3654,6 +3654,12 @@ impl Engine {
                         params.push((s, pos));
                     }
                     (Token::LexError(err), pos) => return Err(err.into_err(pos)),
+                    (token, pos) if token.is_reserved() => {
+                        return Err(PERR::Reserved(token.to_string()).into_err(pos))
+                    }
+                    (token, pos) if token.is_standard_keyword() => {
+                        return Err(PERR::VariableExpected.into_err(pos))
+                    }
                     (.., pos) => {
                         return Err(PERR::MissingToken(
                             Token::RightParen.into(),
@@ -3816,6 +3822,12 @@ impl Engine {
                         params_list.push(s);
                     }
                     (Token::LexError(err), pos) => return Err(err.into_err(pos)),
+                    (token, pos) if token.is_reserved() => {
+                        return Err(PERR::Reserved(token.to_string()).into_err(pos))
+                    }
+                    (token, pos) if token.is_standard_keyword() => {
+                        return Err(PERR::VariableExpected.into_err(pos))
+                    }
                     (.., pos) => {
                         return Err(PERR::MissingToken(
                             Token::Pipe.into(),
