@@ -1,7 +1,7 @@
 Rhai Release Notes
 ==================
 
-Version 1.24.0
+Version 1.23.6
 ==============
 
 Bug fixes
@@ -21,11 +21,12 @@ Enhancements
 * The string methods `starts_with` and `ends_with` now work with character argument ([#1042](https://github.com/rhaiscript/rhai/pull/1042)).
 
 
-Version 1.23.3
+Version 1.23.5
 ==============
 
-This version maintains compatibility by restricting the [`ahash`](https://crates.io/crates/ahash)
-dependency to `<=0.8.11` because higher versions break `no-std` builds.
+This version is the same as version `1.23.6` but maintains compatibility by restricting the
+[`ahash`](https://crates.io/crates/ahash) dependency to `<=0.8.11` because higher versions break
+`no-std` builds.
 
 
 Version 1.23.4
@@ -52,6 +53,14 @@ Enhancements
 * The new symbol types `$token$`, `$inner$`, and `$raw$` can now be used in custom syntax definitions ([#1023](https://github.com/rhaiscript/rhai/pull/1023)).
 * `Engine::register_custom_syntax_without_look_ahead_raw` is added to allow the use of `$raw$` in custom syntax, which returns the script text character-by-character without processing, by-passing the tokenizer. This in turn allows for parsing arbitrary syntax.  ([#1022](https://github.com/rhaiscript/rhai/pull/1022))
 * `CallFnOptions::in_all_namespaces` is added to allow calling functions in all namespaces, instead of only scripted Rhai functions in the `AST`.
+
+
+Version 1.23.3
+==============
+
+This version is the same as version `1.23.4` but maintains compatibility by restricting the
+[`ahash`](https://crates.io/crates/ahash) dependency to `<=0.8.11` because higher versions break
+`no-std` builds.
 
 
 Version 1.22.2
