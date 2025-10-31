@@ -1,7 +1,7 @@
 Rhai Release Notes
 ==================
 
-Version 1.24.0
+Version 1.23.6
 ==============
 
 Bug fixes
@@ -11,7 +11,8 @@ Bug fixes
 * The methods `contains`, `get`, `filter` and `to_json` for object maps are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * The methods `contains`, `get`, `parse_le_int`, `parse_be_int`, `parse_le_float` and `parse_be_float` for BLOB's are now marked pure ([#1037](https://github.com/rhaiscript/rhai/pull/1037)).
 * `E` can now be used in scientific notation for floating-point and decimal literals (thanks [`@BrynCooke`](https://github.com/BrynCooke) [#1039](https://github.com/rhaiscript/rhai/pull/1039)).
-* The `drain` and `retain` methods for object maps no longer empty the target map upon errors ([#1041](https://github.com/rhaiscript/rhai/pull/1041)).
+* The `drain` and `retain` methods for object maps no longer empty the target map upon errors ([#1043](https://github.com/rhaiscript/rhai/pull/1043)).
+* Using a reserved keyword as a function parameter now returns the `VariableExpected` parser error (thanks [`@TheAwiteb`](https://github.com/TheAwiteb) [#1047](https://github.com/rhaiscript/rhai/pull/1047)).
 
 Enhancements
 ------------
@@ -20,11 +21,12 @@ Enhancements
 * The string methods `starts_with` and `ends_with` now work with character argument ([#1042](https://github.com/rhaiscript/rhai/pull/1042)).
 
 
-Version 1.23.3
+Version 1.23.5
 ==============
 
-This version maintains compatibility by restricting the [`ahash`](https://crates.io/crates/ahash)
-dependency to `<=0.8.11` because higher versions break `no-std` builds.
+This version is the same as version `1.23.6` but maintains compatibility by restricting the
+[`ahash`](https://crates.io/crates/ahash) dependency to `<=0.8.11` because higher versions break
+`no-std` builds.
 
 
 Version 1.23.4
@@ -51,6 +53,14 @@ Enhancements
 * The new symbol types `$token$`, `$inner$`, and `$raw$` can now be used in custom syntax definitions ([#1023](https://github.com/rhaiscript/rhai/pull/1023)).
 * `Engine::register_custom_syntax_without_look_ahead_raw` is added to allow the use of `$raw$` in custom syntax, which returns the script text character-by-character without processing, by-passing the tokenizer. This in turn allows for parsing arbitrary syntax.  ([#1022](https://github.com/rhaiscript/rhai/pull/1022))
 * `CallFnOptions::in_all_namespaces` is added to allow calling functions in all namespaces, instead of only scripted Rhai functions in the `AST`.
+
+
+Version 1.23.3
+==============
+
+This version is the same as version `1.23.4` but maintains compatibility by restricting the
+[`ahash`](https://crates.io/crates/ahash) dependency to `<=0.8.11` because higher versions break
+`no-std` builds.
 
 
 Version 1.22.2
