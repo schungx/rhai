@@ -2,7 +2,7 @@ error[E0277]: the trait bound `NonClonable: Clone` is not satisfied
   --> ui_tests/rhai_fn_non_clonable_return.rs:12:31
    |
 11 | #[export_fn]
-   | ------------ in this procedural macro expansion
+   | ------------ in this attribute macro expansion
 12 | pub fn test_fn(input: f32) -> NonClonable {
    |                               ^^^^^^^^^^^ the trait `Clone` is not implemented for `NonClonable`
    |

@@ -2,7 +2,7 @@ error[E0277]: the trait bound `NonClonable: Clone` is not satisfied
   --> ui_tests/rhai_mod_non_clonable_return.rs:12:35
    |
 10 | #[export_module]
-   | ---------------- in this procedural macro expansion
+   | ---------------- in this attribute macro expansion
 11 | pub mod test_mod {
 12 |     pub fn test_fn(input: f32) -> NonClonable {
    |                                   ^^^^^^^^^^^ the trait `Clone` is not implemented for `NonClonable`
