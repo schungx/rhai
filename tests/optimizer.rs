@@ -223,3 +223,28 @@ fn test_optimizer_volatile() {
     // Make sure the call is optimized away
     assert!(!text_ast.contains(r#"name: "foo""#));
 }
+
+#[cfg(not(feature = "no_object"))]
+#[cfg(not(feature = "no_index"))]
+#[test]
+fn test_optimizer_const_map() {
+    let mut engine = Engine::new();
+    engine.set_optimization_level(OptimizationLevel::Simple);
+
+    let mut scope = Scope::new();
+    let mut map = rhai::Map::new();
+    map.insert("a".into(), 42.into());
+    scope.push_constant_dynamic("my_map", map.into());
+    scope.push_constant_dynamic("x", "a".into());
+
+    let exprs = [r#"my_map["a"] == 42"#, r#"my_map.a == 42"#, r#"my_map[x] == 42"#, r#"#{a: 42}[x] == 42"#, r#"#{a: 42}["a"] == 42"#, r#"#{a: 42}.a == 42"#];
+    for expr in exprs {
+        let ast = engine.compile_expression_with_scope(&scope, expr).expect(&format!("Failed to compile expression: {expr}").as_str());
+
+        let ast_text = format!("{ast:?}");
+        assert!(["Index", "Dot", "FnCall"].iter().all(|p| !ast_text.contains(p)), "Expression was not optimized: {} => {}", expr, ast_text);
+
+        let res = engine.eval_ast::<bool>(&ast).expect(&format!("Failed to evaluate expression: {expr}"));
+        assert!(res, "Constant map optimization failed for expression: {} => {:?}", expr, ast);
+    }
+}

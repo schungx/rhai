@@ -954,6 +954,12 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == p.2)
                             .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
             }
+            // var.property where var is a constant map
+            (Expr::Variable(v, _, pos) , Expr::Property(p, ..))  if state.propagate_constants && state.find_literal_constant(&v.1).map_or(false,Dynamic::is_map) => {
+                let v = state.find_literal_constant(&v.1).unwrap().as_map_ref().unwrap().get(p.2.as_str()).cloned().unwrap_or(Dynamic::UNIT);
+                *expr = Expr::from_dynamic(v, *pos);
+                state.set_dirty();
+            },
             // var.rhs or this.rhs
             (Expr::Variable(..) | Expr::ThisPtr(..), rhs) => optimize_expr(rhs, state, true),
             // const.type_of()
@@ -1015,6 +1021,18 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == s)
                             .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
             }
+            #[cfg(not(feature = "no_object"))]
+            (Expr::DynamicConstant(cst, pos ), Expr::StringConstant(s, ..)) if cst.is_map() => {
+                // Constant map - promote the indexed item.
+                state.set_dirty();
+                let mut cst = mem::take(cst);
+                *expr = cst.as_map_mut().unwrap()
+                    .remove(s.as_str())
+                    .map_or_else(
+                        || Expr::Unit(*pos),
+                        |v| Expr::from_dynamic(v, *pos),
+                    );
+            }
             // int[int]
             (Expr::IntegerConstant(n, pos), Expr::IntegerConstant(i, ..)) if usize::try_from(*i).map(|x| x < crate::INT_BITS).unwrap_or(false) => {
                 // Bit-field literal indexing - get the bit
@@ -1039,6 +1057,13 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 state.set_dirty();
                 *expr = Expr::CharConstant(s.chars().rev().nth(usize::try_from(i.unsigned_abs()).unwrap() - 1).unwrap(), *pos);
             }
+            // var[property] where var is a constant map variable
+            #[cfg(not(feature = "no_object"))]
+            (Expr::Variable(v, _, pos) , Expr::StringConstant(s, ..))  if state.propagate_constants && state.find_literal_constant(&v.1).map_or(false, Dynamic::is_map) => {
+                let v = state.find_literal_constant(&v.1).unwrap().as_map_ref().unwrap().get(s.as_str()).cloned().unwrap_or(Dynamic::UNIT);
+                *expr = Expr::from_dynamic(v, *pos);
+                state.set_dirty();
+            },
             // var[rhs] or this[rhs]
             (Expr::Variable(..) | Expr::ThisPtr(..), rhs) => optimize_expr(rhs, state, true),
             // lhs[rhs]
