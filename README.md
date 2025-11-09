@@ -32,11 +32,11 @@ Targets and builds
 Versions
 --------
 
-The [`ahash`](https://crates.io/crates/ahash) crate that Rhai depends on has a breaking change since version `0.8.12` which bumps [`getrandom`](https://crates.io/crates/getrandom) to version `0.3`, braking certain `no-std` and `wasm` builds.
+The [`ahash`](https://crates.io/crates/ahash) crate that Rhai depends on has a breaking change since version `0.8.12` which bumps [`getrandom`](https://crates.io/crates/getrandom) to version `0.3`, braking certain `no-std` and WASM builds.
 
-Version [`1.23.3`](https://crates.io/crates/rhai/1.23.3): Use this version when building for `no-std`
+Version [`1.23.5`](https://crates.io/crates/rhai/1.23.5): Use this version when building for `no-std` or WASM.
 
-Version [`1.23.4`](https://crates.io/crates/rhai/1.23.4): This is the main version for `std` builds.
+Version [`1.23.6`](https://crates.io/crates/rhai/1.23.6): This is the main version for `std` builds.
 
 
 Standard features

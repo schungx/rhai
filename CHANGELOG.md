@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.24.0
+==============
+
+Enhancements
+------------
+
+* The optimizer now optimizes constant object map property accesses (thanks [`@phsym`](https://github.com/phsym) [#1050](https://github.com/rhaiscript/rhai/pull/1050)).
+
+
 Version 1.23.6
 ==============
 
