@@ -1540,11 +1540,12 @@ pub mod array_functions {
     /// let x = [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
     ///
     /// // Do comparisons in reverse
-    /// x.sort(|a, b| if a > b { -1 } else if a < b { 1 } else { 0 });
+    /// x.sort_by(|a, b| if a > b { -1 } else if a < b { 1 } else { 0 });
     ///
     /// print(x);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
     /// ```
-    pub fn sort(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) {
+    #[rhai_fn(name = "sort", name = "sort_by")]
+    pub fn sort_by(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) {
         if array.len() <= 1 {
             return;
         }
@@ -1663,6 +1664,220 @@ pub mod array_functions {
         }
 
         Ok(())
+    }
+    /// Sort the array in descending order.
+    ///
+    /// All elements in the array must be of the same data type.
+    ///
+    /// # Supported Data Types
+    ///
+    /// * integer numbers
+    /// * floating-point numbers
+    /// * decimal numbers
+    /// * characters
+    /// * strings
+    /// * booleans
+    /// * `()`
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let x = [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+    ///
+    /// x.sort_desc();
+    ///
+    /// print(x);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
+    /// ```
+    #[rhai_fn(name = "sort_desc", return_raw)]
+    pub fn sort_with_builtin_desc(array: &mut Array) -> RhaiResultOf<()> {
+        if array.len() <= 1 {
+            return Ok(());
+        }
+
+        let type_id = array[0].type_id();
+
+        if array.iter().any(|a| a.type_id() != type_id) {
+            return Err(ERR::ErrorFunctionNotFound(
+                "sort_desc() cannot be called with elements of different types".into(),
+                Position::NONE,
+            )
+            .into());
+        }
+
+        if type_id == TypeId::of::<INT>() {
+            array.sort_by(|a, b| {
+                let a = a.as_int().unwrap();
+                let b = b.as_int().unwrap();
+                match a.cmp(&b) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        if type_id == TypeId::of::<char>() {
+            array.sort_by(|a, b| {
+                let a = a.as_char().unwrap();
+                let b = b.as_char().unwrap();
+                match a.cmp(&b) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        #[cfg(not(feature = "no_float"))]
+        if type_id == TypeId::of::<crate::FLOAT>() {
+            array.sort_by(|a, b| {
+                let a = a.as_float().unwrap();
+                let b = b.as_float().unwrap();
+                match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        if type_id == TypeId::of::<ImmutableString>() {
+            array.sort_by(|a, b| {
+                let a = &*a.as_immutable_string_ref().unwrap();
+                let b = &*b.as_immutable_string_ref().unwrap();
+                match a.cmp(&b) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        #[cfg(feature = "decimal")]
+        if type_id == TypeId::of::<rust_decimal::Decimal>() {
+            array.sort_by(|a, b| {
+                let a = a.as_decimal().unwrap();
+                let b = b.as_decimal().unwrap();
+                match a.cmp(&b) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        if type_id == TypeId::of::<bool>() {
+            array.sort_by(|a, b| {
+                let a = a.as_bool().unwrap();
+                let b = b.as_bool().unwrap();
+                match a.cmp(&b) {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                }
+            });
+            return Ok(());
+        }
+        if type_id == TypeId::of::<()>() {
+            return Ok(());
+        }
+
+        Ok(())
+    }
+    /// Sort the array based on applying the `comparer` function and return it as a new array.
+    ///
+    /// # Function Parameters
+    ///
+    /// * `element1`: copy of the current array element to compare
+    /// * `element2`: copy of the next array element to compare
+    ///
+    /// ## Return Value
+    ///
+    /// An integer number:
+    ///
+    /// * Any positive integer if `element1 > element2`
+    /// * 0 if `element1 == element2`
+    /// * Any negative integer if `element1 < element2`
+    ///
+    /// or a boolean value:
+    ///
+    /// * `true` if `element1 <= element2`
+    /// * `false` if `element1 > element2`
+    ///
+    /// Any other return value type will yield unpredictable order.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let x = [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+    ///
+    /// // Do comparisons in reverse
+    /// let y = x.order_by(|a, b| if a > b { -1 } else if a < b { 1 } else { 0 });
+    ///
+    /// print(y);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
+    /// ```
+    pub fn order_by(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) -> Array {
+        let mut array = array.clone();
+        sort_by(ctx, &mut array, comparer);
+        array
+    }
+    /// Sort the array and return it as a new array.
+    ///
+    /// All elements in the array must be of the same data type.
+    ///
+    /// # Supported Data Types
+    ///
+    /// * integer numbers
+    /// * floating-point numbers
+    /// * decimal numbers
+    /// * characters
+    /// * strings
+    /// * booleans
+    /// * `()`
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let x = [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+    ///
+    /// let y = x.order();
+    ///
+    /// print(y);       // prints "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
+    /// ```
+    #[rhai_fn(name = "order", return_raw)]
+    pub fn order_with_builtin(array: &mut Array) -> RhaiResultOf<Array> {
+        let mut array = array.clone();
+        sort_with_builtin(&mut array)?;
+        Ok(array)
+    }
+    /// Sort the array in descending order and return it as a new array.
+    ///
+    /// All elements in the array must be of the same data type.
+    ///
+    /// # Supported Data Types
+    ///
+    /// * integer numbers
+    /// * floating-point numbers
+    /// * decimal numbers
+    /// * characters
+    /// * strings
+    /// * booleans
+    /// * `()`
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let x = [1, 3, 5, 7, 9, 2, 4, 6, 8, 10];
+    ///
+    /// let y = x.order_desc();
+    ///
+    /// print(y);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
+    /// ```
+    #[rhai_fn(name = "order_desc", return_raw)]
+    pub fn order_with_builtin_desc(array: &mut Array) -> RhaiResultOf<Array> {
+        let mut array = array.clone();
+        sort_with_builtin_desc(&mut array)?;
+        Ok(array)
     }
     /// Remove all elements in the array that returns `true` when applied the `filter` function and
     /// return them as a new array.
