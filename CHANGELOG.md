@@ -1,6 +1,23 @@
 Rhai Release Notes
 ==================
 
+Version 1.24.0
+==============
+
+Breaking Changes
+----------------
+
+* `stdweb` support is removed. The feature flag `stdweb` is also removed. Use `wasm-bindgen` instead.
+
+
+Enhancements
+------------
+
+* The optimizer now optimizes constant object map property accesses (thanks [`@phsym`](https://github.com/phsym) [#1050](https://github.com/rhaiscript/rhai/pull/1050)).
+* The method `sort` for arrays is also aliased to `sort_by`.
+* The methods `sort_desc`, `order`, `order_by` and `order_desc` are added to arrays.
+
+
 Version 1.23.6
 ==============
 
