@@ -4,6 +4,12 @@ Rhai Release Notes
 Version 1.24.0
 ==============
 
+Breaking Changes
+----------------
+
+* `stdweb` support is removed. The feature flag `stdweb` is also removed. Use `wasm-bindgen` instead.
+
+
 Enhancements
 ------------
 

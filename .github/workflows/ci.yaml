@@ -22,4 +22,4 @@ jobs:
           tool: cargo-hack@0.5.25
       - run: cargo hack check --feature-powerset --depth ${{ inputs.depth }} --no-dev-deps --exclude-features "$FEATURE_EXCLUDE"
         env:
-          FEATURE_EXCLUDE: "no_std stdweb wasm-bindgen f32_float only_i32 unicode-xid-ident bin-features"
+          FEATURE_EXCLUDE: "no_std wasm-bindgen f32_float only_i32 unicode-xid-ident bin-features"
