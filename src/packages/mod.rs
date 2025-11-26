@@ -45,7 +45,6 @@ pub use time_basic::BasicTimePackage;
 pub trait Package {
     /// Initialize the package.
     /// Functions should be registered into `module` here.
-    #[cold]
     fn init(module: &mut Module);
 
     /// Initialize the package with an [`Engine`].
