@@ -1544,10 +1544,10 @@ pub mod array_functions {
     ///
     /// print(x);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
     /// ```
-    #[rhai_fn(name = "sort", name = "sort_by")]
-    pub fn sort_by(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) {
+    #[rhai_fn(name = "sort", name = "sort_by", return_raw)]
+    pub fn sort_by(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) -> RhaiResultOf<()> {
         if array.len() <= 1 {
-            return;
+            return Ok(());
         }
 
         array.sort_by(|x, y| {
@@ -1569,6 +1569,8 @@ pub mod array_functions {
                     },
                 )
         });
+
+        Ok(())
     }
     /// Sort the array.
     ///
@@ -1603,7 +1605,7 @@ pub mod array_functions {
 
         if array.iter().any(|a| a.type_id() != type_id) {
             return Err(ERR::ErrorFunctionNotFound(
-                "sort() cannot be called with elements of different types".into(),
+                "elements of different types cannot be sorted".into(),
                 Position::NONE,
             )
             .into());
@@ -1663,7 +1665,11 @@ pub mod array_functions {
             return Ok(());
         }
 
-        Ok(())
+        Err(ERR::ErrorFunctionNotFound(
+            format!("elements of {} cannot be sorted", array[0].type_name()).into(),
+            Position::NONE,
+        )
+        .into())
     }
     /// Sort the array in descending order.
     ///
@@ -1698,7 +1704,7 @@ pub mod array_functions {
 
         if array.iter().any(|a| a.type_id() != type_id) {
             return Err(ERR::ErrorFunctionNotFound(
-                "sort_desc() cannot be called with elements of different types".into(),
+                "elements of different types cannot be sorted".into(),
                 Position::NONE,
             )
             .into());
@@ -1782,7 +1788,11 @@ pub mod array_functions {
             return Ok(());
         }
 
-        Ok(())
+        Err(ERR::ErrorFunctionNotFound(
+            format!("elements of {} cannot be sorted", array[0].type_name()).into(),
+            Position::NONE,
+        )
+        .into())
     }
     /// Sort the array based on applying the `comparer` function and return it as a new array.
     ///
@@ -1816,10 +1826,15 @@ pub mod array_functions {
     ///
     /// print(y);       // prints "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
     /// ```
-    pub fn order_by(ctx: NativeCallContext, array: &mut Array, comparer: FnPtr) -> Array {
+    #[rhai_fn(name = "order", name = "order_by", return_raw)]
+    pub fn order_by(
+        ctx: NativeCallContext,
+        array: &mut Array,
+        comparer: FnPtr,
+    ) -> RhaiResultOf<Array> {
         let mut array = array.clone();
-        sort_by(ctx, &mut array, comparer);
-        array
+        sort_by(ctx, &mut array, comparer)?;
+        Ok(array)
     }
     /// Sort the array and return it as a new array.
     ///
