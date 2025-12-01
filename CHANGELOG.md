@@ -16,6 +16,7 @@ Enhancements
 * The optimizer now optimizes constant object map property accesses (thanks [`@phsym`](https://github.com/phsym) [#1050](https://github.com/rhaiscript/rhai/pull/1050)).
 * The method `sort` for arrays is also aliased to `sort_by`.
 * The methods `sort_desc`, `order`, `order_by` and `order_desc` are added to arrays.
+* Added optimization for `if cond1 { if cond2 { ... } }` to `if cond1 && cond2 { ... }`.
 
 
 Version 1.23.6
