@@ -1514,6 +1514,8 @@ pub mod array_functions {
     }
     /// Sort the array based on applying the `comparer` function.
     ///
+    /// The `comparer` function must implement a [total order](https://en.wikipedia.org/wiki/Total_order).
+    ///
     /// # Function Parameters
     ///
     /// * `element1`: copy of the current array element to compare
@@ -1534,6 +1536,11 @@ pub mod array_functions {
     ///
     /// Any other return value type will yield unpredictable order.
     ///
+    /// # Errors
+    ///
+    /// If the `comparer` function does not implement a [total order](https://en.wikipedia.org/wiki/Total_order),
+    /// an error is returned.
+    ///
     /// # Example
     ///
     /// ```rhai
@@ -1550,27 +1557,32 @@ pub mod array_functions {
             return Ok(());
         }
 
-        array.sort_by(|x, y| {
-            comparer
-                .call_raw(&ctx, None, [x.clone(), y.clone()])
-                .ok()
-                .and_then(|v| {
-                    v.as_int()
-                        .or_else(|_| v.as_bool().map(|v| if v { -1 } else { 1 }))
-                        .ok()
-                })
-                .map_or_else(
-                    || x.type_id().cmp(&y.type_id()),
-                    |v| match v {
-                        v if v > 0 => Ordering::Greater,
-                        v if v < 0 => Ordering::Less,
-                        0 => Ordering::Equal,
-                        _ => unreachable!("v is {}", v),
-                    },
-                )
-        });
-
-        Ok(())
+        // `slice::sort_by` may panic if the comparer function does not implement a total order.
+        // Catch this instead.
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            array.sort_by(|x, y| {
+                comparer
+                    .call_raw(&ctx, None, [x.clone(), y.clone()])
+                    .ok()
+                    .and_then(|v| {
+                        v.as_int()
+                            .or_else(|_| v.as_bool().map(|v| if v { -1 } else { 1 }))
+                            .ok()
+                    })
+                    .map_or_else(
+                        || x.type_id().cmp(&y.type_id()),
+                        |v| match v {
+                            v if v > 0 => Ordering::Greater,
+                            v if v < 0 => Ordering::Less,
+                            0 => Ordering::Equal,
+                            _ => unreachable!("v is {}", v),
+                        },
+                    )
+            });
+        }))
+        .map_err(|_| {
+            ERR::ErrorRuntime("error in comparer for sorting".into(), Position::NONE).into()
+        })
     }
     /// Sort the array.
     ///
@@ -1796,6 +1808,8 @@ pub mod array_functions {
     }
     /// Sort the array based on applying the `comparer` function and return it as a new array.
     ///
+    /// The `comparer` function must implement a [total order](https://en.wikipedia.org/wiki/Total_order).
+    ///
     /// # Function Parameters
     ///
     /// * `element1`: copy of the current array element to compare
@@ -1815,6 +1829,11 @@ pub mod array_functions {
     /// * `false` if `element1 > element2`
     ///
     /// Any other return value type will yield unpredictable order.
+    ///
+    /// # Errors
+    ///
+    /// If the `comparer` function does not implement a [total order](https://en.wikipedia.org/wiki/Total_order),
+    /// an error is returned.
     ///
     /// # Example
     ///

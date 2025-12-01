@@ -9,6 +9,11 @@ Breaking Changes
 
 * `stdweb` support is removed. The feature flag `stdweb` is also removed. Use `wasm-bindgen` instead.
 
+Bug fixes
+---------
+
+* (Fuzzing) Fixed panic when using `sort` on an array with a comparer function that does not implement a [total order](https://en.wikipedia.org/wiki/Total_order).
+
 Enhancements
 ------------
 
