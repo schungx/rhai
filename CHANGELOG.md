@@ -23,6 +23,11 @@ Enhancements
 * The methods `sort_desc`, `order`, `order_by` and `order_desc` are added to arrays.
 * An exception is now thrown when attempting to use `sort` on an array containing unsupported element types.
 
+New features
+------------
+
+* `AST::new_from_module` is added to create an `AST` from a shared `Module`.
+
 
 Version 1.23.6
 ==============
