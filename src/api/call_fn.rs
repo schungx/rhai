@@ -22,7 +22,7 @@ pub struct CallFnOptions<'t> {
     pub eval_ast: bool,
     /// Rewind the [`Scope`] after the function call? Default `true`.
     pub rewind_scope: bool,
-    /// Call only scripted functions from the [`AST`] instead of functions in all namespaces.
+    /// Call functions in all namespaces instead of only scripted functions within the [`AST`].
     pub in_all_namespaces: bool,
 }
 
