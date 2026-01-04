@@ -8,6 +8,7 @@ Breaking Changes
 ----------------
 
 * `stdweb` support is removed. The feature flag `stdweb` is also removed. Use `wasm-bindgen` instead.
+* [`web-time`](https://crates.io/crates/web-time) is used for WASM targets instead of [`instant`](https://crates.io/crates/instant), which is no longer maintained.
 
 Bug fixes
 ---------
