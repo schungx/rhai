@@ -9,6 +9,7 @@ Rhai - Embedded Scripting for Rust
 [![crates.io](https://img.shields.io/crates/d/rhai?logo=rust)](https://crates.io/crates/rhai/)
 [![API Docs](https://docs.rs/rhai/badge.svg?logo=docs-rs)](https://docs.rs/rhai/)
 [![VS Code plugin installs](https://img.shields.io/visual-studio-marketplace/i/rhaiscript.vscode-rhai?logo=visual-studio-code&label=vs%20code)](https://marketplace.visualstudio.com/items?itemName=rhaiscript.vscode-rhai)
+[![JetBrains plugin downloads](https://img.shields.io/jetbrains/plugin/d/30068-rhai-language-support?logo=jetbrains&label=jetbrains)](https://plugins.jetbrains.com/plugin/30068-rhai-language-support)
 [![Sublime Text package downloads](https://img.shields.io/packagecontrol/dt/Rhai.svg?logo=sublime-text&label=sublime%20text)](https://packagecontrol.io/packages/Rhai)
 [![Discord Chat](https://img.shields.io/discord/767611025456889857.svg?logo=discord&label=discord)](https://discord.gg/HquqbYFcZ9)
 [![Reddit Channel](https://img.shields.io/reddit/subreddit-subscribers/Rhai?logo=reddit&label=reddit)](https://www.reddit.com/r/Rhai)
