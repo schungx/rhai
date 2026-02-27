@@ -11,7 +11,6 @@ Rhai - Embedded Scripting for Rust
 [![VS Code plugin installs](https://img.shields.io/visual-studio-marketplace/i/rhaiscript.vscode-rhai?logo=visual-studio-code&label=vs%20code)](https://marketplace.visualstudio.com/items?itemName=rhaiscript.vscode-rhai)
 [![Sublime Text package downloads](https://img.shields.io/packagecontrol/dt/Rhai.svg?logo=sublime-text&label=sublime%20text)](https://packagecontrol.io/packages/Rhai)
 [![Discord Chat](https://img.shields.io/discord/767611025456889857.svg?logo=discord&label=discord)](https://discord.gg/HquqbYFcZ9)
-[![Zulip Chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg?logo=zulip)](https://rhaiscript.zulipchat.com)
 [![Reddit Channel](https://img.shields.io/reddit/subreddit-subscribers/Rhai?logo=reddit&label=reddit)](https://www.reddit.com/r/Rhai)
 
 [![Rhai logo](https://rhai.rs/book/images/logo/rhai-banner-transparent-colour.svg)](https://rhai.rs)
