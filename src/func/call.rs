@@ -8,6 +8,8 @@ use crate::engine::{
     KEYWORD_IS_DEF_VAR, KEYWORD_PRINT, KEYWORD_TYPE_OF,
 };
 use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
+#[cfg(feature = "internals")]
+use crate::eval::EvalContext;
 use crate::tokenizer::{is_valid_function_name, Token};
 use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
 use crate::{
@@ -540,6 +542,17 @@ impl Engine {
 
             // Raise error
             _ => {
+                #[cfg(feature = "internals")]
+                if let Some(ref callback) = self.missing_method {
+                    let scope = &mut Scope::new();
+                    let context = EvalContext::new(self, global, caches, scope, None);
+                    match callback(name, args, context) {
+                        Ok(Some(result)) => return Ok((result, false)),
+                        Ok(None) => {}
+                        Err(err) => return Err(err),
+                    }
+                }
+
                 Err(ERR::ErrorFunctionNotFound(self.gen_fn_call_signature(name, args), pos).into())
             }
         }

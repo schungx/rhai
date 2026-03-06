@@ -124,6 +124,9 @@ pub struct Engine {
     #[cfg(not(feature = "no_object"))]
     #[cfg(feature = "internals")]
     pub(crate) missing_map_property: Option<Box<crate::func::native::OnMissingMapPropertyCallback>>,
+    /// Callback closure when a method call is not found for a type.
+    #[cfg(feature = "internals")]
+    pub(crate) missing_method: Option<Box<crate::func::native::OnMissingMethodCallback>>,
 
     /// Callback closure for implementing the `print` command.
     pub(crate) print: Option<Box<OnPrintCallback>>,
@@ -258,6 +261,8 @@ impl Engine {
         #[cfg(not(feature = "no_object"))]
         #[cfg(feature = "internals")]
         missing_map_property: None,
+        #[cfg(feature = "internals")]
+        missing_method: None,
 
         print: None,
         debug: None,

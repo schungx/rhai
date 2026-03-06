@@ -478,6 +478,27 @@ impl Engine {
         self.missing_map_property = Some(Box::new(callback));
         self
     }
+    /// _(internals)_ Register a callback for when a method call is not found for a type.
+    /// Exported under the `internals` feature only.
+    ///
+    /// The callback receives:
+    /// - method name (`&str`)
+    /// - arguments (`&mut [&mut Dynamic]`) — first element is the object
+    /// - evaluation context (`EvalContext`)
+    ///
+    /// Return `Ok(Some(value))` to provide a result, or `Ok(None)` to fall through
+    /// to the standard `ErrorFunctionNotFound`.
+    #[cfg(feature = "internals")]
+    #[inline(always)]
+    pub fn on_missing_method(
+        &mut self,
+        callback: impl Fn(&str, &mut [&mut Dynamic], EvalContext) -> RhaiResultOf<Option<Dynamic>>
+            + SendSync
+            + 'static,
+    ) -> &mut Self {
+        self.missing_method = Some(Box::new(callback));
+        self
+    }
     /// _(debugging)_ Register a callback for debugging.
     /// Exported under the `debugging` feature only.
     ///
