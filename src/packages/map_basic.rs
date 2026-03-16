@@ -2,9 +2,7 @@
 
 use crate::engine::OP_EQUALS;
 use crate::plugin::*;
-use crate::{
-    def_package, Dynamic, FnPtr, ImmutableString, Map, NativeCallContext, RhaiResultOf, INT,
-};
+use crate::{def_package, Dynamic, FnPtr, Map, NativeCallContext, RhaiResultOf, INT};
 use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;

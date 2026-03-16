@@ -1,6 +1,6 @@
 #![cfg(not(feature = "no_index"))]
-use rhai::{Array, Dynamic, Engine, EvalAltResult, ParseErrorType, Position, INT};
-use std::{convert::TryInto, iter::FromIterator};
+use rhai::{Array, Dynamic, Engine, ParseErrorType, INT};
+use std::iter::FromIterator;
 
 #[test]
 fn test_arrays() {

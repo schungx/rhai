@@ -1,5 +1,5 @@
 #![cfg(not(feature = "no_object"))]
-use rhai::{CustomType, Dynamic, Engine, EvalAltResult, Position, TypeBuilder, INT};
+use rhai::{CustomType, Engine, EvalAltResult, Position, TypeBuilder, INT};
 use std::cmp::Ordering;
 
 #[test]

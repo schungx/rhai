@@ -1,5 +1,5 @@
 use crate::plugin::*;
-use crate::{def_package, FnPtr, ImmutableString, NativeCallContext};
+use crate::{def_package, FnPtr, ImmutableString};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 

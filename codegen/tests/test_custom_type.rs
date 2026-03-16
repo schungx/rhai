@@ -1,4 +1,4 @@
-use rhai::{CustomType, Dynamic, Engine, EvalAltResult, Position, TypeBuilder, INT};
+use rhai::{CustomType, Engine, TypeBuilder, INT};
 
 // Sanity check to make sure everything compiles
 

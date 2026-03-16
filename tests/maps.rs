@@ -1,6 +1,5 @@
 #![cfg(not(feature = "no_object"))]
-use rhai::{Dynamic, Engine, EvalAltResult, Map, ParseErrorType, Position, Scope, INT};
-use std::convert::TryInto;
+use rhai::{Engine, EvalAltResult, Map, ParseErrorType, Scope, INT};
 
 #[test]
 fn test_map_indexing() {

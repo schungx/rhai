@@ -172,8 +172,8 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
     }
 
     quote! {
-        impl #impl_generics CustomType for #type_name #generics {
-            fn build(mut builder: TypeBuilder<Self>) {
+        impl #impl_generics ::rhai::CustomType for #type_name #generics {
+            fn build(mut builder: ::rhai::TypeBuilder<Self>) {
                 #(#errors)*
                 #register
                 #(#field_accessors)*
@@ -365,7 +365,7 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
             (None, Some(func)) => quote! { |obj: &mut Self| #func(&*obj) },
             (None, None) => {
                 if option_type.is_some() {
-                    quote! { |obj: &mut Self| obj.#field_name.clone().map_or(Dynamic::UNIT, Dynamic::from) }
+                    quote! { |obj: &mut Self| obj.#field_name.clone().map_or(::rhai::Dynamic::UNIT, ::rhai::Dynamic::from) }
                 } else {
                     quote! { |obj: &mut Self| obj.#field_name.clone() }
                 }
@@ -375,7 +375,7 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
         let set_impl = set_fn.unwrap_or_else(|| {
             if let Some(typ) = option_type {
                 quote! {
-                    |obj: &mut Self, val: Dynamic| {
+                    |obj: &mut Self, val: ::rhai::Dynamic| {
                         if val.is_unit() {
                             obj.#field_name = None;
                             Ok(())
@@ -383,10 +383,10 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
                             obj.#field_name = Some(x.clone());
                             Ok(())
                         } else {
-                            Err(Box::new(EvalAltResult::ErrorMismatchDataType(
+                            Err(Box::new(::rhai::EvalAltResult::ErrorMismatchDataType(
                                 stringify!(#typ).to_string(),
                                 val.type_name().to_string(),
-                                Position::NONE
+                                ::rhai::Position::NONE
                             )))
                         }
                     }

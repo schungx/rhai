@@ -157,13 +157,13 @@ pub fn generate_body(
 
             let mut tokens = quote! {
                 #(#cfg_attrs)*
-                FuncRegistration::new(#fn_literal)
+                ::rhai::FuncRegistration::new(#fn_literal)
             };
 
             match namespace {
                 FnNamespaceAccess::Unset => unreachable!("`namespace` should be set"),
                 FnNamespaceAccess::Global => {
-                    tokens.extend(quote! { .with_namespace(FnNamespace::Global) })
+                    tokens.extend(quote! { .with_namespace(rhai::FnNamespace::Global) })
                 }
                 FnNamespaceAccess::Internal => (),
             }
@@ -229,8 +229,8 @@ pub fn generate_body(
 
             #[doc(hidden)]
             #[inline(always)]
-            pub fn rhai_module_generate() -> Module {
-                let mut m = Module::new();
+            pub fn rhai_module_generate() -> ::rhai::Module {
+                let mut m = ::rhai::Module::new();
                 #module_docs
                 rhai_generate_into_module(&mut m, false);
                 m.build_index();
@@ -238,7 +238,7 @@ pub fn generate_body(
             }
             #[doc(hidden)]
             #[inline(always)]
-            pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+            pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                 #(#set_fn_statements)*
                 #(#set_const_statements)*
                 #flatten

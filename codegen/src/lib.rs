@@ -241,7 +241,7 @@ pub fn set_exported_fn(args: TokenStream) -> TokenStream {
             let gen_mod_path = crate::register::generated_module_path(&rust_mod_path);
 
             let mut tokens = quote! {
-                let fx = FuncRegistration::new(#export_name).with_namespace(FnNamespace::Internal)
+                let fx = ::rhai::FuncRegistration::new(#export_name).with_namespace(::rhai::FnNamespace::Internal)
             };
             #[cfg(feature = "metadata")]
             tokens.extend(quote! {
@@ -272,7 +272,7 @@ pub fn set_exported_global_fn(args: TokenStream) -> TokenStream {
             let gen_mod_path = crate::register::generated_module_path(&rust_mod_path);
 
             let mut tokens = quote! {
-                let fx = FuncRegistration::new(#export_name).with_namespace(FnNamespace::Global)
+                let fx = ::rhai::FuncRegistration::new(#export_name).with_namespace(::rhai::FnNamespace::Global)
             };
             #[cfg(feature = "metadata")]
             tokens.extend(quote! {

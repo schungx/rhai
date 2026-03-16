@@ -625,7 +625,7 @@ impl ExportedFn {
         let mut dynamic_signature = self.signature.clone();
         dynamic_signature.ident = syn::Ident::new("dynamic_result_fn", Span::call_site());
         dynamic_signature.output = syn::parse2::<syn::ReturnType>(quote! {
-            -> RhaiResult
+            -> ::rhai::plugin::RhaiResult
         })
         .unwrap();
         let arguments: Vec<_> = dynamic_signature
@@ -651,7 +651,7 @@ impl ExportedFn {
                 #[doc(hidden)]
                 #[inline(always)]
                 pub #dynamic_signature {
-                    #name(#(#arguments),*).map(Dynamic::from)
+                    #name(#(#arguments),*).map(::rhai::Dynamic::from)
                 }
             }
         } else {
@@ -660,7 +660,7 @@ impl ExportedFn {
                 #[doc(hidden)]
                 #[inline(always)]
                 pub #dynamic_signature {
-                    Ok(Dynamic::from(#name(#(#arguments),*)))
+                    Ok(::rhai::Dynamic::from(#name(#(#arguments),*)))
                 }
             }
         }
@@ -717,7 +717,7 @@ impl ExportedFn {
                     input_type_names.push(arg_name);
                     input_type_exprs.push(
                         syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                            TypeId::of::<#arg_type>()
+                            ::std::any::TypeId::of::<#arg_type>()
                         ))
                         .unwrap(),
                     );
@@ -754,7 +754,7 @@ impl ExportedFn {
                                 is_string = true;
                                 is_ref = true;
                                 quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                    mem::take(args[#i]).into_immutable_string().unwrap()
+                                    ::std::mem::take(args[#i]).into_immutable_string().unwrap()
                                 )
                             }
                             _ => unreachable!("why wasn't this found earlier!?"),
@@ -763,14 +763,14 @@ impl ExportedFn {
                             is_string = true;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                mem::take(args[#i]).into_string().unwrap()
+                                ::std::mem::take(args[#i]).into_string().unwrap()
                             )
                         }
                         _ => {
                             is_string = false;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                mem::take(args[#i]).cast::<#arg_type>()
+                                ::std::mem::take(args[#i]).cast::<#arg_type>()
                             )
                         }
                     };
@@ -786,14 +786,14 @@ impl ExportedFn {
                     if !is_string {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                TypeId::of::<#arg_type>()
+                                ::std::any::TypeId::of::<#arg_type>()
                             ))
                             .unwrap(),
                         );
                     } else {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                TypeId::of::<ImmutableString>()
+                                ::std::any::TypeId::of::<::rhai::ImmutableString>()
                             ))
                             .unwrap(),
                         );
@@ -826,11 +826,11 @@ impl ExportedFn {
             .resolved_at(Span::call_site());
         let return_expr = if self.params.return_raw.is_none() {
             quote_spanned! { return_span =>
-                Ok(Dynamic::from(#sig_name(#(#unpack_exprs),*)))
+                Ok(::rhai::Dynamic::from(#sig_name(#(#unpack_exprs),*)))
             }
         } else {
             quote_spanned! { return_span =>
-                #sig_name(#(#unpack_exprs),*).map(Dynamic::from)
+                #sig_name(#(#unpack_exprs),*).map(::rhai::Dynamic::from)
             }
         };
 
@@ -854,12 +854,12 @@ impl ExportedFn {
             #[doc(hidden)]
             impl #type_name {
                 #param_names
-                #[inline(always)] pub fn param_types() -> [TypeId; #arg_count] { [#(#input_type_exprs),*] }
+                #[inline(always)] pub fn param_types() -> [::std::any::TypeId; #arg_count] { [#(#input_type_exprs),*] }
             }
             #(#cfg_attrs)*
-            impl PluginFunc for #type_name {
+            impl ::rhai::plugin::PluginFunc for #type_name {
                 #[inline(always)]
-                fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                     #(#unpack_statements)*
                     #return_expr
                 }
