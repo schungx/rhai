@@ -91,7 +91,7 @@ fn test_optimizer_parse() {
 
     assert_eq!(format!("{ast:?}"), r#"AST { source: None, doc: "", resolver: None, body: [Expr(Variable(NUMBER) @ 1:1)] }"#);
 
-    let mut module = Module::new();
+    let mut module = rhai::Module::new();
     module.set_var("NUMBER", 42 as INT);
 
     engine.register_global_module(module.into());

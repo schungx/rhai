@@ -289,6 +289,10 @@ impl Parse for ExportedFn {
             syn::parse2::<syn::Path>(quote! { rhai::NativeCallContext }).unwrap();
         let context_type_path2x =
             syn::parse2::<syn::Path>(quote! { rhai::NativeCallContext<'_> }).unwrap();
+        let context_type_path3 =
+            syn::parse2::<syn::Path>(quote! { ::rhai::NativeCallContext }).unwrap();
+        let context_type_path3x =
+            syn::parse2::<syn::Path>(quote! { ::rhai::NativeCallContext<'_> }).unwrap();
         let mut pass_context = false;
 
         let cfg_attrs = crate::attrs::collect_cfg_attr(&fn_all.attrs);
@@ -302,7 +306,9 @@ impl Parse for ExportedFn {
                     if p.path == context_type_path1
                         || p.path == context_type_path1x
                         || p.path == context_type_path2
-                        || p.path == context_type_path2x =>
+                        || p.path == context_type_path2x
+                        || p.path == context_type_path3
+                        || p.path == context_type_path3x =>
                 {
                     pass_context = true;
                 }
@@ -717,7 +723,7 @@ impl ExportedFn {
                     input_type_names.push(arg_name);
                     input_type_exprs.push(
                         syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                            ::std::any::TypeId::of::<#arg_type>()
+                            ::core::any::TypeId::of::<#arg_type>()
                         ))
                         .unwrap(),
                     );
@@ -754,7 +760,7 @@ impl ExportedFn {
                                 is_string = true;
                                 is_ref = true;
                                 quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                    ::std::mem::take(args[#i]).into_immutable_string().unwrap()
+                                    ::core::mem::take(args[#i]).into_immutable_string().unwrap()
                                 )
                             }
                             _ => unreachable!("why wasn't this found earlier!?"),
@@ -763,14 +769,14 @@ impl ExportedFn {
                             is_string = true;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                ::std::mem::take(args[#i]).into_string().unwrap()
+                                ::core::mem::take(args[#i]).into_string().unwrap()
                             )
                         }
                         _ => {
                             is_string = false;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                ::std::mem::take(args[#i]).cast::<#arg_type>()
+                                ::core::mem::take(args[#i]).cast::<#arg_type>()
                             )
                         }
                     };
@@ -786,14 +792,14 @@ impl ExportedFn {
                     if !is_string {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                ::std::any::TypeId::of::<#arg_type>()
+                                ::core::any::TypeId::of::<#arg_type>()
                             ))
                             .unwrap(),
                         );
                     } else {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                ::std::any::TypeId::of::<::rhai::ImmutableString>()
+                                ::core::any::TypeId::of::<::rhai::ImmutableString>()
                             ))
                             .unwrap(),
                         );
@@ -854,7 +860,7 @@ impl ExportedFn {
             #[doc(hidden)]
             impl #type_name {
                 #param_names
-                #[inline(always)] pub fn param_types() -> [::std::any::TypeId; #arg_count] { [#(#input_type_exprs),*] }
+                #[inline(always)] pub fn param_types() -> [::core::any::TypeId; #arg_count] { [#(#input_type_exprs),*] }
             }
             #(#cfg_attrs)*
             impl ::rhai::plugin::PluginFunc for #type_name {

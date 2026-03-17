@@ -123,9 +123,11 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
                 return syn::Error::new(Span::call_site(), "failed to parse doc comments")
                     .into_compile_error();
             };
-            // Not sure how to make a Vec<String> a literal, using a string instead.
-            let docs = proc_macro2::Literal::string(&docs.join("\n"));
-            quote! {  #method.with_comments(&#docs.lines().collect::<Vec<_>>()[..]); }
+            let docs: Vec<_> = docs
+                .iter()
+                .map(|d| proc_macro2::Literal::string(d))
+                .collect();
+            quote! { #method.with_comments(&[#(#docs),*]); }
         }
         #[cfg(not(feature = "metadata"))]
         quote! { #method; }
@@ -409,9 +411,11 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
             {
                 match crate::attrs::doc_attributes(&field.attrs) {
                     Ok(docs) => {
-                        // Not sure how to make a Vec<String> a literal, using a string instead.
-                        let docs = proc_macro2::Literal::string(&docs.join("\n"));
-                        quote! { #method.and_comments(&#docs.lines().collect::<Vec<_>>()[..]); }
+                        let docs: Vec<_> = docs
+                            .iter()
+                            .map(|d| proc_macro2::Literal::string(d))
+                            .collect();
+                        quote! { #method.and_comments(&[#(#docs),*]); }
                     }
                     Err(_) => {
                         errors.push(

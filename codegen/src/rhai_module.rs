@@ -163,7 +163,7 @@ pub fn generate_body(
             match namespace {
                 FnNamespaceAccess::Unset => unreachable!("`namespace` should be set"),
                 FnNamespaceAccess::Global => {
-                    tokens.extend(quote! { .with_namespace(rhai::FnNamespace::Global) })
+                    tokens.extend(quote! { .with_namespace(::rhai::FnNamespace::Global) })
                 }
                 FnNamespaceAccess::Internal => (),
             }

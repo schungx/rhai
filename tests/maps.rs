@@ -259,6 +259,8 @@ fn test_map_oop() {
 #[test]
 #[cfg(feature = "internals")]
 fn test_map_missing_property_callback() {
+    use std::convert::TryInto;
+
     let mut engine = Engine::new();
 
     engine.on_map_missing_property(|map, prop, _| match prop {
@@ -266,8 +268,8 @@ fn test_map_missing_property_callback() {
             map.insert("y".into(), (42 as INT).into());
             map.get_mut("y").unwrap().try_into()
         }
-        "z" => Ok(Dynamic::from(100 as INT).into()),
-        _ => Err(EvalAltResult::ErrorPropertyNotFound(prop.to_string(), Position::NONE).into()),
+        "z" => Ok(rhai::Dynamic::from(100 as INT).into()),
+        _ => Err(rhai::EvalAltResult::ErrorPropertyNotFound(prop.to_string(), rhai::Position::NONE).into()),
     });
 
     assert_eq!(
