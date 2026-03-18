@@ -298,7 +298,10 @@ mod generate_tests {
         };
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -339,7 +342,10 @@ mod generate_tests {
         };
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -381,7 +387,55 @@ mod generate_tests {
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
         // assert!(item_fn.pass_context());
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
+    }
+
+    #[test]
+    fn one_arg_fn_with_context_custom_root() {
+        let input_tokens: TokenStream = quote! {
+            pub fn do_something(context: customroot::NativeCallContext, x: usize) {}
+        };
+
+        let expected_tokens = quote! {
+            #[automatically_derived]
+            pub mod rhai_fn_do_something {
+                use super::*;
+                #[doc(hidden)]
+                pub struct Token();
+                #[doc(hidden)]
+                impl Token {
+                    pub const PARAM_NAMES: &'static [&'static str] = &["x: usize", "()"];
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<usize>()] }
+                }
+                impl customroot::plugin::PluginFunc for Token {
+                    #[inline(always)]
+                    fn call(&self, context: Option<customroot::NativeCallContext>, args: &mut [&mut customroot::Dynamic]) -> customroot::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<usize>();
+                        Ok(customroot::Dynamic::from(do_something(context.unwrap(), arg0)))
+                    }
+
+                    #[inline(always)] fn is_method_call(&self) -> bool { false }
+                    #[inline(always)] fn is_pure(&self) -> bool { true }
+                    #[inline(always)] fn is_volatile(&self) -> bool { false }
+                    #[inline(always)] fn has_context(&self) -> bool { true }
+                }
+                #[allow(unused)]
+                #[doc(hidden)]
+                #[inline(always)] pub fn dynamic_result_fn(context: customroot::NativeCallContext, x: usize) -> customroot::plugin::RhaiResult {
+                    Ok(customroot::Dynamic::from(do_something(context, x)))
+                }
+            }
+        };
+
+        let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
+        // assert!(item_fn.pass_context());
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(customroot)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -423,7 +477,10 @@ mod generate_tests {
         };
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -453,7 +510,10 @@ mod generate_tests {
         };
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
-        assert_streams_eq(item_fn.generate_impl("TestStruct"), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate_impl("TestStruct", &syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -495,7 +555,10 @@ mod generate_tests {
         };
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -538,7 +601,10 @@ mod generate_tests {
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
         assert!(item_fn.mutable_receiver());
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 
     #[test]
@@ -580,6 +646,9 @@ mod generate_tests {
 
         let item_fn = syn::parse2::<ExportedFn>(input_tokens).unwrap();
         assert!(!item_fn.mutable_receiver());
-        assert_streams_eq(item_fn.generate(), expected_tokens);
+        assert_streams_eq(
+            item_fn.generate(&syn::parse_quote!(::rhai)),
+            expected_tokens,
+        );
     }
 }
