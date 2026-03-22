@@ -7,9 +7,9 @@ use crate::engine::{
     KEYWORD_DEBUG, KEYWORD_EVAL, KEYWORD_FN_PTR, KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY,
     KEYWORD_IS_DEF_VAR, KEYWORD_PRINT, KEYWORD_TYPE_OF,
 };
-use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
 #[cfg(feature = "internals")]
 use crate::eval::EvalContext;
+use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
 use crate::tokenizer::{is_valid_function_name, Token};
 use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
 use crate::{

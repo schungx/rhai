@@ -7,13 +7,7 @@ use rhai::{Dynamic, Engine, INT};
 fn test_missing_function_basic() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
-    engine.on_missing_function(|name, _args, _is_method_call, _ctx| {
-        if name == "greet" {
-            Ok(Some(Dynamic::from("hello")))
-        } else {
-            Ok(None)
-        }
-    });
+    engine.on_missing_function(|name, _args, _is_method_call, _ctx| if name == "greet" { Ok(Some(Dynamic::from("hello"))) } else { Ok(None) });
 
     let result: String = engine.eval(r#"let x = 42; x.greet()"#).unwrap();
     assert_eq!(result, "hello");
@@ -76,9 +70,7 @@ fn test_missing_function_not_called_for_existing() {
 fn test_missing_function_error_propagation() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
-    engine.on_missing_function(|_name, _args, _is_method_call, _ctx| {
-        Err("custom error".into())
-    });
+    engine.on_missing_function(|_name, _args, _is_method_call, _ctx| Err("custom error".into()));
 
     let result = engine.eval::<Dynamic>("let x = 42; x.test()");
     assert!(result.is_err());
@@ -151,8 +143,5 @@ fn test_missing_function_is_method_call_flag() {
 
     // Method-style call: is_method_call should be true
     let _: String = engine.eval(r#"let x = 42; x.greet()"#).unwrap();
-    assert!(
-        saw_method.load(Ordering::SeqCst),
-        "method-style call should set is_method_call=true"
-    );
+    assert!(saw_method.load(Ordering::SeqCst), "method-style call should set is_method_call=true");
 }
