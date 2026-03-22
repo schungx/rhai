@@ -1,7 +1,8 @@
 [package]
 name = "custom_root"
 version = "0.1.0"
-edition = "2024"
+edition = "2018"
+resolver = "2"
 
 [dev-dependencies]
 oldrhai = { package = "rhai", path = "../../.." }

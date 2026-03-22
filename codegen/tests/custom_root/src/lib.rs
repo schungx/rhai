@@ -48,6 +48,5 @@ fn custom_root_module_test() -> Result<(), Box<oldrhai::EvalAltResult>> {
         engine.eval::<oldrhai::FLOAT>(r#"let m = Math::Advanced::get_mystic_number();m"#)?,
         42.0
     );
-    panic!();
     Ok(())
 }
