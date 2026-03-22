@@ -6,3 +6,6 @@ resolver = "2"
 
 [dev-dependencies]
 oldrhai = { package = "rhai", path = "../../.." }
+
+[features]
+metadata = []
