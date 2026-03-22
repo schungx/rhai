@@ -561,7 +561,7 @@ impl Engine {
         &self,
         global: &mut GlobalRuntimeState,
         caches: &mut Caches,
-        _scope: Option<&mut Scope>,
+        mut _scope: Option<&mut Scope>,
         fn_name: &str,
         op_token: Option<&Token>,
         hashes: FnCallHashes,
