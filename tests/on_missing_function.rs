@@ -1,8 +1,9 @@
 #![cfg(feature = "internals")]
 
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, INT};
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_basic() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
@@ -19,6 +20,7 @@ fn test_missing_function_basic() {
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_fallthrough() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
@@ -29,6 +31,7 @@ fn test_missing_function_fallthrough() {
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_receives_args() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
@@ -42,11 +45,12 @@ fn test_missing_function_receives_args() {
         }
     });
 
-    let result: i64 = engine.eval("let x = 0; x.add(3, 4)").unwrap();
+    let result: INT = engine.eval("let x = 0; x.add(3, 4)").unwrap();
     assert_eq!(result, 7);
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_not_called_for_existing() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
@@ -55,19 +59,20 @@ fn test_missing_function_not_called_for_existing() {
     let called_clone = called.clone();
 
     let mut engine = Engine::new();
-    engine.register_fn("my_existing", |x: i64| x * 2);
+    engine.register_fn("my_existing", |x: INT| x * 2);
     #[allow(deprecated)]
     engine.on_missing_function(move |_name, _args, _is_method_call, _ctx| {
         called_clone.store(true, Ordering::SeqCst);
         Ok(None)
     });
 
-    let result: i64 = engine.eval("let x = 21; x.my_existing()").unwrap();
+    let result: INT = engine.eval("let x = 21; x.my_existing()").unwrap();
     assert_eq!(result, 42);
     assert!(!called.load(Ordering::SeqCst));
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_error_propagation() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
@@ -80,9 +85,10 @@ fn test_missing_function_error_propagation() {
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_custom_type() {
     #[derive(Debug, Clone)]
-    struct MyType(i64);
+    struct MyType(INT);
 
     let mut engine = Engine::new();
     engine.register_type_with_name::<MyType>("MyType");
@@ -97,32 +103,34 @@ fn test_missing_function_custom_type() {
         Ok(None)
     });
 
-    let result: i64 = engine.eval("let x = new_my(); x.value()").unwrap();
+    let result: INT = engine.eval("let x = new_my(); x.value()").unwrap();
     assert_eq!(result, 10);
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_multiple_arities() {
     let mut engine = Engine::new();
     #[allow(deprecated)]
     engine.on_missing_function(|name, args, _is_method_call, _ctx| {
         if name == "count" {
             // args[0] is self, remaining are the actual arguments
-            Ok(Some(Dynamic::from((args.len() - 1) as i64)))
+            Ok(Some(Dynamic::from((args.len() - 1) as INT)))
         } else {
             Ok(None)
         }
     });
 
-    let r1: i64 = engine.eval("let x = 0; x.count()").unwrap();
+    let r1: INT = engine.eval("let x = 0; x.count()").unwrap();
     assert_eq!(r1, 0);
-    let r2: i64 = engine.eval("let x = 0; x.count(1)").unwrap();
+    let r2: INT = engine.eval("let x = 0; x.count(1)").unwrap();
     assert_eq!(r2, 1);
-    let r3: i64 = engine.eval("let x = 0; x.count(1, 2, 3)").unwrap();
+    let r3: INT = engine.eval("let x = 0; x.count(1, 2, 3)").unwrap();
     assert_eq!(r3, 3);
 }
 
 #[test]
+#[cfg(not(feature = "no_object"))]
 fn test_missing_function_is_method_call_flag() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
@@ -143,5 +151,8 @@ fn test_missing_function_is_method_call_flag() {
 
     // Method-style call: is_method_call should be true
     let _: String = engine.eval(r#"let x = 42; x.greet()"#).unwrap();
-    assert!(saw_method.load(Ordering::SeqCst), "method-style call should set is_method_call=true");
+    assert!(
+        saw_method.load(Ordering::SeqCst),
+        "method-style call should set is_method_call=true"
+    );
 }
