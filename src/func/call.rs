@@ -542,17 +542,6 @@ impl Engine {
 
             // Raise error
             _ => {
-                #[cfg(feature = "internals")]
-                if let Some(ref callback) = self.missing_method {
-                    let scope = &mut Scope::new();
-                    let context = EvalContext::new(self, global, caches, scope, None);
-                    match callback(name, args, context) {
-                        Ok(Some(result)) => return Ok((result, false)),
-                        Ok(None) => {}
-                        Err(err) => return Err(err),
-                    }
-                }
-
                 Err(ERR::ErrorFunctionNotFound(self.gen_fn_call_signature(name, args), pos).into())
             }
         }
@@ -687,9 +676,31 @@ impl Engine {
         // Native function call
         let hash = hashes.native();
 
-        self.exec_native_fn_call(
+        let result = self.exec_native_fn_call(
             global, caches, fn_name, op_token, hash, args, is_ref_mut, false, pos,
-        )
+        );
+
+        #[cfg(feature = "internals")]
+        if result.is_err() {
+            if let Some(ref callback) = self.missing_function {
+                let mut empty_scope;
+                let scope = match _scope {
+                    Some(ref mut s) => &mut **s,
+                    None => {
+                        empty_scope = Scope::new();
+                        &mut empty_scope
+                    }
+                };
+                let context = EvalContext::new(self, global, caches, scope, None);
+                match callback(fn_name, args, _is_method_call, context) {
+                    Ok(Some(value)) => return Ok((value, false)),
+                    Ok(None) => {}
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+
+        result
     }
 
     /// Evaluate an argument.

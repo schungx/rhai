@@ -3,9 +3,10 @@
 use rhai::{Dynamic, Engine};
 
 #[test]
-fn test_missing_method_basic() {
+fn test_missing_function_basic() {
     let mut engine = Engine::new();
-    engine.on_missing_method(|name, _args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(|name, _args, _is_method_call, _ctx| {
         if name == "greet" {
             Ok(Some(Dynamic::from("hello")))
         } else {
@@ -18,18 +19,20 @@ fn test_missing_method_basic() {
 }
 
 #[test]
-fn test_missing_method_fallthrough() {
+fn test_missing_function_fallthrough() {
     let mut engine = Engine::new();
-    engine.on_missing_method(|_name, _args, _ctx| Ok(None));
+    #[allow(deprecated)]
+    engine.on_missing_function(|_name, _args, _is_method_call, _ctx| Ok(None));
 
     let result = engine.eval::<Dynamic>("let x = 42; x.nope()");
     assert!(result.is_err());
 }
 
 #[test]
-fn test_missing_method_receives_args() {
+fn test_missing_function_receives_args() {
     let mut engine = Engine::new();
-    engine.on_missing_method(|name, args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(|name, args, _is_method_call, _ctx| {
         if name == "add" && args.len() == 3 {
             let a = args[1].as_int().unwrap();
             let b = args[2].as_int().unwrap();
@@ -44,7 +47,7 @@ fn test_missing_method_receives_args() {
 }
 
 #[test]
-fn test_missing_method_not_called_for_existing() {
+fn test_missing_function_not_called_for_existing() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
 
@@ -53,7 +56,8 @@ fn test_missing_method_not_called_for_existing() {
 
     let mut engine = Engine::new();
     engine.register_fn("my_existing", |x: i64| x * 2);
-    engine.on_missing_method(move |_name, _args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(move |_name, _args, _is_method_call, _ctx| {
         called_clone.store(true, Ordering::SeqCst);
         Ok(None)
     });
@@ -64,9 +68,10 @@ fn test_missing_method_not_called_for_existing() {
 }
 
 #[test]
-fn test_missing_method_error_propagation() {
+fn test_missing_function_error_propagation() {
     let mut engine = Engine::new();
-    engine.on_missing_method(|_name, _args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(|_name, _args, _is_method_call, _ctx| {
         Err("custom error".into())
     });
 
@@ -75,14 +80,15 @@ fn test_missing_method_error_propagation() {
 }
 
 #[test]
-fn test_missing_method_custom_type() {
+fn test_missing_function_custom_type() {
     #[derive(Debug, Clone)]
     struct MyType(i64);
 
     let mut engine = Engine::new();
     engine.register_type_with_name::<MyType>("MyType");
     engine.register_fn("new_my", || MyType(10));
-    engine.on_missing_method(|name, args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(|name, args, _is_method_call, _ctx| {
         if name == "value" {
             if let Some(obj) = args[0].read_lock::<MyType>() {
                 return Ok(Some(Dynamic::from(obj.0)));
@@ -96,9 +102,10 @@ fn test_missing_method_custom_type() {
 }
 
 #[test]
-fn test_missing_method_multiple_arities() {
+fn test_missing_function_multiple_arities() {
     let mut engine = Engine::new();
-    engine.on_missing_method(|name, args, _ctx| {
+    #[allow(deprecated)]
+    engine.on_missing_function(|name, args, _is_method_call, _ctx| {
         if name == "count" {
             // args[0] is self, remaining are the actual arguments
             Ok(Some(Dynamic::from((args.len() - 1) as i64)))
@@ -113,4 +120,28 @@ fn test_missing_method_multiple_arities() {
     assert_eq!(r2, 1);
     let r3: i64 = engine.eval("let x = 0; x.count(1, 2, 3)").unwrap();
     assert_eq!(r3, 3);
+}
+
+#[test]
+fn test_missing_function_is_method_call_flag() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    let saw_method = Arc::new(AtomicBool::new(false));
+    let saw_method_clone = saw_method.clone();
+
+    let mut engine = Engine::new();
+    #[allow(deprecated)]
+    engine.on_missing_function(move |name, _args, is_method_call, _ctx| {
+        if name == "greet" {
+            saw_method_clone.store(is_method_call, Ordering::SeqCst);
+            Ok(Some(Dynamic::from("hello")))
+        } else {
+            Ok(None)
+        }
+    });
+
+    // Method-style call: is_method_call should be true
+    let _: String = engine.eval(r#"let x = 42; x.greet()"#).unwrap();
+    assert!(saw_method.load(Ordering::SeqCst), "method-style call should set is_method_call=true");
 }
