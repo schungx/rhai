@@ -1,4 +1,5 @@
 use quote::{quote, ToTokens};
+use syn::Path;
 use syn::{parse::Parse, parse::ParseStream};
 
 use std::borrow::Cow;
@@ -8,11 +9,23 @@ use crate::attrs::{AttrItem, ExportInfo, ExportScope, ExportedParams};
 use crate::function::ExportedFn;
 use crate::rhai_module::{ExportedConst, ExportedType};
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ExportedModParams {
     pub name: String,
     skip: bool,
     pub scope: ExportScope,
+    root: Path,
+}
+
+impl Default for ExportedModParams {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            skip: Default::default(),
+            scope: Default::default(),
+            root: syn::parse_quote!(::rhai),
+        }
+    }
 }
 
 impl Parse for ExportedModParams {
@@ -39,6 +52,7 @@ impl ExportedParams for ExportedModParams {
         let mut name = String::new();
         let mut skip = false;
         let mut scope = None;
+        let mut root: Path = syn::parse_quote!(::rhai);
         for attr in attrs {
             let AttrItem { key, value, .. } = attr;
             match (key.to_string().as_ref(), value) {
@@ -65,6 +79,16 @@ impl ExportedParams for ExportedModParams {
                 ("export_all", Some(s)) => {
                     return Err(syn::Error::new(s.span(), "extraneous value"))
                 }
+                ("root", Some(s)) => {
+                    let Ok(new_root) = syn::parse_str(&s.value()) else {
+                        return Err(syn::Error::new(key.span(), "requires path"));
+                    };
+                    if root == new_root {
+                        return Err(syn::Error::new(key.span(), "conflicting name"));
+                    }
+                    root = new_root;
+                }
+                ("root", None) => return Err(syn::Error::new(key.span(), "requires value")),
                 (attr, ..) => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -76,7 +100,12 @@ impl ExportedParams for ExportedModParams {
 
         let scope = scope.unwrap_or_default();
 
-        Ok(ExportedModParams { name, skip, scope })
+        Ok(ExportedModParams {
+            name,
+            skip,
+            scope,
+            root,
+        })
     }
 }
 
@@ -278,6 +307,7 @@ impl Module {
                 &custom_types,
                 &mut sub_modules,
                 &params.scope,
+                &params.root,
             );
 
             // NB: sub-modules must have their new items for exporting generated in depth-first order

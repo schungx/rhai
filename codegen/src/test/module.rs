@@ -295,15 +295,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                 }
             }
         };
@@ -333,16 +333,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &get_mystic_number_token::param_types(), get_mystic_number_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -351,12 +351,12 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_mystic_number_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 0usize] { [] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 0usize] { [] }
                 }
-                impl PluginFunc for get_mystic_number_token {
+                impl ::rhai::plugin::PluginFunc for get_mystic_number_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        Ok(Dynamic::from(get_mystic_number()))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        Ok(::rhai::Dynamic::from(get_mystic_number()))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -426,8 +426,8 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     m.set_doc("/// This is the one_fn module!\n/** block doc-comment\n             *  multi-line\n             */\n/// Another line!\n/// Final line!");
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
@@ -435,8 +435,8 @@ mod generate_tests {
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
                         .with_comments(&[
                             "/// This is a doc-comment.\n/// Another line.\n/// block doc-comment \n/// Final line.",
                             "/** doc-comment\n                    in multiple lines\n                 */"
@@ -450,12 +450,12 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_mystic_number_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 0usize] { [] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 0usize] { [] }
                 }
-                impl PluginFunc for get_mystic_number_token {
+                impl ::rhai::plugin::PluginFunc for get_mystic_number_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        Ok(Dynamic::from(get_mystic_number()))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        Ok(::rhai::Dynamic::from(get_mystic_number()))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -492,16 +492,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("add_one_to").with_namespace(FnNamespace::Global).with_params_info(add_one_to_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("add_one_to").with_namespace(::rhai::FnNamespace::Global).with_params_info(add_one_to_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_one_to_token::param_types(), add_one_to_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -510,13 +510,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_one_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_one_to_token {
+                impl ::rhai::plugin::PluginFunc for add_one_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_one_to(arg0)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_one_to(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -552,16 +552,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("add_one_to").with_params_info(add_one_to_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("add_one_to").with_params_info(add_one_to_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_one_to_token::param_types(), add_one_to_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -570,13 +570,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_one_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_one_to_token {
+                impl ::rhai::plugin::PluginFunc for add_one_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_one_to(arg0)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_one_to(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -623,18 +623,18 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("add_n").with_params_info(add_one_to_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("add_n").with_params_info(add_one_to_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_one_to_token::param_types(), add_one_to_token().into());
-                    FuncRegistration::new("add_n").with_params_info(add_n_to_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("add_n").with_params_info(add_n_to_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_n_to_token::param_types(), add_n_to_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -643,13 +643,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_one_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_one_to_token {
+                impl ::rhai::plugin::PluginFunc for add_one_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_one_to(arg0)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_one_to(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -664,14 +664,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_n_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "y: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<INT>(), TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<INT>(), ::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_n_to_token {
+                impl ::rhai::plugin::PluginFunc for add_n_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        let arg1 = mem::take(args[1usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_n_to(arg0, arg1)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_n_to(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -707,16 +707,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("add_together").with_params_info(add_together_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("add_together").with_params_info(add_together_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_together_token::param_types(), add_together_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -725,14 +725,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_together_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "y: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<INT>(), TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<INT>(), ::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_together_token {
+                impl ::rhai::plugin::PluginFunc for add_together_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        let arg1 = mem::take(args[1usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_together(arg0, arg1)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_together(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -769,20 +769,20 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("add").with_params_info(add_together_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("add").with_params_info(add_together_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_together_token::param_types(), add_together_token().into());
-                    FuncRegistration::new("+").with_params_info(add_together_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("+").with_params_info(add_together_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_together_token::param_types(), add_together_token().into());
-                    FuncRegistration::new("add_together").with_params_info(add_together_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("add_together").with_params_info(add_together_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &add_together_token::param_types(), add_together_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -791,14 +791,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl add_together_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: INT", "y: INT", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<INT>(), TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<INT>(), ::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for add_together_token {
+                impl ::rhai::plugin::PluginFunc for add_together_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).cast::<INT>();
-                        let arg1 = mem::take(args[1usize]).cast::<INT>();
-                        Ok(Dynamic::from(add_together(arg0, arg1)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).cast::<INT>();
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<INT>();
+                        Ok(::rhai::Dynamic::from(add_together(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -848,16 +848,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &get_mystic_number_token::param_types(), get_mystic_number_token().into());
                     _m.set_var("MYSTIC_NUMBER", MYSTIC_NUMBER);
                     _m.set_custom_type::<Foo>("Hello");
@@ -869,13 +869,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_mystic_number_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut Hello", "INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<Hello>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<Hello>()] }
                 }
-                impl PluginFunc for get_mystic_number_token {
+                impl ::rhai::plugin::PluginFunc for get_mystic_number_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                         let arg0 = &mut args[0usize].write_lock::<Hello>().unwrap();
-                        Ok(Dynamic::from(get_mystic_number(arg0)))
+                        Ok(::rhai::Dynamic::from(get_mystic_number(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -907,15 +907,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     _m.set_var("MYSTIC_NUMBER", MYSTIC_NUMBER);
                 }
             }
@@ -944,15 +944,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     _m.set_var("MYSTIC_NUMBER", MYSTIC_NUMBER);
                 }
             }
@@ -983,15 +983,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                 }
             }
         };
@@ -1022,15 +1022,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                 }
             }
         };
@@ -1067,16 +1067,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get_mystic_number").with_params_info(get_mystic_number_token::PARAM_NAMES)
                         .set_into_module_raw(_m, &get_mystic_number_token::param_types(), get_mystic_number_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1085,12 +1085,12 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_mystic_number_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["INT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 0usize] { [] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 0usize] { [] }
                 }
-                impl PluginFunc for get_mystic_number_token {
+                impl ::rhai::plugin::PluginFunc for get_mystic_number_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        Ok(Dynamic::from(get_mystic_number()))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        Ok(::rhai::Dynamic::from(get_mystic_number()))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -1122,15 +1122,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                 }
             }
         };
@@ -1160,16 +1160,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("print_out_to").with_params_info(print_out_to_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("print_out_to").with_params_info(print_out_to_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &print_out_to_token::param_types(), print_out_to_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1178,13 +1178,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl print_out_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &str", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<ImmutableString>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<::rhai::ImmutableString>()] }
                 }
-                impl PluginFunc for print_out_to_token {
+                impl ::rhai::plugin::PluginFunc for print_out_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).into_immutable_string().unwrap();
-                        Ok(Dynamic::from(print_out_to(&arg0)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).into_immutable_string().unwrap();
+                        Ok(::rhai::Dynamic::from(print_out_to(&arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -1220,16 +1220,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("print_out_to").with_params_info(print_out_to_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("print_out_to").with_params_info(print_out_to_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &print_out_to_token::param_types(), print_out_to_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1238,13 +1238,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl print_out_to_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: String", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<ImmutableString>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<::rhai::ImmutableString>()] }
                 }
-                impl PluginFunc for print_out_to_token {
+                impl ::rhai::plugin::PluginFunc for print_out_to_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg0 = mem::take(args[0usize]).into_string().unwrap();
-                        Ok(Dynamic::from(print_out_to(arg0)))
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg0 = ::core::mem::take(args[0usize]).into_string().unwrap();
+                        Ok(::rhai::Dynamic::from(print_out_to(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { false }
@@ -1281,16 +1281,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("foo").with_params_info(foo_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("foo").with_params_info(foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &foo_token::param_types(), foo_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1299,14 +1299,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl foo_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut FLOAT", "y: INT", "FLOAT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<FLOAT>(), TypeId::of::<INT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<FLOAT>(), ::core::any::TypeId::of::<INT>()] }
                 }
-                impl PluginFunc for foo_token {
+                impl ::rhai::plugin::PluginFunc for foo_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<INT>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<INT>();
                         let arg0 = &mut args[0usize].write_lock::<FLOAT>().unwrap();
-                        Ok(Dynamic::from(foo(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(foo(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1342,16 +1342,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &increment_token::param_types(), increment_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1360,13 +1360,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl increment_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut FLOAT", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<FLOAT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<FLOAT>()] }
                 }
-                impl PluginFunc for increment_token {
+                impl ::rhai::plugin::PluginFunc for increment_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                         let arg0 = &mut args[0usize].write_lock::<FLOAT>().unwrap();
-                        Ok(Dynamic::from(increment(arg0)))
+                        Ok(::rhai::Dynamic::from(increment(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1406,16 +1406,16 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
                              .set_into_module_raw(_m, &increment_token::param_types(), increment_token().into());
                     }
                     #[allow(non_camel_case_types)]
@@ -1424,13 +1424,13 @@ mod generate_tests {
                     #[doc(hidden)]
                     impl increment_token {
                         pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut FLOAT", "()"];
-                        #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<FLOAT>()] }
+                        #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<FLOAT>()] }
                     }
-                    impl PluginFunc for increment_token {
+                    impl ::rhai::plugin::PluginFunc for increment_token {
                         #[inline(always)]
-                        fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                        fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                             let arg0 = &mut args[0usize].write_lock::<FLOAT>().unwrap();
-                            Ok(Dynamic::from(increment(arg0)))
+                            Ok(::rhai::Dynamic::from(increment(arg0)))
                         }
 
                         #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1444,15 +1444,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     if _flatten {
                         self::it_is::rhai_generate_into_module(_m, _flatten);
                     } else {
@@ -1491,16 +1491,16 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("increment").with_params_info(increment_token::PARAM_NAMES)
                              .set_into_module_raw(_m, &increment_token::param_types(), increment_token().into());
                     }
                     #[allow(non_camel_case_types)]
@@ -1509,13 +1509,13 @@ mod generate_tests {
                     #[doc(hidden)]
                     impl increment_token {
                         pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut FLOAT", "()"];
-                        #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<FLOAT>()] }
+                        #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<FLOAT>()] }
                     }
-                    impl PluginFunc for increment_token {
+                    impl ::rhai::plugin::PluginFunc for increment_token {
                         #[inline(always)]
-                        fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                        fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                             let arg0 = &mut args[0usize].write_lock::<FLOAT>().unwrap();
-                            Ok(Dynamic::from(increment(arg0)))
+                            Ok(::rhai::Dynamic::from(increment(arg0)))
                         }
 
                         #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1529,15 +1529,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     if _flatten {
                         self::it_is::rhai_generate_into_module(_m, _flatten);
                     } else {
@@ -1573,16 +1573,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get$square").with_namespace(FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get$square").with_namespace(::rhai::FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1591,13 +1591,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl int_foo_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut u64", "u64"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for int_foo_token {
+                impl ::rhai::plugin::PluginFunc for int_foo_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                         let arg0 = &mut args[0usize].write_lock::<u64>().unwrap();
-                        Ok(Dynamic::from(int_foo(arg0)))
+                        Ok(::rhai::Dynamic::from(int_foo(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1634,18 +1634,18 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("square").with_params_info(int_foo_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("square").with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
-                    FuncRegistration::new("get$square").with_namespace(FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("get$square").with_namespace(::rhai::FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1654,13 +1654,13 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl int_foo_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut u64", "u64"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 1usize] { [TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 1usize] { [::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for int_foo_token {
+                impl ::rhai::plugin::PluginFunc for int_foo_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
                         let arg0 = &mut args[0usize].write_lock::<u64>().unwrap();
-                        Ok(Dynamic::from(int_foo(arg0)))
+                        Ok(::rhai::Dynamic::from(int_foo(arg0)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1697,16 +1697,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("set$squared").with_namespace(FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("set$squared").with_namespace(::rhai::FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1715,14 +1715,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl int_foo_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut u64", "y: u64", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<u64>(), TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<u64>(), ::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for int_foo_token {
+                impl ::rhai::plugin::PluginFunc for int_foo_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
                         let arg0 = &mut args[0usize].write_lock::<u64>().unwrap();
-                        Ok(Dynamic::from(int_foo(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(int_foo(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1759,18 +1759,18 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("set_sq").with_params_info(int_foo_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("set_sq").with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
-                    FuncRegistration::new("set$squared").with_namespace(FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("set$squared").with_namespace(::rhai::FnNamespace::Global).with_params_info(int_foo_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &int_foo_token::param_types(), int_foo_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1779,14 +1779,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl int_foo_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut u64", "y: u64", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<u64>(), TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<u64>(), ::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for int_foo_token {
+                impl ::rhai::plugin::PluginFunc for int_foo_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
                         let arg0 = &mut args[0usize].write_lock::<u64>().unwrap();
-                        Ok(Dynamic::from(int_foo(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(int_foo(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1823,16 +1823,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("index$get$").with_namespace(FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("index$get$").with_namespace(::rhai::FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &get_by_index_token::param_types(), get_by_index_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1841,14 +1841,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_by_index_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut MyCollection", "i: u64", "FLOAT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<MyCollection>(), TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<MyCollection>(), ::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for get_by_index_token {
+                impl ::rhai::plugin::PluginFunc for get_by_index_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
                         let arg0 = &mut args[0usize].write_lock::<MyCollection>().unwrap();
-                        Ok(Dynamic::from(get_by_index(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(get_by_index(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1889,17 +1889,17 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     #[cfg(hello)]
-                    FuncRegistration::new("index$get$").with_namespace(FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("index$get$").with_namespace(::rhai::FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &get_by_index_token::param_types(), get_by_index_token().into());
                 }
                 #[cfg(hello)]
@@ -1910,15 +1910,15 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_by_index_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut MyCollection", "i: u64", "FLOAT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<MyCollection>(), TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<MyCollection>(), ::core::any::TypeId::of::<u64>()] }
                 }
                 #[cfg(hello)]
-                impl PluginFunc for get_by_index_token {
+                impl ::rhai::plugin::PluginFunc for get_by_index_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
                         let arg0 = &mut args[0usize].write_lock::<MyCollection>().unwrap();
-                        Ok(Dynamic::from(get_by_index(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(get_by_index(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -1955,18 +1955,18 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("get").with_params_info(get_by_index_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("get").with_params_info(get_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &get_by_index_token::param_types(), get_by_index_token().into());
-                    FuncRegistration::new("index$get$").with_namespace(FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("index$get$").with_namespace(::rhai::FnNamespace::Global).with_params_info(get_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &get_by_index_token::param_types(), get_by_index_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -1975,14 +1975,14 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl get_by_index_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut MyCollection", "i: u64", "FLOAT"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 2usize] { [TypeId::of::<MyCollection>(), TypeId::of::<u64>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 2usize] { [::core::any::TypeId::of::<MyCollection>(), ::core::any::TypeId::of::<u64>()] }
                 }
-                impl PluginFunc for get_by_index_token {
+                impl ::rhai::plugin::PluginFunc for get_by_index_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
                         let arg0 = &mut args[0usize].write_lock::<MyCollection>().unwrap();
-                        Ok(Dynamic::from(get_by_index(arg0, arg1)))
+                        Ok(::rhai::Dynamic::from(get_by_index(arg0, arg1)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -2019,16 +2019,16 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("index$set$").with_namespace(FnNamespace::Global).with_params_info(set_by_index_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("index$set$").with_namespace(::rhai::FnNamespace::Global).with_params_info(set_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &set_by_index_token::param_types(), set_by_index_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -2037,15 +2037,15 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl set_by_index_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut MyCollection", "i: u64", "item: FLOAT", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 3usize] { [TypeId::of::<MyCollection>(), TypeId::of::<u64>(), TypeId::of::<FLOAT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 3usize] { [::core::any::TypeId::of::<MyCollection>(), ::core::any::TypeId::of::<u64>(), ::core::any::TypeId::of::<FLOAT>()] }
                 }
-                impl PluginFunc for set_by_index_token {
+                impl ::rhai::plugin::PluginFunc for set_by_index_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
-                        let arg2 = mem::take(args[2usize]).cast::<FLOAT>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
+                        let arg2 = ::core::mem::take(args[2usize]).cast::<FLOAT>();
                         let arg0 = &mut args[0usize].write_lock::<MyCollection>().unwrap();
-                        Ok(Dynamic::from(set_by_index(arg0, arg1, arg2)))
+                        Ok(::rhai::Dynamic::from(set_by_index(arg0, arg1, arg2)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -2082,18 +2082,18 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
-                    FuncRegistration::new("set").with_params_info(set_by_index_token::PARAM_NAMES)
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
+                    ::rhai::FuncRegistration::new("set").with_params_info(set_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &set_by_index_token::param_types(), set_by_index_token().into());
-                    FuncRegistration::new("index$set$").with_namespace(FnNamespace::Global).with_params_info(set_by_index_token::PARAM_NAMES)
+                    ::rhai::FuncRegistration::new("index$set$").with_namespace(::rhai::FnNamespace::Global).with_params_info(set_by_index_token::PARAM_NAMES)
                          .set_into_module_raw(_m, &set_by_index_token::param_types(), set_by_index_token().into());
                 }
                 #[allow(non_camel_case_types)]
@@ -2102,15 +2102,15 @@ mod generate_tests {
                 #[doc(hidden)]
                 impl set_by_index_token {
                     pub const PARAM_NAMES: &'static [&'static str] = &["x: &mut MyCollection", "i: u64", "item: FLOAT", "()"];
-                    #[inline(always)] pub fn param_types() -> [TypeId; 3usize] { [TypeId::of::<MyCollection>(), TypeId::of::<u64>(), TypeId::of::<FLOAT>()] }
+                    #[inline(always)] pub fn param_types() -> [::core::any::TypeId; 3usize] { [::core::any::TypeId::of::<MyCollection>(), ::core::any::TypeId::of::<u64>(), ::core::any::TypeId::of::<FLOAT>()] }
                 }
-                impl PluginFunc for set_by_index_token {
+                impl ::rhai::plugin::PluginFunc for set_by_index_token {
                     #[inline(always)]
-                    fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
-                        let arg1 = mem::take(args[1usize]).cast::<u64>();
-                        let arg2 = mem::take(args[2usize]).cast::<FLOAT>();
+                    fn call(&self, context: Option<::rhai::NativeCallContext>, args: &mut [&mut ::rhai::Dynamic]) -> ::rhai::plugin::RhaiResult {
+                        let arg1 = ::core::mem::take(args[1usize]).cast::<u64>();
+                        let arg2 = ::core::mem::take(args[2usize]).cast::<FLOAT>();
                         let arg0 = &mut args[0usize].write_lock::<MyCollection>().unwrap();
-                        Ok(Dynamic::from(set_by_index(arg0, arg1, arg2)))
+                        Ok(::rhai::Dynamic::from(set_by_index(arg0, arg1, arg2)))
                     }
 
                     #[inline(always)] fn is_method_call(&self) -> bool { true }
@@ -2146,15 +2146,15 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                         _m.set_var("MYSTIC_NUMBER", MYSTIC_NUMBER);
                     }
                 }
@@ -2163,15 +2163,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     if _flatten {
                         self::it_is::rhai_generate_into_module(_m, _flatten);
                     } else {
@@ -2210,15 +2210,15 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                         _m.set_var("MYSTIC_NUMBER", MYSTIC_NUMBER);
                     }
                 }
@@ -2231,15 +2231,15 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                         #[cfg(hello)]
                         _m.set_var("SPECIAL_CPU_NUMBER", SPECIAL_CPU_NUMBER);
                     }
@@ -2249,15 +2249,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     if _flatten {
                         self::first_is::rhai_generate_into_module(_m, _flatten);
                         self::second_is::rhai_generate_into_module(_m, _flatten);
@@ -2323,15 +2323,15 @@ mod generate_tests {
 
                             #[doc(hidden)]
                             #[inline(always)]
-                            pub fn rhai_module_generate() -> Module {
-                                let mut m = Module::new();
+                            pub fn rhai_module_generate() -> ::rhai::Module {
+                                let mut m = ::rhai::Module::new();
                                 rhai_generate_into_module(&mut m, false);
                                 m.build_index();
                                 m
                             }
                             #[doc(hidden)]
                             #[inline(always)]
-                            pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                            pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                                 _m.set_var("VALUE", VALUE);
                             }
                         }
@@ -2343,15 +2343,15 @@ mod generate_tests {
 
                             #[doc(hidden)]
                             #[inline(always)]
-                            pub fn rhai_module_generate() -> Module {
-                                let mut m = Module::new();
+                            pub fn rhai_module_generate() -> ::rhai::Module {
+                                let mut m = ::rhai::Module::new();
                                 rhai_generate_into_module(&mut m, false);
                                 m.build_index();
                                 m
                             }
                             #[doc(hidden)]
                             #[inline(always)]
-                            pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                            pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                                 _m.set_var("VALUE", VALUE);
                             }
                         }
@@ -2360,15 +2360,15 @@ mod generate_tests {
 
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_module_generate() -> Module {
-                            let mut m = Module::new();
+                        pub fn rhai_module_generate() -> ::rhai::Module {
+                            let mut m = ::rhai::Module::new();
                             rhai_generate_into_module(&mut m, false);
                             m.build_index();
                             m
                         }
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                        pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                             _m.set_var("VALUE", VALUE);
 
                             if _flatten {
@@ -2388,15 +2388,15 @@ mod generate_tests {
 
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_module_generate() -> Module {
-                            let mut m = Module::new();
+                        pub fn rhai_module_generate() -> ::rhai::Module {
+                            let mut m = ::rhai::Module::new();
                             rhai_generate_into_module(&mut m, false);
                             m.build_index();
                             m
                         }
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                        pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                             _m.set_var("VALUE", VALUE);
                         }
                     }
@@ -2405,15 +2405,15 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                         _m.set_var("VALUE", VALUE);
 
                         if _flatten {
@@ -2436,15 +2436,15 @@ mod generate_tests {
 
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_module_generate() -> Module {
-                            let mut m = Module::new();
+                        pub fn rhai_module_generate() -> ::rhai::Module {
+                            let mut m = ::rhai::Module::new();
                             rhai_generate_into_module(&mut m, false);
                             m.build_index();
                             m
                         }
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                        pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                             _m.set_var("VALUE", VALUE);
                         }
                     }
@@ -2456,15 +2456,15 @@ mod generate_tests {
 
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_module_generate() -> Module {
-                            let mut m = Module::new();
+                        pub fn rhai_module_generate() -> ::rhai::Module {
+                            let mut m = ::rhai::Module::new();
                             rhai_generate_into_module(&mut m, false);
                             m.build_index();
                             m
                         }
                         #[doc(hidden)]
                         #[inline(always)]
-                        pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                        pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                             _m.set_var("VALUE", VALUE);
                         }
                     }
@@ -2473,15 +2473,15 @@ mod generate_tests {
 
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_module_generate() -> Module {
-                        let mut m = Module::new();
+                    pub fn rhai_module_generate() -> ::rhai::Module {
+                        let mut m = ::rhai::Module::new();
                         rhai_generate_into_module(&mut m, false);
                         m.build_index();
                         m
                     }
                     #[doc(hidden)]
                     #[inline(always)]
-                    pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                    pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                         _m.set_var("VALUE", VALUE);
 
                         if _flatten {
@@ -2498,15 +2498,15 @@ mod generate_tests {
 
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_module_generate() -> Module {
-                    let mut m = Module::new();
+                pub fn rhai_module_generate() -> ::rhai::Module {
+                    let mut m = ::rhai::Module::new();
                     rhai_generate_into_module(&mut m, false);
                     m.build_index();
                     m
                 }
                 #[doc(hidden)]
                 #[inline(always)]
-                pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+                pub fn rhai_generate_into_module(_m: &mut ::rhai::Module, _flatten: bool) {
                     _m.set_var("VALUE", VALUE);
 
                     if _flatten {

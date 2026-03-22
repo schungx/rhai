@@ -106,6 +106,9 @@ extern crate no_std_compat as std;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
+// The code emitted by codegen relies on this
+extern crate self as rhai;
+
 // Internal modules
 #[macro_use]
 mod reify;

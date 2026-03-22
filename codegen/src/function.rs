@@ -3,6 +3,7 @@ use quote::{quote, quote_spanned, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     spanned::Spanned,
+    Path,
 };
 
 use std::borrow::Cow;
@@ -282,13 +283,6 @@ impl Parse for ExportedFn {
         let entire_span = fn_all.span();
         let str_type_path = syn::parse2::<syn::Path>(quote! { str }).unwrap();
 
-        let context_type_path1 = syn::parse2::<syn::Path>(quote! { NativeCallContext }).unwrap();
-        let context_type_path1x =
-            syn::parse2::<syn::Path>(quote! { NativeCallContext<'_> }).unwrap();
-        let context_type_path2 =
-            syn::parse2::<syn::Path>(quote! { rhai::NativeCallContext }).unwrap();
-        let context_type_path2x =
-            syn::parse2::<syn::Path>(quote! { rhai::NativeCallContext<'_> }).unwrap();
         let mut pass_context = false;
 
         let cfg_attrs = crate::attrs::collect_cfg_attr(&fn_all.attrs);
@@ -299,10 +293,8 @@ impl Parse for ExportedFn {
         if let Some(syn::FnArg::Typed(syn::PatType { ref ty, .. })) = fn_all.sig.inputs.first() {
             match flatten_type_groups(ty.as_ref()) {
                 syn::Type::Path(p)
-                    if p.path == context_type_path1
-                        || p.path == context_type_path1x
-                        || p.path == context_type_path2
-                        || p.path == context_type_path2x =>
+                    if p.path.segments.last().map(|s| s.ident.to_string())
+                        == Some("NativeCallContext".to_owned()) =>
                 {
                     pass_context = true;
                 }
@@ -601,11 +593,11 @@ impl ExportedFn {
         Ok(())
     }
 
-    pub fn generate(self) -> TokenStream {
+    pub fn generate(self, root: &Path) -> TokenStream {
         let name: syn::Ident =
             syn::Ident::new(&format!("rhai_fn_{}", self.name()), self.name().span());
-        let impl_block = self.generate_impl("Token");
-        let dyn_result_fn_block = self.generate_dynamic_fn();
+        let impl_block = self.generate_impl("Token", root);
+        let dyn_result_fn_block = self.generate_dynamic_fn(root);
         let vis = self.visibility;
         quote! {
             #[automatically_derived]
@@ -619,13 +611,13 @@ impl ExportedFn {
         }
     }
 
-    pub fn generate_dynamic_fn(&self) -> TokenStream {
+    pub fn generate_dynamic_fn(&self, root: &Path) -> TokenStream {
         let name = self.name().clone();
 
         let mut dynamic_signature = self.signature.clone();
         dynamic_signature.ident = syn::Ident::new("dynamic_result_fn", Span::call_site());
         dynamic_signature.output = syn::parse2::<syn::ReturnType>(quote! {
-            -> RhaiResult
+            -> #root::plugin::RhaiResult
         })
         .unwrap();
         let arguments: Vec<_> = dynamic_signature
@@ -651,7 +643,7 @@ impl ExportedFn {
                 #[doc(hidden)]
                 #[inline(always)]
                 pub #dynamic_signature {
-                    #name(#(#arguments),*).map(Dynamic::from)
+                    #name(#(#arguments),*).map(#root::Dynamic::from)
                 }
             }
         } else {
@@ -660,13 +652,13 @@ impl ExportedFn {
                 #[doc(hidden)]
                 #[inline(always)]
                 pub #dynamic_signature {
-                    Ok(Dynamic::from(#name(#(#arguments),*)))
+                    Ok(#root::Dynamic::from(#name(#(#arguments),*)))
                 }
             }
         }
     }
 
-    pub fn generate_impl(&self, on_type_name: &str) -> TokenStream {
+    pub fn generate_impl(&self, on_type_name: &str, root: &Path) -> TokenStream {
         let sig_name = self.name().clone();
         let arg_count = self.arg_count();
         let is_method_call = self.mutable_receiver();
@@ -717,7 +709,7 @@ impl ExportedFn {
                     input_type_names.push(arg_name);
                     input_type_exprs.push(
                         syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                            TypeId::of::<#arg_type>()
+                            ::core::any::TypeId::of::<#arg_type>()
                         ))
                         .unwrap(),
                     );
@@ -754,7 +746,7 @@ impl ExportedFn {
                                 is_string = true;
                                 is_ref = true;
                                 quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                    mem::take(args[#i]).into_immutable_string().unwrap()
+                                    ::core::mem::take(args[#i]).into_immutable_string().unwrap()
                                 )
                             }
                             _ => unreachable!("why wasn't this found earlier!?"),
@@ -763,14 +755,14 @@ impl ExportedFn {
                             is_string = true;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                mem::take(args[#i]).into_string().unwrap()
+                                ::core::mem::take(args[#i]).into_string().unwrap()
                             )
                         }
                         _ => {
                             is_string = false;
                             is_ref = false;
                             quote_spanned!(arg_type.span().resolved_at(Span::call_site()) =>
-                                mem::take(args[#i]).cast::<#arg_type>()
+                                ::core::mem::take(args[#i]).cast::<#arg_type>()
                             )
                         }
                     };
@@ -786,14 +778,14 @@ impl ExportedFn {
                     if !is_string {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                TypeId::of::<#arg_type>()
+                                ::core::any::TypeId::of::<#arg_type>()
                             ))
                             .unwrap(),
                         );
                     } else {
                         input_type_exprs.push(
                             syn::parse2::<syn::Expr>(quote_spanned!(arg_type.span() =>
-                                TypeId::of::<ImmutableString>()
+                                ::core::any::TypeId::of::<#root::ImmutableString>()
                             ))
                             .unwrap(),
                         );
@@ -826,11 +818,11 @@ impl ExportedFn {
             .resolved_at(Span::call_site());
         let return_expr = if self.params.return_raw.is_none() {
             quote_spanned! { return_span =>
-                Ok(Dynamic::from(#sig_name(#(#unpack_exprs),*)))
+                Ok(#root::Dynamic::from(#sig_name(#(#unpack_exprs),*)))
             }
         } else {
             quote_spanned! { return_span =>
-                #sig_name(#(#unpack_exprs),*).map(Dynamic::from)
+                #sig_name(#(#unpack_exprs),*).map(#root::Dynamic::from)
             }
         };
 
@@ -854,12 +846,12 @@ impl ExportedFn {
             #[doc(hidden)]
             impl #type_name {
                 #param_names
-                #[inline(always)] pub fn param_types() -> [TypeId; #arg_count] { [#(#input_type_exprs),*] }
+                #[inline(always)] pub fn param_types() -> [::core::any::TypeId; #arg_count] { [#(#input_type_exprs),*] }
             }
             #(#cfg_attrs)*
-            impl PluginFunc for #type_name {
+            impl #root::plugin::PluginFunc for #type_name {
                 #[inline(always)]
-                fn call(&self, context: Option<NativeCallContext>, args: &mut [&mut Dynamic]) -> RhaiResult {
+                fn call(&self, context: Option<#root::NativeCallContext>, args: &mut [&mut #root::Dynamic]) -> #root::plugin::RhaiResult {
                     #(#unpack_statements)*
                     #return_expr
                 }

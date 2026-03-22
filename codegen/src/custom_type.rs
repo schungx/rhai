@@ -14,6 +14,7 @@ const OPTION_GET_MUT: &str = "get_mut";
 const OPTION_SET: &str = "set";
 const OPTION_READONLY: &str = "readonly";
 const OPTION_EXTRA: &str = "extra";
+const OPTION_ROOT: &str = "root";
 
 /// Derive the `CustomType` trait for a struct.
 pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
@@ -22,6 +23,7 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
     let mut field_accessors = Vec::new();
     let mut extras = Vec::new();
     let mut errors = Vec::new();
+    let mut root: Path = syn::parse_quote!(::rhai);
 
     for attr in input.attrs.iter().filter(|a| a.path().is_ident(ATTR)) {
         let config_list: Result<Punctuated<Expr, Token![,]>, _> =
@@ -42,6 +44,11 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
                             } else if path.is_ident(OPTION_EXTRA) {
                                 match syn::parse2::<Path>(value.to_token_stream()) {
                                     Ok(path) => extras.push(path.to_token_stream()),
+                                    Err(err) => errors.push(err.into_compile_error()),
+                                }
+                            } else if path.is_ident(OPTION_ROOT) {
+                                match syn::parse2::<Path>(value.to_token_stream()) {
+                                    Ok(path) => root = path,
                                     Err(err) => errors.push(err.into_compile_error()),
                                 }
                             } else {
@@ -81,6 +88,7 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
             &f.named.iter().collect::<Vec<_>>(),
             &mut field_accessors,
             &mut errors,
+            &root,
         ),
 
         // struct Foo(...);
@@ -91,6 +99,7 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
             &f.unnamed.iter().collect::<Vec<_>>(),
             &mut field_accessors,
             &mut errors,
+            &root,
         ),
 
         // struct Foo;
@@ -123,9 +132,11 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
                 return syn::Error::new(Span::call_site(), "failed to parse doc comments")
                     .into_compile_error();
             };
-            // Not sure how to make a Vec<String> a literal, using a string instead.
-            let docs = proc_macro2::Literal::string(&docs.join("\n"));
-            quote! {  #method.with_comments(&#docs.lines().collect::<Vec<_>>()[..]); }
+            let docs: Vec<_> = docs
+                .iter()
+                .map(|d| proc_macro2::Literal::string(d))
+                .collect();
+            quote! { #method.with_comments(&[#(#docs),*]); }
         }
         #[cfg(not(feature = "metadata"))]
         quote! { #method; }
@@ -172,8 +183,8 @@ pub fn derive_custom_type_impl(input: DeriveInput) -> TokenStream {
     }
 
     quote! {
-        impl #impl_generics CustomType for #type_name #generics {
-            fn build(mut builder: TypeBuilder<Self>) {
+        impl #impl_generics #root::CustomType for #type_name #generics {
+            fn build(mut builder: #root::TypeBuilder<Self>) {
                 #(#errors)*
                 #register
                 #(#field_accessors)*
@@ -224,7 +235,12 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
         })
 }
 
-fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut Vec<TokenStream>) {
+fn scan_fields(
+    fields: &[&Field],
+    accessors: &mut Vec<TokenStream>,
+    errors: &mut Vec<TokenStream>,
+    root: &Path,
+) {
     for (i, &field) in fields.iter().enumerate() {
         let mut map_name = None;
         let mut get_fn = None;
@@ -365,7 +381,7 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
             (None, Some(func)) => quote! { |obj: &mut Self| #func(&*obj) },
             (None, None) => {
                 if option_type.is_some() {
-                    quote! { |obj: &mut Self| obj.#field_name.clone().map_or(Dynamic::UNIT, Dynamic::from) }
+                    quote! { |obj: &mut Self| obj.#field_name.clone().map_or(#root::Dynamic::UNIT, #root::Dynamic::from) }
                 } else {
                     quote! { |obj: &mut Self| obj.#field_name.clone() }
                 }
@@ -375,7 +391,7 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
         let set_impl = set_fn.unwrap_or_else(|| {
             if let Some(typ) = option_type {
                 quote! {
-                    |obj: &mut Self, val: Dynamic| {
+                    |obj: &mut Self, val: #root::Dynamic| {
                         if val.is_unit() {
                             obj.#field_name = None;
                             Ok(())
@@ -383,10 +399,10 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
                             obj.#field_name = Some(x.clone());
                             Ok(())
                         } else {
-                            Err(Box::new(EvalAltResult::ErrorMismatchDataType(
+                            Err(Box::new(#root::EvalAltResult::ErrorMismatchDataType(
                                 stringify!(#typ).to_string(),
                                 val.type_name().to_string(),
-                                Position::NONE
+                                #root::Position::NONE
                             )))
                         }
                     }
@@ -409,9 +425,11 @@ fn scan_fields(fields: &[&Field], accessors: &mut Vec<TokenStream>, errors: &mut
             {
                 match crate::attrs::doc_attributes(&field.attrs) {
                     Ok(docs) => {
-                        // Not sure how to make a Vec<String> a literal, using a string instead.
-                        let docs = proc_macro2::Literal::string(&docs.join("\n"));
-                        quote! { #method.and_comments(&#docs.lines().collect::<Vec<_>>()[..]); }
+                        let docs: Vec<_> = docs
+                            .iter()
+                            .map(|d| proc_macro2::Literal::string(d))
+                            .collect();
+                        quote! { #method.and_comments(&[#(#docs),*]); }
                     }
                     Err(_) => {
                         errors.push(
