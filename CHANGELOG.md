@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.25.0
+==============
+
+Enhancements
+------------
+
+* Procedure macros such as `#[export_module]` and `#[derive(CustomType)]` no longer requires importing standard Rhai types (thanks [`timokoesters`](https://github.com/timokoesters) [`#1071`](https://github.com/rhaiscript/rhai/pull/1071))
+
+
 Version 1.24.0
 ==============
 
