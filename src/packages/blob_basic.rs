@@ -3,12 +3,12 @@
 use crate::eval::{calc_index, calc_offset_len};
 use crate::plugin::*;
 use crate::{
-    def_package, Array, Blob, Dynamic, ExclusiveRange, InclusiveRange, NativeCallContext,
-    RhaiResultOf, INT, INT_BYTES,
+    def_package, Array, Blob, ExclusiveRange, InclusiveRange, NativeCallContext, RhaiResultOf, INT,
+    INT_BYTES,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{any::TypeId, borrow::Cow, convert::TryFrom, mem};
+use std::{borrow::Cow, convert::TryFrom, mem};
 
 #[cfg(not(feature = "no_float"))]
 use crate::{FLOAT, FLOAT_BYTES};

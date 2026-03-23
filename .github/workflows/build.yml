@@ -199,3 +199,8 @@ jobs:
       with:
         command: test
         args: --manifest-path=codegen/Cargo.toml ${{matrix.flags}}
+    - name: Build Project
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path=codegen/tests/custom_root/Cargo.toml ${{matrix.flags}}

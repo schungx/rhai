@@ -5,7 +5,7 @@ use crate::{
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{any::TypeId, convert::TryFrom, mem};
+use std::{convert::TryFrom, mem};
 
 use super::string_basic::{print_with_func, FUNC_TO_STRING};
 

@@ -1,5 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
+use syn::Path;
 
 use std::collections::BTreeMap;
 
@@ -32,6 +33,7 @@ pub fn generate_body(
     custom_types: &[ExportedType],
     sub_modules: &mut [Module],
     parent_scope: &ExportScope,
+    root: &Path,
 ) -> TokenStream {
     let mut set_fn_statements = Vec::new();
     let mut set_const_statements = Vec::new();
@@ -157,13 +159,13 @@ pub fn generate_body(
 
             let mut tokens = quote! {
                 #(#cfg_attrs)*
-                FuncRegistration::new(#fn_literal)
+                #root::FuncRegistration::new(#fn_literal)
             };
 
             match namespace {
                 FnNamespaceAccess::Unset => unreachable!("`namespace` should be set"),
                 FnNamespaceAccess::Global => {
-                    tokens.extend(quote! { .with_namespace(FnNamespace::Global) })
+                    tokens.extend(quote! { .with_namespace(#root::FnNamespace::Global) })
                 }
                 FnNamespaceAccess::Internal => (),
             }
@@ -201,7 +203,7 @@ pub fn generate_body(
             pub struct #fn_token_name();
         });
 
-        gen_fn_tokens.push(function.generate_impl(&fn_token_name.to_string()));
+        gen_fn_tokens.push(function.generate_impl(&fn_token_name.to_string(), root));
     }
 
     let module_docs = if doc.is_empty() {
@@ -229,8 +231,8 @@ pub fn generate_body(
 
             #[doc(hidden)]
             #[inline(always)]
-            pub fn rhai_module_generate() -> Module {
-                let mut m = Module::new();
+            pub fn rhai_module_generate() -> #root::Module {
+                let mut m = #root::Module::new();
                 #module_docs
                 rhai_generate_into_module(&mut m, false);
                 m.build_index();
@@ -238,7 +240,7 @@ pub fn generate_body(
             }
             #[doc(hidden)]
             #[inline(always)]
-            pub fn rhai_generate_into_module(_m: &mut Module, _flatten: bool) {
+            pub fn rhai_generate_into_module(_m: &mut #root::Module, _flatten: bool) {
                 #(#set_fn_statements)*
                 #(#set_const_statements)*
                 #flatten

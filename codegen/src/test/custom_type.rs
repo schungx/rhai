@@ -7,7 +7,7 @@ mod custom_type_tests {
     #[test]
     fn test_custom_type_tuple_struct() {
         let input = quote! {
-            #[derive(Clone, CustomType)]
+            #[derive(Clone, ::rhai::CustomType)]
             pub struct Bar(
                 #[rhai_type(skip)]
                 rhai::FLOAT,
@@ -23,8 +23,8 @@ mod custom_type_tests {
         );
 
         let expected = quote! {
-            impl CustomType for Bar {
-                fn build(mut builder: TypeBuilder<Self>) {
+            impl ::rhai::CustomType for Bar {
+                fn build(mut builder: ::rhai::TypeBuilder<Self>) {
                     builder.with_name(stringify!(Bar));
                     builder.with_get_set("field1",
                         |obj: &mut Self| obj.1.clone(),
@@ -64,8 +64,8 @@ mod custom_type_tests {
         );
 
         let expected = quote! {
-            impl CustomType for Foo {
-                fn build(mut builder: TypeBuilder<Self>) {
+            impl ::rhai::CustomType for Foo {
+                fn build(mut builder: ::rhai::TypeBuilder<Self>) {
                     builder.with_name("MyFoo");
                     builder.with_get_set(stringify!(bar),
                         |obj: &mut Self| get_bar(&*obj),
@@ -113,19 +113,19 @@ mod custom_type_tests {
         );
 
         let expected = quote! {
-            impl CustomType for Bar {
-                fn build(mut builder: TypeBuilder<Self>) {
-                    builder.with_name(stringify!(Bar)).with_comments(&"/// Bar comments.".lines().collect::<Vec<_>>()[..]);
+            impl ::rhai::CustomType for Bar {
+                fn build(mut builder: ::rhai::TypeBuilder<Self>) {
+                    builder.with_name(stringify!(Bar)).with_comments(&["/// Bar comments."]);
                     builder.with_get_set("field1",
                         |obj: &mut Self| obj.1.clone(),
                         |obj: &mut Self, val| obj.1 = val
-                    ).and_comments(&"".lines().collect::<Vec<_>>()[..]);
+                    ).and_comments(&[]);
                     builder.with_get("boo", |obj: &mut Self| obj.2.clone())
-                    .and_comments(&"/// boo comments.".lines().collect::<Vec<_>>()[..]);
+                    .and_comments(&["/// boo comments."]);
                     builder.with_get_set("field3",
                         |obj: &mut Self| obj.3.clone(),
                         |obj: &mut Self, val| obj.3 = val
-                    ).and_comments(&"/// This is a vector.".lines().collect::<Vec<_>>()[..]);
+                    ).and_comments(&["/// This is a vector."]);
                 }
             }
         };
@@ -157,19 +157,19 @@ mod custom_type_tests {
         );
 
         let expected = quote! {
-            impl CustomType for Foo {
-                fn build(mut builder: TypeBuilder<Self>) {
-                    builder.with_name("MyFoo").with_comments(&"/// Foo comments.".lines().collect::<Vec<_>>()[..]);
+            impl ::rhai::CustomType for Foo {
+                fn build(mut builder: ::rhai::TypeBuilder<Self>) {
+                    builder.with_name("MyFoo").with_comments(&["/// Foo comments."]);
                     builder.with_get_set(stringify!(bar),
                         |obj: &mut Self| get_bar(&*obj),
                         |obj: &mut Self, val| obj.bar = val
-                    ).and_comments(&"".lines().collect::<Vec<_>>()[..]);
+                    ).and_comments(&[]);
                     builder.with_get("boo", |obj: &mut Self| obj.baz.clone())
-                    .and_comments(&"/// boo comments.".lines().collect::<Vec<_>>()[..]);
+                    .and_comments(&["/// boo comments."]);
                     builder.with_get_set(stringify!(qux),
                         |obj: &mut Self| obj.qux.clone(),
                         Self::set_qux
-                    ).and_comments(&"".lines().collect::<Vec<_>>()[..]);
+                    ).and_comments(&[]);
                     Self::build_extra(&mut builder);
                 }
             }

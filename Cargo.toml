@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "codegen"]
+members = [".", "codegen", "codegen/tests/custom_root"]
 
 [package]
 name = "rhai"

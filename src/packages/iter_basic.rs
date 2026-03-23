@@ -1,6 +1,5 @@
 use crate::eval::calc_index;
 use crate::plugin::*;
-use crate::FuncRegistration;
 use crate::{def_package, ExclusiveRange, InclusiveRange, RhaiResultOf, ERR, INT, INT_BITS};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;

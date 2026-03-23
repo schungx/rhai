@@ -34,7 +34,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, spanned::Spanned, DeriveInput};
+use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Path};
 
 mod attrs;
 mod custom_type;
@@ -201,7 +201,10 @@ pub fn export_fn(args: TokenStream, input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
-    output.extend(function_def.generate());
+    // This function is deprecated and does not have custom root support
+    let root: Path = syn::parse_quote!(::rhai);
+
+    output.extend(function_def.generate(&root));
     TokenStream::from(output)
 }
 
@@ -236,12 +239,15 @@ pub fn register_exported_fn(args: TokenStream) -> TokenStream {
 #[deprecated(since = "1.18.0")]
 #[proc_macro]
 pub fn set_exported_fn(args: TokenStream) -> TokenStream {
+    // This function is deprecated and does not have custom root support
+    let root: Path = syn::parse_quote!(::rhai);
+
     match crate::register::parse_register_macro(args) {
         Ok((module_expr, export_name, rust_mod_path)) => {
             let gen_mod_path = crate::register::generated_module_path(&rust_mod_path);
 
             let mut tokens = quote! {
-                let fx = FuncRegistration::new(#export_name).with_namespace(FnNamespace::Internal)
+                let fx = #root::FuncRegistration::new(#export_name).with_namespace(#root::FnNamespace::Internal)
             };
             #[cfg(feature = "metadata")]
             tokens.extend(quote! {
@@ -267,12 +273,15 @@ pub fn set_exported_fn(args: TokenStream) -> TokenStream {
 #[deprecated(since = "1.18.0")]
 #[proc_macro]
 pub fn set_exported_global_fn(args: TokenStream) -> TokenStream {
+    // This function is deprecated and does not have custom root support
+    let root: Path = syn::parse_quote!(::rhai);
+
     match crate::register::parse_register_macro(args) {
         Ok((module_expr, export_name, rust_mod_path)) => {
             let gen_mod_path = crate::register::generated_module_path(&rust_mod_path);
 
             let mut tokens = quote! {
-                let fx = FuncRegistration::new(#export_name).with_namespace(FnNamespace::Global)
+                let fx = #root::FuncRegistration::new(#export_name).with_namespace(#root::FnNamespace::Global)
             };
             #[cfg(feature = "metadata")]
             tokens.extend(quote! {
@@ -288,7 +297,7 @@ pub fn set_exported_global_fn(args: TokenStream) -> TokenStream {
     }
 }
 
-/// Macro to implement the [`CustomType`][rhai::CustomType] trait.
+/// Macro to implement the [`CustomType`][::rhai::CustomType] trait.
 ///
 /// # Usage
 ///
