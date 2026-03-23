@@ -513,6 +513,7 @@ impl Engine {
     /// # use rhai::{Engine, Dynamic};
     /// let mut engine = Engine::new();
     ///
+    /// #[allow(deprecated)]
     /// engine.on_missing_function(|name, args, is_method_call, _ctx| {
     ///     if is_method_call && name == "greet" {
     ///         Ok(Some(Dynamic::from("hello")))
@@ -521,7 +522,10 @@ impl Engine {
     ///     }
     /// });
     ///
+    /// # #[cfg(not(feature = "no_object"))]
     /// let result = engine.eval::<String>(r#"let x = 42; x.greet()"#)?;
+    /// # #[cfg(feature = "no_object")]
+    /// # let result = engine.eval::<String>(r#"greet(42)"#)?;
     /// assert_eq!(result, "hello");
     /// # Ok(()) }
     /// ```
