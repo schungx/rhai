@@ -478,6 +478,69 @@ impl Engine {
         self.missing_map_property = Some(Box::new(callback));
         self
     }
+    /// _(internals)_ Register a callback for when a function call is not found.
+    /// Exported under the `internals` feature only.
+    ///
+    /// Not triggered for qualified function calls (e.g. `module::function()`).
+    ///
+    /// # WARNING - Unstable API
+    ///
+    /// This API is volatile and may change in the future.
+    ///
+    /// # Callback Function Signature
+    ///
+    /// `Fn(name: &str, args: &mut [&mut Dynamic], is_method_call: bool, context: EvalContext) -> RhaiResultOf<Option<Dynamic>>`
+    ///
+    /// where:
+    /// * `name`: name of the function being called.
+    /// * `args`: mutable reference to the argument list. For method calls, the first element is the object.
+    /// * `is_method_call`: `true` if this is a method-style call (`obj.method()`), `false` for a function-style call (`func()`).
+    /// * `context`: the current evaluation context.
+    ///
+    /// ## Return value
+    ///
+    /// * `Ok(Some(value))`: provide a return value as the result of the function call.
+    /// * `Ok(None)`: fall through to the standard [`EvalAltResult::ErrorFunctionNotFound`][crate::EvalAltResult::ErrorFunctionNotFound].
+    ///
+    /// ## Raising errors
+    ///
+    /// Return `Err(...)` if there is an error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # fn main() -> Result<(), Box<rhai::EvalAltResult>> {
+    /// # use rhai::{Engine, Dynamic};
+    /// let mut engine = Engine::new();
+    ///
+    /// #[allow(deprecated)]
+    /// engine.on_missing_function(|name, args, _is_method_call, _ctx| {
+    ///     if name == "greet" {
+    ///         Ok(Some(Dynamic::from("hello")))
+    ///     } else {
+    ///         Ok(None) // fall through to standard error
+    ///     }
+    /// });
+    ///
+    /// # #[cfg(not(feature = "no_object"))]
+    /// let result = engine.eval::<String>(r#"let x = 42; x.greet()"#)?;
+    /// # #[cfg(feature = "no_object")]
+    /// # let result = engine.eval::<String>(r#"greet(42)"#)?;
+    /// assert_eq!(result, "hello");
+    /// # Ok(()) }
+    /// ```
+    #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
+    #[cfg(feature = "internals")]
+    #[inline(always)]
+    pub fn on_missing_function(
+        &mut self,
+        callback: impl Fn(&str, &mut [&mut Dynamic], bool, EvalContext) -> RhaiResultOf<Option<Dynamic>>
+            + SendSync
+            + 'static,
+    ) -> &mut Self {
+        self.missing_function = Some(Box::new(callback));
+        self
+    }
     /// _(debugging)_ Register a callback for debugging.
     /// Exported under the `debugging` feature only.
     ///

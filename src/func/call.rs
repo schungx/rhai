@@ -7,6 +7,8 @@ use crate::engine::{
     KEYWORD_DEBUG, KEYWORD_EVAL, KEYWORD_FN_PTR, KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY,
     KEYWORD_IS_DEF_VAR, KEYWORD_PRINT, KEYWORD_TYPE_OF,
 };
+#[cfg(feature = "internals")]
+use crate::eval::EvalContext;
 use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
 use crate::tokenizer::{is_valid_function_name, Token};
 use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
@@ -559,7 +561,7 @@ impl Engine {
         &self,
         global: &mut GlobalRuntimeState,
         caches: &mut Caches,
-        _scope: Option<&mut Scope>,
+        mut _scope: Option<&mut Scope>,
         fn_name: &str,
         op_token: Option<&Token>,
         hashes: FnCallHashes,
@@ -674,9 +676,31 @@ impl Engine {
         // Native function call
         let hash = hashes.native();
 
-        self.exec_native_fn_call(
+        let result = self.exec_native_fn_call(
             global, caches, fn_name, op_token, hash, args, is_ref_mut, false, pos,
-        )
+        );
+
+        #[cfg(feature = "internals")]
+        if result.is_err() {
+            if let Some(ref callback) = self.missing_function {
+                let mut empty_scope;
+                let scope = match _scope {
+                    Some(ref mut s) => &mut **s,
+                    None => {
+                        empty_scope = Scope::new();
+                        &mut empty_scope
+                    }
+                };
+                let context = EvalContext::new(self, global, caches, scope, None);
+                match callback(fn_name, args, _is_method_call, context) {
+                    Ok(Some(value)) => return Ok((value, false)),
+                    Ok(None) => {}
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+
+        result
     }
 
     /// Evaluate an argument.

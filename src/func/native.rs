@@ -702,6 +702,24 @@ pub type OnMissingMapPropertyCallback = dyn for<'a> Fn(&'a mut crate::Map, &str,
     + Send
     + Sync;
 
+/// _(internals)_ Callback function when a function call is not found.
+/// Exported under the `internals` feature only.
+///
+/// Not triggered for qualified function calls (e.g. `module::function()`).
+#[cfg(not(feature = "sync"))]
+#[cfg(feature = "internals")]
+pub type OnMissingFunctionCallback =
+    dyn Fn(&str, &mut [&mut Dynamic], bool, EvalContext) -> RhaiResultOf<Option<Dynamic>>;
+/// _(internals)_ Callback function when a function call is not found.
+/// Exported under the `internals` feature only.
+///
+/// Not triggered for qualified function calls (e.g. `module::function()`).
+#[cfg(feature = "sync")]
+#[cfg(feature = "internals")]
+pub type OnMissingFunctionCallback = dyn Fn(&str, &mut [&mut Dynamic], bool, EvalContext) -> RhaiResultOf<Option<Dynamic>>
+    + Send
+    + Sync;
+
 /// Callback function for mapping tokens during parsing.
 #[cfg(not(feature = "sync"))]
 pub type OnParseTokenCallback = dyn Fn(Token, Position, &TokenizeState) -> Token;
