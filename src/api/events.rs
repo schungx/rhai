@@ -514,8 +514,8 @@ impl Engine {
     /// let mut engine = Engine::new();
     ///
     /// #[allow(deprecated)]
-    /// engine.on_missing_function(|name, args, is_method_call, _ctx| {
-    ///     if is_method_call && name == "greet" {
+    /// engine.on_missing_function(|name, args, _is_method_call, _ctx| {
+    ///     if name == "greet" {
     ///         Ok(Some(Dynamic::from("hello")))
     ///     } else {
     ///         Ok(None) // fall through to standard error
