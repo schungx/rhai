@@ -1,7 +1,7 @@
 #![cfg(not(feature = "no_index"))]
 #![cfg(not(feature = "no_module"))]
 use rhai::plugin::*;
-use rhai::{Engine, Scope, INT};
+use rhai::{Engine, EvalAltResult, Module, Scope, INT};
 
 mod test {
     use super::*;

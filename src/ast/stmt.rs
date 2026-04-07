@@ -332,7 +332,7 @@ pub type CaseBlocksList = smallvec::SmallVec<[usize; 2]>;
 pub struct SwitchCasesCollection {
     /// List of conditional expressions: LHS = condition, RHS = expression.
     pub expressions: FnArgsVec<BinaryExpr>,
-    /// Dictionary mapping value hashes to [`CaseBlocksList`]'s.
+    /// Dictionary mapping value hashes to `CaseBlocksList`'s.
     pub cases: StraightHashMap<CaseBlocksList>,
     /// List of range cases.
     pub ranges: StaticVec<RangeCase>,

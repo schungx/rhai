@@ -439,7 +439,7 @@ const FN_ARGS_VEC_INLINE_SIZE: usize = 5;
 /// potentially have many.  Having a larger inline storage for arguments reduces allocations in
 /// scripts with heavy closure usage.
 ///
-/// Under `no_closure`, this type aliases to [`StaticVec`][crate::StaticVec] instead.
+/// Under `no_closure`, this type aliases to [`StaticVec`] instead.
 #[expose_under_internals]
 #[cfg(not(feature = "no_closure"))]
 type FnArgsVec<T> = smallvec::SmallVec<[T; FN_ARGS_VEC_INLINE_SIZE]>;

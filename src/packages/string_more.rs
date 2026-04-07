@@ -1,7 +1,7 @@
 use crate::plugin::*;
 use crate::{
-    def_package, Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, RhaiResultOf,
-    SmartString, INT,
+    def_package, Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, NativeCallContext,
+    RhaiResultOf, SmartString, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;

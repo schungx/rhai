@@ -1,10 +1,13 @@
 use crate::eval::calc_index;
 use crate::plugin::*;
-use crate::{def_package, ExclusiveRange, InclusiveRange, RhaiResultOf, ERR, INT, INT_BITS};
+use crate::{
+    def_package, ExclusiveRange, ImmutableString, InclusiveRange, Position, RhaiResultOf, ERR, INT,
+    INT_BITS,
+};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
-    any::type_name,
+    any::{type_name, TypeId},
     cmp::Ordering,
     convert::TryFrom,
     fmt::Debug,
