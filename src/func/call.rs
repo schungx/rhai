@@ -334,7 +334,7 @@ impl Engine {
     ///
     /// # WARNING
     ///
-    /// Function call arguments be _consumed_ when the function requires them to be passed by value.
+    /// Function call arguments may be _consumed_ when the function requires them to be passed by value.
     /// All function arguments not in the first position are always passed by value and thus consumed.
     ///
     /// **DO NOT** reuse the argument values except for the first `&mut` argument - all others are silently replaced by `()`!
@@ -402,8 +402,7 @@ impl Engine {
                 .then(|| (self, name, source.as_deref(), &*global, pos).into());
 
             let mut _result = match func {
-                // If function is not pure, there must be at least one argument
-                f if !f.is_pure() && !args.is_empty() && args[0].is_read_only() => {
+                f if !f.is_pure() && args.get(0).map_or(false, |v| v.is_read_only()) => {
                     Err(ERR::ErrorNonPureMethodCallOnConstant(name.to_string(), pos).into())
                 }
                 RhaiFunc::Plugin { func } => func.call(context, args),

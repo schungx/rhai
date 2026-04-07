@@ -1,7 +1,7 @@
 use crate::def_package;
 use crate::plugin::*;
 use crate::types::dynamic::Tag;
-use crate::{Dynamic, RhaiResult, RhaiResultOf, ERR, INT};
+use crate::{Dynamic, Position, RhaiResult, RhaiResultOf, ERR, INT};
 use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -176,7 +176,7 @@ mod core_functions {
     /// ```
     #[cfg(not(feature = "no_object"))]
     #[rhai_fn(return_raw)]
-    pub fn parse_json(_ctx: NativeCallContext, json: &str) -> RhaiResultOf<Dynamic> {
+    pub fn parse_json(_ctx: crate::NativeCallContext, json: &str) -> RhaiResultOf<Dynamic> {
         #[cfg(feature = "metadata")]
         let out = serde_json::from_str(json).map_err(|err| err.to_string().into());
 
@@ -193,7 +193,7 @@ mod core_functions {
 #[export_module]
 mod reflection_functions {
     use crate::module::FuncInfo;
-    use crate::{Array, Map, ScriptFnMetadata};
+    use crate::{Array, FnAccess, FnNamespace, Map, NativeCallContext, ScriptFnMetadata};
 
     #[cfg(not(feature = "no_function"))]
     #[cfg(not(feature = "no_index"))]

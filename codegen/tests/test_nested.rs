@@ -5,8 +5,7 @@ pub mod one_fn_module_nested_attr {
 
     #[export_module]
     pub mod advanced_math {
-        use rhai::plugin::*;
-        use rhai::FLOAT;
+        use rhai::{EvalAltResult, FLOAT};
 
         #[rhai_fn(return_raw)]
         pub fn get_mystic_number() -> Result<FLOAT, Box<EvalAltResult>> {
@@ -35,8 +34,7 @@ pub mod one_fn_sub_module_nested_attr {
     pub mod advanced_math {
         #[rhai_mod(name = "constants")]
         pub mod my_module {
-            use rhai::plugin::*;
-            use rhai::FLOAT;
+            use rhai::{EvalAltResult, FLOAT};
             #[rhai_fn(return_raw)]
             pub fn get_mystic_number() -> Result<FLOAT, Box<EvalAltResult>> {
                 Ok(42.0)

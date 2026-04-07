@@ -1,19 +1,13 @@
 //! Module defining macros for developing _plugins_.
 
 use super::FnCallArgs;
-pub use super::RhaiFunc;
-pub use crate::{
-    Dynamic, Engine, EvalAltResult, FnAccess, FnNamespace, FuncRegistration, ImmutableString,
-    Module, NativeCallContext, Position,
-};
+use crate::NativeCallContext;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-pub use std::{any::TypeId, mem};
 
 /// Result of a Rhai function.
 pub type RhaiResult = crate::RhaiResult;
 
-/// Re-export the codegen namespace.
 pub use rhai_codegen::*;
 
 /// Trait implemented by a _plugin function_.

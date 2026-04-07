@@ -6,8 +6,8 @@ use crate::eval::{calc_index, calc_offset_len};
 use crate::plugin::*;
 use crate::types::fn_ptr::FnPtrType;
 use crate::{
-    def_package, Array, Dynamic, ExclusiveRange, FnPtr, InclusiveRange, NativeCallContext,
-    Position, RhaiResultOf, ERR, INT,
+    def_package, Array, Dynamic, ExclusiveRange, FnPtr, ImmutableString, InclusiveRange,
+    NativeCallContext, Position, RhaiResultOf, ERR, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;

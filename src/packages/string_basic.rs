@@ -1,6 +1,6 @@
 use super::iter_basic::CharsStream;
 use crate::plugin::*;
-use crate::{def_package, FnPtr, ImmutableString, SmartString, INT};
+use crate::{def_package, Dynamic, FnPtr, ImmutableString, NativeCallContext, SmartString, INT};
 use std::any::TypeId;
 use std::fmt::{Binary, LowerHex, Octal, Write};
 #[cfg(feature = "no_std")]

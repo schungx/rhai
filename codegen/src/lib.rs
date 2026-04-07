@@ -3,7 +3,7 @@
 //! # Export an Entire Rust Module to a Rhai `Module`
 //!
 //! ```
-//! use rhai::{EvalAltResult, FLOAT};
+//! use rhai::{Engine, EvalAltResult, FLOAT};
 //! use rhai::plugin::*;
 //! use rhai::module_resolvers::*;
 //!
@@ -297,7 +297,7 @@ pub fn set_exported_global_fn(args: TokenStream) -> TokenStream {
     }
 }
 
-/// Macro to implement the [`CustomType`][::rhai::CustomType] trait.
+/// Macro to implement the [`CustomType`] trait.
 ///
 /// # Usage
 ///

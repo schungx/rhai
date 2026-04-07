@@ -2,7 +2,7 @@
 //!
 //! Set to [`None`] to disable stable hashing.
 //!
-//! See [`rhai::config::hashing::set_hashing_seed`][set_hashing_seed].
+//! See [`rhai::config::hashing::set_hashing_seed`].
 //!
 //! # Example
 //!
@@ -67,7 +67,7 @@ pub fn set_hashing_seed(new_seed: Option<[u64; 4]>) -> Result<(), Option<[u64; 4
 ///
 /// Otherwise, the hashing seed is randomized to protect against DOS attacks.
 ///
-/// See [`rhai::config::hashing::set_hashing_seed`][set_hashing_seed] for more.
+/// See [`rhai::config::hashing::set_hashing_seed`] for more.
 #[inline]
 #[must_use]
 pub fn get_hashing_seed() -> &'static Option<[u64; 4]> {

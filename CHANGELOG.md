@@ -1,6 +1,20 @@
 Rhai Release Notes
 ==================
 
+Version 1.25.0
+==============
+
+New features
+------------
+
+* A new advanced callback, `Engine::on_missing_function`, is added (gated under the `internals` feature) to override default handling when a called function or method is not found (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1067`](https://github.com/rhaiscript/rhai/pull/1067)).
+
+Enhancements
+------------
+
+* Procedural macros such as `#[export_module]` and `#[derive(CustomType)]` no longer require importing standard Rhai types (thanks [`@timokoesters`](https://github.com/timokoesters) [`#1071`](https://github.com/rhaiscript/rhai/pull/1071)).
+
+
 Version 1.24.0
 ==============
 
@@ -238,7 +252,7 @@ New features
 * Doc-comments are now automatically added to function registrations and custom types via the `CustomType` derive macro (thanks [`@Itabis`](https://github.com/ltabis) [#847](https://github.com/rhaiscript/rhai/pull/847)).
 * New options `Engine::set_max_strings_interned` and `Engine::max_strings_interned` are added to limit the maximum number of strings interned in the `Engine`'s string interner.
 * A new advanced callback, `Engine::on_invalid_array_index`, is added (gated under the `internals` feature) to handle access to missing properties in object maps.
-* A new advanced callback, `Engine::on_missing_map_property`, is added (gated under the `internals` feature) to handle out-of-bound index into arrays.
+* A new advanced callback, `Engine::on_map_missing_property`, is added (gated under the `internals` feature) to handle out-of-bound index into arrays.
 
 Enhancements
 ------------

@@ -737,7 +737,7 @@ impl ImmutableString {
         shared_take(self.0).into() // Should succeed
     }
     /// Make sure that the [`ImmutableString`] is unique (i.e. no other outstanding references).
-    /// Then return a mutable reference to the [`SmartString`].
+    /// Then return a mutable reference to the `SmartString`.
     ///
     /// If there are other references to the same string, a cloned copy is used.
     #[inline(always)]
@@ -745,7 +745,7 @@ impl ImmutableString {
     pub fn make_mut(&mut self) -> &mut SmartString {
         shared_make_mut(&mut self.0)
     }
-    /// Return a mutable reference to the [`SmartString`] wrapped by the [`ImmutableString`]
+    /// Return a mutable reference to the `SmartString` wrapped by the [`ImmutableString`]
     /// if there are no other outstanding references to it.
     #[inline(always)]
     pub fn get_mut(&mut self) -> Option<&mut SmartString> {

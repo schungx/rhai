@@ -124,8 +124,6 @@ mod without_metadata {
 
 #[cfg(feature = "metadata")]
 mod with_metadata {
-    use super::*;
-
     #[test]
     #[cfg(not(feature = "no_function"))]
     #[cfg(not(feature = "no_index"))]
