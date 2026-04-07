@@ -3,7 +3,7 @@
 //! # Export an Entire Rust Module to a Rhai `Module`
 //!
 //! ```
-//! use rhai::{EvalAltResult, FLOAT};
+//! use rhai::{Engine, EvalAltResult, FLOAT};
 //! use rhai::plugin::*;
 //! use rhai::module_resolvers::*;
 //!
