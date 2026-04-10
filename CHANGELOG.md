@@ -4,6 +4,11 @@ Rhai Release Notes
 Version 1.25.0
 ==============
 
+Bug fixes
+---------
+
+* `Engine::compact_script` now properly compacts scripts with custom syntax that uses `$raw$` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1079`](https://github.com/rhaiscript/rhai/pull/1079)).
+
 New features
 ------------
 
