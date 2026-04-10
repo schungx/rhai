@@ -2701,6 +2701,21 @@ impl Iterator for TokenIterator<'_> {
                     '\n' => self.pos.new_line(),
                     _ => self.pos.advance(),
                 }
+                // Compacting support for `$raw$` custom syntax: append the
+                // consumed raw character verbatim to the compressed buffer.
+                // Raw characters are not produced by `get_next_token` and
+                // carry no `last_token`, so the normal token-compression
+                // path at the tail of this function never sees them.
+                // Appending verbatim preserves the raw body exactly as the
+                // plugin authored it — which is correct, because raw
+                // content is opaque to Rhai (that is the whole point of
+                // `$raw$`).
+                if compress_script {
+                    let control = &mut *self.state.tokenizer_control.borrow_mut();
+                    if let Some(ref mut compressed) = control.compressed {
+                        compressed.push(ch);
+                    }
+                }
                 return Some((Token::UnprocessedRawChar(ch), pos));
             }
         }
