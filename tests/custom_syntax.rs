@@ -508,3 +508,77 @@ fn test_custom_syntax_raw_interpolation() {
         "SELECT  *   FROM   //table//  WHERE  id=? AND   value <= ?\n123\n42"
     );
 }
+
+/// Regression test: `Engine::compact_script` must preserve the body of custom
+/// syntax that uses `$raw$` character capture. Previously the raw-char path in
+/// `TokenIterator::next` returned early before the compression buffer was
+/// updated, silently dropping every character inside the raw capture.
+#[test]
+fn test_compact_script_preserves_raw_custom_syntax_body() {
+    use rhai::{Map, ParseError};
+
+    let mut engine = Engine::new();
+
+    // Register a trivial `$raw$` syntax: `grab { BODY }`. Parses by tracking
+    // brace depth over raw characters, stops at the matching `}`. Execution
+    // is a no-op — we only care about parsing and compaction.
+    engine.register_custom_syntax_without_look_ahead_raw(
+        "grab",
+        |symbols, state| {
+            if state.is_unit() {
+                *state = Dynamic::from(Map::new());
+            }
+            let mut map = state.write_lock::<Map>().unwrap();
+
+            let in_raw = map.get("in_raw").and_then(|v| v.as_bool().ok()).unwrap_or(false);
+
+            if in_raw {
+                let ch = symbols.last().and_then(|s| s.chars().next()).unwrap_or('\0');
+                let mut depth = map.get("depth").and_then(|v| v.as_int().ok()).unwrap_or(0);
+                match ch {
+                    '{' => {
+                        depth += 1;
+                        map.insert("depth".into(), Dynamic::from_int(depth));
+                    }
+                    '}' => {
+                        if depth == 0 {
+                            map.insert("in_raw".into(), Dynamic::from_bool(false));
+                            return Ok(None);
+                        }
+                        depth -= 1;
+                        map.insert("depth".into(), Dynamic::from_int(depth));
+                    }
+                    _ => {}
+                }
+                return Ok(Some("$raw$".into()));
+            }
+
+            match symbols.len() {
+                1 => Ok(Some("{".into())),
+                2 => {
+                    map.insert("in_raw".into(), Dynamic::from_bool(true));
+                    map.insert("depth".into(), Dynamic::from_int(0));
+                    Ok(Some("$raw$".into()))
+                }
+                n => Err(ParseError(Box::new(ParseErrorType::BadInput(LexError::UnexpectedInput(format!("unexpected len={}", n)))), Position::NONE)),
+            }
+        },
+        false,
+        |_ctx, _inputs, _state| Ok(Dynamic::UNIT),
+    );
+
+    let source = "grab { let x = 1; let y = 2; print(x + y); }";
+
+    // Sanity: the script compiles as-is.
+    engine.compile(source).unwrap();
+
+    // Compact it. The output must still contain the body tokens.
+    let compacted = engine.compact_script(source).unwrap();
+
+    assert!(compacted.contains("let x"), "compacted lost `let x`: {:?}", compacted);
+    assert!(compacted.contains("let y"), "compacted lost `let y`: {:?}", compacted);
+    assert!(compacted.contains("print"), "compacted lost `print`: {:?}", compacted);
+
+    // The compacted form must also compile back (round-trip).
+    engine.compile(&compacted).expect("compacted script must compile");
+}
