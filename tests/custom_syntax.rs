@@ -513,6 +513,7 @@ fn test_custom_syntax_raw_interpolation() {
 /// syntax that uses `$raw$` character capture. Previously the raw-char path in
 /// `TokenIterator::next` returned early before the compression buffer was
 /// updated, silently dropping every character inside the raw capture.
+#[cfg(not(feature = "no_object"))]
 #[test]
 fn test_compact_script_preserves_raw_custom_syntax_body() {
     use rhai::{Map, ParseError};
