@@ -270,6 +270,50 @@ impl FnPtr {
             })
         })
     }
+    /// Call the function pointer as a _method_ call with a bound `this` pointer and curried arguments (if any).
+    /// The function may be script-defined (not available under `no_function`) or native Rust.
+    ///
+    /// Not available under `no_object`.
+    ///
+    /// This method is intended for calling a function pointer directly, possibly on another [`Engine`].
+    /// Therefore, the [`AST`] is _NOT_ evaluated before calling the function.
+    #[cfg(not(feature = "no_object"))]
+    #[inline]
+    pub fn call_as_method<T: Variant + Clone>(
+        &self,
+        engine: &Engine,
+        ast: &AST,
+        this_ptr: &mut Dynamic,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let _ast = ast;
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        let global = &mut engine.new_global_runtime_state();
+
+        #[cfg(not(feature = "no_function"))]
+        global.lib.push(_ast.shared_lib().clone());
+
+        let ctx = (engine, self.fn_name(), None, &*global, Position::NONE).into();
+
+        self.call_raw(&ctx, Some(this_ptr), arg_values)
+            .and_then(|result| {
+                result.try_cast_result().map_err(|r| {
+                    let result_type = engine.map_type_name(r.type_name());
+                    let cast_type = match type_name::<T>() {
+                        typ if typ.contains("::") => engine.map_type_name(typ),
+                        typ => typ,
+                    };
+                    ERR::ErrorMismatchOutputType(
+                        cast_type.into(),
+                        result_type.into(),
+                        Position::NONE,
+                    )
+                    .into()
+                })
+            })
+    }
     /// Call the function pointer with curried arguments (if any).
     /// The function may be script-defined (not available under `no_function`) or native Rust.
     ///
@@ -296,6 +340,42 @@ impl FnPtr {
                     .into()
             })
         })
+    }
+    /// Call the function pointer as a _method_ call with a bound `this` pointer and curried arguments (if any).
+    /// The function may be script-defined (not available under `no_function`) or native Rust.
+    ///
+    /// Not available under `no_object`.
+    ///
+    /// This method is intended for calling a function pointer that is passed into a native Rust
+    /// function as an argument.  Therefore, the [`AST`] is _NOT_ evaluated before calling the
+    /// function.
+    #[cfg(not(feature = "no_object"))]
+    #[inline]
+    pub fn call_as_method_within_context<T: Variant + Clone>(
+        &self,
+        context: &NativeCallContext,
+        this_ptr: &mut Dynamic,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        self.call_raw(context, Some(this_ptr), arg_values)
+            .and_then(|result| {
+                result.try_cast_result().map_err(|r| {
+                    let result_type = context.engine().map_type_name(r.type_name());
+                    let cast_type = match type_name::<T>() {
+                        typ if typ.contains("::") => context.engine().map_type_name(typ),
+                        typ => typ,
+                    };
+                    ERR::ErrorMismatchOutputType(
+                        cast_type.into(),
+                        result_type.into(),
+                        Position::NONE,
+                    )
+                    .into()
+                })
+            })
     }
     /// Call the function pointer with curried arguments (if any).
     /// The function may be script-defined (not available under `no_function`) or native Rust.

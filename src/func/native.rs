@@ -295,6 +295,7 @@ impl<'a> NativeCallContext<'a> {
     pub fn namespaces(&self) -> &[crate::SharedModule] {
         &self.global.lib
     }
+
     /// Call a function inside the call context with the provided arguments.
     #[inline]
     pub fn call_fn<T: Variant + Clone>(
@@ -308,6 +309,41 @@ impl<'a> NativeCallContext<'a> {
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
         self._call_fn_raw(fn_name, args, false, false, false)
+            .and_then(|result| {
+                result.try_cast_result().map_err(|r| {
+                    let result_type = self.engine().map_type_name(r.type_name());
+                    let cast_type = match type_name::<T>() {
+                        typ if typ.contains("::") => self.engine.map_type_name(typ),
+                        typ => typ,
+                    };
+                    ERR::ErrorMismatchOutputType(
+                        cast_type.into(),
+                        result_type.into(),
+                        self.call_position(),
+                    )
+                    .into()
+                })
+            })
+    }
+    /// Call a function as a _method_ call inside the call context with the provided arguments
+    /// and a bound `this` pointer.
+    ///
+    /// Not available under `no_object`.
+    #[cfg(not(feature = "no_object"))]
+    #[inline]
+    pub fn call_method<T: Variant + Clone>(
+        &self,
+        fn_name: impl AsRef<str>,
+        this_ptr: &mut Dynamic,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+        args.insert(0, this_ptr);
+
+        self._call_fn_raw(fn_name, args, false, true, true)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());
@@ -341,6 +377,45 @@ impl<'a> NativeCallContext<'a> {
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
         self._call_fn_raw(fn_name, args, true, false, false)
+            .and_then(|result| {
+                result.try_cast_result().map_err(|r| {
+                    let result_type = self.engine().map_type_name(r.type_name());
+                    let cast_type = match type_name::<T>() {
+                        typ if typ.contains("::") => self.engine.map_type_name(typ),
+                        typ => typ,
+                    };
+                    ERR::ErrorMismatchOutputType(
+                        cast_type.into(),
+                        result_type.into(),
+                        self.call_position(),
+                    )
+                    .into()
+                })
+            })
+    }
+    /// Call a registered native Rust function as a _method_ call inside the call context with the provided arguments
+    /// and a bound object.
+    ///
+    /// Not available under `no_object`.
+    ///
+    /// This is often useful because Rust functions typically only want to cross-call other
+    /// registered Rust functions and not have to worry about scripted functions hijacking the
+    /// process unknowingly (or deliberately).
+    #[cfg(not(feature = "no_object"))]
+    #[inline]
+    pub fn call_native_method<T: Variant + Clone>(
+        &self,
+        fn_name: impl AsRef<str>,
+        object: &mut Dynamic,
+        args: impl FuncArgs,
+    ) -> RhaiResultOf<T> {
+        let mut arg_values = StaticVec::new_const();
+        args.parse(&mut arg_values);
+
+        let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+        args.insert(0, object);
+
+        self._call_fn_raw(fn_name, args, true, true, true)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());

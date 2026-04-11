@@ -18,6 +18,8 @@ Enhancements
 ------------
 
 * Procedural macros such as `#[export_module]` and `#[derive(CustomType)]` no longer require importing standard Rhai types (thanks [`@timokoesters`](https://github.com/timokoesters) [`#1071`](https://github.com/rhaiscript/rhai/pull/1071)).
+* `FnPtr::call_fn_as_method` and `FnPtr::call_as_method_within_context` are added (when not under `no_object`) to accept a `this` pointer for calling the function pointer as a method call.
+* `NativeCallContext::call_method` and `NativeCallContext::call_native_method` are added (when not under `no_object`) to accept a `this` pointer for method calls.
 
 
 Version 1.24.0
