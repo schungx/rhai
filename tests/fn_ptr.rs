@@ -151,6 +151,22 @@ fn test_fn_ptr_call() {
 }
 
 #[test]
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_object"))]
+fn test_fn_ptr_method_call() {
+    let engine = Engine::new();
+
+    let ast = engine.compile("private fn foo(x, y) { this = x.len() + y }").unwrap();
+
+    let mut fn_ptr = FnPtr::new("foo").unwrap();
+    fn_ptr.set_curry(vec!["abc".into()]);
+    let mut obj = (123 as INT).into();
+    let _ = fn_ptr.call_as_method::<()>(&engine, &ast, &mut obj, (39 as INT,)).unwrap();
+
+    assert_eq!(obj.as_int().unwrap(), 42);
+}
+
+#[test]
 #[cfg(not(feature = "no_closure"))]
 fn test_fn_ptr_make_closure() {
     let f = {
