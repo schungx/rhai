@@ -1490,7 +1490,7 @@ mod string_functions {
         ///
         /// print(text.split(-99));     // prints ["", "hello, world!"]
         /// ```
-        #[rhai_fn(name = "split")]
+        #[rhai_fn(name = "split", pure)]
         pub fn split_at(ctx: NativeCallContext, string: &mut ImmutableString, index: INT) -> Array {
             if index <= 0 {
                 let Ok(abs_index) = usize::try_from(index.unsigned_abs()) else {
@@ -1549,7 +1549,7 @@ mod string_functions {
         ///
         /// print(text.split());        // prints ["hello,", "world!", "hello,", "foo!"]
         /// ```
-        #[rhai_fn(name = "split")]
+        #[rhai_fn(name = "split", pure)]
         pub fn split_whitespace(string: &mut ImmutableString) -> Array {
             if string.is_empty() {
                 vec![string.clone().into()]
@@ -1566,6 +1566,7 @@ mod string_functions {
         ///
         /// print(text.split("ll"));    // prints ["he", "o, world! he", "o, foo!"]
         /// ```
+        #[rhai_fn(pure)]
         pub fn split(string: &mut ImmutableString, delimiter: &str) -> Array {
             if string.is_empty() || (!delimiter.is_empty() && !string.contains(delimiter)) {
                 vec![string.clone().into()]
@@ -1585,7 +1586,7 @@ mod string_functions {
         ///
         /// print(text.split("ll", 2));     // prints ["he", "o, world! hello, foo!"]
         /// ```
-        #[rhai_fn(name = "split")]
+        #[rhai_fn(name = "split", pure)]
         pub fn splitn(string: &mut ImmutableString, delimiter: &str, segments: INT) -> Array {
             if segments <= 1
                 || string.is_empty()
@@ -1606,7 +1607,7 @@ mod string_functions {
         ///
         /// print(text.split('l'));     // prints ["he", "", "o, wor", "d! he", "", "o, foo!"]
         /// ```
-        #[rhai_fn(name = "split")]
+        #[rhai_fn(name = "split", pure)]
         pub fn split_char(string: &mut ImmutableString, delimiter: char) -> Array {
             if string.is_empty() || !string.contains(delimiter) {
                 vec![string.clone().into()]
@@ -1626,7 +1627,7 @@ mod string_functions {
         ///
         /// print(text.split('l', 3));      // prints ["he", "", "o, world! hello, foo!"]
         /// ```
-        #[rhai_fn(name = "split")]
+        #[rhai_fn(name = "split", pure)]
         pub fn splitn_char(string: &mut ImmutableString, delimiter: char, segments: INT) -> Array {
             if segments <= 1 || string.is_empty() || !string.contains(delimiter) {
                 [string.clone().into()].into()
@@ -1645,7 +1646,7 @@ mod string_functions {
         ///
         /// print(text.split_rev("ll"));    // prints ["o, foo!", "o, world! he", "he"]
         /// ```
-        #[rhai_fn(name = "split_rev")]
+        #[rhai_fn(name = "split_rev", pure)]
         pub fn rsplit(string: &mut ImmutableString, delimiter: &str) -> Array {
             if string.is_empty() || (!delimiter.is_empty() && !string.contains(delimiter)) {
                 vec![string.clone().into()]
@@ -1665,7 +1666,7 @@ mod string_functions {
         ///
         /// print(text.split_rev("ll", 2));     // prints ["o, foo!", "hello, world! he"]
         /// ```
-        #[rhai_fn(name = "split_rev")]
+        #[rhai_fn(name = "split_rev", pure)]
         pub fn rsplitn(string: &mut ImmutableString, delimiter: &str, segments: INT) -> Array {
             if segments <= 1
                 || string.is_empty()
@@ -1690,7 +1691,7 @@ mod string_functions {
         ///
         /// print(text.split_rev('l'));     // prints ["o, foo!", "", "d! he", "o, wor", "", "he"]
         /// ```
-        #[rhai_fn(name = "split_rev")]
+        #[rhai_fn(name = "split_rev", pure)]
         pub fn rsplit_char(string: &mut ImmutableString, delimiter: char) -> Array {
             if string.is_empty() || !string.contains(delimiter) {
                 vec![string.clone().into()]
@@ -1710,7 +1711,7 @@ mod string_functions {
         ///
         /// print(text.split('l', 3));      // prints ["o, foo!", "", "hello, world! he"
         /// ```
-        #[rhai_fn(name = "split_rev")]
+        #[rhai_fn(name = "split_rev", pure)]
         pub fn rsplitn_char(string: &mut ImmutableString, delimiter: char, segments: INT) -> Array {
             if segments <= 1 || string.is_empty() || !string.contains(delimiter) {
                 [string.clone().into()].into()
