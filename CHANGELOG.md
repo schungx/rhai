@@ -8,6 +8,7 @@ Bug fixes
 ---------
 
 * `Engine::compact_script` now properly compacts scripts with custom syntax that uses `$raw$` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1079`](https://github.com/rhaiscript/rhai/pull/1079)).
+* The string methods `split`, `split_rev` and their variants are now marked pure so they can be called on `const` strings ([`#1081`](https://github.com/rhaiscript/rhai/issues/1081)).
 
 New features
 ------------

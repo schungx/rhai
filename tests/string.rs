@@ -291,6 +291,18 @@ fn test_string_split() {
 
     assert_eq!(engine.eval::<INT>(r#"let x = "\u2764\u2764\u2764 hello! \u2764\u2764\u2764"; x.split(' ').len"#).unwrap(), 3);
     assert_eq!(engine.eval::<INT>(r#"let x = "\u2764\u2764\u2764 hello! \u2764\u2764\u2764"; x.split("hello").len"#).unwrap(), 2);
+
+    // Verify that split/split_rev work on const strings (regression test for issue #1081).
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split(",").len"#).unwrap(), 3);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split(",", 2).len"#).unwrap(), 2);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split(',').len"#).unwrap(), 3);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split(',', 2).len"#).unwrap(), 2);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a b c"; x.split().len"#).unwrap(), 3);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split(3).len"#).unwrap(), 2);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split_rev(",").len"#).unwrap(), 3);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split_rev(",", 2).len"#).unwrap(), 2);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split_rev(',').len"#).unwrap(), 3);
+    assert_eq!(engine.eval::<INT>(r#"const x = "a,b,c"; x.split_rev(',', 2).len"#).unwrap(), 2);
 }
 
 #[test]
