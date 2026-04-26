@@ -3,9 +3,3 @@ error: functions marked with 'return_raw' must return Result<T, Box<EvalAltResul
    |
 10 | #[export_fn(return_raw)]
    |             ^^^^^^^^^^
-
-error[E0425]: cannot find function `test_fn` in this scope
-  --> ui_tests/export_fn_raw_noreturn.rs:17:5
-   |
-17 |     test_fn(&mut n);
-   |     ^^^^^^^ not found in this scope

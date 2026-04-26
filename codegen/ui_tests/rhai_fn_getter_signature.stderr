@@ -3,11 +3,3 @@ error: property getter requires exactly 1 parameter
    |
 13 |     pub fn test_fn(input: Point, value: bool) -> bool {
    |                    ^^^^^
-
-error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_module`
-  --> ui_tests/rhai_fn_getter_signature.rs:23:8
-   |
-23 |     if test_module::test_fn(n, true) {
-   |        ^^^^^^^^^^^ use of unresolved module or unlinked crate `test_module`
-   |
-   = help: if you wanted to use a crate named `test_module`, use `cargo add test_module` to add it to your `Cargo.toml`

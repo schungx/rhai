@@ -3,11 +3,3 @@ error: unknown attribute 'unknown'
    |
 11 | #[rhai_fn(unknown = "thing")]
    |           ^^^^^^^
-
-error[E0433]: failed to resolve: use of unresolved module or unlinked crate `test_module`
-  --> ui_tests/rhai_fn_bad_attr.rs:22:8
-   |
-22 |     if test_module::test_fn(n) {
-   |        ^^^^^^^^^^^ use of unresolved module or unlinked crate `test_module`
-   |
-   = help: if you wanted to use a crate named `test_module`, use `cargo add test_module` to add it to your `Cargo.toml`
