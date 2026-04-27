@@ -409,14 +409,14 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     ///
     /// Upon `Drop`, the following fields will be automatically restored to the previous values:
     ///
-    /// * the stack of imported [modules][crate::Module] will be rewound to the original depth.
-    /// * the stack of global [modules][crate::Module] will be rewound to the original depth if more [modules][crate::Module] have been pushed to [`GlobalRuntimeState::lib`].
-    /// * the original functions resolution cache will be restored if a new caching layer was created via `with_new_caching_layer`.
-    /// * the original [scope][EvalContext::scope] will be rewound if `rewind_scope`.
-    /// * the [source][GlobalRuntimeState::source] will be restored if a new source was set.
-    /// * the current [nesting level][GlobalRuntimeState::level] of function calls will be restored
-    /// * the current [scope level][GlobalRuntimeState::scope_level] will be restored
-    /// * the current [`tag`][GlobalRuntimeState::tag] will be restored
+    /// * the stack of imported [modules][crate::Module] will be rewound to the original depth if more [modules][crate::Module] have been added via [`EvalContextFrameGuard::with_import`].
+    /// * the stack of global [modules][crate::Module] will be rewound to the original depth if more [modules][crate::Module] have been added via [`EvalContextFrameGuard::with_module`].
+    /// * the original functions resolution cache will be restored if a new caching layer was created via [`EvalContextFrameGuard::with_new_caching_layer`].
+    /// * the original [scope][EvalContext::scope] will be rewound if [`EvalContextFrameGuard::rewind_scope`] was set to `true`.
+    /// * the [source][GlobalRuntimeState::source] will be restored if a new source was set via [`EvalContextFrameGuard::with_source`] or cleared via [`EvalContextFrameGuard::clear_source`].
+    /// * the current [nesting level][GlobalRuntimeState::level] of function calls will be restored if modified via [`EvalContextFrameGuard::up_call_level`].
+    /// * the current [scope level][GlobalRuntimeState::scope_level] will be restored if modified via [`EvalContextFrameGuard::up_scope_level`].
+    /// * the current [`tag`][GlobalRuntimeState::tag] will be restored if modified via [`EvalContextFrameGuard::with_tag`] or [`EvalContextFrameGuard::clear_tag`].
     pub fn new_frame<'f>(&'f mut self) -> EvalContextFrameGuard<'f, 'a, 's, 'ps, 'g, 'c, 't> {
         EvalContextFrameGuard {
             #[cfg(feature = "internals")]

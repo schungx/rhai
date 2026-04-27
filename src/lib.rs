@@ -229,7 +229,7 @@ pub use api::{eval::eval, run::run};
 pub use ast::{FnAccess, AST};
 use defer::Deferred;
 pub use engine::{Engine, OP_CONTAINS, OP_EQUALS};
-pub use eval::EvalContext;
+pub use eval::{EvalContext, EvalContextFrameGuard};
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_object"))]
 use func::calc_typed_method_hash;

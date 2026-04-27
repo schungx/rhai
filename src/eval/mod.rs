@@ -25,7 +25,7 @@ pub use debugger::{
     BreakPoint, Debugger, DebuggerCommand, DebuggerEvent, DebuggerStatus, OnDebuggerCallback,
     OnDebuggingInit,
 };
-pub use eval_context::EvalContext;
+pub use eval_context::{EvalContext, EvalContextFrameGuard};
 
 pub use global_state::GlobalRuntimeState;
 #[cfg(not(feature = "no_module"))]
