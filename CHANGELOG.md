@@ -8,19 +8,20 @@ Bug fixes
 ---------
 
 * `Engine::compact_script` now properly compacts scripts with custom syntax that uses `$raw$` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1079`](https://github.com/rhaiscript/rhai/pull/1079)).
-* The string methods `split`, `split_rev` and their variants are now marked pure so they can be called on `const` strings ([`#1081`](https://github.com/rhaiscript/rhai/issues/1081)).
+* The string methods `split`, `split_rev` and their variants are now marked `pure` so they can be called on constant strings (thanks [`@theJC`](https://github.com/theJC) [`#1082`](https://github.com/rhaiscript/rhai/pull/1082)).
 
 New features
 ------------
 
 * A new advanced callback, `Engine::on_missing_function`, is added (gated under the `internals` feature) to override default handling when a called function or method is not found (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1067`](https://github.com/rhaiscript/rhai/pull/1067)).
+* A new method, `EvalContext::new_frame`, is added to created an isolated frame guard that automatically restores field values upon `Drop` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) for the idea [`#1085`](https://github.com/rhaiscript/rhai/pull/1085)).
 
 Enhancements
 ------------
 
 * Procedural macros such as `#[export_module]` and `#[derive(CustomType)]` no longer require importing standard Rhai types (thanks [`@timokoesters`](https://github.com/timokoesters) [`#1071`](https://github.com/rhaiscript/rhai/pull/1071)).
-* `FnPtr::call_fn_as_method` and `FnPtr::call_as_method_within_context` are added (when not under `no_object`) to accept a `this` pointer for calling the function pointer as a method call.
-* `NativeCallContext::call_method` and `NativeCallContext::call_native_method` are added (when not under `no_object`) to accept a `this` pointer for method calls.
+* `FnPtr::call_fn_as_method` and `FnPtr::call_as_method_within_context` are added (when not under `no_object`) to accept a `this` pointer for calling the function pointer as a method call ([`#1080`](https://github.com/rhaiscript/rhai/pull/1080)).
+* `NativeCallContext::call_method` and `NativeCallContext::call_native_method` are added (when not under `no_object`) to accept a `this` pointer for method calls ([`#1080`](https://github.com/rhaiscript/rhai/pull/1080)).
 
 
 Version 1.24.0

@@ -528,10 +528,10 @@ pub struct EvalContextFrameGuard<'f, 'a, 's, 'ps, 'g, 'c, 't> {
 impl Drop for EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, '_> {
     #[inline(always)]
     fn drop(&mut self) {
-        if let Some(caches_len) = self.caches_len.take() {
+        if let Some(caches_len) = self.caches_len {
             self.context.caches.rewind_fn_resolution_caches(caches_len);
         }
-        if let Some(scope_len) = self.scope_len.take() {
+        if let Some(scope_len) = self.scope_len {
             self.context.scope.rewind(scope_len);
         }
         #[cfg(feature = "internals")]
@@ -548,11 +548,11 @@ impl Drop for EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, '_> {
             *self.context.source_mut() = source;
         }
         #[cfg(feature = "internals")]
-        if let Some(level) = self.level.take() {
+        if let Some(level) = self.level {
             self.context.global.level = level;
         }
         #[cfg(feature = "internals")]
-        if let Some(scope_level) = self.scope_level.take() {
+        if let Some(scope_level) = self.scope_level {
             self.context.global.scope_level = scope_level;
         }
         if let Some(tag) = self.tag.take() {
