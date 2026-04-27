@@ -381,7 +381,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
     /// // The following disables caching of function resolution results for this frame
     /// // by pushing a new, empty, caching layer. This is useful if the resolution will be volatile.
     /// let result: i64 = context.new_frame(true, true).call_fn("foo", (0_i64,))?;
@@ -419,8 +419,10 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
         rewind_scope: bool,
     ) -> EvalContextFrameGuard<'f, 'a, 's, 'ps, 'g, 'c, 't> {
         EvalContextFrameGuard {
+            #[cfg(feature = "internals")]
             #[cfg(not(feature = "no_module"))]
             imports_len: Some(self.global.num_imports()),
+            #[cfg(feature = "internals")]
             #[cfg(not(feature = "no_function"))]
             lib_len: Some(self.global.lib.len()),
             caches_len: if new_caching_layer {
@@ -435,9 +437,12 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
                 None
             },
             source: Some(self.global.source.clone()),
+            #[cfg(feature = "internals")]
             level: Some(self.global.level),
+            #[cfg(feature = "internals")]
             scope_level: Some(self.global.scope_level),
             tag: Some(self.global.tag.clone()),
+
             context: self,
         }
     }
