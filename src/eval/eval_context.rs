@@ -579,14 +579,14 @@ impl<'a, 's, 'ps, 'g, 'c, 't> DerefMut for EvalContextFrameGuard<'_, 'a, 's, 'ps
 
 impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     /// Push a new caching layer for function resolution results.
-    pub fn with_new_caching_layer(&mut self) -> &mut Self {
+    pub fn with_new_caching_layer(mut self) -> Self {
         self.caches_len = Some(self.context.caches.fn_resolution_caches_len());
         self.context.caches.push_fn_resolution_cache();
         self
     }
     /// Rewind the [scope][EvalContext::scope].
     #[inline(always)]
-    pub fn rewind_scope(&mut self, enable: bool) -> &mut Self {
+    pub fn rewind_scope(mut self, enable: bool) -> Self {
         self.scope_len = if enable {
             Some(self.context.scope().len())
         } else {
@@ -596,28 +596,28 @@ impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     }
     /// Modify the current source.
     #[inline(always)]
-    pub fn with_source(&mut self, source: impl Into<ImmutableString>) -> &mut Self {
+    pub fn with_source(mut self, source: impl Into<ImmutableString>) -> Self {
         self.source = Some(Some(source.into()));
         mem::swap(self.context.source_mut(), self.source.as_mut().unwrap());
         self
     }
     /// Clear the current source.
     #[inline(always)]
-    pub fn clear_source(&mut self) -> &mut Self {
+    pub fn clear_source(mut self) -> Self {
         self.source = Some(None);
         mem::swap(self.context.source_mut(), self.source.as_mut().unwrap());
         self
     }
     /// Modify the custom state.
     #[inline(always)]
-    pub fn with_tag(&mut self, tag: Dynamic) -> &mut Self {
+    pub fn with_tag(mut self, tag: Dynamic) -> Self {
         self.tag = Some(tag);
         mem::swap(self.context.tag_mut(), self.tag.as_mut().unwrap());
         self
     }
     /// Modify the custom state to [`Dynamic::UNIT`].
     #[inline(always)]
-    pub fn clear_tag(&mut self) -> &mut Self {
+    pub fn clear_tag(mut self) -> Self {
         self.tag = Some(Dynamic::UNIT);
         mem::swap(self.context.tag_mut(), self.tag.as_mut().unwrap());
         self
@@ -629,10 +629,10 @@ impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     #[cfg(feature = "internals")]
     #[cfg(not(feature = "no_module"))]
     pub fn with_import(
-        &mut self,
+        mut self,
         name: impl Into<ImmutableString>,
         module: impl Into<crate::SharedModule>,
-    ) -> &mut Self {
+    ) -> Self {
         self.imports_len = Some(self.context.global.num_imports());
         self.context.global.push_import(name.into(), module.into());
         self
@@ -645,7 +645,7 @@ impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     #[cfg(not(feature = "no_function"))]
     #[inline(always)]
     #[must_use]
-    pub fn with_module(&mut self, module: impl Into<crate::SharedModule>) -> &mut Self {
+    pub fn with_module(mut self, module: impl Into<crate::SharedModule>) -> Self {
         self.lib_len = Some(self.context.global.lib.len());
         self.context.global.lib.push(module.into());
         self
@@ -654,16 +654,18 @@ impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     /// Exported under the `internals` feature only.
     #[cfg(feature = "internals")]
     #[inline(always)]
-    pub fn up_call_level(&mut self) {
+    pub fn up_call_level(mut self) -> Self {
         self.level = Some(self.context.global.level);
         self.context.global.level += 1;
+        self
     }
     /// _(internals)_ Increment the current scope level.
     /// Exported under the `internals` feature only.
     #[cfg(feature = "internals")]
     #[inline(always)]
-    pub fn up_scope_level(&mut self) {
+    pub fn up_scope_level(mut self) -> Self {
         self.scope_level = Some(self.context.global.scope_level);
         self.context.global.scope_level += 1;
+        self
     }
 }
