@@ -626,9 +626,8 @@ fn test_missing_function_receives_args() {
 #[cfg(not(feature = "no_object"))]
 fn test_missing_function_not_called_for_existing() {
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
 
-    let called = Arc::new(AtomicBool::new(false));
+    let called = Shared::new(AtomicBool::new(false));
     let called_clone = called.clone();
 
     let mut engine = Engine::new();
@@ -708,9 +707,8 @@ fn test_missing_function_multiple_arities() {
 #[cfg(not(feature = "no_object"))]
 fn test_missing_function_is_method_call_flag() {
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
 
-    let saw_method = Arc::new(AtomicBool::new(false));
+    let saw_method = Shared::new(AtomicBool::new(false));
     let saw_method_clone = saw_method.clone();
 
     let mut engine = Engine::new();

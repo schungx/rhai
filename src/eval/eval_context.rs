@@ -152,6 +152,24 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     pub const fn call_level(&self) -> usize {
         self.global.level
     }
+    /// _(internals, debugging)_ Debugging interface.
+    /// Exported under the `debugging` and `internals` features only.
+    #[cfg(feature = "debugging")]
+    #[cfg(feature = "internals")]
+    #[inline(always)]
+    #[must_use]
+    pub fn debugger(&self) -> Option<&crate::debugger::Debugger> {
+        self.global.debugger.as_deref()
+    }
+    /// _(internals, debugging)_ Mutable reference to the debugging interface.
+    /// Exported under the `debugging` and `internals` features only.
+    #[cfg(feature = "debugging")]
+    #[cfg(feature = "internals")]
+    #[inline(always)]
+    #[must_use]
+    pub fn debugger_mut(&mut self) -> Option<&mut crate::debugger::Debugger> {
+        self.global.debugger.as_deref_mut()
+    }
 
     /// Evaluate an [expression tree][crate::Expression] within this [evaluation context][`EvalContext`].
     ///
@@ -383,11 +401,15 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// // The following disables caching of function resolution results for this frame
-    /// // by pushing a new, empty, caching layer. This is useful if the resolution will be volatile.
+    /// // The following pushes a new, empty, caching layer to make sure that new function resolutions
+    /// // do not persist. This is useful if the resolution will be volatile.
     /// let result: i64 = context.new_frame()
     ///                          .with_new_caching_layer()
     ///                          .call_fn("foo", (0_i64,))?;
+    ///
+    /// // In the above example, the resolution to function 'foo' will not be cached outside the frame.
+    /// // The next call to 'foo' will be resolved again instead of using the cached resolution,
+    /// // even if 'foo' is redefined.
     ///
     /// // The following modifies the [`EvalContext`] before using, restoring its state afterwards.
     /// {
@@ -415,7 +437,6 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     /// * the original [scope][EvalContext::scope] will be rewound if [`EvalContextFrameGuard::rewind_scope`] was set to `true`.
     /// * the [source][GlobalRuntimeState::source] will be restored if a new source was set via [`EvalContextFrameGuard::with_source`] or cleared via [`EvalContextFrameGuard::clear_source`].
     /// * the current [nesting level][GlobalRuntimeState::level] of function calls will be restored if modified via [`EvalContextFrameGuard::up_call_level`].
-    /// * the current [scope level][GlobalRuntimeState::scope_level] will be restored if modified via [`EvalContextFrameGuard::up_scope_level`].
     /// * the current [`tag`][GlobalRuntimeState::tag] will be restored if modified via [`EvalContextFrameGuard::with_tag`] or [`EvalContextFrameGuard::clear_tag`].
     pub fn new_frame<'f>(&'f mut self) -> EvalContextFrameGuard<'f, 'a, 's, 'ps, 'g, 'c, 't> {
         EvalContextFrameGuard {
@@ -430,8 +451,6 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
             source: None,
             #[cfg(feature = "internals")]
             level: None,
-            #[cfg(feature = "internals")]
-            scope_level: None,
             tag: None,
 
             context: self,
@@ -520,8 +539,6 @@ pub struct EvalContextFrameGuard<'f, 'a, 's, 'ps, 'g, 'c, 't> {
     source: Option<Option<ImmutableString>>,
     #[cfg(feature = "internals")]
     level: Option<usize>,
-    #[cfg(feature = "internals")]
-    scope_level: Option<usize>,
     tag: Option<Dynamic>,
 }
 
@@ -550,10 +567,6 @@ impl Drop for EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, '_> {
         #[cfg(feature = "internals")]
         if let Some(level) = self.level {
             self.context.global.level = level;
-        }
-        #[cfg(feature = "internals")]
-        if let Some(scope_level) = self.scope_level {
-            self.context.global.scope_level = scope_level;
         }
         if let Some(tag) = self.tag.take() {
             *self.context.tag_mut() = tag;
@@ -657,15 +670,6 @@ impl<'t> EvalContextFrameGuard<'_, '_, '_, '_, '_, '_, 't> {
     pub fn up_call_level(mut self) -> Self {
         self.level = Some(self.context.global.level);
         self.context.global.level += 1;
-        self
-    }
-    /// _(internals)_ Increment the current scope level.
-    /// Exported under the `internals` feature only.
-    #[cfg(feature = "internals")]
-    #[inline(always)]
-    pub fn up_scope_level(mut self) -> Self {
-        self.scope_level = Some(self.context.global.scope_level);
-        self.context.global.scope_level += 1;
         self
     }
 }
