@@ -350,6 +350,27 @@ fn test_string_interpolated() {
 
     assert_eq!(engine.eval::<String>("`hello ${}world!`").unwrap(), "hello world!");
 
+    assert_eq!(engine.eval::<String>(r"`hello \${world}`").unwrap(), "hello ${world}");
+
+    assert_eq!(engine.eval::<String>(r"`price: \$5`").unwrap(), r"price: \$5");
+
+    assert_eq!(
+        engine
+            .eval::<String>(
+                r"
+                  let x = 7;
+                  `literal \${a} value ${x}`
+                "
+            )
+            .unwrap(),
+        "literal ${a} value 7"
+    );
+
+    assert_eq!(engine.eval::<String>(r"`\\$x`").unwrap(), r"\\$x");
+    assert_eq!(engine.eval::<String>(r"`trailing$`").unwrap(), "trailing$");
+
+    assert_eq!(engine.eval::<String>(r"`trailing\$`").unwrap(), r"trailing\$");
+
     assert_eq!(
         engine
             .eval::<String>(
