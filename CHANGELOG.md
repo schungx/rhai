@@ -16,6 +16,7 @@ New features
 
 * A new advanced callback, `Engine::on_missing_function`, is added (gated under the `internals` feature) to override default handling when a called function or method is not found (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1067`](https://github.com/rhaiscript/rhai/pull/1067)).
 * A new method, `EvalContext::new_frame`, is added to created an isolated frame guard that automatically restores field values upon `Drop` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) for the idea [`#1085`](https://github.com/rhaiscript/rhai/pull/1085)).
+* `\${...}` is supported in multi-line literal strings to escape interpolation, yielding literally `${...}` for the string (thanks [`@yinho999`](https://github.com/yinho999)).
 
 Enhancements
 ------------

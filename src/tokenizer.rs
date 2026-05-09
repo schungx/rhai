@@ -1405,7 +1405,7 @@ pub fn parse_string_literal(
             "verbatim strings should not have any escapes"
         );
 
-        let next_char = match stream.get_next() {
+        let mut next_char = match stream.get_next() {
             Some(ch) => {
                 pos.advance();
                 ch
@@ -1432,14 +1432,25 @@ pub fn parse_string_literal(
         }
 
         // String interpolation?
-        if allow_interpolation
-            && next_char == '$'
-            && escape.is_empty()
-            && stream.peek_next() == Some('{')
-        {
-            interpolated = true;
-            state.is_within_text_terminated_by = None;
-            break;
+        if allow_interpolation && escape.is_empty() {
+            match (next_char, stream.peek_next()) {
+                // `${` starts interpolation
+                ('$', Some('{')) => {
+                    interpolated = true;
+                    state.is_within_text_terminated_by = None;
+                    break;
+                }
+                // `\${` escapes the `$`
+                ('\\', Some('$')) => {
+                    stream.get_next();
+                    if stream.peek_next() == Some('{') {
+                        next_char = '$';
+                    } else {
+                        stream.unget('$');
+                    }
+                }
+                (_, Some(_) | None) => (),
+            }
         }
 
         // Check string length
