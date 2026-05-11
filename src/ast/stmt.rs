@@ -1030,7 +1030,11 @@ impl Stmt {
                     }
                 }
                 if let Some(index) = sw.def_case {
-                    if !sw.expressions[index].lhs.walk(path, on_node) {
+                    let block = &sw.expressions[index];
+                    if !block.lhs.walk(path, on_node) {
+                        return false;
+                    }
+                    if !block.rhs.walk(path, on_node) {
                         return false;
                     }
                 }
