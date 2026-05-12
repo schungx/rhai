@@ -1,3 +1,5 @@
+#[cfg(feature = "internals")]
+use rhai::{ASTNode, Expr};
 use rhai::{Engine, ParseErrorType, Scope, INT};
 
 #[test]
@@ -304,4 +306,80 @@ fn test_switch_ranges() {
             .unwrap(),
         'z'
     );
+}
+
+/// AST walk tests — verify that `walk` visits the body of the `switch` default case.
+
+#[test]
+#[cfg(feature = "internals")]
+fn test_switch_walk_visits_default_case_body() {
+    let engine = Engine::new();
+    // `extra` is inside the default branch body and must be visited.
+    let ast = engine
+        .compile(
+            r#"
+                switch action {
+                    1 => foo(),
+                    _ => bar(extra)
+                }
+            "#,
+        )
+        .unwrap();
+
+    let mut vars: Vec<String> = Vec::new();
+    ast.walk(&mut |nodes: &[ASTNode]| {
+        if let Some(ASTNode::Expr(Expr::Variable(info, _, _))) = nodes.last() {
+            vars.push(info.1.to_string());
+        }
+        true
+    });
+
+    assert!(vars.contains(&"extra".to_string()), "walk should visit `extra` in the default branch body");
+}
+
+#[test]
+#[cfg(feature = "internals")]
+fn test_switch_walk_visits_all_case_bodies_and_default() {
+    let engine = Engine::new();
+    let ast = engine
+        .compile(
+            r#"
+                switch x {
+                    1 => arm_one(a),
+                    2 => arm_two(b),
+                    _ => arm_default(c)
+                }
+            "#,
+        )
+        .unwrap();
+
+    let mut vars: Vec<String> = Vec::new();
+    ast.walk(&mut |nodes: &[ASTNode]| {
+        if let Some(ASTNode::Expr(Expr::Variable(info, _, _))) = nodes.last() {
+            vars.push(info.1.to_string());
+        }
+        true
+    });
+
+    for name in &["x", "a", "b", "c"] {
+        assert!(vars.contains(&name.to_string()), "walk should visit `{name}`", name = name);
+    }
+}
+
+#[test]
+#[cfg(feature = "internals")]
+fn test_switch_walk_default_only() {
+    let engine = Engine::new();
+    // A switch with only a default arm — the body must still be visited.
+    let ast = engine.compile("switch x { _ => fallback(y) }").unwrap();
+
+    let mut vars: Vec<String> = Vec::new();
+    ast.walk(&mut |nodes: &[ASTNode]| {
+        if let Some(ASTNode::Expr(Expr::Variable(info, _, _))) = nodes.last() {
+            vars.push(info.1.to_string());
+        }
+        true
+    });
+
+    assert!(vars.contains(&"y".to_string()), "walk should visit `y` inside the default-only branch body");
 }
