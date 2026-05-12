@@ -906,7 +906,7 @@ impl Expr {
                     }
                 }
             }
-            Self::FnCall(x, ..) => {
+            Self::FnCall(x, ..) | Self::MethodCall(x, ..) => {
                 for e in &*x.args {
                     if !e.walk(path, on_node) {
                         return false;
