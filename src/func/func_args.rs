@@ -2,6 +2,8 @@
 
 #![allow(non_snake_case)]
 
+use smallvec::SmallVec;
+
 use crate::types::dynamic::Variant;
 use crate::Dynamic;
 #[cfg(feature = "no_std")]
@@ -60,6 +62,13 @@ pub trait FuncArgs {
 }
 
 impl<T: Variant + Clone> FuncArgs for Vec<T> {
+    #[inline]
+    fn parse<ARGS: Extend<Dynamic>>(self, args: &mut ARGS) {
+        args.extend(self.into_iter().map(Dynamic::from));
+    }
+}
+
+impl<T: Variant + Clone, const N: usize> FuncArgs for SmallVec<[T; N]> {
     #[inline]
     fn parse<ARGS: Extend<Dynamic>>(self, args: &mut ARGS) {
         args.extend(self.into_iter().map(Dynamic::from));
