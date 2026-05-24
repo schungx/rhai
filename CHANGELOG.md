@@ -10,13 +10,14 @@ Bug fixes
 * `Engine::compact_script` now properly compacts scripts with custom syntax that uses `$raw$` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1079`](https://github.com/rhaiscript/rhai/pull/1079)).
 * The string methods `split`, `split_rev` and their variants are now marked `pure` so they can be called on `const` strings (thanks [`@theJC`](https://github.com/theJC) [`#1082`](https://github.com/rhaiscript/rhai/pull/1082)).
 * The array method `index_of` now falls back to value comparison for string argument when no script function of that name is registered (thanks [`@yinho999`](https://github.com/yinho999) [`#1086`](https://github.com/rhaiscript/rhai/pull/1086)).
+* The `walk` API now correctly visits the arguments to `MethodCall` and `switch` statements (thanks [`@isSerge`](https://github.com/isSerge) [`#1092`](https://github.com/rhaiscript/rhai/pull/1092) [`#1093`](https://github.com/rhaiscript/rhai/pull/1093))
 
 New features
 ------------
 
 * A new advanced callback, `Engine::on_missing_function`, is added (gated under the `internals` feature) to override default handling when a called function or method is not found (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1067`](https://github.com/rhaiscript/rhai/pull/1067)).
 * A new method, `EvalContext::new_frame`, is added to created an isolated frame guard that automatically restores field values upon `Drop` (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) for the idea [`#1085`](https://github.com/rhaiscript/rhai/pull/1085)).
-* `\${...}` is supported in multi-line literal strings to escape interpolation, yielding literally `${...}` for the string (thanks [`@yinho999`](https://github.com/yinho999)).
+* `\${...}` is supported in multi-line literal strings to escape interpolation, yielding literally `${...}` for the string (thanks [`@yinho999`](https://github.com/yinho999) [`#1089`](https://github.com/rhaiscript/rhai/pull/1089)).
 
 Enhancements
 ------------
