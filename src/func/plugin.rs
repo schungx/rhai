@@ -4,7 +4,6 @@ use super::FnCallArgs;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-
 /// Result of a Rhai function.
 pub type RhaiResult = crate::RhaiResult;
 
