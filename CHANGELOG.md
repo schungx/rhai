@@ -1,6 +1,17 @@
 Rhai Release Notes
 ==================
 
+Version 1.25.1
+==============
+
+This is a patch release that reverses the change in `1.25.0` that removed certain exports from the
+`rhai::plugin` module, which is a breaking change.
+
+The exports are now re-added will only be removed in the next major version.
+
+Thanks to [`@Abendrill`](https://github.com/Abendrill) [`#1099`](https://github.com/rhaiscript/rhai/pull/1099).
+
+
 Version 1.25.0
 ==============
 
