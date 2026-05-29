@@ -1,7 +1,6 @@
 //! Module defining macros for developing _plugins_.
 
 use super::FnCallArgs;
-use crate::NativeCallContext;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -9,6 +8,16 @@ use std::prelude::v1::*;
 pub type RhaiResult = crate::RhaiResult;
 
 pub use rhai_codegen::*;
+
+// Removing these re-exports would be a breaking change,
+// despite there are other import paths that can be used.
+// https://github.com/rhaiscript/rhai/issues/1098
+pub use super::RhaiFunc;
+pub use crate::{
+    Dynamic, Engine, EvalAltResult, FnAccess, FnNamespace, FuncRegistration, ImmutableString,
+    Module, NativeCallContext, Position,
+};
+pub use std::{any::TypeId, mem};
 
 /// Trait implemented by a _plugin function_.
 ///
