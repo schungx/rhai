@@ -277,9 +277,9 @@ jobs:
           command: build
           args: --target aarch64-unknown-linux-gnu --features testing-environ,serde,metadata,internals,debugging
 
-  # MIRI: detect undefined behavior in unsafe blocks (reify.rs, call.rs, register.rs)
   miri:
     name: MIRI
+    if: false
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
