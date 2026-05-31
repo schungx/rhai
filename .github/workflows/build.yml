@@ -71,10 +71,8 @@ jobs:
           - "--features testing-environ,no_closure,serde,metadata,internals,debugging"
           - "--features testing-environ,sync,no_time,no_function,no_float,no_position,no_optimize,no_module,no_closure,no_custom_syntax,metadata,serde,unchecked,debugging"
           - "--features testing-environ,no_time,no_function,no_float,no_position,no_index,no_object,no_optimize,no_module,no_closure,no_custom_syntax,unchecked"
-          # Combined reduced numeric types: common embedded config not previously tested together
-          - "--features testing-environ,f32_float,only_i32,serde,metadata,internals,debugging"
-          # Most stripped-down embedded config
-          - "--features testing-environ,no_float,only_i32,no_object,no_index,no_module,no_function,sync"
+          - "--tests --features testing-environ,f32_float,only_i32,serde,metadata,internals,debugging"
+          - "--tests --features testing-environ,no_float,only_i32,no_object,no_index,no_module,no_function,sync"
         toolchain: [stable]
         experimental: [false]
         include:
@@ -130,7 +128,8 @@ jobs:
       matrix:
         flags:
           - "--target wasm32-wasip1"
-          - "--target wasm32-unknown-unknown"
+          # The `wasm32-unknown-unknown` target is not supported by default as it requires `wasm_js`.
+          #- "--target wasm32-unknown-unknown"
           - "--target wasm32-unknown-unknown --features wasm-bindgen"
           - "--target wasm32-unknown-unknown --no-default-features --features std"
           - "--target wasm32-unknown-unknown --no-default-features --features std,wasm-bindgen"

@@ -85,7 +85,7 @@ impl<'a> ArgBackup<'a> {
         // We can do this here because, before the end of this scope, we'd restore the original
         // reference via `restore_first_arg`. Therefore this shorter lifetime does not leak.
         self.orig_mut = Some(mem::replace(&mut args[0], unsafe {
-            mem::transmute(&mut self.value_copy)
+            mem::transmute::<&mut Dynamic, &'a mut Dynamic>(&mut self.value_copy)
         }));
     }
     /// This function restores the first argument that was replaced by `change_first_arg_to_copy`.
