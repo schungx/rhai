@@ -71,6 +71,10 @@ jobs:
           - "--features testing-environ,no_closure,serde,metadata,internals,debugging"
           - "--features testing-environ,sync,no_time,no_function,no_float,no_position,no_optimize,no_module,no_closure,no_custom_syntax,metadata,serde,unchecked,debugging"
           - "--features testing-environ,no_time,no_function,no_float,no_position,no_index,no_object,no_optimize,no_module,no_closure,no_custom_syntax,unchecked"
+          # Combined reduced numeric types: common embedded config not previously tested together
+          - "--features testing-environ,f32_float,only_i32,serde,metadata,internals,debugging"
+          # Most stripped-down embedded config
+          - "--features testing-environ,no_float,only_i32,no_object,no_index,no_module,no_function,sync"
         toolchain: [stable]
         experimental: [false]
         include:
@@ -104,7 +108,7 @@ jobs:
         include:
           - {os: ubuntu-latest, flags: "--profile unix", experimental: false}
           - {os: windows-latest, flags: "--profile windows", experimental: true}
-          #- {os: macos-latest, flags: "--profile macos", experimental: false}
+          - {os: macos-latest, flags: "--profile macos", experimental: false}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -126,8 +130,7 @@ jobs:
       matrix:
         flags:
           - "--target wasm32-wasip1"
-# These fail currently, future PR should fix them
-#          - "--target wasm32-unknown-unknown"
+          - "--target wasm32-unknown-unknown"
           - "--target wasm32-unknown-unknown --features wasm-bindgen"
           - "--target wasm32-unknown-unknown --no-default-features --features std"
           - "--target wasm32-unknown-unknown --no-default-features --features std,wasm-bindgen"
@@ -175,7 +178,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all -- -Aclippy::all -Dclippy::perf
+        args: --all -- -Aclippy::all -Dclippy::perf -Dclippy::correctness -Dclippy::suspicious
 
   codegen_build:
     name: Codegen Build
@@ -204,3 +207,90 @@ jobs:
       with:
         command: test
         args: --manifest-path=codegen/tests/custom_root/Cargo.toml ${{matrix.flags}}
+
+  # Security audit: check dependencies for known CVEs
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Run cargo audit
+        run: cargo audit
+
+  # Ensure all doc-comments compile cleanly with doc-relevant features
+  doc:
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build docs
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        with:
+          command: doc
+          args: --no-deps --features document-features,metadata,serde,internals,decimal,debugging
+
+  # 32-bit Linux: catch pointer/size assumptions for embedded targets
+  cross_32bit:
+    name: Cross-compile 32-bit Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: i686-unknown-linux-gnu
+      - name: Install 32-bit libc
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - name: Build (32-bit)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target i686-unknown-linux-gnu --features testing-environ,serde,metadata,internals,debugging
+
+  # ARM64 cross-compile: common deployment target for embedded Rhai
+  cross_arm64:
+    name: Cross-compile ARM64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: aarch64-unknown-linux-gnu
+      - name: Install cross-linker
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Build (ARM64)
+        uses: actions-rs/cargo@v1
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        with:
+          command: build
+          args: --target aarch64-unknown-linux-gnu --features testing-environ,serde,metadata,internals,debugging
+
+  # MIRI: detect undefined behavior in unsafe blocks (reify.rs, call.rs, register.rs)
+  miri:
+    name: MIRI
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: miri
+      - name: Run MIRI
+        env:
+          MIRIFLAGS: "-Zmiri-strict-provenance"
+        run: cargo miri test --features testing-environ -- --test-threads=1
