@@ -8,10 +8,7 @@ use std::{
 };
 
 /// Number of bits for a `usize`.
-const USIZE_BITS: usize = mem::size_of::<usize>() * 8;
-
-/// Number of `usize` values required for 256 bits.
-const SIZE: usize = 256 / USIZE_BITS;
+const USIZE_BITS: u64 = (mem::size_of::<usize>() as u64) * 8;
 
 /// _(internals)_ A simple bloom filter implementation for `u64` hash values only - i.e. all 64 bits are assumed
 /// to be relatively random.
@@ -21,16 +18,25 @@ const SIZE: usize = 256 / USIZE_BITS;
 /// of the `u64` hash value and sets the corresponding bit in a 256-long bit vector.
 ///
 /// The rationale of this type is to avoid pulling in another dependent crate.
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-pub struct BloomFilterU64([usize; SIZE]);
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct BloomFilterU64<const SIZE: usize>([usize; SIZE]);
 
-impl BloomFilterU64 {
+impl<const SIZE: usize> Default for BloomFilterU64<SIZE> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const SIZE: usize> BloomFilterU64<SIZE> {
     /// Get the bit position of a `u64` hash value.
     #[inline(always)]
     #[must_use]
     const fn calc_hash(value: u64) -> (usize, usize) {
-        let hash = (value & 0x00ff) as usize;
-        (hash / USIZE_BITS, 0x01 << (hash % USIZE_BITS))
+        (
+            ((value / USIZE_BITS) % (SIZE as u64)) as usize,
+            0x01 << (value % USIZE_BITS),
+        )
     }
     /// Create a new [`BloomFilterU64`].
     #[inline(always)]
@@ -76,8 +82,8 @@ impl BloomFilterU64 {
     }
 }
 
-impl Add for &BloomFilterU64 {
-    type Output = BloomFilterU64;
+impl<const SIZE: usize> Add for &BloomFilterU64<SIZE> {
+    type Output = BloomFilterU64<SIZE>;
 
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
@@ -94,23 +100,23 @@ impl Add for &BloomFilterU64 {
     }
 }
 
-impl Add<BloomFilterU64> for &BloomFilterU64 {
-    type Output = BloomFilterU64;
+impl<const SIZE: usize> Add<BloomFilterU64<SIZE>> for &BloomFilterU64<SIZE> {
+    type Output = BloomFilterU64<SIZE>;
 
     #[inline(always)]
-    fn add(self, rhs: BloomFilterU64) -> Self::Output {
+    fn add(self, rhs: BloomFilterU64<SIZE>) -> Self::Output {
         self + &rhs
     }
 }
 
-impl AddAssign<Self> for BloomFilterU64 {
+impl<const SIZE: usize> AddAssign<Self> for BloomFilterU64<SIZE> {
     #[inline(always)]
     fn add_assign(&mut self, rhs: Self) {
         *self += &rhs;
     }
 }
 
-impl AddAssign<&Self> for BloomFilterU64 {
+impl<const SIZE: usize> AddAssign<&Self> for BloomFilterU64<SIZE> {
     #[inline]
     fn add_assign(&mut self, rhs: &Self) {
         self.0

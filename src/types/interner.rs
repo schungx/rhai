@@ -27,7 +27,7 @@ pub struct StringsInterner {
     /// Cached strings.
     cache: StraightHashMap<ImmutableString>,
     /// Bloom filter to avoid caching "one-hit wonders".
-    bloom_filter: BloomFilterU64,
+    bloom_filter: BloomFilterU64<16>,
 }
 
 impl fmt::Debug for StringsInterner {
