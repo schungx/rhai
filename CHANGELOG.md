@@ -1,6 +1,15 @@
 Rhai Release Notes
 ==================
 
+Version 1.26.0
+==============
+
+Enhancements
+------------
+
+* `BloomFilterU64` is modified to take the sizes of the bit array as a `const` generic parameter instead of hard-coded to be 256 slots (32 bytes).
+
+
 Version 1.25.1
 ==============
 

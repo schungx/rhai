@@ -1,14 +1,8 @@
 //! A simple bloom filter implementation for `u64` hash values only.
 
+use std::ops::{Add, AddAssign};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{
-    mem,
-    ops::{Add, AddAssign},
-};
-
-/// Number of bits for a `usize`.
-const USIZE_BITS: u64 = (mem::size_of::<usize>() as u64) * 8;
 
 /// _(internals)_ A simple bloom filter implementation for `u64` hash values only - i.e. all 64 bits are assumed
 /// to be relatively random.
@@ -18,8 +12,10 @@ const USIZE_BITS: u64 = (mem::size_of::<usize>() as u64) * 8;
 /// of the `u64` hash value and sets the corresponding bit in a 256-long bit vector.
 ///
 /// The rationale of this type is to avoid pulling in another dependent crate.
+///
+/// `SIZE` parameter is the number of slots in the bloom filter, expressed in 8-bit bytes.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct BloomFilterU64<const SIZE: usize>([usize; SIZE]);
+pub struct BloomFilterU64<const SIZE: usize>([u8; SIZE]);
 
 impl<const SIZE: usize> Default for BloomFilterU64<SIZE> {
     #[inline(always)]
@@ -32,11 +28,8 @@ impl<const SIZE: usize> BloomFilterU64<SIZE> {
     /// Get the bit position of a `u64` hash value.
     #[inline(always)]
     #[must_use]
-    const fn calc_hash(value: u64) -> (usize, usize) {
-        (
-            ((value / USIZE_BITS) % (SIZE as u64)) as usize,
-            0x01 << (value % USIZE_BITS),
-        )
+    const fn calc_hash(value: u64) -> (usize, u8) {
+        (((value / 8) % (SIZE as u64)) as usize, 0x01 << (value % 8))
     }
     /// Create a new [`BloomFilterU64`].
     #[inline(always)]

@@ -641,7 +641,9 @@ pub struct Module {
     /// including those in sub-modules.
     all_functions: Option<StraightHashMap<RhaiFunc>>,
     /// Bloom filter on native Rust functions (in scripted hash format) that contain [`Dynamic`] parameters.
-    dynamic_functions_filter: BloomFilterU64<2>,
+    ///
+    /// Default to 8 bytes (64 slots) which should be enough for dynamic functions in a module.
+    dynamic_functions_filter: BloomFilterU64<8>,
     /// Iterator functions, keyed by the type producing the iterator.
     type_iterators: BTreeMap<TypeId, Shared<FnIterator>>,
     /// Flattened collection of iterator functions, including those in sub-modules.
