@@ -2844,13 +2844,34 @@ impl Iterator for TokenIterator<'_> {
 
                     if !buf.is_empty() && !compressed.is_empty() {
                         let cur = buf.chars().next().unwrap();
+                        let prev = compressed.chars().last().unwrap();
 
-                        if cur == '_' || is_id_first_alphabetic(cur) || is_id_continue(cur) {
-                            let prev = compressed.chars().last().unwrap();
+                        // A separating space is needed when concatenating this
+                        // token onto the output would change how the boundary
+                        // re-tokenizes:
+                        //   * two identifier characters merge into one
+                        //     identifier/keyword (e.g. `let` + `x` -> `letx`);
+                        //   * the two boundary characters merge into a
+                        //     recognized operator or a reserved symbol (e.g.
+                        //     `<` + `-` -> `<-`, which the lexer rejects, or
+                        //     `<` + `=` -> `<=`).
+                        // The second case is decided by the tokenizer's own
+                        // symbol tables, so nothing has to be hardcoded here.
+                        let is_id =
+                            |c: char| c == '_' || is_id_first_alphabetic(c) || is_id_continue(c);
 
-                            if prev == '_' || is_id_first_alphabetic(prev) || is_id_continue(prev) {
-                                *compressed += " ";
-                            }
+                        let need_space = if is_id(prev) && is_id(cur) {
+                            true
+                        } else {
+                            let mut pair = SmartString::new_const();
+                            pair.push(prev);
+                            pair.push(cur);
+                            Token::lookup_symbol_from_syntax(&pair).is_some()
+                                || is_reserved_keyword_or_symbol(&pair).0
+                        };
+
+                        if need_space {
+                            *compressed += " ";
                         }
                     }
 

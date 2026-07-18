@@ -94,3 +94,34 @@ fn test_tokens_unicode_xid_ident() {
     );
     let _ = result.unwrap_err();
 }
+
+/// Regression: `Engine::compact_script` must not fuse an operator with a
+/// following character into a different token. In particular `x < -1` must not
+/// compact to `x<-1`, which the lexer rejects as the invalid operator `<-`
+/// ("This is not Go!"). The compacted output must always compile back.
+///
+/// Uses only core integer expressions so it holds under every feature set
+/// (e.g. `no_function`, `no_float`, `only_i32`).
+#[test]
+fn test_compact_script_operator_adjacency() {
+    let engine = Engine::new();
+
+    for source in [
+        "let a = 1 < -1;",  // `< -` would fuse into the invalid `<-`
+        "let b = 5 - -2;",  // `- -` would fuse into the reserved `--`
+        "let c = 2 * -1;",  // must stay valid
+        "let d = 10 % -4;", // must stay valid
+        "let e = 3 <= -2;", // `<=` must not be broken by the fix
+    ] {
+        // Sanity: the source itself compiles.
+        engine.compile(source).unwrap();
+
+        let compacted = engine.compact_script(source).unwrap();
+
+        // No operator must have fused with the following `-`.
+        assert!(!compacted.contains("<-") && !compacted.contains("--"), "compacted form fused an operator with `-`: {:?}", compacted);
+
+        // The compacted form must compile back to the same program.
+        engine.compile(&compacted).unwrap_or_else(|e| panic!("compacted {:?} failed to recompile: {}", compacted, e));
+    }
+}

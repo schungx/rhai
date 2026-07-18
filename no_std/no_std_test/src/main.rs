@@ -3,7 +3,7 @@
 
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, core_intrinsics, lang_items, link_cfg)]
+#![feature(alloc_error_handler, core_intrinsics, link_cfg)]
 
 extern crate alloc;
 extern crate wee_alloc;
@@ -35,7 +35,6 @@ fn foo(_: core::alloc::Layout) -> ! {
 }
 
 #[panic_handler]
-#[lang = "panic_impl"]
 fn rust_begin_panic(_: &core::panic::PanicInfo) -> ! {
     core::intrinsics::abort();
 }
