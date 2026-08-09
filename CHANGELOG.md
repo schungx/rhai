@@ -4,6 +4,11 @@ Rhai Release Notes
 Version 1.26.0
 ==============
 
+Bug fixes
+---------
+
+* Fixes bug in `Engine::compact_script` that generates invalid compacted scripts due to missing spaces between ambiguous operators (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1106`](https://github.com/rhaiscript/rhai/pull/1106)).
+
 Enhancements
 ------------
 
