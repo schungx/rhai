@@ -141,6 +141,7 @@ fn a_caller_variable_in_first_argument_position_is_taken_by_reference() {
         },
         true,
     );
+    #[cfg(not(feature = "no_object"))]
     agree(
         "bump(w); w.level",
         |s| {
@@ -178,6 +179,7 @@ fn a_caller_variable_in_first_argument_position_is_taken_by_reference() {
 /// else becomes a read-only value (`eval/expr.rs:120-155`). One case per arm of
 /// that, because each fails differently.
 #[test]
+#[cfg(not(any(feature = "no_index", feature = "no_object")))]
 fn a_chain_can_be_rooted_at_a_caller_variable() {
     let array = || vec![lit(1)];
 
@@ -248,6 +250,7 @@ fn a_chain_can_be_rooted_at_a_caller_variable() {
     // where every holder of the cell can see it. The closure is made in a
     // block so the compared scope does not end up holding a pointer, which the
     // two sides render differently on purpose.
+    #[cfg(not(feature = "no_function"))]
     agree(
         "{ let keep = || host.len(); } host.push(2); host",
         |s| {
@@ -263,6 +266,7 @@ fn a_chain_can_be_rooted_at_a_caller_variable() {
 
 /// The other two things a name can resolve to, neither of which is a place.
 #[test]
+#[cfg(not(any(feature = "no_index", feature = "no_object")))]
 fn a_chain_rooted_at_a_resolved_name_cannot_be_written_through() {
     let mut engine = corpus::engine();
     engine.on_var(|name, _, _| {
@@ -293,6 +297,43 @@ fn a_chain_rooted_at_a_resolved_name_cannot_be_written_through() {
     }
 }
 
+/// A closure body the optimizer folded, which rhai then does not run.
+///
+/// Rhai keeps two copies of a closure's body: the one in the `AST`'s function
+/// library, which the optimizer rewrites, and the one the `FnPtr` carries,
+/// which it does not — they are separate `ScriptFuncDef`s from the moment the
+/// optimizer runs, on every build. Dispatch through a pointer runs the
+/// pointer's copy. We compile the library's.
+///
+/// So a fold that drops work is a fold we keep and the walker does not:
+/// `[nope, 'c', 28][1]` becomes `'c'`, and `nope` is never looked up. Every
+/// other build hides this, because there a capture evaluates `nope` where the
+/// closure is *made* and raises before any of it matters. `no_closure` has no
+/// capture, so this is the one build the difference reaches.
+///
+/// Pinned rather than fixed. The fold is rhai's own, and reaching it takes a
+/// discarded element that fails — which is a shape no working script has, and
+/// which `corpus::generate` therefore keeps off.
+/// `no_function` turns `no_closure` on and takes the syntax with it, and the
+/// fold needs an array literal to happen to.
+#[test]
+#[cfg(feature = "no_closure")]
+#[cfg(not(any(feature = "no_function", feature = "no_index")))]
+fn a_folded_closure_body_keeps_the_optimizers_answer() {
+    let engine = corpus::engine();
+    let source = "call(|c| [nope, 'c', 28][1], 4)";
+    let ast = engine.compile(source).expect("must compile");
+    let program = Compiler::new().compile(&ast);
+
+    // The walker runs the pointer's copy, which still has the lookup in it.
+    let walked = engine.eval_ast::<Dynamic>(&ast);
+    assert!(walked.is_err(), "the walker must still look `nope` up, got {walked:?}",);
+
+    // We run the library's, which has nothing left to look up.
+    let ours = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &program).expect("the folded body cannot fail");
+    assert_eq!(ours.as_char(), Ok('c'));
+}
+
 /// A closure can capture a variable the caller supplied, and capturing it means
 /// binding the cell rather than a copy of what is in it.
 ///
@@ -303,6 +344,7 @@ fn a_chain_rooted_at_a_resolved_name_cannot_be_written_through() {
 /// through the flattening one, so even the right variable was captured by
 /// value: a write afterwards was invisible to the closure.
 #[test]
+#[cfg(not(any(feature = "no_function", feature = "no_object", feature = "no_closure")))]
 fn a_closure_can_capture_a_caller_variable() {
     let seed = |scope: &mut Scope| {
         // Two of them, and the interesting one is not last: the index bug is
@@ -333,6 +375,7 @@ fn a_local_shadows_the_caller_without_disturbing_it() {
     );
     // And the other order: read before the local exists, so the same name is
     // two different variables in one script.
+    #[cfg(not(feature = "no_index"))]
     agree(
         "let first = brightness; let brightness = 1; [first, brightness]",
         |s| {
@@ -372,6 +415,7 @@ fn a_name_that_is_nowhere_is_reported_the_same_way() {
 /// (`eval/expr.rs:62`). Reported separately — it predates named variables, and
 /// the fix is about residuals rather than about this.
 #[test]
+#[cfg(not(any(feature = "no_function", feature = "no_object")))]
 fn a_script_function_name_is_not_a_variable() {
     let engine = corpus::engine();
     let ast = engine.compile("fn helper() { 1 } let f = helper; f.call()").expect("must compile");
@@ -422,6 +466,8 @@ fn a_global_module_constant_resolves() {
 /// started lowering again would put the divergence straight back.
 #[test]
 #[cfg(not(feature = "no_module"))]
+// The module the `import` resolves to is itself a script function.
+#[cfg(not(feature = "no_function"))]
 fn an_import_keeps_the_walkers_answer() {
     let mut engine = corpus::engine();
 
@@ -568,6 +614,7 @@ fn a_resolver_that_grows_the_scope_forces_a_search() {
 /// which is how `load_named` marks a resolver's answer. The alternative would
 /// be running the resolver a second time, and a host can see that.
 #[test]
+#[cfg(not(feature = "no_index"))]
 fn a_resolved_receiver_is_not_the_scope_entry_it_shadows() {
     let mut engine = corpus::engine();
     engine.on_var(|name, _, _| {
@@ -612,6 +659,7 @@ fn a_resolved_receiver_is_not_the_scope_entry_it_shadows() {
 /// late-bound, which rhai renders. Pinned here rather than left to be
 /// discovered, because it is visible to a script that prints one.
 #[test]
+#[cfg(not(feature = "no_function"))]
 fn a_closure_pointer_is_late_bound() {
     let engine = corpus::engine();
     let source = "let n = 1; let f = |x| x + n; f";
@@ -635,6 +683,7 @@ fn a_closure_pointer_is_late_bound() {
 /// Calling a compiled function from outside, which is what a native wrapper
 /// will do once compiled chunks are registered for callbacks.
 #[test]
+#[cfg(not(feature = "no_function"))]
 fn a_compiled_function_can_be_called_by_name() {
     let engine = corpus::engine();
     let ast = engine.compile("fn add(a, b) { a + b } fn boom() { throw 7; } 0").expect("must compile");
@@ -666,6 +715,7 @@ fn a_compiled_function_can_be_called_by_name() {
 /// arguments as a tuple rather than a `Vec<Dynamic>`, a typed result, and the
 /// program's body run first — which is what sets up anything the call needs.
 #[test]
+#[cfg(not(feature = "no_function"))]
 fn call_fn_mirrors_the_engines() {
     let engine = corpus::engine();
     let ast = engine.compile("fn add(a, b) { a + b } let marker = 10; 0").expect("must compile");
@@ -712,6 +762,7 @@ fn call_fn_mirrors_the_engines() {
 /// compiled program and for the same program read back, or one of the two
 /// paths quietly loses its callbacks.
 #[test]
+#[cfg(not(any(feature = "no_function", feature = "no_object")))]
 fn the_compiler_says_whether_a_program_makes_function_pointers() {
     let engine = corpus::engine();
 

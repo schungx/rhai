@@ -117,12 +117,21 @@ fn the_round_trip_covers_something_worth_covering() {
         // rests on into a panic in rhai, so the case is not run at all there.
         #[cfg(not(feature = "unchecked"))]
         "error_divide_by_zero",
-        "switch_range",           // a switch table, and the hasher probe with it
-        "switch_guard",           // and one whose arms are a chain rather than a target
-        "string_slice_read",      // a range constant, which is a host type in `Dynamic`
+        "switch_range", // a switch table, and the hasher probe with it
+        "switch_guard", // and one whose arms are a chain rather than a target
+        // A range constant is a host type in `Dynamic`, and both tags are
+        // reached by slicing — which is `[..]`, and so `no_index` syntax, as is
+        // every chain below it.
+        #[cfg(not(feature = "no_index"))]
+        "string_slice_read",
+        #[cfg(not(feature = "no_index"))]
         "string_slice_inclusive", // and the other range tag
-        "index_assign_array",     // a chain rooted at a slot, and its name
-        "temp_root_array_method", // and one rooted on the operand stack instead
+        #[cfg(not(feature = "no_index"))]
+        "index_assign_array", // a chain rooted at a slot, and its name
+        // and one rooted on the operand stack instead, which takes a method
+        // call to get there
+        #[cfg(not(any(feature = "no_index", feature = "no_object")))]
+        "temp_root_array_method",
     ] {
         assert!(names.contains(&required), "`{required}` no longer writes, so the encoder branch it covers is untested",);
     }
@@ -132,6 +141,15 @@ fn the_round_trip_covers_something_worth_covering() {
 /// a regeneration is a visible two-file change.
 const GOLDEN_SOURCE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grain/fixtures/golden.rhai");
 const GOLDEN_ARTIFACT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grain/fixtures/golden.rgrn");
+
+/// The fixture is one build's source, checked in byte-identical beside the
+/// bytes it produced — rewriting it to suit a build would make it a different
+/// fixture. So it is a default-build pair, and a build missing the syntax it
+/// is written in has nothing here to check.
+///
+/// A runtime flag rather than a `cfg`, so the reason stays in one place and the
+/// body below needs no gating of its own.
+const GOLDEN_APPLIES: bool = !cfg!(any(feature = "no_float", feature = "no_function", feature = "no_index", feature = "no_object"));
 
 /// The caller state `golden.rhai` expects. Part of the fixture, so it lives
 /// with it rather than being invented at each use.
@@ -164,16 +182,14 @@ fn golden_scope() -> Scope<'static> {
 /// than reject them — the rule is at `src/format/mod.rs:56`.
 #[test]
 fn a_golden_artifact_written_by_an_older_build_still_runs() {
-    // The fixture is one build's bytes and its source is that build's source,
-    // which uses floats. `no_float` cannot parse it, so there is nothing here
-    // to check — the same reason the ABI guard skips below, reached earlier.
-    #[cfg(feature = "no_float")]
-    {
-        println!("skipped: the golden source uses floats, which this build has no syntax for");
+    // Reached before the ABI guard below, and for the same reason: on a build
+    // the fixture was not written for, this would test the guard rather than
+    // the encoding.
+    if !GOLDEN_APPLIES {
+        println!("skipped: the golden source uses syntax this build does not have");
         return;
     }
 
-    #[cfg(not(feature = "no_float"))]
     {
         let engine = corpus::engine();
         let source = std::fs::read_to_string(GOLDEN_SOURCE).expect("the golden source is checked in");
@@ -278,6 +294,7 @@ fn a_golden_artifact_written_by_an_older_build_still_runs() {
 /// [`Root::Named`] carries — and the position beside it, which is what an
 /// `ErrorVariableNotFound` is reported against — has no encoder coverage there.
 #[test]
+#[cfg(not(any(feature = "no_index", feature = "no_object")))]
 fn a_chain_rooted_at_a_name_survives_the_round_trip() {
     let engine = corpus::engine();
     let source = "host.push(2); host[9]";
@@ -326,7 +343,9 @@ fn refusing_to_write_names_the_construct_responsible() {
     for (source, expected) in [
         ("let x = 1; eval(\"x\")", "an unlowered expression"),
         // `?.` short-circuits on unit rather than stepping, so it is not a
-        // chain this compiler can express whatever its root is.
+        // chain this compiler can express whatever its root is. It is a
+        // property access, and goes with the rest of them under `no_object`.
+        #[cfg(not(feature = "no_object"))]
         ("let x = 1; x?.y", "an unlowered expression"),
     ] {
         let ast = engine.compile(source).expect("must compile");
@@ -350,6 +369,7 @@ fn refusing_to_write_names_the_construct_responsible() {
 /// A script function is a chunk like any other, so it crosses the wire with
 /// the rest of the program.
 #[test]
+#[cfg(not(feature = "no_function"))]
 fn script_functions_survive_the_round_trip() {
     let engine = corpus::engine();
 
@@ -379,6 +399,7 @@ fn script_functions_survive_the_round_trip() {
 /// produce an artifact that loads and then cannot find its own function.
 #[test]
 #[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_function"))]
 fn a_function_the_compiler_cannot_lower_refuses_to_write() {
     let engine = corpus::engine();
     // `import` declares into the caller's scope, which the slot model cannot
@@ -393,6 +414,7 @@ fn a_function_the_compiler_cannot_lower_refuses_to_write() {
 /// The counterpart, and the milestone: a body that uses `this` is a chunk now,
 /// so a program full of them is an artifact rather than a tree.
 #[test]
+#[cfg(not(any(feature = "no_function", feature = "no_object")))]
 fn a_body_using_this_is_compiled_and_writable() {
     let engine = corpus::engine();
     let ast = engine.compile("fn bump(n) { this += n; this } let x = 21; x.bump(21); x").expect("must compile");
@@ -420,10 +442,19 @@ fn sample(engine: &Engine) -> Vec<u8> {
     #[cfg(feature = "no_float")]
     const SECOND: &str = "2";
 
+    // The array literal and the indexed write are `no_index` syntax. The
+    // by-reference call forms are the part that matters here — a corrupted
+    // argument count is read against a depth that excludes the receiver — so a
+    // host type stands in for them. The indexed write has no stand-in, and no
+    // build without indexing has one to corrupt.
+    #[cfg(not(feature = "no_index"))]
+    const INDEXED: &str = "let c = [a]; push(c, b); push(caller_supplied, a); caller_supplied[0] = a;";
+    #[cfg(feature = "no_index")]
+    const INDEXED: &str = "let c = widget(a); bump(c); bump(caller_supplied);";
+
     let source = format!(
         "let a = 1; let b = {SECOND}; while a < 10 {{ a += 1 }} \
-         let c = [a]; push(c, b); push(caller_supplied, a); \
-         caller_supplied[0] = a; \
+         {INDEXED} \
          switch a {{ 1 => \"one\", 0..=20 => \"some\", _ => \"many\" }}"
     );
     let ast = engine.compile(&source).expect("must compile");

@@ -98,6 +98,7 @@ fn mutated_artifacts_load_or_fail_but_never_misbehave() {
     let mut engine = corpus::engine();
     engine.set_max_operations(10_000);
     engine.set_max_string_size(4096);
+    #[cfg(not(feature = "no_index"))]
     engine.set_max_array_size(1024);
 
     const SEED: u64 = 0x5eed_1234_abcd_0001;
@@ -235,7 +236,10 @@ fn quietly<T>(body: impl FnOnce() -> T) -> Option<T> {
 /// Pinned because `generated_scripts_agree_with_the_walker` and both `cargo
 /// fuzz` targets have to skip these, and every one of those skips should go the
 /// day this test starts failing.
+///
+/// The bug is the optimizer's, so `no_optimize` is the one build without it.
 #[test]
+#[cfg(not(feature = "no_optimize"))]
 fn rhai_drops_a_local_its_optimizer_still_refers_to() {
     // The read lands on `a`, so rhai answers 1 where the script says 99.
     const WRONG: &str = "let a = 1; { let b = 99; switch b { _ => b } }";
@@ -279,7 +283,10 @@ fn rhai_drops_a_local_its_optimizer_still_refers_to() {
 /// it and disagreeing with it says the AST is at fault rather than the
 /// lowering. Only ever asked about a divergence that already looks like one.
 fn agree_unoptimised(source: &str) -> bool {
+    #[allow(unused_mut)]
     let mut plain = corpus::engine();
+    // `no_optimize` builds one that way to begin with.
+    #[cfg(not(feature = "no_optimize"))]
     plain.set_optimization_level(rhai::OptimizationLevel::None);
     let Ok(ast) = plain.compile(source) else {
         return false;
@@ -313,6 +320,7 @@ fn generated_scripts_agree_with_the_walker() {
     // a way no corpus case is, and there is no reason to wait for it.
     let mut engine = corpus::engine();
     engine.set_max_operations(200_000);
+    #[cfg(not(feature = "no_index"))]
     engine.set_max_array_size(2048);
     engine.set_max_string_size(8192);
     // Pinned, because rhai's defaults for these are `debug_assertions`-gated —
@@ -321,7 +329,12 @@ fn generated_scripts_agree_with_the_walker() {
     // `cargo test --release` parse different halves of the same seeded corpus
     // and compare different scripts, which is not a thing a differential
     // harness may do. The release numbers, because they admit more.
-    engine.set_max_expr_depths(64, 64);
+    engine.set_max_expr_depths(
+        64,
+        #[cfg(not(feature = "no_function"))]
+        64,
+    );
+    #[cfg(not(feature = "no_function"))]
     engine.set_max_call_levels(64);
 
     const SEED: u64 = 0x5eed_9a11_0000_0001;

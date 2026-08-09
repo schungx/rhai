@@ -2,8 +2,15 @@ use core::mem;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
+// Indexing survives either feature alone — a map is indexed by string, an
+// array by number — and only goes when both do. `eval/chaining.rs` is gated on
+// exactly this, and takes the getter and setter names with it.
+#[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::engine::{FN_IDX_GET, FN_IDX_SET};
+// Measuring a value is measuring what an array, a map or a string holds, so
+// the same pair of features takes it away — see the note above.
 #[cfg(not(feature = "unchecked"))]
+#[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
 use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
@@ -12,14 +19,18 @@ use crate::types::fn_ptr::FnPtrType;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
 use crate::ast::Expr;
+#[cfg(not(feature = "no_function"))]
 use crate::types::dynamic::Variant;
+#[cfg(not(feature = "no_index"))]
+use crate::Array;
+#[cfg(not(feature = "no_function"))]
+use crate::CallFnOptions;
+#[cfg(not(feature = "no_object"))]
+use crate::Map;
 use crate::{
-    eval::Caches, eval::GlobalRuntimeState, CallFnOptions, Dynamic, Engine, EvalAltResult,
-    EvalContext, Scope,
+    eval::Caches, eval::GlobalRuntimeState, Dynamic, Engine, EvalAltResult, EvalContext, Scope,
 };
-use crate::{
-    Array, FnPtr, ImmutableString, Map, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT,
-};
+use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT};
 
 mod callback;
 
@@ -156,6 +167,7 @@ struct ChainRoot<'a> {
 }
 
 /// What one indexing step managed.
+#[cfg(not(all(feature = "no_index", feature = "no_object")))]
 enum Indexed {
     /// Taken through a reference: the value, and whether anything wrote.
     Done(Dynamic, bool),
@@ -508,11 +520,14 @@ impl<'e> Vm<'e> {
     /// declared. [`call_fn_with_options`](Self::call_fn_with_options) turns
     /// that off.
     ///
+    /// Not available under `no_function`.
+    ///
     /// # Errors
     ///
     /// `ErrorFunctionNotFound` if no compiled function has that name and
     /// arity, `ErrorMismatchOutputType` if the result is not a `T`, and
     /// whatever the function itself raises.
+    #[cfg(not(feature = "no_function"))]
     pub fn call_fn<T: Variant + Clone>(
         &mut self,
         scope: &mut Scope,
@@ -540,9 +555,12 @@ impl<'e> Vm<'e> {
     /// `in_all_namespaces` is ignored: this looks only in the program's own
     /// compiled functions.
     ///
+    /// Not available under `no_function`.
+    ///
     /// # Errors
     ///
     /// As [`call_fn`](Self::call_fn).
+    #[cfg(not(feature = "no_function"))]
     pub fn call_fn_with_options<T: Variant + Clone>(
         &mut self,
         options: CallFnOptions,
@@ -707,15 +725,23 @@ impl<'e> Vm<'e> {
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let orig_source = mem::replace(&mut self.global.source, program.source().cloned());
+        #[cfg(not(feature = "no_function"))]
         let orig_lib_len = self.global.lib.len();
-        if let Some(lib) = program.lib() {
-            self.global.lib.push(lib.clone());
+        #[cfg(not(feature = "no_function"))]
+        {
+            if let Some(lib) = program.lib() {
+                self.global.lib.push(lib.clone());
+            }
+            // Last, so the search — which runs in reverse — reaches a compiled
+            // function before whatever the compiler left rhai to interpret.
+            if let Some(wrappers) = wrappers {
+                self.global.lib.push(wrappers);
+            }
         }
-        // Last, so the search — which runs in reverse — reaches a compiled
-        // function before whatever the compiler left rhai to interpret.
-        if let Some(wrappers) = wrappers {
-            self.global.lib.push(wrappers);
-        }
+        // Without script functions there is no library to stack them in, and
+        // `wrappers` is `None` for want of anything to wrap.
+        #[cfg(feature = "no_function")]
+        let _ = wrappers;
         #[cfg(not(feature = "no_module"))]
         let orig_resolver = mem::replace(
             &mut self.global.embedded_module_resolver,
@@ -728,6 +754,7 @@ impl<'e> Vm<'e> {
         {
             self.global.embedded_module_resolver = orig_resolver;
         }
+        #[cfg(not(feature = "no_function"))]
         self.global.lib.truncate(orig_lib_len);
         self.global.source = orig_source;
 
@@ -1037,6 +1064,14 @@ impl<'e> Vm<'e> {
         let last = rest.is_empty();
 
         match step {
+            // Without indexing of either kind there is no `[..]` to compile,
+            // so a step that says otherwise came from a corrupted artifact.
+            #[cfg(all(feature = "no_index", feature = "no_object"))]
+            Step::Index { .. } => Err(malformed(
+                "an index step, in a build with no indexing".to_string(),
+            )),
+
+            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
             Step::Index {
                 operand,
                 pos: idx_pos,
@@ -1176,6 +1211,7 @@ impl<'e> Vm<'e> {
     /// a custom indexer being assigned through — handing the value back so the
     /// caller can take the long way round once this borrow has ended.
     #[allow(clippy::too_many_arguments)]
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn index_by_reference(
         &mut self,
         program: &Program,
@@ -1262,6 +1298,7 @@ impl<'e> Vm<'e> {
     /// An op-assignment has to read the current value back through the getter
     /// first, and rhai *ignores* a getter that fails here — a write-only
     /// indexer takes the new value as-is (`eval/chaining.rs:812`).
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn assign_through_indexer(
         &mut self,
         program: &Program,
@@ -1291,6 +1328,7 @@ impl<'e> Vm<'e> {
     }
 
     /// Call the index getter, which unlike the setter is allowed to fail.
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn call_indexer(
         &mut self,
         name: &str,
@@ -1321,6 +1359,7 @@ impl<'e> Vm<'e> {
     /// A custom indexer returns a value, so a mutation below it landed in a
     /// temporary; this is the replay rhai does at `eval/chaining.rs:744`,
     /// including swallowing "this type cannot be indexed" the way it does.
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn call_indexer_set(
         &mut self,
         target: &mut Dynamic,
@@ -1374,10 +1413,18 @@ impl<'e> Vm<'e> {
         setter: u32,
     ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
         let last = rest.is_empty();
+        // The key names a map entry; a host type is reached through the getter
+        // and setter names instead, which are looked up below.
+        #[cfg(not(feature = "no_object"))]
         let key = program
             .name(name)
             .ok_or_else(|| malformed(format!("no name {name}")))?;
+        #[cfg(feature = "no_object")]
+        let _ = name;
 
+        // A map is the one property holder that is not a host type, and
+        // `no_object` removes both it and the syntax that would reach one.
+        #[cfg(not(feature = "no_object"))]
         if target.is_map() {
             let mut map = target
                 .write_lock::<Map>()
@@ -2290,6 +2337,9 @@ impl<'e> Vm<'e> {
     ) -> VmResult {
         #[cfg(not(feature = "unchecked"))]
         {
+            // The limit exists only where recursion does — `no_function` leaves
+            // nothing to call, so rhai drops the setting with the functions.
+            #[cfg(not(feature = "no_function"))]
             if self.global.level > self.engine.max_call_levels() {
                 return Err(Box::new(EvalAltResult::ErrorStackOverflow(pos)));
             }
@@ -2420,6 +2470,7 @@ impl<'e> Vm<'e> {
     /// Unit, unless the host asked for the strict reading — which is a whole
     /// engine option (`fail_on_invalid_map_property`) rather than anything the
     /// script says, so it has to be consulted rather than assumed.
+    #[cfg(not(feature = "no_object"))]
     fn absent_key(&self, key: &str, pos: Position) -> VmResult {
         if self.engine.fail_on_invalid_map_property() {
             Err(Box::new(EvalAltResult::ErrorPropertyNotFound(
@@ -2463,13 +2514,23 @@ impl<'e> Vm<'e> {
         // running total is never read and measuring it is pure cost. The push
         // above still happens: the stack is frame-floored either way, and the
         // instruction that drops it does not know which build it is in.
-        #[cfg(feature = "unchecked")]
+        //
+        // Losing both `no_index` and `no_object` is the other way to get here:
+        // with no literal to build there is nothing to measure, and the
+        // measurement itself goes with the containers.
+        #[cfg(any(
+            feature = "unchecked",
+            all(feature = "no_index", feature = "no_object")
+        ))]
         {
             let _ = (map, pos);
             Ok(())
         }
 
-        #[cfg(not(feature = "unchecked"))]
+        #[cfg(not(any(
+            feature = "unchecked",
+            all(feature = "no_index", feature = "no_object")
+        )))]
         {
             // Rhai skips the whole measurement when no limit could reject it,
             // and measuring is a walk of the value — so this is the difference
@@ -2613,6 +2674,9 @@ impl<'e> Vm<'e> {
     /// for a `throw`, and a map of the error's parts for anything else. The
     /// unwrapping matters — a `throw` inside a called function arrives wrapped
     /// in `ErrorInFunctionCall`, and rhai still binds the bare value.
+    ///
+    /// Under `no_object` there is no map to build one in, and rhai binds the
+    /// message alone (`eval/stmt.rs:815`).
     fn catch_value(&self, err: &mut Box<EvalAltResult>, wanted: bool) -> Dynamic {
         if !wanted {
             return Dynamic::UNIT;
@@ -2621,23 +2685,32 @@ impl<'e> Vm<'e> {
             return value.clone();
         }
 
-        let mut map = Map::new();
         // Read *and cleared*, as rhai does, so the message below carries no
         // trailing position and a re-raise starts from the catch site.
-        let pos = err.take_position();
+        #[cfg(feature = "no_object")]
+        {
+            let _ = err.take_position();
+            err.to_string().into()
+        }
 
-        map.insert("message".into(), err.to_string().into());
-        if let Some(source) = &self.global.source {
-            map.insert("source".into(), source.into());
+        #[cfg(not(feature = "no_object"))]
+        {
+            let mut map = Map::new();
+            let pos = err.take_position();
+
+            map.insert("message".into(), err.to_string().into());
+            if let Some(source) = &self.global.source {
+                map.insert("source".into(), source.into());
+            }
+            if !pos.is_none() {
+                let line = pos.line().unwrap_or(0) as INT;
+                map.insert("line".into(), line.into());
+                let column = pos.position().unwrap_or(0) as INT;
+                map.insert("position".into(), column.into());
+            }
+            err.dump_fields(&mut map);
+            map.into()
         }
-        if !pos.is_none() {
-            let line = pos.line().unwrap_or(0) as INT;
-            map.insert("line".into(), line.into());
-            let column = pos.position().unwrap_or(0) as INT;
-            map.insert("position".into(), column.into());
-        }
-        err.dump_fields(&mut map);
-        map.into()
     }
 
     /// The dispatch loop. `start` is the chunk's entry, or a catch block's
@@ -3125,6 +3198,9 @@ impl<'e> Vm<'e> {
                     self.stack[to..].rotate_right(1);
                 }
 
+                // Emitted only for a literal, which is not syntax under the
+                // feature that removes the type.
+                #[cfg(not(feature = "no_index"))]
                 code::tag::MAKE_ARRAY => {
                     let len = small(1)? as usize;
                     let first = self
@@ -3151,6 +3227,7 @@ impl<'e> Vm<'e> {
                     self.stack.push(Dynamic::from_array(array));
                 }
 
+                #[cfg(not(feature = "no_object"))]
                 code::tag::MAKE_MAP => {
                     let len = small(1)? as usize;
                     let first = self
@@ -3498,7 +3575,12 @@ impl<'e> Vm<'e> {
 /// mentions `this` — so this is the only thing that executes them until it does.
 /// Worth having on its own account regardless: what a hand-made artifact can say
 /// is exactly what a verifier-plus-VM has to survive.
+///
+/// Every case enters through [`Vm::call_fn_with_options`], which is the only
+/// way to bind a receiver from outside — and which `no_function` takes away
+/// along with rhai's `CallFnOptions`.
 #[cfg(test)]
+#[cfg(not(feature = "no_function"))]
 mod tests {
     use super::*;
     use crate::grain::bytecode::{assemble, Chain, Chunk, Op, Positions, Step, Strings, Tail};
@@ -3815,6 +3897,7 @@ mod tests {
     /// A chain rooted at `this` mutates the caller's value rather than a copy.
     /// That is the whole reason `Root::This` is not `Root::Temporary`.
     #[test]
+    #[cfg(not(feature = "no_index"))]
     fn a_chain_rooted_at_this_mutates_the_hosts_value() {
         let program = program_with_chains(
             &[&[Op::Const(0), Op::Chain(0), Op::Return]],
@@ -3845,6 +3928,7 @@ mod tests {
     /// `f(this, ..)` is rhai's method-call rewrite, so the receiver goes by
     /// reference and a mutating native reaches the caller's value.
     #[test]
+    #[cfg(not(feature = "no_index"))]
     fn this_as_a_first_argument_goes_by_reference() {
         let program = one(
             &[
