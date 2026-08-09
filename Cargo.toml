@@ -5,7 +5,7 @@ members = [".", "codegen", "codegen/tests/custom_root"]
 name = "rhai"
 version = "1.25.1"
 rust-version = "1.66.0"
-edition = "2018"
+edition = "2021"
 resolver = "2"
 authors = ["Jonathan Turner", "Lukáš Hozda", "Stephen Chung", "jhwgh1968"]
 description = "Embedded scripting for Rust"
@@ -70,7 +70,9 @@ debugging = ["internals"]
 ## Features and dependencies required by `bin` tools: `decimal`, `metadata`, `serde`, `debugging` and [`rustyline`](https://crates.io/crates/rustyline).
 bin-features = ["decimal", "metadata", "serde", "debugging", "rustyline"]
 ## Enable fuzzing via the [`arbitrary`](https://crates.io/crates/arbitrary) crate.
-fuzz = ["arbitrary", "rust_decimal?/rust-fuzz", "serde"]
+fuzz = ["arbitrary", "rust_decimal?/rust-fuzz", "serde", "grain"]
+## Enable the experimental `grain` bytecode VM
+grain = []
 
 #! ### System Configuration Features
 
@@ -146,6 +148,27 @@ required-features = ["serde"]
 [[example]]
 name = "definitions"
 required-features = ["metadata", "internals"]
+
+# VM-versus-walker timings. Run with `--release`; `-- --check` exits non-zero
+# on a case that has fallen below the floor recorded beside it.
+[[example]]
+name = "grain_bench"
+required-features = ["grain"]
+
+# The grain harnesses, as one binary. `tests/mod.rs` wraps them in an inline
+# `mod grain`, which is what puts their module paths inside `tests/grain/`.
+[[test]]
+name = "grain"
+path = "tests/mod.rs"
+required-features = ["grain"]
+
+# Its own binary, and not negotiable: it installs a counting global allocator
+# and reads process-global counters as deltas around each call, so any test
+# allocating on another thread corrupts every number it reports.
+[[test]]
+name = "grain_allocation_efficiency"
+path = "tests/grain/allocation.rs"
+required-features = ["grain"]
 
 [profile.release]
 lto = "fat"
