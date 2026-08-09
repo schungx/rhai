@@ -4,10 +4,22 @@ Rhai Release Notes
 Version 1.26.0
 ==============
 
+The major change in this version is the addition of the experimental Rhai Grain bytecodes compiler
+and VM for fast evaluation of scripts.
+
+This is a work-in-progress and is not yet fully integrated into the main `Engine` API.
+
+It is gated under the `grain` feature flag.
+
 Bug fixes
 ---------
 
 * Fixes bug in `Engine::compact_script` that generates invalid compacted scripts due to missing spaces between ambiguous operators (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1106`](https://github.com/rhaiscript/rhai/pull/1106)).
+
+New features
+------------
+
+* Added the experimental Rhai Grain bytecodes compiler and VM (under the `grain` feature) for fast evaluation of scripts (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1109`](https://github.com/rhaiscript/rhai/pull/1109)).
 
 Enhancements
 ------------
