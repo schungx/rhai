@@ -30,4 +30,5 @@ Sub-Directories
 | `func`        | Registering and calling functions (native Rust and script-defined) |
 | `eval`        | AST evaluation                                                     |
 | `serde`       | Support for [`serde`](https://crates.io/crates/serde) and metadata |
+| `grain`       | The _experimental_ Rhai Grain bytecodes compiler and VM            |
 | `bin`         | Pre-built CLI binaries                                             |
