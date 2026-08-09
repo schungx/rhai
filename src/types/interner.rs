@@ -27,7 +27,9 @@ pub struct StringsInterner {
     /// Cached strings.
     cache: StraightHashMap<ImmutableString>,
     /// Bloom filter to avoid caching "one-hit wonders".
-    bloom_filter: BloomFilterU64,
+    ///
+    /// Default to 128 bytes (1024 slots) which should be enough for strings in a typical scripting run.
+    bloom_filter: BloomFilterU64<128>,
 }
 
 impl fmt::Debug for StringsInterner {

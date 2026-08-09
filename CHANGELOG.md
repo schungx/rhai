@@ -1,6 +1,20 @@
 Rhai Release Notes
 ==================
 
+Version 1.26.0
+==============
+
+Bug fixes
+---------
+
+* Fixes bug in `Engine::compact_script` that generates invalid compacted scripts due to missing spaces between ambiguous operators (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1106`](https://github.com/rhaiscript/rhai/pull/1106)).
+
+Enhancements
+------------
+
+* `BloomFilterU64` is modified to take the sizes of the bit array as a `const` generic parameter instead of hard-coded to be 256 slots (32 bytes).
+
+
 Version 1.25.1
 ==============
 
