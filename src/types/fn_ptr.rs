@@ -42,7 +42,7 @@ impl fmt::Display for FnPtrType {
         match self {
             Self::Normal => f.write_str("Fn"),
             #[cfg(not(feature = "no_function"))]
-            Self::Script { num_params, .. } => write!(f, "Fn*({num_params})"),
+            Self::Script { .. } => f.write_str("Fn*"),
             Self::Native(..) => f.write_str("Fn"),
         }
     }
