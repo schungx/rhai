@@ -437,6 +437,7 @@ impl FnPtr {
         let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
         args.extend(arg_values.iter_mut());
 
+        #[cfg(not(feature = "no_function"))]
         let fn_def = self
             .typ
             .get_linked_script(context.global_runtime_state(), args.len());
