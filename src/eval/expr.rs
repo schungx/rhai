@@ -90,13 +90,15 @@ impl Engine {
                         crate::Shared::new((&*global).into())
                     });
 
+                let fn_def = func.get_script_fn_def().unwrap();
                 let val: Dynamic = crate::FnPtr {
                     name: v.1.clone(),
                     curry: <_>::default(),
                     env: Some(env),
-                    typ: crate::types::fn_ptr::FnPtrType::Script(
-                        func.get_script_fn_def().cloned().unwrap(),
-                    ),
+                    typ: crate::types::fn_ptr::FnPtrType::Script {
+                        num_params: fn_def.params.len(),
+                        hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),
+                    },
                 }
                 .into();
                 return Ok(val.into());

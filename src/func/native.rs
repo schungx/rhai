@@ -523,16 +523,11 @@ impl<'a> NativeCallContext<'a> {
         let args_len = args.len();
 
         if native_only {
-            // A reserved name is native-only *because* it is reserved, and the
-            // ones rhai answers by name rather than by dispatch are all
-            // reserved — so this branch would otherwise route straight past
-            // their only implementation. `type_of` has none to find afterwards,
-            // and reported itself as an unknown function.
             if let Some(result) =
                 self.engine()
-                    .exec_syntactic_fn_call(fn_name, args, self.call_position())
+                    .exec_syntactic_fn_call(fn_name, args, self.call_position())?
             {
-                return result;
+                return Ok(result);
             }
 
             return self

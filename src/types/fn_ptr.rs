@@ -23,9 +23,9 @@ pub enum FnPtrType {
     /// Normal function pointer.
     #[default]
     Normal,
-    /// Linked to a script-defined function.
+    /// Pre-calculated hash of a script-defined function.
     #[cfg(not(feature = "no_function"))]
-    Script(Shared<crate::ast::ScriptFuncDef>),
+    Script { num_params: usize, hash: u64 },
     /// Embedded native Rust function.
     #[cfg(not(feature = "sync"))]
     Native(Shared<dyn Fn(NativeCallContext, &mut FnCallArgs) -> RhaiResult + 'static>),
@@ -42,8 +42,29 @@ impl fmt::Display for FnPtrType {
         match self {
             Self::Normal => f.write_str("Fn"),
             #[cfg(not(feature = "no_function"))]
-            Self::Script(..) => f.write_str("Fn*"),
+            Self::Script { .. } => f.write_str("Fn*"),
             Self::Native(..) => f.write_str("Fn"),
+        }
+    }
+}
+
+impl FnPtrType {
+    /// Get a shared reference to the script-defined function in the [`GlobalRuntimeState`][crate::eval::GlobalRuntimeState]
+    /// if one is linked to this [`FnPtr`].
+    #[cfg(not(feature = "no_function"))]
+    #[inline]
+    #[must_use]
+    pub fn get_linked_script<'a>(
+        &self,
+        global: &'a crate::eval::GlobalRuntimeState,
+        num_args: usize,
+    ) -> Option<&'a Shared<crate::ast::ScriptFuncDef>> {
+        match self {
+            Self::Script { num_params, hash } if *num_params == num_args => global
+                .lib
+                .iter()
+                .find_map(|lib| lib.get_script_fn_by_hash(*hash)),
+            _ => None,
         }
     }
 }
@@ -416,10 +437,15 @@ impl FnPtr {
         let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
         args.extend(arg_values.iter_mut());
 
+        #[cfg(not(feature = "no_function"))]
+        let fn_def = self
+            .typ
+            .get_linked_script(context.global_runtime_state(), args.len());
+
         match self.typ {
             // Linked to scripted function?
             #[cfg(not(feature = "no_function"))]
-            FnPtrType::Script(ref fn_def) if fn_def.params.len() == args.len() => {
+            _ if fn_def.is_some() => {
                 let global = &mut context.global_runtime_state().clone();
                 global.level += 1;
 
@@ -434,7 +460,7 @@ impl FnPtr {
                     self.env.as_deref(),
                     #[cfg(feature = "no_function")]
                     None,
-                    fn_def,
+                    fn_def.unwrap(),
                     args,
                     true,
                     context.call_position(),
@@ -499,15 +525,13 @@ impl FnPtr {
     ) -> RhaiResult {
         match self.typ {
             #[cfg(not(feature = "no_function"))]
-            FnPtrType::Script(ref fn_def) => {
-                let arity = fn_def.params.len();
-
-                if arity == N + self.curry().len() {
+            FnPtrType::Script { num_params, .. } => {
+                if num_params == N + self.curry().len() {
                     return self.call_raw(ctx, this_ptr, args);
                 }
                 if MOVE_PTR {
                     if let Some(this_ptr) = this_ptr.as_deref() {
-                        if arity == N + 1 + self.curry().len() {
+                        if num_params == N + 1 + self.curry().len() {
                             let mut args2 = FnArgsVec::with_capacity(args.len() + 1);
                             if move_this_ptr_to_args == 0 {
                                 args2.push(this_ptr.clone());
@@ -518,7 +542,7 @@ impl FnPtr {
                             }
                             return self.call_raw(ctx, None, args2);
                         }
-                        if arity == N + E + 1 + self.curry().len() {
+                        if num_params == N + E + 1 + self.curry().len() {
                             let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len() + 1);
                             if move_this_ptr_to_args == 0 {
                                 args2.push(this_ptr.clone());
@@ -532,7 +556,7 @@ impl FnPtr {
                         }
                     }
                 }
-                if arity == N + E + self.curry().len() {
+                if num_params == N + E + self.curry().len() {
                     let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len());
                     args2.extend(args);
                     args2.extend(extras);
@@ -630,7 +654,10 @@ impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> From<T> for FnPtr {
             curry: ThinVec::new(),
             #[cfg(not(feature = "no_function"))]
             env: None,
-            typ: FnPtrType::Script(fn_def),
+            typ: FnPtrType::Script {
+                num_params: fn_def.params.len(),
+                hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),
+            },
         }
     }
 }

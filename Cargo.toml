@@ -71,7 +71,7 @@ debugging = ["internals"]
 bin-features = ["decimal", "metadata", "serde", "debugging", "rustyline"]
 ## Enable fuzzing via the [`arbitrary`](https://crates.io/crates/arbitrary) crate.
 fuzz = ["arbitrary", "rust_decimal?/rust-fuzz", "serde", "grain"]
-## Enable the experimental `grain` bytecode VM
+## Enable the experimental [`grain`](grain/index.html) bytecode VM
 grain = []
 
 #! ### System Configuration Features
@@ -180,7 +180,7 @@ codegen-units = 1
 web-time = { version = "1.1.0" } # WASM implementation of std::time::Instant
 
 [package.metadata.docs.rs]
-features = ["document-features", "metadata", "serde", "internals", "decimal", "debugging"]
+features = ["document-features", "metadata", "serde", "internals", "decimal", "debugging", "grain"]
 
 [patch.crates-io]
 # Notice that a custom modified version of `rustyline` is used which supports bracketed paste on Windows.

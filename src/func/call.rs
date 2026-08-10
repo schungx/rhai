@@ -546,55 +546,40 @@ impl Engine {
         }
     }
 
-    /// The functions answered by name rather than by dispatch.
+    /// Implement built-in functions.
     ///
-    /// `type_of` and `is_shared` have no registered implementation anywhere —
-    /// this *is* their implementation, and the rest of the names here exist only
-    /// as syntax, so reaching one of them by dispatch is always an error.
-    ///
-    /// `None` means the name is not one of these and should be dispatched
-    /// normally. `Some` is the whole answer: the value, or the error for a
-    /// spelling that has none — `type_of` with the wrong number of arguments, or
-    /// a name that is only ever syntax.
-    ///
-    /// Shared with [`NativeCallContext::call_fn_raw`], which reaches names it
-    /// decided were native-only without going through [`Self::exec_fn_call`] at
-    /// all. Keeping one copy is the point: these used to be answerable only
-    /// through the script path, so a host calling `call_fn_raw("type_of", ..)`
-    /// — and the bytecode VM, which dispatches every call that way — got
-    /// `ErrorFunctionNotFound` for a function rhai does implement.
+    /// These are functions (e.g. `type_of`, `is_shared`) that are not registered as normal
+    /// functions but provided by Rhai.
     pub(crate) fn exec_syntactic_fn_call(
         &self,
         fn_name: &str,
         args: &FnCallArgs,
         pos: Position,
-    ) -> Option<RhaiResult> {
-        let only_syntax = match fn_name {
+    ) -> RhaiResultOf<Option<Dynamic>> {
+        match fn_name {
             // Handle type_of()
             KEYWORD_TYPE_OF if args.len() == 1 => {
                 let typ = self.get_interned_string(self.map_type_name(args[0].type_name()));
-                return Some(Ok(typ.into()));
+                return Ok(Some(typ.into()));
             }
 
             #[cfg(not(feature = "no_closure"))]
             crate::engine::KEYWORD_IS_SHARED if args.len() == 1 => {
-                return Some(Ok(args[0].is_shared().into()))
+                return Ok(Some(args[0].is_shared().into()))
             }
             #[cfg(not(feature = "no_closure"))]
-            crate::engine::KEYWORD_IS_SHARED => true,
+            crate::engine::KEYWORD_IS_SHARED => (),
 
             #[cfg(not(feature = "no_function"))]
-            crate::engine::KEYWORD_IS_DEF_FN => true,
+            crate::engine::KEYWORD_IS_DEF_FN => (),
 
             KEYWORD_TYPE_OF | KEYWORD_FN_PTR | KEYWORD_EVAL | KEYWORD_IS_DEF_VAR
-            | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY => true,
+            | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY => (),
 
-            _ => false,
-        };
+            _ => return Ok(None),
+        }
 
-        only_syntax.then(|| {
-            Err(ERR::ErrorFunctionNotFound(self.gen_fn_call_signature(fn_name, args), pos).into())
-        })
+        Err(ERR::ErrorFunctionNotFound(self.gen_fn_call_signature(fn_name, args), pos).into())
     }
 
     /// # Main Entry-Point (By Name)
@@ -622,8 +607,8 @@ impl Engine {
     ) -> RhaiResultOf<(Dynamic, bool)> {
         // These may be redirected from method style calls.
         if hashes.is_native_only() {
-            if let Some(result) = self.exec_syntactic_fn_call(fn_name, args, pos) {
-                return result.map(|value| (value, false));
+            if let Some(result) = self.exec_syntactic_fn_call(fn_name, args, pos)? {
+                return Ok((result, false));
             }
         }
 
@@ -790,10 +775,15 @@ impl Engine {
                     .chain(call_args.iter_mut())
                     .collect::<FnArgsVec<_>>();
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = fn_ptr.typ.get_linked_script(global, args.len());
+
                 match fn_ptr.typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(ref fn_def) if fn_def.params.len() == args.len() => {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
                         let fn_ptr = target.as_ref().read_lock::<FnPtr>().unwrap();
 
                         let scope = &mut Scope::new();
@@ -802,7 +792,7 @@ impl Engine {
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, None, env, fn_def, &mut args, true, pos,
+                            global, caches, scope, None, env, &fn_def, &mut args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
@@ -879,10 +869,16 @@ impl Engine {
                 args.extend(curry.iter_mut());
                 args.extend(call_args.iter_mut().skip(1));
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = typ.get_linked_script(global, args.len());
+
                 match typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(fn_def) if fn_def.params.len() == args.len() => {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
+
                         // Check for data race.
                         #[cfg(not(feature = "no_closure"))]
                         ensure_no_data_race(&fn_def.name, args, false)?;
@@ -996,13 +992,15 @@ impl Engine {
                                 call_args = &mut _arg_values;
                             }
 
+                            // Get scripted function if linked
+                            #[cfg(not(feature = "no_function"))]
+                            let fn_def = fn_ptr.typ.get_linked_script(global, call_args.len());
+
                             match fn_ptr.typ {
                                 // Linked to scripted function
                                 #[cfg(not(feature = "no_function"))]
-                                FnPtrType::Script(ref fn_def)
-                                    if fn_def.params.len() == call_args.len() =>
-                                {
-                                    _linked = Some((Some(fn_def.clone()), None, fn_ptr.env.clone()))
+                                _ if fn_def.is_some() => {
+                                    _linked = Some((fn_def.cloned(), None, fn_ptr.env.clone()))
                                 }
                                 FnPtrType::Native(ref func) => {
                                     _linked = Some((
@@ -1161,12 +1159,16 @@ impl Engine {
 
                 curry.extend(extra_curry);
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = typ.get_linked_script(global, curry.len() + args_expr.len());
+
                 match typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(fn_def)
-                        if fn_def.params.len() == curry.len() + args_expr.len() =>
-                    {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
+
                         // Evaluate arguments
                         let mut arg_values =
                             FnArgsVec::with_capacity(curry.len() + args_expr.len());
