@@ -1,6 +1,5 @@
 use crate::plugin::*;
 use crate::{def_package, Position, RhaiError, RhaiResultOf, ERR, INT};
-use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -22,6 +21,8 @@ macro_rules! gen_arithmetic_functions {
 
             #[export_module]
             pub mod functions {
+                use std::convert::TryFrom;
+
                 #[rhai_fn(name = "+", return_raw)]
                 pub fn add(x: $arg_type, y: $arg_type) -> RhaiResultOf<$arg_type> {
                     if cfg!(not(feature = "unchecked")) {

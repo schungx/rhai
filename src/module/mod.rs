@@ -1330,6 +1330,21 @@ impl Module {
         hash_script
     }
 
+    /// Get a shared reference to a scripted function in the [`Module`] based on its hash.
+    /// Exported under the `internals` feature only.
+    #[cfg(not(feature = "no_function"))]
+    #[inline]
+    #[must_use]
+    pub(crate) fn get_script_fn_by_hash(
+        &self,
+        hash: u64,
+    ) -> Option<&Shared<crate::ast::ScriptFuncDef>> {
+        self.functions
+            .as_ref()
+            .and_then(|m| m.get(&hash))
+            .and_then(|(f, _)| f.get_script_fn_def())
+    }
+
     /// Get a shared reference to the script-defined function in the [`Module`] based on name
     /// and number of parameters.
     #[cfg(not(feature = "no_function"))]

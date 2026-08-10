@@ -775,10 +775,15 @@ impl Engine {
                     .chain(call_args.iter_mut())
                     .collect::<FnArgsVec<_>>();
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = fn_ptr.typ.get_linked_script(global, args.len());
+
                 match fn_ptr.typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(ref fn_def) if fn_def.params.len() == args.len() => {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
                         let fn_ptr = target.as_ref().read_lock::<FnPtr>().unwrap();
 
                         let scope = &mut Scope::new();
@@ -787,7 +792,7 @@ impl Engine {
                         defer! { let orig_level = global.level; global.level += 1 }
 
                         self.call_script_fn(
-                            global, caches, scope, None, env, fn_def, &mut args, true, pos,
+                            global, caches, scope, None, env, &fn_def, &mut args, true, pos,
                         )
                         .map(|v| (v, false))
                     }
@@ -864,10 +869,16 @@ impl Engine {
                 args.extend(curry.iter_mut());
                 args.extend(call_args.iter_mut().skip(1));
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = typ.get_linked_script(global, args.len());
+
                 match typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(fn_def) if fn_def.params.len() == args.len() => {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
+
                         // Check for data race.
                         #[cfg(not(feature = "no_closure"))]
                         ensure_no_data_race(&fn_def.name, args, false)?;
@@ -981,13 +992,15 @@ impl Engine {
                                 call_args = &mut _arg_values;
                             }
 
+                            // Get scripted function if linked
+                            #[cfg(not(feature = "no_function"))]
+                            let fn_def = fn_ptr.typ.get_linked_script(global, call_args.len());
+
                             match fn_ptr.typ {
                                 // Linked to scripted function
                                 #[cfg(not(feature = "no_function"))]
-                                FnPtrType::Script(ref fn_def)
-                                    if fn_def.params.len() == call_args.len() =>
-                                {
-                                    _linked = Some((Some(fn_def.clone()), None, fn_ptr.env.clone()))
+                                _ if fn_def.is_some() => {
+                                    _linked = Some((fn_def.cloned(), None, fn_ptr.env.clone()))
                                 }
                                 FnPtrType::Native(ref func) => {
                                     _linked = Some((
@@ -1146,12 +1159,16 @@ impl Engine {
 
                 curry.extend(extra_curry);
 
+                // Get scripted function if linked
+                #[cfg(not(feature = "no_function"))]
+                let fn_def = typ.get_linked_script(global, curry.len() + args_expr.len());
+
                 match typ {
                     // Linked to scripted function - short-circuit
                     #[cfg(not(feature = "no_function"))]
-                    FnPtrType::Script(fn_def)
-                        if fn_def.params.len() == curry.len() + args_expr.len() =>
-                    {
+                    _ if fn_def.is_some() => {
+                        let fn_def = fn_def.unwrap().clone();
+
                         // Evaluate arguments
                         let mut arg_values =
                             FnArgsVec::with_capacity(curry.len() + args_expr.len());
