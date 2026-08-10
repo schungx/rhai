@@ -9,6 +9,7 @@
 | [`custom_types_and_methods`](custom_types_and_methods.rs) | shows how to register a Rust type and methods/getters/setters for it                                                                                |
 | [`custom_types`](custom_types.rs)                         | shows how to register a Rust type and methods/getters/setters using the `CustomType` trait.                                                         |
 | [`definitions`](./definitions)                            | shows how to generate definition files for use with the [Rhai Language Server](https://github.com/rhaiscript/lsp) (requires the `metadata` feature) |
+| [`grain_bench`](grain_bench.rs)                           | comparison benchmarks for Rhai Grain bytecodes VM                                                                                                   |
 | [`hello`](hello.rs)                                       | simple example that evaluates an expression and prints the result                                                                                   |
 | [`pause_and_resume`](pause_and_resume.rs)                 | shows how to pause/resume/stop an `Engine` running in a separate thread via an MPSC channel                                                         |
 | [`reuse_scope`](reuse_scope.rs)                           | evaluates two pieces of code in separate runs, but using a common `Scope`                                                                           |

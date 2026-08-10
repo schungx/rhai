@@ -1,4 +1,4 @@
-//! A bytecode VM for Rhai.
+//! _(grain)_ A bytecode VM for Rhai.
 //!
 //! Rhai evaluates by walking its AST, which the parser allocates a node at a
 //! time — so holding a script costs in proportion to how much program it is,
