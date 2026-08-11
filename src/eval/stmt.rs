@@ -541,7 +541,9 @@ impl Engine {
                                 break;
                             }
                         }
-                    } else if !ranges.is_empty() {
+                    }
+                    // Then check ranges
+                    if !result.is_some() && !ranges.is_empty() {
                         // Then check integer ranges
                         for r in ranges.iter().filter(|r| r.contains(&value)) {
                             let BinaryExpr { lhs, rhs } = &expressions[r.index()];
