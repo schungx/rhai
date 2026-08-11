@@ -13,6 +13,7 @@ pub fn make_err(msg: impl Into<String>) -> RhaiError {
     ERR::ErrorArithmetic(msg.into(), Position::NONE).into()
 }
 
+#[allow(unused_macros)]
 macro_rules! gen_arithmetic_functions {
     ($root:ident => $($arg_type:ident),+) => {
         #[allow(non_snake_case)]

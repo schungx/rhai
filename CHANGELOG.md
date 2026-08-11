@@ -15,6 +15,7 @@ Bug fixes
 ---------
 
 * Fixes bug in `Engine::compact_script` that generates invalid compacted scripts due to missing spaces between ambiguous operators (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1106`](https://github.com/rhaiscript/rhai/pull/1106)).
+* Fixes bug in `switch` statement that fails to try ranges when all conditions of exact matches fail ([`#1117`](https://github.com/rhaiscript/rhai/pull/1118))
 
 New features
 ------------

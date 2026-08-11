@@ -18,6 +18,22 @@ fn test_switch() {
     let _: () = engine.eval_with_scope::<()>(&mut scope, "switch x { 1 => 123, 2 => 'a' }").unwrap();
 
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "switch x { 1 | 2 | 3 | 5..50 | 'x' | true => 123, 'z' => 'a' }").unwrap(), 123);
+    assert_eq!(
+        engine
+            .eval_with_scope::<INT>(
+                &mut scope,
+                "
+                    let foo = false;
+                    switch x {
+                        42 if foo => 0,
+                        0..100 => 123,
+                        _ => 999
+                    }
+                "
+            )
+            .unwrap(),
+        123
+    );
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "switch x { 424242 => 123, _ => 42 }").unwrap(), 42);
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "switch x { 1 => 123, 42 => { x / 2 }, _ => 999 }").unwrap(), 21);
     #[cfg(not(feature = "no_index"))]
