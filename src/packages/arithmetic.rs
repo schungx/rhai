@@ -13,9 +13,7 @@ pub fn make_err(msg: impl Into<String>) -> RhaiError {
     ERR::ErrorArithmetic(msg.into(), Position::NONE).into()
 }
 
-#[cfg(not(feature = "only_i32"))]
-#[cfg(not(feature = "only_i64"))]
-#[cfg(not(feature = "unchecked"))]
+#[allow(unused_macros)]
 macro_rules! gen_arithmetic_functions {
     ($root:ident => $($arg_type:ident),+) => {
         #[allow(non_snake_case)]
