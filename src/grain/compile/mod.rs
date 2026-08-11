@@ -1813,16 +1813,24 @@ impl Lowering {
     /// captures the enclosing scope is closure construction, and a qualified
     /// name resolves against imported modules; neither is a plain call.
     fn is_lowerable_call(&self, call: &FnCallExpr) -> bool {
+        use crate::engine::{
+            KEYWORD_EVAL, KEYWORD_FN_PTR, KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY,
+            KEYWORD_IS_DEF_FN, KEYWORD_IS_DEF_VAR, KEYWORD_IS_SHARED,
+        };
+
         // `is_shared` belongs here for a sharper reason than the rest: rhai
         // answers it syntactically in both call positions (`func/call.rs:1240`
         // and `:929`) and registers no function for it anywhere, so a lowered
         // call raises `ErrorFunctionNotFound` where the walker returns a bool.
-        const SYNTACTIC: &[&str] = &["eval", "is_def_var", "is_def_fn"];
+        const SYNTACTIC: &[&str] = &[KEYWORD_EVAL, KEYWORD_IS_DEF_VAR, KEYWORD_IS_DEF_FN];
 
         // These are handled by `fn_ptr_call` above, but only at the arities
         // rhai treats syntactically — at any other arity it falls through to
         // ordinary dispatch, and so must this.
-        if matches!(call.name.as_str(), "Fn" | "call" | "curry" | "is_shared") {
+        if matches!(
+            call.name.as_str(),
+            KEYWORD_FN_PTR | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY | KEYWORD_IS_SHARED
+        ) {
             return false;
         }
 
