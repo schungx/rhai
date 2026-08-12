@@ -40,7 +40,8 @@ use core::mem;
 use std::prelude::v1::*;
 
 use crate::{
-    func::RhaiFunc, Dynamic, FuncRegistration, ImmutableString, Module, NativeCallContext, Shared,
+    func::RhaiFunc, Dynamic, FnArgsVec, FuncRegistration, ImmutableString, Module,
+    NativeCallContext, Shared,
 };
 
 use super::{malformed, Vm, VmResult};
@@ -131,7 +132,7 @@ fn invoke(
     // Taken rather than cloned, as every registered function does: the
     // arguments are the caller's to give away, and it has already copied
     // anything it still needs.
-    let values: Vec<Dynamic> = args.iter_mut().map(|arg| mem::take(*arg)).collect();
+    let values: FnArgsVec<Dynamic> = args.iter_mut().map(|arg| mem::take(*arg)).collect();
 
     Vm::reentrant(context).call_function(
         program,

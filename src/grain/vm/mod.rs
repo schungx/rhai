@@ -28,11 +28,10 @@ use crate::CallFnOptions;
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
 use crate::{
-    eval::Caches, eval::GlobalRuntimeState, Dynamic, Engine, EvalAltResult, EvalContext, Scope,
+    eval::Caches, eval::GlobalRuntimeState, Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec,
+    Scope,
 };
-use crate::{
-    FnArgsVec, FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT,
-};
+use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT};
 
 mod callback;
 
@@ -486,7 +485,7 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         name: &str,
-        args: Vec<Dynamic>,
+        args: FnArgsVec<Dynamic>,
         level: usize,
         pos: Position,
     ) -> VmResult {
@@ -502,7 +501,7 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         name: &str,
-        args: Vec<Dynamic>,
+        args: FnArgsVec<Dynamic>,
         level: usize,
         pos: Position,
         this: Option<Dynamic>,
@@ -591,7 +590,7 @@ impl<'e> Vm<'e> {
     ) -> Result<T, Box<EvalAltResult>> {
         let name = name.as_ref();
 
-        let mut arg_values = Vec::new();
+        let mut arg_values = FnArgsVec::new();
         args.parse(&mut arg_values);
 
         let orig_scope_len = scope.len();
@@ -1839,7 +1838,7 @@ impl<'e> Vm<'e> {
         } else {
             // Anything else is rhai's: a native function, a name registered
             // elsewhere, or a pointer it built itself.
-            let mut args: Vec<Dynamic> = self.stack.drain(at + 1..).collect();
+            let mut args: FnArgsVec<Dynamic> = self.stack.drain(at + 1..).collect();
             let context = native_context(self.engine, pointer.fn_name(), None, &self.global, pos);
             pointer
                 .call_raw(&context, bound.as_mut(), &mut args)
@@ -2050,7 +2049,7 @@ impl<'e> Vm<'e> {
         // which is exactly the shape rhai's ABI wants (`func/call.rs:36`). It
         // consumes them, replacing each with unit, so the caller truncates
         // afterwards rather than reusing them.
-        let mut args: Vec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
+        let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
         // A scope of the callee's own, because the scope an `EvalContext`
         // carries is the one a *script* function's body runs in
@@ -2180,7 +2179,7 @@ impl<'e> Vm<'e> {
                     first + 1,
                 ),
             };
-            let mut args: Vec<&mut Dynamic> = core::iter::once(entry)
+            let mut args: FnArgsVec<&mut Dynamic> = core::iter::once(entry)
                 .chain(self.stack[rest..].iter_mut())
                 .collect();
             // The scope a dispatched script function runs in, which is never
@@ -2253,7 +2252,7 @@ impl<'e> Vm<'e> {
                 .ok_or_else(|| malformed("`this` stopped being bound".to_string()))?;
             // Argument zero is the snapshot, dead now that there is a register
             // to reach through.
-            let mut args: Vec<&mut Dynamic> = core::iter::once(entry)
+            let mut args: FnArgsVec<&mut Dynamic> = core::iter::once(entry)
                 .chain(self.stack[first + 1..].iter_mut())
                 .collect();
             // A scope of the callee's own, for [`Vm::call_stacked`]'s reason.

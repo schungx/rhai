@@ -648,26 +648,28 @@ fn a_closure_pointer_is_late_bound() {
 #[test]
 #[cfg(not(feature = "no_function"))]
 fn a_compiled_function_can_be_called_by_name() {
+    use smallvec::smallvec;
+
     let engine = corpus::engine();
     let ast = engine.compile("fn add(a, b) { a + b } fn boom() { throw 7; } 0").expect("must compile");
     let program = Compiler::new().compile(&ast);
 
     let mut vm = Vm::new(&engine);
-    let value = vm.call_function(&program, "add", vec![lit(2), lit(3)], 0, rhai::Position::NONE).expect("must call");
+    let value = vm.call_function(&program, "add", smallvec![lit(2), lit(3)], 0, rhai::Position::NONE).expect("must call");
     assert_eq!(value.as_int().unwrap(), 5);
 
     // Wrong arity is a miss, not a crash — the table is keyed on both.
     let err = vm
-        .call_function(&program, "add", vec![lit(1)], 0, rhai::Position::NONE)
+        .call_function(&program, "add", smallvec![lit(1)], 0, rhai::Position::NONE)
         .expect_err("one argument is a different function");
     assert!(matches!(*err, rhai::EvalAltResult::ErrorFunctionNotFound(..)));
 
     // And what the function raises comes back, wrapped as rhai wraps it.
-    let err = vm.call_function(&program, "boom", Vec::new(), 0, rhai::Position::NONE).expect_err("must propagate");
+    let err = vm.call_function(&program, "boom", smallvec![], 0, rhai::Position::NONE).expect_err("must propagate");
     assert!(matches!(*err, rhai::EvalAltResult::ErrorInFunctionCall(..)), "got {err:?}",);
 
     // The operand stack is where it started, so a caller can keep using it.
-    let value = vm.call_function(&program, "add", vec![lit(10), lit(1)], 0, rhai::Position::NONE).expect("must call again");
+    let value = vm.call_function(&program, "add", smallvec![lit(10), lit(1)], 0, rhai::Position::NONE).expect("must call again");
     assert_eq!(value.as_int().unwrap(), 11);
 }
 

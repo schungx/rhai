@@ -83,7 +83,14 @@ const CASES: &[Case] = &[
         callbacks: false,
         floor: 1.55,
     },
-    // The VM scans its case hashes; rhai probes a hash map. Two sizes,
+    Case {
+        name: "recursive fibonacci",
+        source: "fn fib(n) { if n < 2 { n } else { fib(n-1) + fib(n-2) }} fib(28)",
+        iterations: 1,
+        callbacks: false,
+        floor: 1.50,
+    },
+    // The VM scans its case hashes; Rhai probes a hash map. Two sizes,
     // because which of those wins is a question about how many arms there
     // are, and a `switch` nobody would write is the only place the scan can
     // lose.
@@ -116,6 +123,13 @@ const CASES: &[Case] = &[
         callbacks: false,
         floor: 1.45,
     },
+    Case {
+        name: "native function calls",
+        source: "let a = 42; for i in 0..20000 { a = abs(abs(abs(abs(a)))); } a",
+        iterations: 5,
+        callbacks: true,
+        floor: 1.50,
+    },
     // The one case the VM is expected to lose. Every element is a boundary out
     // of the VM, through rhai's dispatch and back into a second `Vm` with an
     // empty resolution cache — where the walker stays inside itself and reaches
@@ -131,6 +145,35 @@ const CASES: &[Case] = &[
         iterations: 20,
         callbacks: true,
         floor: 0.64,
+    },
+    Case {
+        name: "primes",
+        source: r#"
+            const SIZE = 1_000_000;
+
+            let prime_mask = [];
+            prime_mask.pad(SIZE + 1, true);
+
+            prime_mask[0] = false;
+            prime_mask[1] = false;
+
+            let total_primes_found = 0;
+
+            for p in 2..=SIZE {
+                if !prime_mask[p] { continue; }
+
+                total_primes_found += 1;
+
+                for i in range(2 * p, SIZE + 1, p) {
+                    prime_mask[i] = false;
+                }
+            }
+
+            total_primes_found
+        "#,
+        iterations: 1,
+        callbacks: false,
+        floor: 1.55,
     },
 ];
 
