@@ -544,6 +544,8 @@ impl Engine {
                     }
                     // Then check ranges
                     if !result.is_some() && !ranges.is_empty() {
+                        let value = value.flatten();
+
                         // Then check integer ranges
                         for r in ranges.iter().filter(|r| r.contains(&value)) {
                             let BinaryExpr { lhs, rhs } = &expressions[r.index()];

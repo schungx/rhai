@@ -11,16 +11,22 @@ This is a work-in-progress and is not yet fully integrated into the main `Engine
 
 It is gated under the `grain` feature flag.
 
+Rhai Grain VM
+-------------
+
+* Add the experimental Rhai Grain bytecodes compiler and VM (requires the `grain` feature) for fast evaluation of scripts (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1109`](https://github.com/rhaiscript/rhai/pull/1109)).
+
+### Bugs found in the process
+
+Since the Rhai Grain VM must run a script exactly the same as the standard AST interpreter, a number of bugs have been uncovered that are now fixed.
+
+* Fixes bug in `switch` statement that fails to try ranges when all conditions of exact matches fail ([`#1117`](https://github.com/rhaiscript/rhai/pull/1118))
+* Fixes bug in `switch` statement that fails to match shared values ([`#1120`](https://github.com/rhaiscript/rhai/pull/1120))
+
 Bug fixes
 ---------
 
 * Fixes bug in `Engine::compact_script` that generates invalid compacted scripts due to missing spaces between ambiguous operators (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1106`](https://github.com/rhaiscript/rhai/pull/1106)).
-* Fixes bug in `switch` statement that fails to try ranges when all conditions of exact matches fail ([`#1117`](https://github.com/rhaiscript/rhai/pull/1118))
-
-New features
-------------
-
-* Added the experimental Rhai Grain bytecodes compiler and VM (under the `grain` feature) for fast evaluation of scripts (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1109`](https://github.com/rhaiscript/rhai/pull/1109)).
 
 Enhancements
 ------------
