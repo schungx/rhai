@@ -402,15 +402,10 @@ pub const CASES: &[Case] = &[
     // Hashing a host type panics, so the subject has to be checked before it
     // reaches a hasher — and must still find the default.
     case("switch_unhashable_subject", "let w = widget(3); switch w { 1 => \"int\", _ => \"other\" }"),
-    // A shared value is not hashable either, so rhai skips the cases *and* the
-    // ranges and goes straight to the default — however well the value would
-    // otherwise have matched. Reading the subject through its cell would hide
-    // that, which is why the subject is loaded unflattened.
-    case("switch_on_a_shared_subject_takes_the_default", r#"let v = 0; { let f = || v; } switch v { 0 => "case", _ => "default" }"#),
-    case("switch_range_on_a_shared_subject_takes_the_default", r#"let v = 5; { let f = || v; } switch v { 0..=9 => "range", _ => "default" }"#),
-    // The same shape before anything shares it, so the pair says the difference
-    // is the sharing rather than the switch.
+    // A shared value is normally hashable, so it is the same as an unshared one.
     case("switch_on_an_unshared_subject_matches", r#"let v = 0; switch v { 0 => "case", _ => "default" }"#),
+    case("switch_on_a_shared_subject_matches", r#"let v = 0; { let f = || v; } switch v { 0 => "case", _ => "default" }"#),
+    case("switch_range_on_a_shared_subject_matches", r#"let v = 5; { let f = || v; } switch v { 0..=9 => "range", _ => "default" }"#),
     // An arm body is a block: it declares, and it has to leave the scope the
     // depth it found it — which only shows up in something that reads a local
     // afterwards.

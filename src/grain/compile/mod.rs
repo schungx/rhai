@@ -512,10 +512,7 @@ impl Lowering {
         // cut into disjoint pieces here instead. See [`cases::split`].
         let ranges = cases::split(&sw.ranges);
 
-        // Unflattened: a shared subject is not hashable, and rhai's gate on
-        // that is what sends it to the default arm. Flattening here would make
-        // it match a case the walker skips.
-        self.unflattened(subject);
+        self.expression(subject);
 
         // Store the subject's value because if all the arms decline,
         // the ranges still needs it.
