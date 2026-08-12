@@ -477,20 +477,28 @@ impl Lowering {
         true
     }
 
-    /// Lower a `switch` into one dispatch table plus the arms it names.
+    /// Lower a `switch` into dispatch tables plus the arms they name.
     ///
-    /// The layout is: the subject, [`Op::Switch`], the guard chains, the arm
-    /// bodies, the default. Every arm leaves one value and jumps to the end,
-    /// so the statement's value is the matched arm's — or unit, which is what
-    /// an absent `_` compiles to.
+    /// The layout is: evaluate and keep the subject, [`Op::Switch`] over
+    /// hashed cases, a second [`Op::Switch`] over ranges for case misses and
+    /// declined guards, then the arm bodies and default. Every arm leaves one
+    /// value and jumps to the end, so the statement's value is the matched
+    /// arm's — or unit, which is what an absent `_` compiles to.
     ///
     /// Guards are why the table does not simply hold bodies. Rhai tries the
-    /// arms sharing a case value in source order and falls to the *default*
-    /// when they all decline — never on to the ranges (`eval/stmt.rs:544`) —
-    /// so a group becomes a chain of guards ending in a jump to the default,
-    /// and the table points at the chain. Nearly every arm anyone writes has
-    /// no guard, and those cost no chain at all.
+    /// arms sharing a case value in source order and, when they all decline,
+    /// continues with ranges before the default (`eval/stmt.rs:546-571`).
+    /// Nearly every arm anyone writes has no guard, and those cost no chain at
+    /// all.
     fn switch(&mut self, subject: &Expr, sw: &SwitchCasesCollection) -> bool {
+        if self.slots.is_full() {
+            return false;
+        }
+        let unwind_depth = self.slots.depth();
+        let value_name = ImmutableString::from("$SWITCH_VALUE$");
+        let value_name_index = self.push_name(value_name.clone());
+        let value_slot = self.slots.declare(value_name);
+
         // Sorted because rhai's map iterates in whatever order its hasher put
         // the entries in, and an artifact should not depend on that.
         let mut groups: Vec<(u64, Vec<usize>)> = sw
@@ -508,35 +516,67 @@ impl Lowering {
         // that is what sends it to the default arm. Flattening here would make
         // it match a case the walker skips.
         self.unflattened(subject);
-        let table = self.push_switch();
-        self.emit(Op::Switch(table));
+
+        // Store the subject's value because if all the arms decline,
+        // the ranges still needs it.
+        self.emit(Op::DeclareLocal {
+            name: value_name_index,
+            is_const: false,
+        });
+        self.emit(Op::LoadLocal(value_slot));
+
+        // The first table is for the hashed case values.
+        let cases_table = self.push_switch();
+        self.emit(Op::Switch(cases_table));
 
         // One chain per distinct list of arms, shared by every table entry
         // naming it: `1 | 2 => ..` is two case values and one chain.
-        let mut chains: Vec<(&[usize], Entry)> = Vec::new();
+        let mut case_chains: Vec<(&[usize], Entry)> = Vec::new();
         let mut to_body: Vec<(usize, usize)> = Vec::new();
+        let mut to_ranges: Vec<usize> = Vec::new();
         let mut to_default: Vec<usize> = Vec::new();
 
-        let lists = groups
-            .iter()
-            .map(|(.., blocks)| blocks.as_slice())
-            .chain(ranges.iter().map(|(.., blocks)| blocks.as_slice()));
-        for blocks in lists {
-            if chains.iter().any(|(existing, ..)| *existing == blocks) {
+        for blocks in groups.iter().map(|(.., blocks)| blocks.as_slice()) {
+            if case_chains.iter().any(|(ex, ..)| *ex == blocks) {
+                continue;
+            }
+            let entry = self.arm_chain(sw, blocks, &mut to_body, &mut to_ranges);
+            case_chains.push((blocks, entry));
+        }
+
+        // Dispatch to the ranges table if no case value matches or all the guards decline.
+        // The default arm is only reached when all ranges fail.
+        let ranges_dispatch = self.here();
+        self.emit(Op::LoadLocal(value_slot));
+
+        // The second table is for the ranges.
+        let ranges_table = self.push_switch();
+        self.emit(Op::Switch(ranges_table));
+
+        // One chain per distinct list of ranges, shared by every table entry
+        let mut range_chains: Vec<(&[usize], Entry)> = Vec::new();
+
+        for blocks in ranges.iter().map(|(.., blocks)| blocks.as_slice()) {
+            if range_chains.iter().any(|(ex, ..)| *ex == blocks) {
                 continue;
             }
             let entry = self.arm_chain(sw, blocks, &mut to_body, &mut to_default);
-            chains.push((blocks, entry));
+            range_chains.push((blocks, entry));
         }
 
         // Bodies, one per arm something can reach. An arm behind a constant
         // false guard, or one whose range the parser dropped for being empty,
         // is reachable by nothing and is not emitted.
         let mut wanted: Vec<usize> = to_body.iter().map(|(.., block)| *block).collect();
-        wanted.extend(chains.iter().filter_map(|(.., entry)| match entry {
-            Entry::Body(block) => Some(*block),
-            _ => None,
-        }));
+        wanted.extend(
+            case_chains
+                .iter()
+                .chain(range_chains.iter())
+                .filter_map(|(.., entry)| match entry {
+                    Entry::Body(block) => Some(*block),
+                    _ => None,
+                }),
+        );
         wanted.extend(sw.def_case);
         wanted.sort_unstable();
         wanted.dedup();
@@ -549,6 +589,7 @@ impl Lowering {
             // through the same path as `let y = { .. }`.
             self.expression(&sw.expressions[block].rhs);
             if self.defeated {
+                self.unwind_to(unwind_depth);
                 return false;
             }
             to_end.push(self.emit_jump());
@@ -570,10 +611,16 @@ impl Lowering {
                 target
             }
         };
-        let end = self.here();
+
+        // Unwind at the end of the switch.
+        let unwind_at = self.here();
+        self.unwind_to(unwind_depth);
 
         for site in to_end {
-            self.patch_to(site, end);
+            self.patch_to(site, unwind_at);
+        }
+        for site in to_ranges {
+            self.patch_to(site, ranges_dispatch);
         }
         for site in to_default {
             self.patch_to(site, default_at);
@@ -582,10 +629,23 @@ impl Lowering {
             self.patch_to(site, at(block));
         }
 
-        let target = |blocks: &[usize]| {
-            let entry = chains
+        let case_target = |blocks: &[usize]| {
+            let entry = case_chains
                 .iter()
-                .find(|(existing, ..)| *existing == blocks)
+                .find(|(ex, ..)| *ex == blocks)
+                .map(|(.., entry)| *entry)
+                .expect("every list got a chain above");
+            match entry {
+                Entry::Body(block) => at(block),
+                Entry::At(target) => target,
+                Entry::Default => ranges_dispatch,
+            }
+        };
+
+        let range_target = |blocks: &[usize]| {
+            let entry = range_chains
+                .iter()
+                .find(|(ex, ..)| *ex == blocks)
                 .map(|(.., entry)| *entry)
                 .expect("every list got a chain above");
             match entry {
@@ -595,18 +655,23 @@ impl Lowering {
             }
         };
 
-        self.switches[table as usize] = Switch {
+        self.switches[cases_table as usize] = Switch {
             cases: groups
                 .iter()
                 .map(|(hash, blocks)| SwitchCase {
                     hash: *hash,
-                    target: target(blocks),
+                    target: case_target(blocks),
                 })
                 .collect(),
+            ranges: Vec::new(),
+            default: ranges_dispatch,
+        };
+        self.switches[ranges_table as usize] = Switch {
+            cases: Vec::new(),
             ranges: ranges
                 .iter()
                 .map(|(range, blocks)| SwitchRange {
-                    target: target(blocks),
+                    target: range_target(blocks),
                     ..*range
                 })
                 .collect(),
@@ -623,7 +688,7 @@ impl Lowering {
         sw: &SwitchCasesCollection,
         blocks: &[usize],
         to_body: &mut Vec<(usize, usize)>,
-        to_default: &mut Vec<usize>,
+        to_fallback: &mut Vec<usize>,
     ) -> Entry {
         let mut entry: Option<Entry> = None;
 
@@ -659,7 +724,7 @@ impl Lowering {
 
         match entry {
             Some(entry) => {
-                to_default.push(self.emit_jump());
+                to_fallback.push(self.emit_jump());
                 entry
             }
             // Every arm in the group is behind a constant false guard, so the

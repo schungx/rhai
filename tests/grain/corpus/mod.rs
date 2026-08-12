@@ -390,14 +390,9 @@ pub const CASES: &[Case] = &[
     // Two case values, one arm: the table has two entries pointing at one
     // body, which a compiler emitting a body per entry would duplicate.
     case("switch_shared_body", "let x = 2; switch x { 1 | 2 => \"low\", 3 => \"three\", _ => \"other\" }"),
-    // The rule that reads like a bug and is not: a case value that matched but
-    // whose guard declined goes to the *default*, never on to the ranges
-    // (eval/stmt.rs:544). Without the range arm here the two are the same
-    // answer and the case proves nothing.
-    //
-    // This bug is fixed by [#1118](https://github.com/rhaiscript/rhai/pull/1118).
-    // Commenting out this case for now, before the VM is modified to reflect the fix.
-    //case("switch_declined_case_skips_ranges", "let f = false; let x = 1; switch x { 1 if f => \"guarded\", 0..=5 => \"range\", _ => \"default\" }"),
+    // A case value that matched but whose guard declined must continue to the
+    // range arms before the default (`eval/stmt.rs:546-571`).
+    case("switch_declined_case_checks_ranges", "let f = false; let x = 1; switch x { 1 if f => \"guarded\", 0..=5 => \"range\", _ => \"default\" }"),
     // No `_` arm at all, so the miss has to produce unit from nowhere.
     case("switch_no_default", "let x = 9; switch x { 1 => \"a\" }"),
     case("switch_string", "let s = \"b\"; switch s { \"a\" => 1, \"b\" => 2, _ => 0 }"),
