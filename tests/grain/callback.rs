@@ -1,7 +1,7 @@
 //! Natives that call a compiled function back.
 //!
 //! `[1, 2, 3].map(|x| x * 2)` is the shape: `map` is rhai's, and the pointer it
-//! is handed is resolved by rhai's dispatch rather than by ours. This is where
+//! is handed is resolved by Rhai's dispatch rather than by ours. This is where
 //! the wrappers that make that resolve are held to the walker's behaviour, and
 //! where the places it still diverges are pinned rather than left to be
 //! discovered.
@@ -60,7 +60,7 @@ fn a_native_can_call_a_named_function_back() {
 
 /// A bare function name is a function pointer, not a variable read.
 ///
-/// The compiler leaves it to rhai — it is a fragment — and rhai used to refuse
+/// The compiler leaves it to Rhai — it is a fragment — and Rhai used to refuse
 /// it, because a program holding any fragment sets `always_search_scope` and
 /// the check for a function of that name sat behind the flag. Every spelling
 /// below reported `double` as an unknown variable.
@@ -88,17 +88,17 @@ fn a_capturing_closure_resolves_and_sees_its_capture() {
 /// A capturing closure handed to a native that binds `this` gets its captured
 /// values *after* the element instead of before.
 ///
-/// Not our arithmetic: it is which shape rhai tries first. A capture is a
+/// Not our arithmetic: it is which shape Rhai tries first. A capture is a
 /// curried value, and `_call_with_extra_args` (`types/fn_ptr.rs:573`) opens
 /// with `[this] ++ curry ++ args` — the one order that is never right. Rhai's
 /// own closures escape it because they are `Fn*` pointers with the body
 /// attached, which is caught two branches earlier at `:538` and rearranged
 /// into `curry ++ [this] ++ args`.
 ///
-/// Ours are `Fn` pointers resolved by name, so rhai reaches them as *natives*
-/// and takes the first shape. The proof that this is rhai's behaviour rather
+/// Ours are `Fn` pointers resolved by name, so Rhai reaches them as *natives*
+/// and takes the first shape. The proof that this is Rhai's behaviour rather
 /// than ours is `stock_rhai_does_the_same_to_its_own_native_pointers` below,
-/// which reproduces it with no rhaigrain in the picture at all.
+/// which reproduces it with no Rhai Grain in the picture at all.
 ///
 /// So: safe for a closure that captures nothing, and for one whose parameters
 /// commute. Wrong, silently, otherwise. Non-commutative on purpose here —
@@ -118,15 +118,15 @@ fn a_capturing_closure_reaches_a_native_with_its_arguments_rotated() {
 ///
 /// `Fn(s)` on a computed name is the one spelling that gets a name-only
 /// pointer out of stock rhai, which is what every pointer we make is. Curry it,
-/// point it at a native, and hand it to `map`: rhai passes the element first
+/// point it at a native, and hand it to `map`: Rhai passes the element first
 /// and the curried value second, while `f.call(1)` on the very same pointer
 /// passes them the other way round.
 #[test]
 fn stock_rhai_does_the_same_to_its_own_native_pointers() {
     let mut engine = corpus::engine();
-    engine.register_fn("nsub", |a: rhai::INT, b: rhai::INT| a - b);
+    engine.register_fn("subtract", |a: rhai::INT, b: rhai::INT| a - b);
 
-    let curried = "let s = \"ns\" + \"ub\"; let f = Fn(s).curry(10);";
+    let curried = "let s = \"sub\" + \"tract\"; let f = Fn(s).curry(10);";
     assert_eq!(walk(&engine, &format!("{curried} [1, 2, 3].map(f)")), Ok("[-9, -8, -7]".to_string()), "rhai puts the element before the curried value",);
     assert_eq!(walk(&engine, &format!("{curried} f.call(1)")), Ok("9".to_string()), "and the curried value first when there is no element",);
 }
@@ -134,7 +134,7 @@ fn stock_rhai_does_the_same_to_its_own_native_pointers() {
 #[test]
 #[cfg(not(feature = "unchecked"))]
 fn a_callback_reaching_a_second_one_still_resolves() {
-    // The limit is raised because reaching a chunk through rhai's dispatch
+    // The limit is raised because reaching a chunk through Rhai's dispatch
     // costs more call levels than reaching a script function does, and the
     // default in a debug build is 8. `a_callback_costs_more_call_levels`
     // measures the difference; this is about resolution, not depth.
@@ -157,12 +157,12 @@ fn an_error_inside_a_callback_still_arrives() {
     assert!(err.contains("ErrorInFunctionCall"), "{err}");
 }
 
-/// Reaching a chunk through rhai's dispatch spends more of the call budget
+/// Reaching a chunk through Rhai's dispatch spends more of the call budget
 /// than reaching a script function does, so a callback nests less deeply before
 /// `max_call_levels` stops it.
 ///
 /// Measured rather than asserted at a number, because the number is a property
-/// of rhai's dispatch and would drift. What has to hold is the direction: we
+/// of Rhai's dispatch and would drift. What has to hold is the direction: we
 /// are stricter, never laxer. A program that would have run out of budget on
 /// the walker must not somehow keep going here.
 #[test]
@@ -200,7 +200,7 @@ fn a_callback_costs_more_call_levels() {
 
 #[test]
 fn without_the_wrappers_the_pointer_does_not_resolve() {
-    // The whole reason `eval_with_callbacks` exists. A plain eval leaves rhai
+    // The whole reason `eval_with_callbacks` exists. A plain eval leaves Rhai
     // nowhere to look, and the failure is a lookup failure rather than
     // anything worse.
     let engine = corpus::engine();

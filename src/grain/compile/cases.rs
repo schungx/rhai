@@ -1,4 +1,4 @@
-//! Turning rhai's `switch` range arms into something that can be looked up.
+//! Turning Rhai's `switch` range arms into something that can be looked up.
 //!
 //! Rhai scans its range arms in order and takes the first one that both
 //! contains the subject *and* whose guard passes — so when two arms overlap,
@@ -157,7 +157,7 @@ pub(crate) fn split(ranges: &[RangeCase]) -> Vec<(SwitchRange, Vec<usize>)> {
 mod tests {
     use super::*;
 
-    /// `from..to => block`, as rhai's parser would record it.
+    /// `from..to => block`, as Rhai's parser would record it.
     fn exclusive(from: INT, to: INT, block: usize) -> RangeCase {
         let mut case: RangeCase = (from..to).into();
         case.set_index(block);
@@ -261,7 +261,7 @@ mod tests {
         );
     }
 
-    /// Splitting only means anything if what comes out agrees with rhai about
+    /// Splitting only means anything if what comes out agrees with Rhai about
     /// which arms a value belongs to — so check the pieces against the arms
     /// they came from, at every bound and between them.
     #[test]

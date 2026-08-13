@@ -1,4 +1,4 @@
-//! Randomised loading, on the assumption that an artifact is hostile.
+//! Randomized loading, on the assumption that an artifact is hostile.
 //!
 //! `Program::read` is the only place untrusted bytes enter, and what it hands
 //! back is executed in place — so the claim it has to support is total: any
@@ -227,7 +227,7 @@ fn generated_scripts_agree_with_the_walker() {
     #[cfg(not(feature = "no_index"))]
     engine.set_max_array_size(2048);
     engine.set_max_string_size(8192);
-    // Pinned, because rhai's defaults for these are `debug_assertions`-gated —
+    // Pinned, because Rhai's defaults for these are `debug_assertions`-gated —
     // 32/16 and 8 in a debug build against 64/64 and 64 in a release one
     // (`api/limits.rs:10-36`). Left alone, `cargo test` and
     // `cargo test --release` parse different halves of the same seeded corpus
@@ -340,7 +340,7 @@ fn generated_scripts_agree_with_the_walker() {
     // file ever stops finding anything.
     //
     // Invalid *syntax* is the thing to catch, and a raw parse rate does not
-    // catch it: a script rejected for exceeding rhai's complexity limit is
+    // catch it: a script rejected for exceeding Rhai's complexity limit is
     // well-formed, and how many do is a property of how much the generator
     // packs into one script rather than of whether it can write the language.
     // So the two are counted apart, and this is the one that means something.
@@ -354,7 +354,7 @@ fn generated_scripts_agree_with_the_walker() {
     assert!(
         parsed * 10 >= SCRIPTS * 7,
         "only {parsed} of {SCRIPTS} scripts parsed, and {too_deep} were rejected \
-         as too complex — the generator is packing more into a script than rhai \
+         as too complex — the generator is packing more into a script than Rhai \
          will take, so most of what it writes is never run",
     );
     // Against the whole corpus rather than against what ran, because the two

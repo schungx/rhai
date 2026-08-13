@@ -1,4 +1,4 @@
-//! LEB128, the encoding everything in a rhaigrain artifact is counted in.
+//! LEB128, the encoding everything in a Rhai Grain artifact is counted in.
 //!
 //! Small numbers dominate a chunk — pool indices, jump targets, line numbers —
 //! and almost all of them fit in one byte. Signed values are zigzagged first,
@@ -146,7 +146,7 @@ mod tests {
         ten[9] = 0x01;
         let mut at = 0;
         assert_eq!(
-            u64(&[[0xffu8; 9].as_slice(), &[0x01]].concat(), &mut at),
+            u64(&[[0xff_u8; 9].as_slice(), &[0x01]].concat(), &mut at),
             Ok(u64::MAX)
         );
 

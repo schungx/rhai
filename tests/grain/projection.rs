@@ -55,7 +55,7 @@ fn encoded_size(node: &ASTNode) -> (&'static str, usize) {
 
             // Operators become a typed opcode with no operands when both sides
             // are primitives, and a generic call otherwise. Scored as a call,
-            // the pessimistic reading, because the deopt guard may disable the
+            // the pessimistic reading, because the de-opt guard may disable the
             // fast path for a given engine.
             Expr::FnCall(x, ..) if x.op_token.is_some() => ("operator", 1),
             Expr::FnCall(..) => ("call", 3),
@@ -85,7 +85,7 @@ fn encoded_size(node: &ASTNode) -> (&'static str, usize) {
             #[cfg(not(feature = "no_custom_syntax"))]
             Expr::Custom(..) => ("custom syntax", 3),
 
-            // `Expr` is #[non_exhaustive]. A variant added by a rhai upgrade
+            // `Expr` is #[non_exhaustive]. A variant added by a Rhai upgrade
             // must surface as a test failure, not get quietly priced at zero.
             _ => (UNPRICED, 0),
         },
@@ -138,7 +138,7 @@ fn encoded_size(node: &ASTNode) -> (&'static str, usize) {
 /// Names that would live in the artifact's string table, deduplicated.
 ///
 /// Only the ones reachable without unpacking every boxed payload: variables,
-/// called functions and properties. That undercounts, so the projected string
+/// called functions and properties. That under-counts, so the projected string
 /// table is a floor.
 fn interned_names(ast: &AST) -> BTreeSet<String> {
     let mut names = BTreeSet::new();
@@ -221,7 +221,7 @@ fn projected_artifact_size() {
     assert!(
         !counts.contains_key(UNPRICED),
         "{} nodes have no cost in the model, so the projection understates: \
-         a rhai upgrade added an AST variant",
+         a Rhai upgrade added an AST variant",
         counts[UNPRICED].0,
     );
 }

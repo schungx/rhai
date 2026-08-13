@@ -3,12 +3,12 @@
 //! The other target proves a hostile artifact cannot misbehave. This one
 //! proves a well-formed one still means what it said: compile, write, read
 //! back, run, and get what rhai's own evaluator got — the differential corpus
-//! generalised from cases someone thought of to inputs nobody did.
+//! generalized from cases someone thought of to inputs nobody did.
 //!
 //! Both halves are load-bearing and they fail differently. A divergence here
 //! is a compiler or VM bug; a panic there is a safety bug.
 //!
-//! `cargo fuzz run roundtrip`
+//! `cargo fuzz run grain_roundtrip`
 
 #![no_main]
 

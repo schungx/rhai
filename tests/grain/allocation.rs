@@ -98,7 +98,7 @@ struct Measured<T> {
     /// Still-live allocations attributable to the returned value.
     count: isize,
     /// High-water mark during the call. Exceeds `bytes` by whatever the
-    /// producer allocated and freed along the way — for rhai's parser, a lot.
+    /// producer allocated and freed along the way — for Rhai's parser, a lot.
     peak: isize,
     /// Still-live allocations by size class.
     buckets: [isize; 6],
@@ -213,9 +213,9 @@ fn allocation_footprint() {
 
     // Not comparable to traffic-light's 24.0: that is a 32-bit device figure
     // measured against minified source, this is a host figure against
-    // unminified source. Comparing them needs follow.rhai measured minified,
+    // non-minified source. Comparing them needs follow.rhai measured minified,
     // the way the server actually ships it.
-    println!("\nAST bytes per source byte {per_source_byte:.1}  (host, unminified)");
+    println!("\nAST bytes per source byte {per_source_byte:.1}  (host, non_minified)");
     println!("AST parser peak / retained {:.2}x  (the peak is what has to fit)", ast.peak as f64 / ast.bytes as f64);
 
     println!("\nAST live allocations by size class");
@@ -228,7 +228,7 @@ fn allocation_footprint() {
     // tests/grain/projection.rs says a lowering of it would weigh.
     //
     // Larger than traffic-light's own 77968 for the same script because this
-    // builds rhai with default features. Theirs sets `no_module`, which drops
+    // builds Rhai with default features. Theirs sets `no_module`, which drops
     // a `Namespace` (an inline `StaticVec<Ident>` plus a hash) from every
     // `Expr::Variable` payload — and this script has 457 of them. A restricted
     // build is what 77968 should be compared against, not this one.

@@ -10,13 +10,13 @@ use crate::grain::bytecode::{
     AssignOp, Chain, Chunk, Code, Op, Pools, Positions, Root, Strings, Switch, TableError,
 };
 
-/// rhai's own `SharedModule`, which it does not re-export.
+/// Rhai's own `SharedModule`, which it does not re-export.
 pub(crate) type SharedModule = Shared<Module>;
 
 /// A program a native function can be handed a way back into.
 ///
 /// [`Vm::eval_with_callbacks`](crate::grain::Vm::eval_with_callbacks) registers one
-/// wrapper per compiled function, and rhai requires a registered function to be
+/// wrapper per compiled function, and Rhai requires a registered function to be
 /// `'static` — so the program cannot still be borrowing an artifact, and the
 /// wrappers have to share ownership of it rather than borrow it.
 pub type SharedProgram = Shared<Program<'static>>;
@@ -24,7 +24,7 @@ pub type SharedProgram = Shared<Program<'static>>;
 /// One compiled script function.
 ///
 /// Called by [`Op::Call`](crate::bytecode::Op::Call) directly, without going
-/// through rhai's dispatch: the name is already an index into the same pool the
+/// through Rhai's dispatch: the name is already an index into the same pool the
 /// call site used, so matching one is two integer comparisons rather than a
 /// hash and a module walk.
 #[derive(Debug, Clone)]
@@ -66,7 +66,7 @@ pub struct Function {
 /// how long it is. [`Program::into_owned`] cuts the tie when that is wanted.
 ///
 /// `residuals` is the exception, and the reason a `Program` is not always
-/// serializable. Fragments rhai's walker still has to evaluate are held as real
+/// serializable. Fragments Rhai's walker still has to evaluate are held as real
 /// `Expr` trees, which is precisely the allocation we are trying to remove. The
 /// artifact format refuses to write a `Program` that has any, so nothing
 /// reaching a device can depend on them.
@@ -79,7 +79,7 @@ pub struct Program<'a> {
     main: Chunk,
 
     /// Script functions compiled to chunks. Empty when none were compiled,
-    /// which is when rhai's own versions are carried in `lib` instead.
+    /// which is when Rhai's own versions are carried in `lib` instead.
     functions: Vec<Function>,
 
     /// The deepest chunk's operand-stack need, cached.
@@ -112,7 +112,7 @@ pub struct Program<'a> {
     /// Every name the program mentions, as one borrowed blob.
     ///
     /// Nothing needs a `String` of its own. Call names, operators, getters and
-    /// property keys go to rhai as `&str`; a `Scope` entry name goes in as an
+    /// property keys go to Rhai as `&str`; a `Scope` entry name goes in as an
     /// `Identifier`, which is a `SmartString` and keeps a short name inline
     /// rather than on the heap. So the whole table is two allocations — the
     /// blob and the spans — and neither grows with how many names there are.
@@ -132,13 +132,13 @@ pub struct Program<'a> {
 
     /// One dispatch table per `switch`, for the same reason.
     ///
-    /// Case hashes are rhai's, and rhai's hasher is seeded per process unless
+    /// Case hashes are rhai's, and Rhai's hasher is seeded per process unless
     /// the host says otherwise — so an artifact carrying any of these carries
     /// a [`probe`](crate::bytecode::probe) too, and refuses to load against a
     /// hasher that would disagree with it.
     switches: Vec<Switch>,
 
-    /// Script functions the compiler did not lower, as rhai's own library, so
+    /// Script functions the compiler did not lower, as Rhai's own library, so
     /// a fragment can still call one the ordinary way.
     ///
     /// `None` when the script declared none, which is every program that came
@@ -238,9 +238,9 @@ pub(crate) fn makes_fn_pointers(code: &[u8]) -> bool {
 /// Read off the bytes for [`makes_fn_pointers`]'s reason: a program loaded from
 /// an artifact never saw the body it came from.
 ///
-/// It decides whether rhai has to be able to reach the function itself. A
+/// It decides whether Rhai has to be able to reach the function itself. A
 /// pointer to a `this`-taking chunk cannot go through a native wrapper — the
-/// wrapper is registered at one arity, and how many arguments rhai will ask for
+/// wrapper is registered at one arity, and how many arguments Rhai will ask for
 /// depends on what the *native* appends, which the wrapper cannot know. So such
 /// a function is left to rhai, which has the body and can size the call itself.
 pub(crate) fn takes_this(code: &[u8], chunk: Chunk, chains: &[Chain]) -> bool {
@@ -432,7 +432,7 @@ impl<'a> Program<'a> {
 
     /// The compiled function a call site resolves to, if there is one.
     ///
-    /// Name and arity only, matching how rhai keys script functions. The name
+    /// Name and arity only, matching how Rhai keys script functions. The name
     /// is an index into the pool the call site also indexes, so equal names
     /// have equal indices and this is two integer comparisons.
     ///
@@ -455,7 +455,7 @@ impl<'a> Program<'a> {
     ///
     /// `typed` is the receiver's mapped type name. A function declared for it
     /// wins, and an untyped one of the same name and arity is the fallback —
-    /// rhai's order, minus the hashing (`func/call.rs:614-629`).
+    /// Rhai's order, minus the hashing (`func/call.rs:614-629`).
     pub(crate) fn method(&self, name: u32, argc: usize, typed: &str) -> Option<&Function> {
         let matching = |f: &&Function| f.name == name && f.params.len() == argc;
 
@@ -491,9 +491,9 @@ impl<'a> Program<'a> {
     /// Whether this program can hand a function pointer to something that
     /// might call it back.
     ///
-    /// A compiled function lives in this program's own table and nowhere rhai
+    /// A compiled function lives in this program's own table and nowhere Rhai
     /// can see, so a native that calls a pointer — `map`, `filter` — cannot
-    /// reach one. Making it reachable means registering a wrapper, and rhai
+    /// reach one. Making it reachable means registering a wrapper, and Rhai
     /// requires a registered function to be `'static`, so the wrapper has to
     /// own the program: [`Program::into_owned`] first, at the cost of the
     /// borrowed-from-the-artifact loading that is the point of the format.
@@ -625,7 +625,7 @@ impl<'a> Program<'a> {
         &self.main
     }
 
-    /// How many fragments rhai's walker still evaluates.
+    /// How many fragments Rhai's walker still evaluates.
     ///
     /// Non-zero is the reason a program cannot yet be serialized. As a measure
     /// of progress it is misleading on its own: lowering a statement often
@@ -684,7 +684,7 @@ impl<'a> Program<'a> {
             }
         }
 
-        // A fragment made of nothing this recognises is still a fragment, so
+        // A fragment made of nothing this recognizes is still a fragment, so
         // say so rather than reporting nothing wrong.
         found.or_else(|| {
             self.residuals
@@ -761,7 +761,7 @@ mod tests {
         assert_eq!(program.method(0, 0, "string").unwrap().this_type, None);
     }
 
-    /// A typed method is only ever reached through a method call: rhai computes
+    /// A typed method is only ever reached through a method call: Rhai computes
     /// the typed hash nowhere else, so `foo()` cannot find `fn <int>.foo()`.
     #[test]
     fn a_typed_method_is_unreachable_in_call_style() {

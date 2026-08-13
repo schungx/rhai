@@ -1,6 +1,6 @@
 //! Grammar-directed scripts through the pipeline, checked against the walker.
 //!
-//! `roundtrip` hands libfuzzer's bytes straight to the parser, which for a
+//! `grain_roundtrip` hands libfuzzer's bytes straight to the parser, which for a
 //! language with real syntax means most of them are rejected before anything
 //! interesting runs. This spends the same bytes on *grammar decisions* instead,
 //! so every input is a valid script and coverage feedback is steering the shape

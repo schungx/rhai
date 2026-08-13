@@ -15,7 +15,7 @@ use std::prelude::v1::*;
 /// hashes have to be written out as they are.
 ///
 /// And by default they do not survive the trip: `get_hasher` falls back to
-/// `ahash::AHasher::default()`, and rhai's default features include
+/// `ahash::AHasher::default()`, and Rhai's default features include
 /// `ahash/runtime-rng`, so the seed is drawn per process. Rhai gets away with
 /// baking hashes into its AST only because it parses and evaluates in one.
 ///
@@ -32,7 +32,7 @@ pub struct Switch {
     pub cases: Vec<SwitchCase>,
     /// Checked only when no case matched in this table.
     ///
-    /// Disjoint and in ascending order, which rhai's are not: the compiler
+    /// Disjoint and in ascending order, which Rhai's are not: the compiler
     /// splits overlapping arms apart so that the first entry containing a
     /// value is the only one that can match it. See `compile::cases`.
     pub ranges: Vec<SwitchRange>,
@@ -41,7 +41,7 @@ pub struct Switch {
     pub default: u32,
 }
 
-/// One `value => ...` arm, keyed by rhai's hash of the value.
+/// One `value => ...` arm, keyed by Rhai's hash of the value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SwitchCase {
     /// Rhai's hash of the case value.
@@ -66,7 +66,7 @@ pub struct SwitchRange {
 impl SwitchRange {
     /// Whether a subject falls in this range.
     ///
-    /// Delegates to rhai's own `RangeCase` rather than comparing integers,
+    /// Delegates to Rhai's own `RangeCase` rather than comparing integers,
     /// because a range arm matches more than integers: `switch 5.5 { 0..10 =>
     /// .. }` matches, and under the `decimal` feature so does a `Decimal`
     /// (`ast/stmt.rs:254`). Rebuilding the case is two moves and no
@@ -86,11 +86,11 @@ impl SwitchRange {
 impl Switch {
     /// Where a subject sends control.
     ///
-    /// The order is rhai's table order (`eval/stmt.rs:517-564`): reject
-    /// unhashable subjects, then try hashed cases, then ranges, then default.
+    /// The order is Rhai's table order (`eval/stmt.rs:517-564`): reject
+    /// non-hashable subjects, then try hashed cases, then ranges, then default.
     #[must_use]
     pub fn dispatch(&self, subject: &Dynamic) -> u32 {
-        // Hashing an unhashable value panics, so this is a guard and not an
+        // Hashing an non-hashable value panics, so this is a guard and not an
         // optimization.
         if !subject.is_hashable() {
             return self.default;
@@ -128,9 +128,9 @@ fn hash_of(value: &Dynamic) -> u64 {
     hasher.finish()
 }
 
-/// The hash rhai's `switch` would key `value` under.
+/// The hash Rhai's `switch` would key `value` under.
 ///
-/// Test-only. The compiler never hashes anything: rhai's parser has already
+/// Test-only. The compiler never hashes anything: Rhai's parser has already
 /// grouped the arms by hash, and the hashes are all it kept.
 #[cfg(test)]
 fn case_hash(value: &Dynamic) -> Option<u64> {
@@ -180,7 +180,7 @@ mod tests {
         assert_eq!(table.dispatch(&int(3)), 99);
     }
 
-    /// The distinction that makes this hashing rather than `==`: rhai does not
+    /// The distinction that makes this hashing rather than `==`: Rhai does not
     /// match an integer against a float case, even though `1 == 1.0`.
     #[cfg(not(feature = "no_float"))]
     #[test]
@@ -213,7 +213,7 @@ mod tests {
     }
 
     /// A range arm covers the reals between its bounds, not just the integers
-    /// in them — which is why the check delegates to rhai's own `RangeCase`
+    /// in them — which is why the check delegates to Rhai's own `RangeCase`
     /// rather than comparing integers.
     #[test]
     #[cfg(not(feature = "no_float"))]
@@ -274,22 +274,22 @@ mod tests {
     /// Hashing one would panic, so it must never reach the hasher — and it
     /// must still be able to reach the default.
     #[test]
-    fn an_unhashable_subject_falls_through_rather_than_panicking() {
+    fn a_non_hashable_subject_falls_through_rather_than_panicking() {
         let one = int(1);
         let table = table(&[(&one, 10)], Vec::new(), 99);
 
         // A bare function pointer *is* hashable; only one carrying an
         // environment is not. A host type is the reliable case.
-        let unhashable = Dynamic::from(Opaque);
+        let non_hashable = Dynamic::from(Opaque);
         assert!(
-            !unhashable.is_hashable(),
-            "this test needs an unhashable value",
+            !non_hashable.is_hashable(),
+            "this test needs an non-hashable value",
         );
-        assert_eq!(table.dispatch(&unhashable), 99);
+        assert_eq!(table.dispatch(&non_hashable), 99);
     }
 
     #[test]
-    fn an_unhashable_case_has_no_hash_to_key_on() {
+    fn a_non_hashable_case_has_no_hash_to_key_on() {
         assert_eq!(case_hash(&Dynamic::from(Opaque)), None);
         assert!(case_hash(&int(1)).is_some());
     }

@@ -22,7 +22,7 @@ const MAX_CONSTANT_DEPTH: usize = 64;
 /// Why an artifact could not be loaded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReadError {
-    /// Not a rhaigrain artifact at all.
+    /// Not a Rhai Grain artifact at all.
     BadMagic,
     /// Written by a format this build does not know how to read.
     UnsupportedVersion {
@@ -47,7 +47,7 @@ pub enum ReadError {
         /// The tag itself
         tag: u8,
     },
-    /// An operator syntax rhai does not recognise.
+    /// An operator syntax Rhai does not recognize.
     UnknownToken {
         /// The syntax that was read
         syntax: String,
@@ -79,7 +79,7 @@ pub enum ReadError {
 impl core::fmt::Display for ReadError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::BadMagic => f.write_str("not a rhaigrain artifact"),
+            Self::BadMagic => f.write_str("not a Rhai Grain artifact"),
             Self::UnsupportedVersion { found, supported } => write!(
                 f,
                 "artifact is format version {found}, and this build reads {supported}"

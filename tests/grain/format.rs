@@ -377,8 +377,8 @@ fn script_functions_survive_the_round_trip() {
         "fn add(a, b) { a + b } add(2, 3)",
         "fn fib(n) { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } } fib(6)",
         "fn first() { 1 } fn second(x) { first() + x } second(4)",
-        // Failing inside a function has to keep rhai's wrapping and position.
-        // `unchecked` turns this into a panic in rhai's own built-in rather
+        // Failing inside a function has to keep Rhai's wrapping and position.
+        // `unchecked` turns this into a panic in Rhai's own built-in rather
         // than an error, so there is nothing left here to compare.
         #[cfg(not(feature = "unchecked"))]
         "fn bad(x) { x / 0 } bad(1)",
@@ -395,7 +395,7 @@ fn script_functions_survive_the_round_trip() {
 }
 
 /// A function the compiler cannot lower stays rhai's, and a program that still
-/// depends on rhai's copy cannot be written — silently dropping it would
+/// depends on Rhai's copy cannot be written — silently dropping it would
 /// produce an artifact that loads and then cannot find its own function.
 #[test]
 #[cfg(not(feature = "no_module"))]
@@ -497,7 +497,7 @@ fn a_different_value_representation_is_refused_by_name() {
     assert!(message.contains("no_index"), "the message must name the flag: {message}",);
 }
 
-/// A `switch` carries hashes rhai's parser computed, and rhai seeds its hasher
+/// A `switch` carries hashes Rhai's parser computed, and Rhai seeds its hasher
 /// per process unless the host says otherwise. Two processes that disagree
 /// would load each other's artifacts perfectly and then send every subject to
 /// the default — a wrong answer rather than a failure, which is the worst kind.
@@ -602,10 +602,10 @@ fn no_single_bit_flip_can_panic_or_smuggle_a_bad_chunk() {
 ///
 /// The device is sent a stripped artifact and knows nothing about the source.
 /// It fails, and all it can say is which instruction. The host kept the table,
-/// and turns that back into the position rhai itself would have reported.
+/// and turns that back into the position Rhai itself would have reported.
 /// There is no table to strip under `no_position`, so nothing to resolve; and
 /// the failure it turns on is a division by zero, which `unchecked` makes a
-/// panic in rhai rather than an error.
+/// panic in Rhai rather than an error.
 #[test]
 #[cfg(not(any(feature = "no_position", feature = "unchecked")))]
 fn a_stripped_program_reports_an_address_the_host_can_resolve() {
@@ -632,7 +632,7 @@ fn a_stripped_program_reports_an_address_the_host_can_resolve() {
     assert_eq!((site.line, site.column), (3, 3), "the division is at line 3, column 3 of {source:?}",);
 
     // And the same program with its table attached says so itself, exactly as
-    // rhai does — which is what makes the resolved site trustworthy.
+    // Rhai does — which is what makes the resolved site trustworthy.
     let mut reattached = Program::read(&shipped).unwrap();
     reattached.attach_positions(&table).expect("its own table must attach");
     assert_eq!(run(&engine, reattached), expected);
@@ -699,7 +699,7 @@ fn stripping_positions_shrinks_the_artifact() {
 }
 
 /// The number this project exists to move: bytes retained per source byte,
-/// against the 24 a rhai `AST` costs on device.
+/// against the 24 a Rhai `AST` costs on device.
 ///
 /// This is the host-side artifact size, not device heap, which only a device
 /// can report. What it establishes is the encoding's own density, which is the

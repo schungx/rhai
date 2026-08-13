@@ -60,10 +60,10 @@ macro_rules! call_has_namespace {
     }};
 }
 
-/// Lowers a rhai `AST` into a [`Program`].
+/// Lowers a Rhai `AST` into a [`Program`].
 ///
 /// Anything not yet lowered is kept as an AST fragment and handed back to
-/// rhai's walker at runtime, so the output always means the same as its input.
+/// Rhai's walker at runtime, so the output always means the same as its input.
 /// Progress is [`Program::residual_count`] falling.
 #[derive(Debug, Default, Clone)]
 pub struct Compiler {
@@ -81,7 +81,7 @@ impl Compiler {
     #[must_use]
     pub fn compile(&self, ast: &AST) -> Program<'static> {
         // A bare script-function name used as a value is not a variable read
-        // at all — rhai turns it into a function pointer with the calling
+        // at all — Rhai turns it into a function pointer with the calling
         // environment attached (`eval/expr.rs:71-99`) — so those names must
         // not become `LoadNamed`. Carried across every restart below, because
         // function bodies are lowered after one. Under `no_function` an `AST`
@@ -112,7 +112,7 @@ impl Compiler {
 
         // Each function's body appends to the same instruction list, so the
         // whole program assembles as one address space. A function the slot
-        // model cannot handle is simply left out, and rhai's own copy of it
+        // model cannot handle is simply left out, and Rhai's own copy of it
         // stays reachable through the library below.
         #[cfg(not(feature = "no_function"))]
         let (functions, skipped) = lowering.functions(ast);
@@ -168,7 +168,7 @@ impl Compiler {
             })
             .collect();
 
-        // rhai's own functions are carried whenever anything might still reach
+        // Rhai's own functions are carried whenever anything might still reach
         // for them: a function this compiler skipped, or a fragment that could
         // call one. With neither, every call resolves in the table above and
         // the library — an `AST`'s whole function tree — can be dropped.
@@ -338,7 +338,7 @@ impl Lowering {
                 return false;
             }
             // A statement's value is only the program's value if it is the
-            // last one; rhai discards the rest.
+            // last one; Rhai discards the rest.
             self.emit(Op::Pop);
         }
 
@@ -368,7 +368,7 @@ impl Lowering {
         };
 
         // A variable root is one the chain can write back into, by slot or by
-        // name; anything else has to be both a read and a value rhai would
+        // name; anything else has to be both a read and a value Rhai would
         // itself have evaluated into a temporary.
         //
         // `this` is deliberately not in the second class. Rhai reaches it
@@ -387,7 +387,7 @@ impl Lowering {
                 //
                 // The guard is load-bearing: a bare script-function name is a
                 // function pointer rather than a variable, and turning one
-                // into a name lookup would report it missing where rhai hands
+                // into a name lookup would report it missing where Rhai hands
                 // back a pointer.
                 None if self.is_variable_name(&v.1, false) => Root::Named {
                     name: self.push_name(v.1.clone()),
@@ -406,7 +406,7 @@ impl Lowering {
         };
 
         // Index values and method arguments are evaluated first, in step
-        // order, exactly as rhai collects them before walking
+        // order, exactly as Rhai collects them before walking
         // (`eval/chaining.rs:568`). Evaluating one partway down would need the
         // operand stack while a borrow of the container is live.
         let mut lowered = Vec::with_capacity(steps.len());
@@ -455,7 +455,7 @@ impl Lowering {
         }
 
         // Then the root, if it is one that has to be evaluated. After the
-        // operands rather than before, which is rhai's order and not the
+        // operands rather than before, which is Rhai's order and not the
         // reading order: `[f()][g()]` calls `g` first.
         if matches!(root_spec, Root::Temporary) {
             self.expression(root);
@@ -499,7 +499,7 @@ impl Lowering {
         let value_name_index = self.push_name(value_name.clone());
         let value_slot = self.slots.declare(value_name);
 
-        // Sorted because rhai's map iterates in whatever order its hasher put
+        // Sorted because Rhai's map iterates in whatever order its hasher put
         // the entries in, and an artifact should not depend on that.
         let mut groups: Vec<(u64, Vec<usize>)> = sw
             .cases
@@ -766,7 +766,7 @@ impl Lowering {
     /// Lower one script function's body into the same instruction list.
     ///
     /// Returns `None` if the slot model cannot account for it, in which case
-    /// rhai keeps its own copy and calls to it go through dispatch. That is a
+    /// Rhai keeps its own copy and calls to it go through dispatch. That is a
     /// per-function decision: one awkward function does not cost the rest
     /// their lowering.
     ///
@@ -819,7 +819,7 @@ impl Lowering {
             name: self.push_name(def.name.clone()),
             params,
             // A typed `this` is a method on a custom type, which is exactly
-            // what `no_object` removes — rhai drops the field with it.
+            // what `no_object` removes — Rhai drops the field with it.
             #[cfg(not(feature = "no_object"))]
             this_type: def
                 .this_type
@@ -878,7 +878,7 @@ impl Lowering {
             // rather than wrapping it in `Stmt::Expr`, and an operator is a
             // call — so without this every top-level `a * b` stayed a fragment.
             // A closure's `curry` lands here rather than in `Stmt::Expr`,
-            // because rhai gives a call standing alone as a statement its own
+            // because Rhai gives a call standing alone as a statement its own
             // node.
             Stmt::FnCall(call, pos) if self.fn_ptr_call(call, *pos) => true,
 
@@ -888,7 +888,7 @@ impl Lowering {
             }
 
             // Standing alone is the position `eval` is usually written in, and
-            // rhai gives it its own node — so this is the arm that catches it,
+            // Rhai gives it its own node — so this is the arm that catches it,
             // not the `Expr::FnCall` one. See there for why it defeats the
             // lowering rather than becoming a fragment.
             Stmt::FnCall(call, ..) if call.name == crate::engine::KEYWORD_EVAL => false,
@@ -902,7 +902,7 @@ impl Lowering {
                 // Before the right-hand side, not after. Rhai checks that
                 // `this` is bound and returns before it evaluates the value
                 // (`eval/stmt.rs:300-303`) — unlike the variable arm, which
-                // evaluates first — so an unbound `this = nosuch` is
+                // evaluates first — so an unbound `this = no_such` is
                 // `ErrorUnboundThis` and not the value's own failure.
                 self.emit_at(Op::RequireThis, binary.lhs.position());
 
@@ -953,7 +953,7 @@ impl Lowering {
                 // The variable's position, not the operator's — unlike
                 // `AssignLocal`. The errors this instruction raises itself are
                 // `ErrorAssignmentToConstant` and `ErrorVariableNotFound`, and
-                // rhai reports both against the variable (`eval/stmt.rs:340`
+                // Rhai reports both against the variable (`eval/stmt.rs:340`
                 // and `eval/stmt.rs:120`). For a local those are unreachable,
                 // because the parser rejects a constant it can see; for a name
                 // the caller supplied they are the common failures.
@@ -1008,7 +1008,7 @@ impl Lowering {
 
             // `try { .. } catch (e) { .. }`.
             //
-            // The catch block's value is thrown away: rhai's whole statement
+            // The catch block's value is thrown away: Rhai's whole statement
             // is the try block's value on the way through and *unit* when
             // something was caught (`.map(|_| Dynamic::UNIT)`,
             // `eval/stmt.rs:863`). So `try { throw 7 } catch (e) { e * 2 }` is
@@ -1017,7 +1017,7 @@ impl Lowering {
                 let FlowControl { expr, body, branch } = &**payload;
 
                 // An absent catch variable is `Expr::Unit`; a present one is
-                // an `Expr::Variable` whose position is what rhai reports
+                // an `Expr::Variable` whose position is what Rhai reports
                 // `ErrorTooManyVariables` against.
                 let catch_var = match expr {
                     Expr::Variable(v, ..) => Some(v.1.clone()),
@@ -1069,7 +1069,7 @@ impl Lowering {
             // `for x in seq` / `for (x, i) in seq`.
             //
             // The loop variable and counter are pushed once and written each
-            // time round, not re-pushed — rhai does the same (`stmt.rs:708`),
+            // time round, not re-pushed — Rhai does the same (`stmt.rs:708`),
             // and it is observable: a closure made in the body captures the
             // cell, so every one of them sees the last value.
             Stmt::For(payload, ..) => {
@@ -1082,7 +1082,7 @@ impl Lowering {
                 self.emit_at(Op::IterInit, flow.expr.start_position());
                 self.iters += 1;
 
-                // Counter first, matching the order rhai pushes them in, so
+                // Counter first, matching the order Rhai pushes them in, so
                 // the slots line up with the scope it builds.
                 let counter_slot = counter.as_ref().map(|ident| {
                     let name = self.push_name(ident.name.clone());
@@ -1166,7 +1166,7 @@ impl Lowering {
                 true
             }
 
-            // `loop` and `while true` are the same node: rhai marks an
+            // `loop` and `while true` are the same node: Rhai marks an
             // unconditional loop with a unit or `true` guard
             // (`eval/stmt.rs:575-576`).
             Stmt::While(payload, ..) => {
@@ -1323,7 +1323,7 @@ impl Lowering {
             // Not lowered yet, and listed rather than matched with `_` on
             // purpose. A wildcard here silently turned `import` and `eval`
             // into fragments that answered differently from the walker; naming
-            // every kind means a new one added to rhai's AST stops the build
+            // every kind means a new one added to Rhai's AST stops the build
             // until someone has decided which of the three it is — lowered,
             // fragment, or too scope-shaped to be either.
             //
@@ -1380,7 +1380,7 @@ impl Lowering {
             //
             // A constant function pointer: a closure literal, or what the
             // optimizer folds `Fn("f")` into. Either way it embeds a
-            // `ScriptFuncDef` — an AST body, `Fn*` in rhai's own rendering —
+            // `ScriptFuncDef` — an AST body, `Fn*` in Rhai's own rendering —
             // so it cannot go in the pool. Rebuilt by name instead, reaching
             // the chunk compiled from that same body.
             //
@@ -1426,7 +1426,7 @@ impl Lowering {
                     }
                     // A qualified name resolves against imported modules, and
                     // a bare function name is a function pointer. Neither is a
-                    // variable read, and both stay rhai's job.
+                    // variable read, and both stay Rhai's job.
                     _ => self.residual_expr(expr),
                 }
             }
@@ -1453,12 +1453,12 @@ impl Lowering {
             }
 
             // A literal whose elements are all constant never reaches here —
-            // rhai's optimizer folds it into a `DynamicConstant` first — so
+            // Rhai's optimizer folds it into a `DynamicConstant` first — so
             // this is the one that has to be built at run time.
             Expr::Array(elements, ..) if elements.len() <= u16::MAX as usize => {
                 for (index, element) in elements.iter().enumerate() {
                     self.expression(element);
-                    // Positioned at the element, because that is what rhai
+                    // Positioned at the element, because that is what Rhai
                     // blames when this element is the one that tips the
                     // running total over the limit.
                     self.emit_at(
@@ -1521,7 +1521,7 @@ impl Lowering {
                 for segment in segments.iter() {
                     self.expression(segment);
                     // The append carries the segment's own position, because
-                    // that is what rhai blames when the size limit goes over.
+                    // that is what Rhai blames when the size limit goes over.
                     self.emit_at(Op::InterpolateAppend, segment.position());
                 }
                 self.emit(Op::InterpolateEnd);
@@ -1559,16 +1559,16 @@ impl Lowering {
                     self.expression(arg);
                 }
                 let argc = method.args.len() as u8;
-                // The call's own position, which is what rhai reports for
+                // The call's own position, which is what Rhai reports for
                 // everything the pointer path can raise. The one case it is
                 // not is `obj.call(x)` where `obj` is not a pointer and `x` is
-                // taken as one: rhai blames `x` (`func/call.rs:838`). Both
+                // taken as one: Rhai blames `x` (`func/call.rs:838`). Both
                 // cannot come from one position-table entry, and using the
                 // argument's instead was measured to move the divergence onto
                 // the common path rather than remove it.
                 //
                 // Method style only. `curry(f, ..)` written as a call is a
-                // different path in rhai and takes the *argument's* position —
+                // different path in Rhai and takes the *argument's* position —
                 // see `fn_ptr_call`. The two disagreeing is deliberate.
                 let pos = binary.rhs.position();
                 if method.name == "call" {
@@ -1614,7 +1614,7 @@ impl Lowering {
             // the scope the slot model resolved its indices against. The
             // guarded arms above fall through to here when their guard fails —
             // a pool-defeating constant, a literal too long for its operand, a
-            // call rhai resolves syntactically.
+            // call Rhai resolves syntactically.
             // The frame's receiver, flattened as every consumer but three
             // wants it — see [`Op::LoadThis`] and `unflattened` below. Its own
             // position, because that is what `ErrorUnboundThis` carries.
@@ -1633,7 +1633,7 @@ impl Lowering {
     /// Where `obj.call(f)`'s receiver came from, when a write through the
     /// closure's `this` has somewhere to land.
     ///
-    /// `None` for anything rhai would evaluate into a temporary — `[1, 2].call(f)`
+    /// `None` for anything Rhai would evaluate into a temporary — `[1, 2].call(f)`
     /// mutates a copy in the walker too, so there is nothing to carry back.
     fn fn_ptr_receiver(&mut self, receiver: &Expr) -> Option<Receiver> {
         match receiver {
@@ -1651,7 +1651,7 @@ impl Lowering {
         }
     }
 
-    /// Where rhai's method-call rewrite would take this call's first argument
+    /// Where Rhai's method-call rewrite would take this call's first argument
     /// from, if it applies at all (`func/call.rs:1434`).
     fn receiver(&mut self, call: &FnCallExpr) -> Option<Receiver> {
         // An operator short-circuits before the rewrite is reached, and a call
@@ -1698,7 +1698,7 @@ impl Lowering {
             // pointer after the arguments (`func/call.rs:1417`), but the
             // fallback a shared or unbound receiver lands in reads and flattens
             // it before them (`:1462`). Reading first is what makes an unbound
-            // `f(this, nosuch)` report `ErrorUnboundThis`, and what stops an
+            // `f(this, no_such)` report `ErrorUnboundThis`, and what stops an
             // argument that writes to `this` being seen by the value passed.
             if let Receiver::This = receiver {
                 self.emit_at(Op::LoadThis, call.args[0].position());
@@ -1777,7 +1777,7 @@ impl Lowering {
     /// wrong in the two places the cell is:
     ///
     /// * a closure's captured variable, where the aliasing *is* the capture;
-    /// * a `switch` subject, which rhai refuses to match on when it is not
+    /// * a `switch` subject, which Rhai refuses to match on when it is not
     ///   hashable, and a shared value is not — so a shared subject falls to the
     ///   default arm however well it would otherwise have matched.
     fn unflattened(&mut self, expr: &Expr) {
@@ -1805,7 +1805,7 @@ impl Lowering {
     /// Lower `Fn(name)`, `curry(f, ..)` or `call(f, ..)`, if this is one.
     ///
     /// Rhai resolves these three by name before dispatch, but only at the
-    /// arities it recognises (`func/call.rs:1109-1245`); anything else is an
+    /// arities it recognizes (`func/call.rs:1109-1245`); anything else is an
     /// ordinary call that will not find a function. Matching those arities
     /// exactly is what keeps the two agreeing on the failures as well as the
     /// successes.
@@ -1819,16 +1819,16 @@ impl Lowering {
             // The argument has to arrive as the cell, not its contents, or the
             // answer is always false.
             //
-            // Not lowered under `no_closure`: rhai registers no `is_shared`
-            // there, so the call has to reach the walker and fail the way rhai
-            // fails it. Lowering it would answer a question rhai refuses.
+            // Not lowered under `no_closure`: Rhai registers no `is_shared`
+            // there, so the call has to reach the walker and fail the way Rhai
+            // fails it. Lowering it would answer a question Rhai refuses.
             #[cfg(not(feature = "no_closure"))]
             ("is_shared", 1) => {
                 self.unflattened(&call.args[0]);
                 self.emit_at(Op::IsShared, pos);
             }
             // Both of these are reported against the *argument* rather than
-            // against the call: rhai reads it, and everything it can then
+            // against the call: Rhai reads it, and everything it can then
             // complain about — a name that is not a string, a string that is
             // not an identifier, a first argument that is not a pointer — is
             // filled in with the argument's position (`func/call.rs:1217`,
@@ -1882,7 +1882,7 @@ impl Lowering {
             crate::engine::KEYWORD_IS_DEF_FN,
         ];
 
-        // `is_shared` belongs here for a sharper reason than the rest: rhai
+        // `is_shared` belongs here for a sharper reason than the rest: Rhai
         // answers it syntactically in both call positions (`func/call.rs:1240`
         // and `:929`) and registers no function for it anywhere, so a lowered
         // call raises `ErrorFunctionNotFound` where the walker returns a bool.
@@ -1895,7 +1895,7 @@ impl Lowering {
         ];
 
         // These are handled by `fn_ptr_call` above, but only at the arities
-        // rhai treats syntactically — at any other arity it falls through to
+        // Rhai treats syntactically — at any other arity it falls through to
         // ordinary dispatch, and so must this.
         if FN_CALL.contains(&call.name.as_str()) {
             return false;
@@ -1911,7 +1911,7 @@ impl Lowering {
     /// first that decides the result.
     ///
     /// Each operand is coerced to bool at its own position, which is why the
-    /// jumps carry one — rhai reports a non-boolean operand against the
+    /// jumps carry one — Rhai reports a non-boolean operand against the
     /// operand, not the expression (`eval/expr.rs:367-399`).
     fn short_circuit(&mut self, operands: &[Expr], stop_on: bool) {
         let mut decided = Vec::new();
@@ -1966,7 +1966,7 @@ impl Lowering {
 
     /// Lower a block for its effects only, leaving nothing on the stack.
     ///
-    /// Loop bodies discard their value: rhai's loops yield unit or whatever a
+    /// Loop bodies discard their value: Rhai's loops yield unit or whatever a
     /// `break` supplied, never the body's last statement.
     fn block_discarding(&mut self, statements: &[Stmt]) -> bool {
         if !self.block(statements) {
@@ -2176,10 +2176,10 @@ impl Lowering {
 }
 
 /// One step, still as AST.
-/// A step, and where rhai would blame it.
+/// A step, and where Rhai would blame it.
 ///
 /// The position travels with the step rather than being taken from the chain:
-/// rhai reports each kind against its own node, and one chain instruction has
+/// Rhai reports each kind against its own node, and one chain instruction has
 /// only one position-table entry between all of them.
 enum ChainStep<'a> {
     /// The index expression, and the `[` it sits behind — see [`Step::Index`].
@@ -2195,7 +2195,7 @@ enum ChainStep<'a> {
     Method(&'a FnCallExpr, rhai::Position),
 }
 
-/// Unpick rhai's nested chain encoding into a root and a list of steps.
+/// Unpick Rhai's nested chain encoding into a root and a list of steps.
 ///
 /// `a.b[i]` is `Dot { lhs: a, rhs: Index { lhs: b, rhs: i } }`: each nested
 /// node's `lhs` is the current step's operand and its `rhs` is the

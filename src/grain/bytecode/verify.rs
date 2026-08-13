@@ -410,7 +410,7 @@ fn effect(op: &Op, pools: Pools) -> (usize, usize) {
         | Op::LoadThisShared
         | Op::EvalAst { .. } => (0, 1),
 
-        // A boundness check, which either raises or does nothing.
+        // A binding check, which either raises or does nothing.
         Op::RequireThis => (0, 0),
 
         // Sharing is a change to the scope, not to the operand stack.

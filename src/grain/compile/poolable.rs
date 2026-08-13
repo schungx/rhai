@@ -21,7 +21,7 @@ use rhai::{Dynamic, INT};
 /// created against. Keeping it out of the pool leaves it as a fragment, which
 /// evaluates through the path that does the attaching.
 pub(crate) fn is_poolable(value: &Dynamic) -> bool {
-    // Under `no_float` rhai has no float type and no `is_float` to ask, so
+    // Under `no_float` Rhai has no float type and no `is_float` to ask, so
     // there is nothing here for the question to be about.
     #[cfg(not(feature = "no_float"))]
     if value.is_float() {
@@ -56,7 +56,7 @@ pub(crate) fn is_poolable(value: &Dynamic) -> bool {
         return value.read_lock::<Blob>().is_some();
     }
 
-    // A range is a host type by representation but not by nature: rhai builds
+    // A range is a host type by representation but not by nature: Rhai builds
     // one for `0..5` and indexes strings and arrays with it, and its `TypeId`
     // is one both sides can name. Without this every slice is a fragment.
     if value.is::<Range<INT>>() || value.is::<RangeInclusive<INT>>() {

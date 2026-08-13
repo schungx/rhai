@@ -7,7 +7,7 @@ use std::prelude::v1::*;
 /// stream, because a chain is walked by one instruction rather than several.
 /// It has to be: the walk holds a `&mut` into the container at every level, and
 /// a borrow cannot survive a trip round the dispatch loop. That is also what
-/// makes it correct — rhai holds the same references, so a mutation partway
+/// makes it correct — Rhai holds the same references, so a mutation partway
 /// down a chain lands in the same place rather than in a copy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
@@ -22,7 +22,7 @@ pub enum Step {
     /// Rhai reports `a[10]` out of bounds against the `10` rather than against
     /// the chain (`eval/chaining.rs:694`).
     ///
-    /// `bracket` is the other position rhai keeps for a step, and the two are
+    /// `bracket` is the other position Rhai keeps for a step, and the two are
     /// not interchangeable: `pos` is where the index expression starts and
     /// `bracket` is the `[` in front of it (`op_pos`, `eval/chaining.rs:695`).
     /// An out-of-bounds index is blamed on the first and indexing something
@@ -40,7 +40,7 @@ pub enum Step {
     },
 
     /// `.name`, which is a key lookup on a map and a getter call on anything
-    /// else — the distinction rhai makes at runtime, not at parse time
+    /// else — the distinction Rhai makes at runtime, not at parse time
     /// (`eval/chaining.rs:898`).
     Property {
         /// The bare name, for a map key and for error messages.
@@ -73,7 +73,7 @@ impl Step {
     /// strippable — four bytes per step, in the chain pool rather than the
     /// position table. That is not an oversight twice over: a chain is a single
     /// instruction, so the one entry the table holds for it cannot say which of
-    /// `a.b[i].c()` failed, and rhai blames the step rather than the chain for
+    /// `a.b[i].c()` failed, and Rhai blames the step rather than the chain for
     /// all three kinds. An index is reported against its index expression, a
     /// property against the property (`eval/chaining.rs:1039`), a method
     /// against the call (`:904`).
@@ -131,7 +131,7 @@ pub enum Root {
     /// Carries its own position because the lookup can fail and
     /// `ErrorVariableNotFound` is reported against the variable, not the
     /// chain. That costs nothing extra: chain positions already live in this
-    /// pool rather than in the strippable table, for the reason [`Step::pos`]
+    /// pool rather than in the stripping table, for the reason [`Step::pos`]
     /// gives.
     Named {
         /// The name of the variable
@@ -161,7 +161,7 @@ pub enum Root {
     ///
     /// `[1, 2, 3].len()`, `f().x`, `(a + b).to_string()`. Nothing is written
     /// back, because there is nowhere to write it back to — and nothing can be
-    /// assigned to one, because rhai's parser refuses `f().x = 1` before this
+    /// assigned to one, because Rhai's parser refuses `f().x = 1` before this
     /// ever sees it (`eval/chaining.rs:559`).
     Temporary,
 }
@@ -205,7 +205,7 @@ impl Chain {
     /// Everything the instruction takes off the operand stack.
     ///
     /// Pushed in that order — step operands, then the root, then the value
-    /// being assigned — which is rhai's evaluation order and not the reading
+    /// being assigned — which is Rhai's evaluation order and not the reading
     /// order: it collects a chain's indices and arguments *before* it evaluates
     /// what they are being applied to (`eval/chaining.rs:498-524` then `:562`).
     #[must_use]
@@ -216,7 +216,7 @@ impl Chain {
     /// Whether walking this chain can change what it walks over.
     ///
     /// A read-only chain needs no write-back at all, which is worth knowing:
-    /// write-back on a temporary calls a setter, and calling one where rhai
+    /// write-back on a temporary calls a setter, and calling one where Rhai
     /// would not is an observable difference on a host type.
     #[must_use]
     pub fn mutates(&self) -> bool {

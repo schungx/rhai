@@ -3,14 +3,14 @@
 //! Slots are indices into the caller's `Scope` counted from a base taken when
 //! the program starts, so everything the host put there beforehand sits below
 //! every slot. Those reads and writes go by name instead, and this is where
-//! that is held to rhai's behaviour — including the three places rhai looks
+//! that is held to Rhai's behaviour — including the three places Rhai looks
 //! and the order it looks in.
 //!
 //! It matters more than the node count suggests: a script that reads anything
 //! its host supplied used to be a fragment, and a program with a fragment in
 //! it cannot be written to an artifact at all.
 
-// `on_var` carries rhai's "volatile, may change" marker rather than a real
+// `on_var` carries Rhai's "volatile, may change" marker rather than a real
 // deprecation — the same one `eval_expression_tree_raw` carries. Registering a
 // resolver is the only way to test that the VM consults one.
 #![allow(deprecated)]
@@ -36,7 +36,7 @@ fn capture(scope: &Scope, result: Result<Dynamic, Box<rhai::EvalAltResult>>) -> 
     }
 }
 
-/// Run `source` under rhai and under the VM, from the same starting scope, and
+/// Run `source` under Rhai and under the VM, from the same starting scope, and
 /// require they agree on the value, the error and what the scope holds after.
 ///
 /// `writable` is the point of the exercise rather than a detail: a program
@@ -115,7 +115,7 @@ fn a_caller_variable_can_be_written() {
         },
         true,
     );
-    // The op-assignment expansion path: no `-=` for strings, so rhai falls
+    // The op-assignment expansion path: no `-=` for strings, so Rhai falls
     // back to `x = x - y` and fails there rather than reporting no `-=`.
     agree(
         "mode += \"!\"; mode",
@@ -149,7 +149,7 @@ fn a_caller_variable_in_first_argument_position_is_taken_by_reference() {
         },
         true,
     );
-    // A constant is not a place rhai will hand out, so the mutation is
+    // A constant is not a place Rhai will hand out, so the mutation is
     // discarded — and the caller's entry has to come back untouched.
     agree(
         "push(log, 2); log",
@@ -160,9 +160,9 @@ fn a_caller_variable_in_first_argument_position_is_taken_by_reference() {
     );
     // Read after the other arguments, so it is the second name reported
     // missing rather than the first.
-    agree("nosuch(gone, missing)", |_| {}, true);
+    agree("no_such(gone, missing)", |_| {}, true);
     agree(
-        "nosuch(gone, brightness)",
+        "no_such(gone, brightness)",
         |s| {
             s.push("brightness", 1 as INT);
         },
@@ -174,7 +174,7 @@ fn a_caller_variable_in_first_argument_position_is_taken_by_reference() {
 /// did not lower.
 ///
 /// Whether such a root can be written through is not known until it is looked
-/// up, and rhai decides at the same moment and the same way: `search_namespace`
+/// up, and Rhai decides at the same moment and the same way: `search_namespace`
 /// hands back a `Target`, and a scope entry becomes a reference where anything
 /// else becomes a read-only value (`eval/expr.rs:120-155`). One case per arm of
 /// that, because each fails differently.
@@ -374,7 +374,7 @@ fn a_name_that_is_nowhere_is_reported_the_same_way() {
 /// Checked on the compiled program rather than by running it, because running
 /// it currently disagrees with the walker for an unrelated reason: `execute`
 /// forces `always_search_scope` whenever a program has any fragment, and that
-/// flag makes rhai skip the function-pointer branch entirely
+/// flag makes Rhai skip the function-pointer branch entirely
 /// (`eval/expr.rs:62`). Reported separately — it predates named variables, and
 /// the fix is about residuals rather than about this.
 #[test]
@@ -392,7 +392,7 @@ fn a_script_function_name_is_not_a_variable() {
     );
 }
 
-/// The last of the three places rhai looks: a constant a host published on a
+/// The last of the three places Rhai looks: a constant a host published on a
 /// module rather than in the scope.
 #[test]
 fn a_global_module_constant_resolves() {
@@ -441,7 +441,7 @@ fn an_import_keeps_the_walkers_answer() {
     engine.set_module_resolver(resolver);
 
     // An `import` in the body costs the body its lowering, so the program is a
-    // fragment rhai's walker has to evaluate and cannot become an artifact.
+    // fragment Rhai's walker has to evaluate and cannot become an artifact.
     for source in [
         r#"import "kit" as k; k::double(21)"#,
         r#"import "kit" as k; k::LIMIT"#,
@@ -540,7 +540,7 @@ fn a_variable_resolver_is_consulted_first() {
 }
 
 /// A resolver that pushes onto the scope invalidates every parse-time index,
-/// and rhai stops trusting them from that point. Nothing this compiler emits
+/// and Rhai stops trusting them from that point. Nothing this compiler emits
 /// depends on those, but a fragment's does — so the flag still has to be set.
 #[test]
 fn a_resolver_that_grows_the_scope_forces_a_search() {
@@ -604,7 +604,7 @@ fn a_resolved_receiver_is_not_the_scope_entry_it_shadows() {
     start(&mut run);
     let ours = Vm::new(&engine).eval_with_scope(&mut run, &program);
 
-    // Read-only all the way through, so rhai refuses the call outright rather
+    // Read-only all the way through, so Rhai refuses the call outright rather
     // than mutating a copy — which is a sharper thing to agree on.
     assert!(matches!(walker.as_ref().unwrap_err().as_ref(), rhai::EvalAltResult::ErrorNonPureMethodCallOnConstant(..),), "got {walker:?}",);
     assert_eq!(capture(&run, ours), capture(&walked, walker));
@@ -619,7 +619,7 @@ fn a_resolved_receiver_is_not_the_scope_entry_it_shadows() {
 /// name-only pointer to the chunk it compiled from that same body.
 ///
 /// Everything the closure *does* is identical; what differs is that ours is
-/// late-bound, which rhai renders. Pinned here rather than left to be
+/// late-bound, which Rhai renders. Pinned here rather than left to be
 /// discovered, because it is visible to a script that prints one.
 #[test]
 #[cfg(not(feature = "no_function"))]
@@ -632,7 +632,7 @@ fn a_closure_pointer_is_late_bound() {
     assert_eq!(program.residual_count(), 0, "the closure must lower");
 
     let ours = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &program).expect("must run");
-    let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("must run under rhai too");
+    let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("must run under Rhai too");
 
     let (ours, walker) = (format!("{ours:?}"), format!("{walker:?}"));
     assert!(ours.starts_with("Fn(\"anon$"), "ours is a plain named pointer: {ours}",);
@@ -664,7 +664,7 @@ fn a_compiled_function_can_be_called_by_name() {
         .expect_err("one argument is a different function");
     assert!(matches!(*err, rhai::EvalAltResult::ErrorFunctionNotFound(..)));
 
-    // And what the function raises comes back, wrapped as rhai wraps it.
+    // And what the function raises comes back, wrapped as Rhai wraps it.
     let err = vm.call_function(&program, "boom", smallvec![], 0, rhai::Position::NONE).expect_err("must propagate");
     assert!(matches!(*err, rhai::EvalAltResult::ErrorInFunctionCall(..)), "got {err:?}",);
 
@@ -676,7 +676,7 @@ fn a_compiled_function_can_be_called_by_name() {
 /// The same call through the API a host actually reaches for, which mirrors
 /// [`Engine::call_fn`].
 ///
-/// The differences from `call_function` are the ones rhai's own `call_fn` has:
+/// The differences from `call_function` are the ones Rhai's own `call_fn` has:
 /// arguments as a tuple rather than a `Vec<Dynamic>`, a typed result, and the
 /// program's body run first — which is what sets up anything the call needs.
 #[test]

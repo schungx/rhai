@@ -1,4 +1,4 @@
-//! The VM must mean exactly what rhai means.
+//! The VM must mean exactly what Rhai means.
 //!
 //! Every corpus script is evaluated twice against the same `Engine` — once
 //! through `eval_ast_with_scope`, once through the VM — and the two runs must
@@ -75,7 +75,7 @@ fn vm_agrees_with_rhai() {
         if stock != vm {
             failures.push(format!(
                 "\n=== {} ===\n  source: {}\n  rhai:   {:?}\n  vm:     {:?}\n  \
-                 rhai scope: {:?}\n  vm scope:   {:?}",
+                 Rhai scope: {:?}\n  vm scope:   {:?}",
                 case.name, case.source, stock.result, vm.result, stock.scope, vm.scope,
             ));
         }
@@ -88,7 +88,7 @@ fn vm_agrees_with_rhai() {
 /// The corpus is only worth anything if the comparison can actually fail.
 ///
 /// Guards against the harness silently degrading into a tautology — comparing
-/// two identical code paths, or stringifying everything into the same value.
+/// two identical code paths, or stringify everything into the same value.
 #[test]
 fn harness_detects_a_real_difference() {
     let engine = corpus::engine();
