@@ -785,4 +785,8 @@ pub const CASES: &[Case] = &[
     case("type_of_a_host_type", "let w = widget(1); type_of(w)"),
     case("type_of_method_style", "let s = \"a\"; s.type_of()"),
     case("type_of_a_pointer", "let r = \"\"; { let f = |x| x; r = type_of(f); } r"),
+    // Optimizer tests
+    case("optimizer_folding_switch", "let a = 1; { let b = 99; switch b { _ => b } }"),
+    case("optimizer_folding_variables_access", "let a = 1; { let b = 99; b; b; b; b }"),
+    case("optimizer_folding_internal_variables_access", "let a = 1; { let b = 99; b; b; b; b } a"),
 ];

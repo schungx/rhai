@@ -168,7 +168,7 @@ fn optimize_stmt_block(
 
     let mut is_dirty = state.is_dirty();
 
-    let is_pure = if is_internal {
+    let is_pure_for_this_block = if is_internal {
         Stmt::is_internally_pure
     } else {
         Stmt::is_pure
@@ -217,7 +217,8 @@ fn optimize_stmt_block(
         });
 
         // Optimize each statement in the block
-        statements.iter_mut().for_each(|stmt| {
+        let len = statements.len();
+        statements.iter_mut().enumerate().for_each(|(index, stmt)| {
             match stmt {
                 Stmt::Var(x, options, ..) => {
                     optimize_expr(&mut x.1, state, false);
@@ -231,42 +232,43 @@ fn optimize_stmt_block(
                     };
                     state.push_var(x.0.name.clone(), value);
                 }
-                // Optimize the statement
-                _ => optimize_stmt(stmt, state, preserve_result),
+                // Optimize the statement, preserve result if necessary only for the last one
+                _ => optimize_stmt(stmt, state, preserve_result && (index >= len - 1)),
             }
         });
 
         // Remove all pure statements except the last one
         let mut index = 0;
-        let mut first_non_constant = statements
+        let mut last_non_pure = statements
             .iter()
             .rev()
-            .position(|stmt| match stmt {
-                stmt if !is_pure(stmt) => true,
-
-                Stmt::Var(x, ..) if x.1.is_constant() => true,
-                Stmt::Expr(e) if !e.is_constant() => true,
-
-                #[cfg(not(feature = "no_module"))]
-                Stmt::Import(x, ..) if !x.0.is_constant() => true,
-
-                _ => false,
-            })
+            .position(|stmt| !is_pure_for_this_block(stmt))
             .map_or(0, |n| statements.len() - n - 1);
 
         while index < statements.len() {
             if preserve_result && index >= statements.len() - 1 {
                 break;
             }
-            match statements[index] {
-                ref stmt if is_pure(stmt) && index >= first_non_constant => {
+            match &statements[index] {
+                // Pure/internally-pure statements beyond the last non-pure one can be removed
+                stmt if is_pure_for_this_block(stmt) && index >= last_non_pure => {
                     state.set_dirty();
                     statements.remove(index);
                 }
-                ref stmt if stmt.is_pure() => {
+                // A variable access is normally non-pure, but if it is a statement by itself,
+                // it has no side effects in this block and can be removed
+                Stmt::Expr(expr) if matches!(expr.as_ref(), Expr::Variable(..)) => {
                     state.set_dirty();
-                    if index < first_non_constant {
-                        first_non_constant -= 1;
+                    if index < last_non_pure {
+                        last_non_pure -= 1;
+                    }
+                    statements.remove(index);
+                }
+                // Pure statements can always be removed
+                stmt if stmt.is_pure() => {
+                    state.set_dirty();
+                    if index < last_non_pure {
+                        last_non_pure -= 1;
                     }
                     statements.remove(index);
                 }
@@ -286,7 +288,7 @@ fn optimize_stmt_block(
                         state.set_dirty();
                         statements.clear();
                     }
-                    [ref stmt] if !stmt.returns_value() && is_pure(stmt) => {
+                    [ref stmt] if !stmt.returns_value() && is_pure_for_this_block(stmt) => {
                         state.set_dirty();
                         statements.clear();
                     }
@@ -317,7 +319,7 @@ fn optimize_stmt_block(
                     // { ...; stmt_that_returns; pure_non_value_stmt } -> { ...; stmt_that_returns; noop }
                     // { ...; stmt; pure_non_value_stmt } -> { ...; stmt }
                     [.., ref second_last_stmt, ref last_stmt]
-                        if !last_stmt.returns_value() && is_pure(last_stmt) =>
+                        if !last_stmt.returns_value() && is_pure_for_this_block(last_stmt) =>
                     {
                         state.set_dirty();
                         if second_last_stmt.returns_value() {
@@ -332,7 +334,7 @@ fn optimize_stmt_block(
         } else {
             loop {
                 match statements[..] {
-                    [ref stmt] if is_pure(stmt) => {
+                    [ref stmt] if is_pure_for_this_block(stmt) => {
                         state.set_dirty();
                         statements.clear();
                     }
@@ -352,7 +354,7 @@ fn optimize_stmt_block(
                         state.set_dirty();
                         statements.pop().unwrap();
                     }
-                    [.., ref last_stmt] if is_pure(last_stmt) => {
+                    [.., ref last_stmt] if is_pure_for_this_block(last_stmt) => {
                         state.set_dirty();
                         statements.pop().unwrap();
                     }
