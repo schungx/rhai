@@ -769,7 +769,8 @@ impl Expr {
 
             Self::Stmt(x) => x.iter().all(Stmt::is_pure),
 
-            Self::Variable(..) => true,
+            // Variable access is never pure because it involves a variable lookup which is a side effect.
+            Self::Variable(..) => false,
 
             _ => self.is_constant(),
         }

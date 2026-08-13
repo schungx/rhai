@@ -120,27 +120,6 @@ fn compare(engine: &Engine, source: &str) -> Option<(String, String)> {
     Some((outcome(&vm_scope, ours)?, expected))
 }
 
-/// Whether a divergence is rhai's optimizer losing a local rather than a bug of
-/// ours — see `rhai_drops_a_local_its_optimizer_still_refers_to` in
-/// `tests/fuzz.rs`.
-///
-/// The optimizer can delete a `let` whose variable is still read, leaving the
-/// read pointing at whatever now sits at that scope index. Rhai answers with
-/// another variable's value; we resolve by name and report it missing. There is
-/// no agreeing with an AST that refers to a local it does not declare.
-///
-/// Turning the optimizer off is what tells the two apart, and it runs only on a
-/// divergence that already looks like this one — a fuzzer that quietly stopped
-/// comparing would be worse than one that stops.
-fn optimizer_lost_a_local(source: &str, ours: &str) -> bool {
-    if !ours.contains("ErrorVariableNotFound") {
-        return false;
-    }
-    let mut plain = engine();
-    plain.set_optimization_level(rhai::OptimizationLevel::None);
-    compare(&plain, source).is_some_and(|(ours, expected)| ours == expected)
-}
-
 fuzz_target!(|data: &[u8]| {
     // Too few bytes to steer with, and the PRNG fallback would make every such
     // input the same script.
@@ -152,7 +131,7 @@ fuzz_target!(|data: &[u8]| {
     let Some((ours, expected)) = compare(&engine(), &source) else {
         return;
     };
-    if ours == expected || optimizer_lost_a_local(&source, &ours) {
+    if ours == expected {
         return;
     }
 
