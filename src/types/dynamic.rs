@@ -388,6 +388,14 @@ impl Hash for Dynamic {
     ///
     /// Panics if the [`Dynamic`] value contains an unrecognized trait object.
     fn hash<H: Hasher>(&self, state: &mut H) {
+        #[cfg(not(feature = "no_closure"))]
+        match self.0 {
+            Union::Shared(ref cell, ..) => {
+                return (*crate::func::locked_read(cell).unwrap()).hash(state)
+            }
+            _ => (),
+        }
+
         mem::discriminant(&self.0).hash(state);
 
         match self.0 {
@@ -416,7 +424,7 @@ impl Hash for Dynamic {
             }
 
             #[cfg(not(feature = "no_closure"))]
-            Union::Shared(ref cell, ..) => (*crate::func::locked_read(cell).unwrap()).hash(state),
+            Union::Shared(..) => unreachable!(),
 
             Union::Variant(ref v, ..) => {
                 let _value_any = (***v).as_any();
@@ -1696,7 +1704,8 @@ impl Dynamic {
     /// Under the `sync` feature, a _shared_ value may deadlock.
     /// Otherwise, the data may currently be borrowed for write (so its type cannot be determined).
     ///
-    /// Under these circumstances, the _shared_ value is simply cloned.
+    /// Under these circumstances, the _shared_ value is simply cloned, meaning that the result
+    /// value will also be _shared_.
     ///
     /// These normally shouldn't occur since most operations in Rhai are single-threaded.
     #[inline]

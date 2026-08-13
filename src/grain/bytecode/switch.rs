@@ -30,9 +30,7 @@ pub struct Switch {
     /// One entry per distinct case value, in source order. The target is the
     /// head of that value's chain of guarded arms.
     pub cases: Vec<SwitchCase>,
-    /// Checked only when no case matched at all, as rhai does — a case that
-    /// matched but whose guards all failed goes to the default rather than on
-    /// to the ranges (`eval/stmt.rs:544`).
+    /// Checked only when no case matched in this table.
     ///
     /// Disjoint and in ascending order, which rhai's are not: the compiler
     /// splits overlapping arms apart so that the first entry containing a
@@ -88,11 +86,8 @@ impl SwitchRange {
 impl Switch {
     /// Where a subject sends control.
     ///
-    /// The order is rhai's (`eval/stmt.rs:517-564`) and each step of it is
-    /// load-bearing: an unhashable subject reaches neither the cases nor the
-    /// ranges, and a subject whose hash *did* find a case never reaches the
-    /// ranges even when that case's guards all decline it — the compiler
-    /// points such a chain at the default.
+    /// The order is rhai's table order (`eval/stmt.rs:517-564`): reject
+    /// unhashable subjects, then try hashed cases, then ranges, then default.
     #[must_use]
     pub fn dispatch(&self, subject: &Dynamic) -> u32 {
         // Hashing an unhashable value panics, so this is a guard and not an

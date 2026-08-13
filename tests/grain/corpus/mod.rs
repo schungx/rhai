@@ -159,8 +159,8 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "for_return_from_body"
                 | "map_computed_order"
                 | "map_read_of_absent_key_is_not_visible_to_a_closure"
-                | "switch_on_a_shared_subject_takes_the_default"
-                | "switch_range_on_a_shared_subject_takes_the_default"
+                | "switch_on_a_shared_subject_matches"
+                | "switch_range_on_a_shared_subject_matches"
                 | "temp_root_call"
                 | "throw_from_a_function_leaves_the_caller_top_level_alone"
                 | "throw_in_fn"
@@ -390,14 +390,9 @@ pub const CASES: &[Case] = &[
     // Two case values, one arm: the table has two entries pointing at one
     // body, which a compiler emitting a body per entry would duplicate.
     case("switch_shared_body", "let x = 2; switch x { 1 | 2 => \"low\", 3 => \"three\", _ => \"other\" }"),
-    // The rule that reads like a bug and is not: a case value that matched but
-    // whose guard declined goes to the *default*, never on to the ranges
-    // (eval/stmt.rs:544). Without the range arm here the two are the same
-    // answer and the case proves nothing.
-    //
-    // This bug is fixed by [#1118](https://github.com/rhaiscript/rhai/pull/1118).
-    // Commenting out this case for now, before the VM is modified to reflect the fix.
-    //case("switch_declined_case_skips_ranges", "let f = false; let x = 1; switch x { 1 if f => \"guarded\", 0..=5 => \"range\", _ => \"default\" }"),
+    // A case value that matched but whose guard declined must continue to the
+    // range arms before the default (`eval/stmt.rs:546-571`).
+    case("switch_declined_case_checks_ranges", "let f = false; let x = 1; switch x { 1 if f => \"guarded\", 0..=5 => \"range\", _ => \"default\" }"),
     // No `_` arm at all, so the miss has to produce unit from nowhere.
     case("switch_no_default", "let x = 9; switch x { 1 => \"a\" }"),
     case("switch_string", "let s = \"b\"; switch s { \"a\" => 1, \"b\" => 2, _ => 0 }"),
@@ -407,15 +402,10 @@ pub const CASES: &[Case] = &[
     // Hashing a host type panics, so the subject has to be checked before it
     // reaches a hasher — and must still find the default.
     case("switch_unhashable_subject", "let w = widget(3); switch w { 1 => \"int\", _ => \"other\" }"),
-    // A shared value is not hashable either, so rhai skips the cases *and* the
-    // ranges and goes straight to the default — however well the value would
-    // otherwise have matched. Reading the subject through its cell would hide
-    // that, which is why the subject is loaded unflattened.
-    case("switch_on_a_shared_subject_takes_the_default", r#"let v = 0; { let f = || v; } switch v { 0 => "case", _ => "default" }"#),
-    case("switch_range_on_a_shared_subject_takes_the_default", r#"let v = 5; { let f = || v; } switch v { 0..=9 => "range", _ => "default" }"#),
-    // The same shape before anything shares it, so the pair says the difference
-    // is the sharing rather than the switch.
+    // A shared value is normally hashable, so it is the same as an unshared one.
     case("switch_on_an_unshared_subject_matches", r#"let v = 0; switch v { 0 => "case", _ => "default" }"#),
+    case("switch_on_a_shared_subject_matches", r#"let v = 0; { let f = || v; } switch v { 0 => "case", _ => "default" }"#),
+    case("switch_range_on_a_shared_subject_matches", r#"let v = 5; { let f = || v; } switch v { 0..=9 => "range", _ => "default" }"#),
     // An arm body is a block: it declares, and it has to leave the scope the
     // depth it found it — which only shows up in something that reads a local
     // afterwards.
