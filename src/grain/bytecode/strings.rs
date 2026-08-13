@@ -217,8 +217,8 @@ mod tests {
     /// The property the whole type exists for.
     #[test]
     fn borrowing_points_into_the_caller_s_buffer() {
-        let blob = b"alpha_beta".to_vec();
-        let table = Strings::borrowed(&blob, vec![0, 5, 9]).expect("sound");
+        let blob = b"alpha-beta".to_vec();
+        let table = Strings::borrowed(&blob, vec![0, 5, 6, 10]).expect("sound");
 
         let name = table.get(0).expect("present");
         assert_eq!(name, "alpha");
