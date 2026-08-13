@@ -1,4 +1,4 @@
-use crate::{tokenizer::Token, Dynamic, ImmutableString};
+use crate::{tokenizer::Token, types::StringsInterner, Dynamic};
 use core::convert::{TryFrom, TryInto};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -114,6 +114,11 @@ impl core::fmt::Display for ReadError {
 }
 
 pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
+    // Use a strings interner to avoid allocating string constants (as `Dynamic`) multiple times.
+    // Notice that this is not used for other strings, which are all borrowed from the byte stream.
+    // Therefore, a small number of interned strings should be enough for most programs.
+    let mut strings_interner = StringsInterner::new(64);
+
     let mut cursor = Cursor::new(bytes);
 
     if cursor.take(MAGIC.len())? != MAGIC {
@@ -140,7 +145,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
     }
 
     let source = cursor.str()?;
-    let source = (!source.is_empty()).then(|| ImmutableString::from(source));
+    let source = (!source.is_empty()).then(|| strings_interner.get(source));
 
     // Borrowed: the spans are read, the blob is sliced, and nothing per-name
     // is allocated.
@@ -155,7 +160,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
 
     let mut consts = Vec::new();
     for _ in 0..cursor.uvarint()? {
-        consts.push(get_constant(&mut cursor, 0)?);
+        consts.push(get_constant(&mut cursor, &mut strings_interner, 0)?);
     }
 
     let mut tokens = Vec::new();
@@ -411,7 +416,11 @@ fn get_token(cursor: &mut Cursor) -> Result<Token, ReadError> {
     })
 }
 
-fn get_constant(cursor: &mut Cursor, depth: usize) -> Result<Dynamic, ReadError> {
+fn get_constant(
+    cursor: &mut Cursor,
+    strings_interner: &mut StringsInterner,
+    depth: usize,
+) -> Result<Dynamic, ReadError> {
     if depth > MAX_CONSTANT_DEPTH {
         return Err(ReadError::ConstantTooDeep);
     }
@@ -440,7 +449,7 @@ fn get_constant(cursor: &mut Cursor, depth: usize) -> Result<Dynamic, ReadError>
             Dynamic::from(char::from_u32(code).ok_or(ReadError::MalformedVarint)?)
         }
 
-        constant::STRING => Dynamic::from(ImmutableString::from(cursor.str()?)),
+        constant::STRING => Dynamic::from(strings_interner.get(cursor.str()?)),
 
         // A build with no type for one cannot decode it into anything; the tag
         // falls through to the unknown-tag arm, which is the truthful answer.
@@ -451,7 +460,7 @@ fn get_constant(cursor: &mut Cursor, depth: usize) -> Result<Dynamic, ReadError>
             let count = cursor.uvarint()?;
             let mut array = rhai::Array::new();
             for _ in 0..count {
-                array.push(get_constant(cursor, depth + 1)?);
+                array.push(get_constant(cursor, strings_interner, depth + 1)?);
             }
             Dynamic::from(array)
         }
@@ -462,7 +471,7 @@ fn get_constant(cursor: &mut Cursor, depth: usize) -> Result<Dynamic, ReadError>
             let mut map = rhai::Map::new();
             for _ in 0..count {
                 let key = cursor.str()?.into();
-                map.insert(key, get_constant(cursor, depth + 1)?);
+                map.insert(key, get_constant(cursor, strings_interner, depth + 1)?);
             }
             Dynamic::from(map)
         }

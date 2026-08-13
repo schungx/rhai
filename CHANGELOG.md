@@ -21,7 +21,7 @@ Rhai Grain VM
 Since the Rhai Grain VM must run a script exactly the same as the standard AST interpreter, a number of bugs have been uncovered that are now fixed.
 
 * Fixes bug in `switch` statement that fails to try ranges when all conditions of exact matches fail ([`#1117`](https://github.com/rhaiscript/rhai/pull/1118))
-* Fixes bug in `switch` statement that fails to match shared values ([`#1120`](https://github.com/rhaiscript/rhai/pull/1120))
+* Fixes bug in `switch` statement that fails to match shared values ([`#1123`](https://github.com/rhaiscript/rhai/pull/1123))
 
 Bug fixes
 ---------
