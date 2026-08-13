@@ -40,8 +40,8 @@ use core::mem;
 use std::prelude::v1::*;
 
 use crate::{
-    func::RhaiFunc, Dynamic, FnArgsVec, FuncRegistration, ImmutableString, Module,
-    NativeCallContext, Shared,
+    func::RhaiFunc, Dynamic, FnArgsVec, FuncRegistration, Module, NativeCallContext, Shared,
+    SmartString,
 };
 
 use super::{malformed, Vm, VmResult};
@@ -92,7 +92,7 @@ pub(super) fn wrappers(program: &SharedProgram) -> Module {
         };
 
         let owner = program.clone();
-        let called: ImmutableString = name.into();
+        let called: SmartString = name.into();
 
         // One closure for every arity, rather than the fixed-arity shapes
         // `Module::set_native_fn` generates. `Dynamic` parameters throughout
