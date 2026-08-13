@@ -479,64 +479,95 @@ impl Engine {
         }
 
         // Error handling
+        //
+        // Note: we cannot use `assert!` here (e.g. to check for number of arguments) because
+        //       this function may be called from the VM running a corrupted bytecodes stream!
 
         match name {
             // index getter function not found?
             #[cfg(any(not(feature = "no_index"), not(feature = "no_object")))]
-            crate::engine::FN_IDX_GET => {
-                debug_assert_eq!(args.len(), 2);
-
+            crate::engine::FN_IDX_GET => Err(if args.len() != 2 {
+                ERR::ErrorParsing(
+                    crate::ParseErrorType::MalformedIndexExpr(format!(
+                        "System error: {} argument(s) found for indexer (should be 2)",
+                        args.len()
+                    )),
+                    pos,
+                )
+                .into()
+            } else {
                 let t0 = self.map_type_name(args[0].type_name());
                 let t1 = self.map_type_name(args[1].type_name());
-
-                Err(ERR::ErrorIndexingType(format!("{t0} [{t1}]"), pos).into())
-            }
+                ERR::ErrorIndexingType(format!("{t0} [{t1}]"), pos).into()
+            }),
 
             // index setter function not found?
             #[cfg(any(not(feature = "no_index"), not(feature = "no_object")))]
-            crate::engine::FN_IDX_SET => {
-                debug_assert_eq!(args.len(), 3);
-
+            crate::engine::FN_IDX_SET => Err(if args.len() != 3 {
+                ERR::ErrorParsing(
+                    crate::ParseErrorType::MalformedIndexExpr(format!(
+                        "System error: {} argument(s) found for index setter (should be 3)",
+                        args.len()
+                    )),
+                    pos,
+                )
+                .into()
+            } else {
                 let t0 = self.map_type_name(args[0].type_name());
                 let t1 = self.map_type_name(args[1].type_name());
                 let t2 = self.map_type_name(args[2].type_name());
-
-                Err(ERR::ErrorIndexingType(format!("{t0} [{t1}] = {t2}"), pos).into())
-            }
+                ERR::ErrorIndexingType(format!("{t0} [{t1}] = {t2}"), pos).into()
+            }),
 
             // Getter function not found?
             #[cfg(not(feature = "no_object"))]
             _ if name.starts_with(crate::engine::FN_GET) => {
-                debug_assert_eq!(args.len(), 1);
-
-                let prop = &name[crate::engine::FN_GET.len()..];
-                let t0 = self.map_type_name(args[0].type_name());
-
-                Err(ERR::ErrorDotExpr(
-                    format!(
-                        "Unknown property '{prop}' - a getter is not registered for type '{t0}'"
-                    ),
+                let prop = &name[crate::engine::FN_SET.len()..];
+                Err(if args.len() != 1 {
+                    ERR::ErrorParsing(
+                    crate::ParseErrorType::MalformedIndexExpr(format!(
+                        "System error: {} argument(s) found for property getter '{prop}' (should be 1)",
+                        args.len()
+                    )),
                     pos,
                 )
-                .into())
+                .into()
+                } else {
+                    let t0 = self.map_type_name(args[0].type_name());
+                    ERR::ErrorDotExpr(
+                        format!(
+                        "Unknown property '{prop}' - a getter is not registered for type '{t0}'"
+                    ),
+                        pos,
+                    )
+                    .into()
+                })
             }
 
             // Setter function not found?
             #[cfg(not(feature = "no_object"))]
             _ if name.starts_with(crate::engine::FN_SET) => {
-                debug_assert_eq!(args.len(), 2);
-
                 let prop = &name[crate::engine::FN_SET.len()..];
-                let t0 = self.map_type_name(args[0].type_name());
-                let t1 = self.map_type_name(args[1].type_name());
-
-                Err(ERR::ErrorDotExpr(
+                Err(if args.len() != 2 {
+                    ERR::ErrorParsing(
+                    crate::ParseErrorType::MalformedIndexExpr(format!(
+                        "System error: {} argument(s) found for property setter '{prop}' (should be 2)",
+                        args.len()
+                    )),
+                    pos,
+                )
+                .into()
+                } else {
+                    let t0 = self.map_type_name(args[0].type_name());
+                    let t1 = self.map_type_name(args[1].type_name());
+                    ERR::ErrorDotExpr(
                     format!(
                         "No writable property '{prop}' - a setter is not registered for type '{t0}' to handle '{t1}'"
                     ),
                     pos,
                 )
-                .into())
+                .into()
+                })
             }
 
             // Raise error
