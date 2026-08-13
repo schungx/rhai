@@ -1,8 +1,8 @@
 use crate::tokenizer::Token;
 
-/// What `x op= y` needs to reproduce rhai's resolution order.
+/// What `x op= y` needs to reproduce Rhai's resolution order.
 ///
-/// Both the op-assignment and the plain operator are carried, because rhai
+/// Both the op-assignment and the plain operator are carried, because Rhai
 /// tries the first and falls back to expanding into the second when no
 /// op-assignment implementation exists (`eval/stmt.rs:217-236`).
 ///
@@ -25,7 +25,7 @@ pub struct AssignOp {
 /// Where [`Op::CallRef`] finds the variable it calls through.
 ///
 /// The two differ in how the variable is reached, not in what happens to it:
-/// both take a reference where rhai would and fall back to a value where it
+/// both take a reference where Rhai would and fall back to a value where it
 /// would not, by the same rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Receiver {
@@ -61,7 +61,7 @@ pub enum Receiver {
     /// the by-reference one takes it after them (`func/call.rs:1417`), but the
     /// fallback that a shared or unbound receiver lands in reads and flattens it
     /// first (`:1462`). Reading first is what makes `f(this, { this = 9; 1 })`
-    /// pass the pre-mutation value, and an unbound `f(this, nosuch)` report
+    /// pass the pre-mutation value, and an unbound `f(this, no_such)` report
     /// `ErrorUnboundThis` rather than `ErrorVariableNotFound`.
     This,
 }
@@ -76,7 +76,7 @@ pub enum Receiver {
 ///
 /// A stack machine: operands are pushed and consumed on an operand stack, and
 /// locals live in slots addressed directly. `EvalAst` is the escape hatch that
-/// hands a fragment back to rhai's tree walker, so anything the compiler cannot
+/// hands a fragment back to Rhai's tree walker, so anything the compiler cannot
 /// yet lower still runs, and the whole language stays covered. Lowering more of
 /// it converts residuals into instructions rather than adding coverage.
 ///
@@ -111,7 +111,7 @@ pub enum Op {
     /// host supplied is a fragment, and so cannot be written to an artifact at
     /// all.
     ///
-    /// Three places are searched, in rhai's order (`eval/expr.rs:107-155`):
+    /// Three places are searched, in Rhai's order (`eval/expr.rs:107-155`):
     /// the resolver a host may have registered with `Engine::on_var`, then the
     /// scope, then the modules loaded into the global namespace. Missing from
     /// all three is `ErrorVariableNotFound`.
@@ -137,7 +137,7 @@ pub enum Op {
     /// Pop a value and assign it to local slot `slot`, optionally through an
     /// operator.
     ///
-    /// Separate from `StoreLocal` because `x += y` is not `x = x + y`: rhai
+    /// Separate from `StoreLocal` because `x += y` is not `x = x + y`: Rhai
     /// looks for an op-assignment implementation that mutates in place, and
     /// only expands to the binary form if there is none.
     AssignLocal {
@@ -152,8 +152,8 @@ pub enum Op {
     ///
     /// Slots are assigned in declaration order, so the new local always lands
     /// at the top of the scope. Carries the name because locals live in the
-    /// caller's `Scope`, where entries are named, and carries constness
-    /// because rhai enforces it through the value's own access mode.
+    /// caller's `Scope`, where entries are named, and carries const-ness
+    /// because Rhai enforces it through the value's own access mode.
     DeclareLocal {
         /// The name of the variable
         name: u32,
@@ -179,7 +179,7 @@ pub enum Op {
     },
     /// Pop a condition and jump to `.0` if it is false.
     ///
-    /// Its position-table entry is the condition's own position, because rhai
+    /// Its position-table entry is the condition's own position, because Rhai
     /// rejects a non-boolean guard against the guard expression rather than the
     /// statement — and the differential harness compares error positions.
     JumpIfFalse {
@@ -192,7 +192,7 @@ pub enum Op {
     ///
     /// Dispatch goes through rhai, so every registered function, operator and
     /// script function resolves exactly as it would in the walker. Only calls
-    /// rhai handles syntactically before dispatch — `Fn`, `call`, `curry`,
+    /// Rhai handles syntactically before dispatch — `Fn`, `call`, `curry`,
     /// `eval`, `is_def_var` — are excluded, and stay fragments.
     ///
     /// The position table's entry for this instruction is the call site. Rhai's
@@ -225,7 +225,7 @@ pub enum Op {
     ///
     /// * the variable is read *after* the other arguments, so an argument that
     ///   writes to it is seen;
-    /// * a shared or read-only variable is passed by value instead — rhai hands
+    /// * a shared or read-only variable is passed by value instead — Rhai hands
     ///   out a reference to neither (`func/call.rs:1449-1454`).
     ///
     /// Operators never reach here: under `fast_operators` a binary one
@@ -293,7 +293,7 @@ pub enum Op {
 
     /// Push the receiver bound to the running frame.
     ///
-    /// `this` is not a scope entry and no slot addresses it: rhai threads it
+    /// `this` is not a scope entry and no slot addresses it: Rhai threads it
     /// through evaluation as a parameter (`func/script.rs:29`) and keeps it out
     /// of the `Scope` altogether. So it gets a register of its own, and these
     /// four instructions are the only things that reach it.
@@ -319,15 +319,15 @@ pub enum Op {
     ///
     /// `this = v` checks *before* it evaluates `v` (`eval/stmt.rs:299-302`),
     /// unlike the variable arm, which evaluates the value first (`:319-323`).
-    /// Without a check of its own, `this = nosuch` in an unbound frame would
-    /// report `ErrorVariableNotFound` where rhai reports `ErrorUnboundThis`.
+    /// Without a check of its own, `this = no_such` in an unbound frame would
+    /// report `ErrorVariableNotFound` where Rhai reports `ErrorUnboundThis`.
     RequireThis,
 
     /// Pop a value and assign it to the frame's receiver, optionally through an
     /// operator.
     ///
     /// [`Op::AssignLocal`] without the slot or the name, because `this` has
-    /// neither — and neither does rhai's own failure here: assigning to a
+    /// neither — and neither does Rhai's own failure here: assigning to a
     /// read-only receiver is `ErrorAssignmentToConstant("")`
     /// (`eval/stmt.rs:118-122`), named for an expression that has no name.
     AssignThis {
@@ -345,7 +345,7 @@ pub enum Op {
     /// Push a function pointer to the compiled function named `.0`.
     ///
     /// A closure's, whose name the parser makes up (`anon$…`) and which
-    /// [`Op::MakeFnPtr`] would refuse — rhai only builds pointers to names a
+    /// [`Op::MakeFnPtr`] would refuse — Rhai only builds pointers to names a
     /// script could have written. The name is known here, so unlike
     /// `MakeFnPtr` it needs no operand on the stack.
     MakeClosure(u32),
@@ -359,7 +359,7 @@ pub enum Op {
     /// through the compiled function table like any other call, and a program
     /// holding one can still be written to an artifact.
     ///
-    /// The cost is that a `Normal` pointer is late-bound where rhai's is
+    /// The cost is that a `Normal` pointer is late-bound where Rhai's is
     /// early-bound: redefining the function after taking a pointer to it is
     /// visible here and not in the walker.
     MakeFnPtr,
@@ -372,11 +372,11 @@ pub enum Op {
     ///
     /// A compiled function of that name and arity is called directly, with the
     /// curried arguments spliced in front. Anything else — a native function,
-    /// a name that resolves elsewhere — goes to rhai's own `call_raw`.
+    /// a name that resolves elsewhere — goes to Rhai's own `call_raw`.
     ///
     /// `method` distinguishes `f.call(x)` from `call(f, x)`, which are not the
     /// same call. In method position a target that is *not* a pointer is not
-    /// an error: rhai takes the first argument as the pointer and binds the
+    /// an error: Rhai takes the first argument as the pointer and binds the
     /// target as `this` (`func/call.rs:816-919`), which is how a closure is
     /// called against a receiver.
     CallFnPtr {
@@ -400,7 +400,7 @@ pub enum Op {
 
     /// Push an empty buffer for an interpolated string to be built in.
     ///
-    /// Interpolation is three instructions rather than one because rhai checks
+    /// Interpolation is three instructions rather than one because Rhai checks
     /// the size limit after **every** segment and blames the segment that went
     /// over. One instruction has one position-table entry, so it could not say
     /// which; a pool of per-segment positions would say it but would not be
@@ -417,7 +417,7 @@ pub enum Op {
     /// Not `+`, which is what it looks like: `+` is overridable and
     /// interpolation is not, and the string-plus-anything operator skips this
     /// size check. A string segment is written straight out and never reaches
-    /// dispatch; anything else goes through rhai's `to_string` rendering,
+    /// dispatch; anything else goes through Rhai's `to_string` rendering,
     /// which consults native functions only.
     InterpolateAppend,
 
@@ -427,14 +427,14 @@ pub enum Op {
     /// Pop `.0` values and push them as an array.
     ///
     /// Only for a literal whose elements are not all constant — one that is
-    /// gets folded into the pool by rhai's own optimizer before this sees it.
+    /// gets folded into the pool by Rhai's own optimizer before this sees it.
     MakeArray(u16),
 
     /// Build a map from a template and `n` key/value pairs above it.
     ///
     /// The stack holds `[template, k0, v0, .., k(n-1), v(n-1)]`. The template
     /// is a constant map that already carries every key the literal mentions,
-    /// with the computed ones holding a placeholder — that is rhai's own shape
+    /// with the computed ones holding a placeholder — that is Rhai's own shape
     /// (`ast/expr.rs:283`), and it is why an entirely constant map never
     /// reaches here: the optimizer has already folded it into the template
     /// alone.
@@ -452,7 +452,7 @@ pub enum Op {
     /// `[a, [b, c], d]` straight — the inner literal's total is pushed and
     /// popped inside the outer one's.
     ///
-    /// A separate instruction rather than work inside `MakeArray` because rhai
+    /// A separate instruction rather than work inside `MakeArray` because Rhai
     /// blames the *element* that tipped the total over
     /// (`eval/expr.rs:328`), and one instruction has one position-table entry.
     /// Putting it here rather than in a pool beside the element count is what
@@ -508,13 +508,13 @@ pub enum Op {
     /// a function body, whose scope is discarded whole.
     Checkpoint,
 
-    /// Evaluate residual AST fragment `residual` through rhai's walker,
+    /// Evaluate residual AST fragment `residual` through Rhai's walker,
     /// pushing its value.
     ///
     /// `rewind_scope` reaches `eval_stmt_block` when the fragment is a block,
     /// and decides whether locals it declares survive. Statement fragments
     /// rewind, so they cannot disturb the scope shape slots were resolved
-    /// against. A whole-program fragment does not, because rhai does not
+    /// against. A whole-program fragment does not, because Rhai does not
     /// rewind top-level statements and callers can see what they declared.
     EvalAst {
         /// Index into the residual pool
@@ -530,12 +530,12 @@ pub enum Op {
     /// when it was armed, because an error can be raised at any depth of all
     /// three and the catch block has to start where the `try` did.
     ///
-    /// Only errors rhai considers catchable are caught: `return`, `break`,
+    /// Only errors Rhai considers catchable are caught: `return`, `break`,
     /// `continue` and `exit` unwind as errors too and must pass straight
     /// through (`eval/stmt.rs:806`).
     ///
     /// `catch_var` names the variable the error is bound to. Its table entry
-    /// is that variable's position, which is what rhai reports
+    /// is that variable's position, which is what Rhai reports
     /// `ErrorTooManyVariables` against.
     PushHandler {
         /// Where to jump to when an error is caught.
@@ -592,13 +592,13 @@ pub enum Op {
     ///
     /// Distinct from [`Op::StoreLocal`] only in intent: the `for` loop
     /// variable is written once per iteration and a closure in the body may
-    /// have shared it, in which case rhai writes into the cell and every
+    /// have shared it, in which case Rhai writes into the cell and every
     /// closure made in the loop sees the last value (`eval/stmt.rs:752`).
     StoreShared(u16),
 
     /// Pop a value and raise it as a `throw`.
     ///
-    /// Always fails, with `ErrorRuntime` carrying the value — rhai wraps
+    /// Always fails, with `ErrorRuntime` carrying the value — Rhai wraps
     /// nothing and converts nothing, so any type can be thrown. Its table
     /// entry is the `throw` keyword's own position, not the expression's
     /// (`eval/stmt.rs:877`).

@@ -8,12 +8,12 @@
 //!
 //! ## What the fingerprint can and cannot see
 //!
-//! Widths are *measured*, so they are right no matter how rhai was configured.
+//! Widths are *measured*, so they are right no matter how Rhai was configured.
 //! The booleans are read from this crate's own features, which is why the
 //! manifest mirrors them — `cfg!(feature = "no_object")` here does not consult
-//! rhai's manifest.
+//! Rhai's manifest.
 //!
-//! That leaves one gap: enabling a restriction on rhai directly, bypassing the
+//! That leaves one gap: enabling a restriction on Rhai directly, bypassing the
 //! mirror. The cross-checks below close it wherever rust can prove the
 //! disagreement, turning it into a compile error rather than a wrong
 //! fingerprint. They cannot close it everywhere, which is what the mirror is
@@ -22,7 +22,7 @@
 /// Restrictions that are not visible in a width.
 ///
 /// Order is the wire order and must never change; append only. A flag's name
-/// is what the loader reports, so it has to match rhai's own spelling.
+/// is what the loader reports, so it has to match Rhai's own spelling.
 const FLAGS: &[(&str, bool)] = &[
     ("sync", cfg!(feature = "sync")),
     ("decimal", cfg!(feature = "decimal")),
@@ -37,8 +37,8 @@ const FLAGS: &[(&str, bool)] = &[
     ("unchecked", cfg!(feature = "unchecked")),
 ];
 
-/// `Engine` is only `Send + Sync` when rhai is built with `sync`, so claiming
-/// the flag without rhai agreeing fails to compile.
+/// `Engine` is only `Send + Sync` when Rhai is built with `sync`, so claiming
+/// the flag without Rhai agreeing fails to compile.
 #[cfg(feature = "sync")]
 const _: () = {
     const fn assert_sync<T: Send + Sync>() {}
@@ -48,7 +48,7 @@ const _: () = {
 /// The value representation an artifact was written against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Abi {
-    /// `size_of::<rhai::INT>()`. Measured, so `only_i32` set on rhai alone is
+    /// `size_of::<rhai::INT>()`. Measured, so `only_i32` set on Rhai alone is
     /// still caught.
     pub int_bytes: u8,
     /// `size_of::<rhai::FLOAT>()`, or 0 under `no_float`.

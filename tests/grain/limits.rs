@@ -26,7 +26,7 @@ fn run_vm(engine: &Engine, source: &str) -> Result<Dynamic, Box<EvalAltResult>> 
     let ast = engine.compile(source).expect("must compile");
     let program = Compiler::new().compile(&ast);
 
-    assert_eq!(program.residual_count(), 0, "{source:?} must be fully lowered, or this tests rhai rather than the VM",);
+    assert_eq!(program.residual_count(), 0, "{source:?} must be fully lowered, or this tests Rhai rather than the VM",);
 
     // Without a tick on the back-edge nothing in a compiled loop ever reaches
     // `track_operation`, and the tests below would hang rather than fail.
@@ -97,10 +97,10 @@ fn a_loop_with_its_tick_removed_still_hits_the_limit() {
     // exactly where it was. Only the metering goes.
     bytes[start + tick_at] = rhai::grain::bytecode::code::tag::CHECKPOINT;
 
-    let tickless = Program::read(&bytes).expect("still a valid artifact");
-    assert!(!tickless.main().ops(tickless.code()).any(|(_, op)| op == Op::Tick), "the tick should be gone, or this tests nothing",);
+    let tick_less = Program::read(&bytes).expect("still a valid artifact");
+    assert!(!tick_less.main().ops(tick_less.code()).any(|(_, op)| op == Op::Tick), "the tick should be gone, or this tests nothing",);
 
-    let err = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &tickless).expect_err("a tickless loop must still be stopped");
+    let err = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &tick_less).expect_err("a tick_less loop must still be stopped");
     assert!(matches!(*err, EvalAltResult::ErrorTooManyOperations(..)), "expected ErrorTooManyOperations, got {err:?}",);
 }
 
@@ -117,13 +117,13 @@ fn the_walker_agrees_the_loop_is_stopped() {
     assert!(matches!(*err, EvalAltResult::ErrorTooManyOperations(..)), "expected ErrorTooManyOperations, got {err:?}",);
 }
 
-/// `max_string_size` is a host's defence, and interpolation is the easiest way
-/// to walk past it — rhai checks the running total after *every* segment
+/// `max_string_size` is a host's defense, and interpolation is the easiest way
+/// to walk past it — Rhai checks the running total after *every* segment
 /// rather than once at the end, so a script cannot build a huge string and
 /// hand it over.
 ///
 /// The position is checked too, because it is the one thing a single
-/// instruction might not be able to reproduce: rhai blames the segment that
+/// instruction might not be able to reproduce: Rhai blames the segment that
 /// tipped the total over, and the VM has one position-table entry per
 /// instruction.
 #[test]
@@ -144,7 +144,7 @@ fn interpolation_respects_the_string_limit() {
 }
 
 /// A loop that does terminate must not be killed by the tick itself, and must
-/// still produce the value rhai produces.
+/// still produce the value Rhai produces.
 #[test]
 fn ticking_does_not_disturb_a_bounded_loop() {
     let mut engine = Engine::new();
@@ -156,7 +156,7 @@ fn ticking_does_not_disturb_a_bounded_loop() {
     let program = Compiler::new().compile(&ast);
     let vm = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &program).expect("bounded loop must finish");
 
-    let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("bounded loop must finish under rhai too");
+    let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("bounded loop must finish under Rhai too");
 
     assert_eq!(format!("{vm:?}"), format!("{walker:?}"));
 }

@@ -38,7 +38,7 @@ mod callback;
 use crate::grain::bytecode::{code, AssignOp, Chain, Receiver, Root, Step, Tail};
 use crate::grain::program::{Program, SharedModule, SharedProgram};
 
-/// rhai's own `RhaiResult`, which it does not re-export.
+/// Rhai's own `RhaiResult`, which it does not re-export.
 pub type VmResult = Result<Dynamic, Box<EvalAltResult>>;
 
 /// Whether a value is a shared cell.
@@ -84,7 +84,7 @@ fn native_context<'a>(
 }
 
 /// Stamp the call site on an error that passes through a function boundary
-/// unwrapped, as rhai does for exits and system exceptions
+/// unwrapped, as Rhai does for exits and system exceptions
 /// (`func/script.rs:134`).
 fn reposition(mut err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
     err.set_position(pos);
@@ -106,7 +106,7 @@ fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
 
 /// Stamp the call site on anything a dispatched call came back with.
 ///
-/// This is `fill_position`, which rhai applies to the whole of
+/// This is `fill_position`, which Rhai applies to the whole of
 /// `exec_native_fn_call` — the callee not being found, the call being refused,
 /// and the error a native *returned* alike (`func/call.rs:365`, `:406`,
 /// `:413`). `call_fn_raw` has no position to give, so all of them arrive bare.
@@ -146,7 +146,7 @@ enum RootValue<'s> {
     ///
     /// Nothing is written back afterwards because nothing was copied: a
     /// mutation partway down the chain landed in the entry itself, which is
-    /// what rhai's `Target::RefMut` does (`eval/chaining.rs:517-563`).
+    /// what Rhai's `Target::RefMut` does (`eval/chaining.rs:517-563`).
     Entry(&'s mut Dynamic),
 
     /// A value with a name but no entry behind it — a resolver's answer, or a
@@ -162,7 +162,7 @@ enum RootValue<'s> {
 
     /// A value taken off the operand stack: `[1, 2].len()`, `f().x`.
     ///
-    /// Nothing can be assigned to one, because rhai's parser refuses it
+    /// Nothing can be assigned to one, because Rhai's parser refuses it
     /// outright. Moved rather than borrowed for the same reason [`Self::This`]
     /// is — the stack is part of `self`.
     Temporary(Dynamic),
@@ -202,7 +202,7 @@ enum Indexed {
 /// in means there is no cell left to contend for.
 ///
 /// `this` *can* reach both and has no name either, so it answers with the empty
-/// one rather than with nothing. That is rhai's own answer: `Expr::ThisPtr`
+/// one rather than with nothing. That is Rhai's own answer: `Expr::ThisPtr`
 /// carries no name, so assigning through a read-only receiver is
 /// `ErrorAssignmentToConstant("")` (`eval/stmt.rs:118-122`). Answering `None`
 /// here would report a malformed chunk instead.
@@ -230,7 +230,7 @@ fn chain_op<'p>(
 
 /// One `for` loop in progress.
 ///
-/// The count is here rather than in a local because rhai keeps it outside the
+/// The count is here rather than in a local because Rhai keeps it outside the
 /// scope too, and checks it for overflow before writing it — a loop long
 /// enough to wrap the counter is an error rather than a wrap
 /// (`eval/stmt.rs:729`).
@@ -289,7 +289,7 @@ fn malformed(detail: String) -> Box<EvalAltResult> {
 ///
 /// Holds one `GlobalRuntimeState` and one `Caches` for its whole lifetime, so
 /// the function-resolution cache survives across calls. That matters: the
-/// reentrant helpers rhai exposes to native functions build a fresh
+/// reentrant helpers Rhai exposes to native functions build a fresh
 /// `Caches::new()` per call (`func/native.rs:519`), which would throw away
 /// resolution work on every dispatch.
 pub struct Vm<'e> {
@@ -342,8 +342,8 @@ pub struct Vm<'e> {
 ///
 /// The rule is `chain_root`'s `walkable` (see [`Vm::chain_root`]) plus the
 /// question of ownership. A read-only receiver is *cloned*, because `take`
-/// would leave `UNIT` behind and strip the constness the caller's slot is
-/// carrying; nothing is written back, since rhai refuses the mutation rather
+/// would leave `UNIT` behind and strip the const-ness the caller's slot is
+/// carrying; nothing is written back, since Rhai refuses the mutation rather
 /// than making it. Anything else is taken, as `call_compiled_body` already
 /// takes a call's arguments — a receiver is not shared with anything the callee
 /// can reach, and taking it saves a deep clone of an array or a map per call.
@@ -409,7 +409,7 @@ impl<'e> Vm<'e> {
 
     /// A `Vm` for a call arriving from inside a native function.
     ///
-    /// Reproduces what rhai does at every reentrant boundary
+    /// Reproduces what Rhai does at every reentrant boundary
     /// (`func/native.rs:516-519`, `types/fn_ptr.rs:451-454`): the caller's
     /// runtime state is *cloned* rather than shared, and the resolution cache
     /// starts empty. The clone is what carries the imported modules, the source
@@ -426,7 +426,7 @@ impl<'e> Vm<'e> {
     ///
     /// Operation counting has the same shape and the same reason: increments
     /// inside the callback land on the clone and are lost when it drops, as
-    /// they are for any reentrant call rhai makes.
+    /// they are for any reentrant call Rhai makes.
     #[must_use]
     pub fn reentrant(context: &'e NativeCallContext<'_>) -> Self {
         Self {
@@ -438,7 +438,7 @@ impl<'e> Vm<'e> {
             handlers: Vec::new(),
             sizes: Vec::new(),
             unwind_floor: 0,
-            // A crossing carries no receiver: rhai binds one only where it
+            // A crossing carries no receiver: Rhai binds one only where it
             // dispatches a method, and this arrives through `call_fn_raw`.
             this: None,
             fault_pc: None,
@@ -469,7 +469,7 @@ impl<'e> Vm<'e> {
     ///
     /// The entry point a native needs. `Op::Call` reaches a chunk through the
     /// name *index* it shares with the call site, which a caller from outside
-    /// does not have — a `FnPtr` carries a string, and so does rhai when it
+    /// does not have — a `FnPtr` carries a string, and so does Rhai when it
     /// dispatches. This is the same call by the other key.
     ///
     /// `level` is the caller's call depth, so `max_call_levels` still counts
@@ -557,7 +557,7 @@ impl<'e> Vm<'e> {
         self.call_fn_with_options(CallFnOptions::new(), scope, program, name, args)
     }
 
-    /// The same, with rhai's [`CallFnOptions`](crate::CallFnOptions).
+    /// The same, with Rhai's [`CallFnOptions`](crate::CallFnOptions).
     ///
     /// Three of the five options mean something here:
     ///
@@ -568,7 +568,7 @@ impl<'e> Vm<'e> {
     ///
     /// `this_ptr` binds the callee's receiver, as it does in rhai. A write
     /// through `this` lands in the pointer's own `Dynamic` — including when the
-    /// call goes on to fail, because rhai reaches `this` through the caller's
+    /// call goes on to fail, because Rhai reaches `this` through the caller's
     /// storage and a body that mutates and then raises has already written.
     ///
     /// `in_all_namespaces` is ignored: this looks only in the program's own
@@ -606,7 +606,7 @@ impl<'e> Vm<'e> {
 
         // The program's environment stays installed for the *call*, not only for
         // the main chunk that may precede it: the function being called can
-        // reach whatever the compiler left rhai to interpret, and rhai looks for
+        // reach whatever the compiler left Rhai to interpret, and Rhai looks for
         // it in `global.lib`.
         let mut evaluated = Ok(());
         let (result, returned) = self.with_environment(program, None, |vm| {
@@ -622,7 +622,7 @@ impl<'e> Vm<'e> {
             vm.call_function_with_this(program, name, arg_values, 0, Position::NONE, this)
         });
 
-        // Before the errors below, both of them: rhai's mutation through `this`
+        // Before the errors below, both of them: Rhai's mutation through `this`
         // survives a failed call, and survives one whose result is the wrong
         // type just as much.
         if let Some(slot) = this_ptr {
@@ -693,7 +693,7 @@ impl<'e> Vm<'e> {
     /// Evaluate a program that hands function pointers to native functions.
     ///
     /// The same run, plus one native wrapper per compiled function registered
-    /// for its duration, so a pointer this program creates resolves when rhai
+    /// for its duration, so a pointer this program creates resolves when Rhai
     /// dispatches it — `let a = [1, 2]; a.map(|x| x * 2)` is `map` calling us
     /// back, and `map` looks the pointer up its own way. See the `callback`
     /// module.
@@ -709,7 +709,7 @@ impl<'e> Vm<'e> {
     /// arrives with its arguments rotated.
     ///
     /// Named `eval_` rather than `run_` because it yields the program's value;
-    /// rhai has no `Engine` method to mirror here, so the crate's own rule is
+    /// Rhai has no `Engine` method to mirror here, so the crate's own rule is
     /// the one that applies.
     ///
     /// # Errors
@@ -735,7 +735,7 @@ impl<'e> Vm<'e> {
     ///
     /// Everything entering a program from outside needs this, not only its main
     /// chunk: a function reached through [`call_fn`](Self::call_fn) can call
-    /// whatever the compiler left rhai to interpret, and rhai looks for it in
+    /// whatever the compiler left Rhai to interpret, and Rhai looks for it in
     /// `global.lib`.
     fn with_environment<T>(
         &mut self,
@@ -752,7 +752,7 @@ impl<'e> Vm<'e> {
                 self.global.lib.push(lib.clone());
             }
             // Last, so the search — which runs in reverse — reaches a compiled
-            // function before whatever the compiler left rhai to interpret.
+            // function before whatever the compiler left Rhai to interpret.
             if let Some(wrappers) = wrappers {
                 self.global.lib.push(wrappers);
             }
@@ -815,7 +815,7 @@ impl<'e> Vm<'e> {
     ///
     /// The reason this is one instruction and a recursion rather than a
     /// sequence: every level holds a `&mut` into the level above, exactly as
-    /// rhai does (`eval/chaining.rs:659`). For a map or an array that borrow is
+    /// Rhai does (`eval/chaining.rs:659`). For a map or an array that borrow is
     /// the whole story — the mutation lands in the container and no write-back
     /// is needed. Doing it on the operand stack instead would mutate a copy.
     ///
@@ -830,9 +830,9 @@ impl<'e> Vm<'e> {
     /// is moved back.
     ///
     /// Write-back is only for the levels where a borrow was not possible:
-    /// a getter on a host type hands back a value, and rhai calls the setter
+    /// a getter on a host type hands back a value, and Rhai calls the setter
     /// afterwards if the sub-chain was a method call. `changed` reproduces
-    /// that, and it is deliberately coarse in the same way rhai's is — rhai's
+    /// that, and it is deliberately coarse in the same way Rhai's is — rhai's
     /// flag is `func.is_method()`, "does the resolved function take its
     /// receiver by reference", not "did it actually write".
     #[inline(never)]
@@ -863,11 +863,11 @@ impl<'e> Vm<'e> {
         let read_only = root.as_mut().is_read_only();
 
         // Read-only is what refuses an assignment, not the absence of a place:
-        // a module's constant is neither, so rhai assigns into the copy and
+        // a module's constant is neither, so Rhai assigns into the copy and
         // discards it. Only a `const` and a resolver's answer are refused, and
         // both are read-only for that reason.
         //
-        // A temporary is separate again — rhai's parser refuses `f().x = 1`
+        // A temporary is separate again — Rhai's parser refuses `f().x = 1`
         // outright, so one reaches here only from a chunk this compiler did
         // not build.
         let value = match (chain.assigns(), &root) {
@@ -896,7 +896,7 @@ impl<'e> Vm<'e> {
 
             // A shared cell cannot be walked directly. `get_indexed_mut`
             // refuses one outright — `unreachable!("cannot handle shared
-            // values")`, `eval/chaining.rs:461` — because rhai always reaches a
+            // values")`, `eval/chaining.rs:461` — because Rhai always reaches a
             // root through a `Target`, whose shared arm hands over the guard
             // rather than the cell. Walking the cell would take the host down,
             // so this is a panic-safety fix and not only a correctness one.
@@ -975,7 +975,7 @@ impl<'e> Vm<'e> {
             }
 
             // The `this` position wins over the chain's for the same reason a
-            // name's does: this lookup can fail, and rhai blames the `this`
+            // name's does: this lookup can fail, and Rhai blames the `this`
             // rather than the `.` after it (`eval/chaining.rs:519-527`).
             Root::This { pos: this_pos } => {
                 let value = self
@@ -989,7 +989,7 @@ impl<'e> Vm<'e> {
             }
 
             // A name has a position of its own, and it wins: the lookup below
-            // can fail, and rhai blames the variable rather than the chain.
+            // can fail, and Rhai blames the variable rather than the chain.
             Root::Named { name, pos: var_pos } => {
                 let name = program
                     .name(name)
@@ -1007,7 +1007,7 @@ impl<'e> Vm<'e> {
                 // a constant outright. A constant is walked here rather than
                 // refused: the read-only mode the entry carries is what turns
                 // away an assignment or a non-pure method, and it is the same
-                // mode rhai's `Target` into the entry would have carried.
+                // mode Rhai's `Target` into the entry would have carried.
                 if let Some(index) = scope.search(name) {
                     return Ok(ChainRoot {
                         value: RootValue::Entry(scope.get_mut_by_index(index)),
@@ -1015,7 +1015,7 @@ impl<'e> Vm<'e> {
                     });
                 }
                 // A constant a host published with `Module::set_var`. Not
-                // marked read-only, because rhai does not mark it either
+                // marked read-only, because Rhai does not mark it either
                 // (`eval/expr.rs:151` against `:122`) — so a chain assigns
                 // into the copy and discards it, where writing to the name
                 // directly is refused.
@@ -1131,7 +1131,7 @@ impl<'e> Vm<'e> {
                     return Err(malformed("chain method arguments missing".to_string()));
                 }
 
-                // A method call is where rhai tries the receiver's type before
+                // A method call is where Rhai tries the receiver's type before
                 // the plain name (`func/call.rs:614-629`), and the only place it
                 // does. `argc` already excludes the receiver, which is the arity
                 // the script side is keyed on (`parser.rs:2128-2145`).
@@ -1168,7 +1168,7 @@ impl<'e> Vm<'e> {
                     );
                     self.stack.truncate(at);
                     // Before `?`: a body that mutated and then raised has
-                    // already written, as it would through rhai's pointer.
+                    // already written, as it would through Rhai's pointer.
                     unbind_this(target, returned, write_back);
                     result?
                 } else {
@@ -1190,7 +1190,7 @@ impl<'e> Vm<'e> {
 
                 if last {
                     match value {
-                        // `a.f() = x` is not something rhai parses.
+                        // `a.f() = x` is not something Rhai parses.
                         Some(_) => Err(malformed("assignment to a method call".to_string())),
                         None => Ok((out, true)),
                     }
@@ -1239,7 +1239,7 @@ impl<'e> Vm<'e> {
             idx,
             idx_pos,
             bracket,
-            // Auto-vivify a missing map key only when writing, as rhai does
+            // Auto-vivify a missing map key only when writing, as Rhai does
             // for the assignment case (`eval/chaining.rs:791`).
             assigning,
             // And do not reach for a custom indexer when writing: a value it
@@ -1274,7 +1274,7 @@ impl<'e> Vm<'e> {
         } else {
             // Straight through the borrow: for an array, a map or a blob this
             // *is* the container's element, so a mutation below lands where
-            // rhai's would.
+            // Rhai's would.
             self.walk_chain(program, chain, rest, item.as_mut(), operands, value, pos)?
         };
 
@@ -1297,7 +1297,7 @@ impl<'e> Vm<'e> {
     /// Assign through a custom indexer, which cannot hand out a reference.
     ///
     /// An op-assignment has to read the current value back through the getter
-    /// first, and rhai *ignores* a getter that fails here — a write-only
+    /// first, and Rhai *ignores* a getter that fails here — a write-only
     /// indexer takes the new value as-is (`eval/chaining.rs:812`).
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn assign_through_indexer(
@@ -1358,7 +1358,7 @@ impl<'e> Vm<'e> {
     /// Put an element back into a container that had no reference to give.
     ///
     /// A custom indexer returns a value, so a mutation below it landed in a
-    /// temporary; this is the replay rhai does at `eval/chaining.rs:744`,
+    /// temporary; this is the replay Rhai does at `eval/chaining.rs:744`,
     /// including swallowing "this type cannot be indexed" the way it does.
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn call_indexer_set(
@@ -1391,7 +1391,7 @@ impl<'e> Vm<'e> {
 
     /// `.name`, which is a key on a map and a getter call on anything else.
     ///
-    /// The distinction is rhai's and it is made at runtime, not at parse time
+    /// The distinction is Rhai's and it is made at runtime, not at parse time
     /// (`eval/chaining.rs:898`). It matters for more than speed: a map hands
     /// back a reference, so a mutation below lands in the map, while a getter
     /// hands back a value that has to be given to the setter afterwards.
@@ -1405,7 +1405,7 @@ impl<'e> Vm<'e> {
         operands: &mut [Dynamic],
         value: Option<Dynamic>,
         pos: Position,
-        // The property's own position, which is where rhai blames a getter or
+        // The property's own position, which is where Rhai blames a getter or
         // setter that does not exist (`eval/chaining.rs:1039`). `pos` is the
         // chain's, and stays that for everything else.
         step_pos: Position,
@@ -1514,7 +1514,7 @@ impl<'e> Vm<'e> {
     ///
     /// Same resolution order as a plain local assignment, and for the same
     /// reason: `x += y` is not `x = x + y` unless nothing implements `+=`.
-    /// The built-in op-assignment for these operands, if rhai has one.
+    /// The built-in op-assignment for these operands, if Rhai has one.
     ///
     /// Inlined deliberately: `x += 1` in a loop is entirely this, and routing
     /// it through the out-of-line resolution below measured 10% on the
@@ -1606,7 +1606,7 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Read a variable no slot names, the way rhai's `search_scope_only` does
+    /// Read a variable no slot names, the way Rhai's `search_scope_only` does
     /// (`eval/expr.rs:107-155`).
     ///
     /// Three places in a fixed order, and the order is observable: a resolver
@@ -1674,12 +1674,12 @@ impl<'e> Vm<'e> {
 
         let before = scope.len();
         let context = EvalContext::new(engine, &mut self.global, &mut self.caches, scope, None);
-        // Index zero: rhai passes the slot its parser resolved, and a name
+        // Index zero: Rhai passes the slot its parser resolved, and a name
         // that reached here had none.
         let resolved = resolver(name, 0, context);
 
         // A resolver that pushed onto the scope has moved every entry a
-        // parse-time index named, so rhai stops trusting those from here on.
+        // parse-time index named, so Rhai stops trusting those from here on.
         // Nothing this compiler emits depends on them — its slots are counted
         // from a base taken before the run — but a fragment's do.
         if scope.len() != before {
@@ -1800,7 +1800,7 @@ impl<'e> Vm<'e> {
         let taken = self.stack.len() - at - 1;
         let curried = pointer.curry().len();
         // A receiver does not change which function a pointer names, only what
-        // the callee's `this` is: rhai keys its own script pointers on the
+        // the callee's `this` is: Rhai keys its own script pointers on the
         // declared parameter count alone (`types/fn_ptr.rs:422`), and binds the
         // receiver alongside them.
         let function = program
@@ -1850,7 +1850,7 @@ impl<'e> Vm<'e> {
                 })
         };
 
-        // Before `?`, as everywhere else: rhai binds the receiver by reference,
+        // Before `?`, as everywhere else: Rhai binds the receiver by reference,
         // so a closure that writes and then raises has already written.
         if let Some(index) = receiver_at {
             unbind_this(&mut self.stack[index], bound, write_back);
@@ -1899,7 +1899,7 @@ impl<'e> Vm<'e> {
                     .name(var)
                     .ok_or_else(|| malformed(format!("no name {var}")))?;
                 // A resolver's answer or a module constant has no entry behind
-                // it, and rhai could not have written through one either.
+                // it, and Rhai could not have written through one either.
                 if let Some(entry) = scope.get_mut(name) {
                     *entry = value;
                 }
@@ -1909,7 +1909,7 @@ impl<'e> Vm<'e> {
                     *entry = value;
                 }
             }
-            // A temporary, which rhai mutates a copy of too.
+            // A temporary, which Rhai mutates a copy of too.
             None => {}
         }
         Ok(())
@@ -1921,7 +1921,7 @@ impl<'e> Vm<'e> {
     /// Every step of it is load-bearing. A **string** segment is written
     /// straight out and never reaches dispatch, so a host's `to_string` for
     /// strings is not consulted here even though `+` would consult it.
-    /// Anything else goes through rhai's own rendering, which calls **native**
+    /// Anything else goes through Rhai's own rendering, which calls **native**
     /// functions only — a script `fn to_string` is invisible to it — and
     /// substitutes the mapped type name when the call returns a non-string.
     /// The size limit is checked after every segment against the running
@@ -1983,7 +1983,7 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Start iterating a value, the way rhai's `for` does
+    /// Start iterating a value, the way Rhai's `for` does
     /// (`eval/stmt.rs:680-703`).
     ///
     /// Three places are searched by `TypeId`, in order, and the order is
@@ -2028,7 +2028,7 @@ impl<'e> Vm<'e> {
     /// A function this compiler lowered is called directly, with no hash and no
     /// module walk: the call site's name index and the function's come from the
     /// same pool, so equal names have equal indices. Everything else goes to
-    /// rhai's dispatch, and resolves exactly as it would in the walker.
+    /// Rhai's dispatch, and resolves exactly as it would in the walker.
     fn call_stacked(
         &mut self,
         program: &Program,
@@ -2046,17 +2046,17 @@ impl<'e> Vm<'e> {
         }
 
         // Arguments are already contiguous at the top of the operand stack,
-        // which is exactly the shape rhai's ABI wants (`func/call.rs:36`). It
+        // which is exactly the shape Rhai's ABI wants (`func/call.rs:36`). It
         // consumes them, replacing each with unit, so the caller truncates
         // afterwards rather than reusing them.
         let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
         // A scope of the callee's own, because the scope an `EvalContext`
         // carries is the one a *script* function's body runs in
-        // (`func/call.rs:639`), and rhai passes `None` there (`:1476`).
+        // (`func/call.rs:639`), and Rhai passes `None` there (`:1476`).
         // Handing over this frame's would let such a body read the caller's
         // locals — reachable, because the functions this compiler skips are
-        // exactly the ones rhai can still find in `global.lib`.
+        // exactly the ones Rhai can still find in `global.lib`.
         let mut detached = Scope::new();
         let mut context = EvalContext::new(
             self.engine,
@@ -2074,7 +2074,7 @@ impl<'e> Vm<'e> {
     /// method-call rewrite applied to it (`func/call.rs:1434-1460`).
     ///
     /// The other arguments are already on the operand stack and were evaluated
-    /// before the receiver was reached, which is the order rhai uses and is
+    /// before the receiver was reached, which is the order Rhai uses and is
     /// observable whenever one of them writes to the receiver.
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
@@ -2142,10 +2142,10 @@ impl<'e> Vm<'e> {
             Site::Name(name) => scope.get_mut(name),
         };
 
-        // Three things rule out a reference, and rhai rules out the same three:
+        // Three things rule out a reference, and Rhai rules out the same three:
         // it hands one out for neither a shared cell nor a constant
         // (`func/call.rs:1449-1454`), and a function this compiler lowered
-        // copies its first argument whatever it is handed, exactly as rhai
+        // copies its first argument whatever it is handed, exactly as Rhai
         // copies it before running a script function (`func/call.rs:661`).
         let by_reference = place
             .map(|value| !is_shared!(value) && !value.is_read_only())
@@ -2156,7 +2156,7 @@ impl<'e> Vm<'e> {
         if !by_reference {
             // A local's value has not been pushed. A name's already is: it is
             // what carried the lookup's position (see [`Receiver::Named`]), and
-            // it is exactly the value rhai would pass.
+            // it is exactly the value Rhai would pass.
             if let Site::Slot(index) = at {
                 let value = scope.get_mut_by_index(index).flatten_clone();
                 self.stack.insert(first, value);
@@ -2210,7 +2210,7 @@ impl<'e> Vm<'e> {
     /// receivers, because the path a shared or unbound receiver takes reads
     /// `this` first (`func/call.rs:1462`) where the by-reference path takes a
     /// pointer to it afterwards (`:1417`). Reading first is what makes an
-    /// unbound `f(this, nosuch)` report `ErrorUnboundThis` rather than the
+    /// unbound `f(this, no_such)` report `ErrorUnboundThis` rather than the
     /// argument's failure.
     ///
     /// The snapshot is what gets passed when the register cannot be lent out,
@@ -2234,7 +2234,7 @@ impl<'e> Vm<'e> {
         // shared, and read-only is *not* part of that test — unlike the variable
         // arm, which copies a constant before deciding (`func/call.rs:1449`).
         // A function this compiler lowered copies its first argument whatever it
-        // is handed, exactly as rhai copies one before running a script function
+        // is handed, exactly as Rhai copies one before running a script function
         // (`func/call.rs:661`), so a compiled callee rules a reference out too.
         let by_reference = self.this.as_ref().map_or(false, |value| !is_shared!(value))
             && program.function(name_index, argc).is_none();
@@ -2290,7 +2290,7 @@ impl<'e> Vm<'e> {
     ///
     /// Hands the receiver back however the call ended, so a body that mutated
     /// `this` and then raised still gives its binder something to write back —
-    /// which is what rhai's pointer into the caller's storage does for free.
+    /// which is what Rhai's pointer into the caller's storage does for free.
     ///
     /// Every compiled call comes through here, and [`Vm::call_compiled`] is this
     /// with no receiver. That is what makes `this` per-call rather than
@@ -2339,7 +2339,7 @@ impl<'e> Vm<'e> {
         #[cfg(not(feature = "unchecked"))]
         {
             // The limit exists only where recursion does — `no_function` leaves
-            // nothing to call, so rhai drops the setting with the functions.
+            // nothing to call, so Rhai drops the setting with the functions.
             #[cfg(not(feature = "no_function"))]
             if self.global.level > self.engine.max_call_levels() {
                 return Err(Box::new(EvalAltResult::ErrorStackOverflow(pos)));
@@ -2355,7 +2355,7 @@ impl<'e> Vm<'e> {
             let name = program
                 .name(*param)
                 .ok_or_else(|| malformed(format!("no name {param}")))?;
-            // Taken, not cloned — rhai consumes the caller's argument slots
+            // Taken, not cloned — Rhai consumes the caller's argument slots
             // (`func/script.rs:75`), and the caller truncates them away after.
             let value = self
                 .stack
@@ -2450,7 +2450,7 @@ impl<'e> Vm<'e> {
 
     /// Rhai's `Engine::make_type_mismatch_err` (`api/formatting.rs:246`).
     ///
-    /// The asymmetry is rhai's and is easy to get wrong in either direction:
+    /// The asymmetry is Rhai's and is easy to get wrong in either direction:
     /// the *expected* type goes through the engine's registered names and the
     /// *actual* one does not. So `if 0..1 {}` reports
     /// `core::ops::range::Range<i64>` rather than the `range` the same engine
@@ -2493,12 +2493,12 @@ impl<'e> Vm<'e> {
     ///
     /// Worth being exact about what is *not* counted: a map's total starts at
     /// zero and only the entries with computed values are added to it, because
-    /// rhai's loop runs over those alone and the constant ones are already
+    /// Rhai's loop runs over those alone and the constant ones are already
     /// sitting in the template. A literal that is entirely constant never
     /// reaches here at all — the optimizer folded it long before.
     ///
     /// Out of line: it is a handful of instructions in the common case and a
-    /// call to rhai in the rare one, and the dispatch loop is measurably
+    /// call to Rhai in the rare one, and the dispatch loop is measurably
     /// sensitive to what shares its registers.
     #[inline(never)]
     fn check_size(
@@ -2674,9 +2674,9 @@ impl<'e> Vm<'e> {
     /// Three shapes: nothing at all without a variable, the raw thrown value
     /// for a `throw`, and a map of the error's parts for anything else. The
     /// unwrapping matters — a `throw` inside a called function arrives wrapped
-    /// in `ErrorInFunctionCall`, and rhai still binds the bare value.
+    /// in `ErrorInFunctionCall`, and Rhai still binds the bare value.
     ///
-    /// Under `no_object` there is no map to build one in, and rhai binds the
+    /// Under `no_object` there is no map to build one in, and Rhai binds the
     /// message alone (`eval/stmt.rs:815`).
     fn catch_value(&self, err: &mut Box<EvalAltResult>, wanted: bool) -> Dynamic {
         if !wanted {
@@ -2686,7 +2686,7 @@ impl<'e> Vm<'e> {
             return value.clone();
         }
 
-        // Read *and cleared*, as rhai does, so the message below carries no
+        // Read *and cleared*, as Rhai does, so the message below carries no
         // trailing position and a re-raise starts from the catch site.
         #[cfg(feature = "no_object")]
         {
@@ -2734,7 +2734,7 @@ impl<'e> Vm<'e> {
         let stack_base = self.stack.len();
         self.stack.reserve(program.max_stack() as usize);
 
-        // A residual's `Expr::Variable` nodes carry offsets rhai's parser
+        // A residual's `Expr::Variable` nodes carry offsets Rhai's parser
         // computed against its own scope discipline, not against ours. Forcing
         // name lookup inside them costs a reverse scan but cannot be wrong.
         // Only programs that still have residuals pay it, which is the point of
@@ -2796,7 +2796,7 @@ impl<'e> Vm<'e> {
             // A cycle in a chunk always contains a backward edge, so this is
             // what makes `max_operations` and the `on_progress` interrupt cover
             // a chunk *this compiler did not write*. `Op::Tick` covers the
-            // loops it does write, positioned where rhai would report them; a
+            // loops it does write, positioned where Rhai would report them; a
             // corrupt artifact has no ticks at all and would otherwise spin
             // forever inside a loader that had already accepted it. Found by
             // `mutated_artifacts_load_or_fail_but_never_misbehave`, whose whole
@@ -2834,7 +2834,7 @@ impl<'e> Vm<'e> {
                     if index >= scope.len() {
                         return Err(malformed(format!("local slot {slot} is out of scope")));
                     }
-                    // Reads clone out, matching how rhai's own variable reads
+                    // Reads clone out, matching how Rhai's own variable reads
                     // leave the scope entry alone (`eval/expr.rs:276-278`), and
                     // flattening any shared cell the way a read should.
                     self.stack
@@ -2878,7 +2878,7 @@ impl<'e> Vm<'e> {
                         None
                     };
 
-                    // Flattened before assigning, as rhai does, so a shared
+                    // Flattened before assigning, as Rhai does, so a shared
                     // cell is copied out rather than aliased into the target.
                     let rhs = self.pop()?.flatten();
                     self.assign_named(program, op, name, rhs, scope, pos())?;
@@ -3012,7 +3012,7 @@ impl<'e> Vm<'e> {
                     // Taken out of the register rather than borrowed from it:
                     // `store` wants the whole `Vm`, and a write lock into the
                     // field could not outlive that borrow. Put back on both
-                    // paths — rhai's mutation survives an error, and a frame
+                    // paths — Rhai's mutation survives an error, and a frame
                     // that lost its receiver would answer `ErrorUnboundThis` to
                     // every read after this one.
                     let mut this = self
@@ -3022,7 +3022,7 @@ impl<'e> Vm<'e> {
 
                     let outcome = if this.is_read_only() {
                         // Named for an expression that has no name, which is
-                        // what rhai reports too (`eval/stmt.rs:118-122`).
+                        // what Rhai reports too (`eval/stmt.rs:118-122`).
                         Err(Box::new(EvalAltResult::ErrorAssignmentToConstant(
                             String::new(),
                             pos(),
@@ -3128,11 +3128,11 @@ impl<'e> Vm<'e> {
                         .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
 
                     // Reach the same built-in the walker reaches. Gated on
-                    // rhai's own `fast_operators()` rather than a guard of our
+                    // Rhai's own `fast_operators()` rather than a guard of our
                     // own, so an engine that turns it off gets the dispatch
                     // path on both sides, and one that leaves it on gets the
                     // same answer — including for a user-registered operator
-                    // on a primitive, which rhai's fast path also bypasses
+                    // on a primitive, which Rhai's fast path also bypasses
                     // (`func/call.rs:1775-1799`).
                     if let (Some(token), 2, true) = (op, argc, self.engine.fast_operators()) {
                         let (lhs, rhs) = self.stack.split_at_mut(first + 1);
@@ -3222,7 +3222,7 @@ impl<'e> Vm<'e> {
                         self.sizes.pop();
                     }
 
-                    // Flattened, as rhai does, so a shared cell is copied in
+                    // Flattened, as Rhai does, so a shared cell is copied in
                     // rather than aliased.
                     let array: Array = self.stack.drain(first..).map(Dynamic::flatten).collect();
                     self.stack.push(Dynamic::from_array(array));
@@ -3252,7 +3252,7 @@ impl<'e> Vm<'e> {
                         let key = key.into_immutable_string().map_err(|actual| {
                             malformed(format!("map key is a {actual}, not a string"))
                         })?;
-                        // Flattened as rhai does, so a shared cell is copied
+                        // Flattened as Rhai does, so a shared cell is copied
                         // in rather than aliased.
                         map.insert(key.as_str().into(), value.flatten());
                     }
@@ -3339,7 +3339,7 @@ impl<'e> Vm<'e> {
                     let name = program
                         .name(index)
                         .ok_or_else(|| malformed(format!("no name {index}")))?;
-                    // Unvalidated, because `anon$…` is not a name a script could
+                    // Non-validated, because `anon$…` is not a name a script could
                     // have written and the validating constructors refuse it.
                     // Nothing unsound rides on that check — a name that will
                     // not resolve simply fails when the pointer is called.
@@ -3366,7 +3366,7 @@ impl<'e> Vm<'e> {
                     let name = name
                         .into_immutable_string()
                         .map_err(|actual| self.mismatch::<ImmutableString>(actual, pos()))?;
-                    // Validates that the name is an identifier, as rhai's own
+                    // Validates that the name is an identifier, as Rhai's own
                     // `Fn(..)` does (`func/call.rs:1215`).
                     let pointer = FnPtr::new(name).map_err(|mut err| {
                         if err.position().is_none() {
@@ -3429,7 +3429,7 @@ impl<'e> Vm<'e> {
                     let text = buffer
                         .into_immutable_string()
                         .map_err(|_| malformed("interpolation lost its buffer".into()))?;
-                    // Interned, as rhai does: the same rendered string in ten
+                    // Interned, as Rhai does: the same rendered string in ten
                     // places is one allocation, which is the whole reason the
                     // engine keeps an interner.
                     let value = self.engine.get_interned_string(text.as_str());
@@ -3504,7 +3504,7 @@ impl<'e> Vm<'e> {
                         continue;
                     };
 
-                    // Counted before the item is unwrapped, as rhai does, so a
+                    // Counted before the item is unwrapped, as Rhai does, so a
                     // loop long enough to wrap the counter is an error rather
                     // than a wrap.
                     iteration.count = iteration.count.checked_add(1).ok_or_else(|| {
@@ -3539,13 +3539,13 @@ impl<'e> Vm<'e> {
                     }
                     let value = self.pop()?;
                     // Through the cell: a closure made in an earlier iteration
-                    // shares this slot, and rhai writes into it rather than
+                    // shares this slot, and Rhai writes into it rather than
                     // replacing it (`eval/stmt.rs:752`).
                     *place(scope.get_mut_by_index(index), "", pos())? = value;
                 }
 
                 code::tag::THROW => {
-                    // Flattened, as rhai does, so a shared cell is thrown as
+                    // Flattened, as Rhai does, so a shared cell is thrown as
                     // its value rather than as the cell.
                     let value = self.pop()?.flatten();
                     return Err(Box::new(EvalAltResult::ErrorRuntime(value, pos())));
@@ -3579,7 +3579,7 @@ impl<'e> Vm<'e> {
 ///
 /// Every case enters through [`Vm::call_fn_with_options`], which is the only
 /// way to bind a receiver from outside — and which `no_function` takes away
-/// along with rhai's `CallFnOptions`.
+/// along with Rhai's `CallFnOptions`.
 #[cfg(test)]
 #[cfg(not(feature = "no_function"))]
 mod tests {
@@ -3588,7 +3588,7 @@ mod tests {
     use crate::grain::program::{Function, Parts};
     use crate::{CallFnOptions, Engine, Scope, INT};
 
-    /// A program of nullary functions, named `f` upwards in the order given.
+    /// A program of phantom functions, named `f` upwards in the order given.
     ///
     /// The main chunk does nothing: everything here is entered through
     /// [`Vm::call_fn_with_options`], which is the only thing that can bind a
@@ -3701,7 +3701,7 @@ mod tests {
         );
     }
 
-    /// `this = v` checks boundness before evaluating `v`, which is the whole
+    /// `this = v` checks binding before evaluating `v`, which is the whole
     /// reason [`Op::RequireThis`] is a separate instruction.
     #[test]
     fn assigning_to_an_unbound_receiver_is_caught_before_the_value_runs() {
@@ -3786,7 +3786,7 @@ mod tests {
 
     /// And the caller still has its own afterwards.
     #[test]
-    fn a_callees_frame_does_not_disturb_the_callers_receiver() {
+    fn a_callee_frame_does_not_disturb_the_callers_receiver() {
         let program = program_of(
             &[
                 &[
@@ -3809,7 +3809,7 @@ mod tests {
     }
 
     /// A chain rooted at `this` whose method is a chunk of ours: the receiver
-    /// becomes the callee's `this`, which is the binding rhai does at
+    /// becomes the callee's `this`, which is the binding Rhai does at
     /// `func/call.rs:649-655` and the only place a method call differs from a
     /// plain one.
     #[test]
@@ -3926,7 +3926,7 @@ mod tests {
         assert_eq!(items, vec![1, 2]);
     }
 
-    /// `f(this, ..)` is rhai's method-call rewrite, so the receiver goes by
+    /// `f(this, ..)` is Rhai's method-call rewrite, so the receiver goes by
     /// reference and a mutating native reaches the caller's value.
     #[test]
     #[cfg(not(feature = "no_index"))]

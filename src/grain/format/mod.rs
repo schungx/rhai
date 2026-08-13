@@ -1,7 +1,7 @@
 //! The on-the-wire form of a [`Program`].
 //!
 //! This is what the project is for. A device that loads bytes runs no parser
-//! and builds no tree, so neither the nodes a retained rhai `AST` costs nor the
+//! and builds no tree, so neither the nodes a retained Rhai `AST` costs nor the
 //! parser's higher peak is ever spent. Everything else — the speed, the
 //! verifier — is downstream of being able to write a program out and read it
 //! back somewhere else.
@@ -34,7 +34,7 @@
 //! Residual fragments are real `Expr` trees — precisely the allocation this
 //! removes — so a program holding any is rejected rather than partially
 //! written. A script function the compiler could not lower is rejected for the
-//! same reason: rhai keeps its own copy of that one, as an AST. Both failures
+//! same reason: Rhai keeps its own copy of that one, as an AST. Both failures
 //! name what blocked them, because "cannot serialize" without the construct is
 //! not something a script author can act on.
 
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn a_run_of_continuation_bytes_terminates() {
-        let never_ends = vec![0xffu8; 64];
+        let never_ends = vec![0xff_u8; 64];
         assert_eq!(
             Cursor::new(&never_ends).uvarint(),
             Err(ReadError::MalformedVarint),
@@ -328,7 +328,7 @@ mod tests {
         let mut ten = [0x80u8; 10];
 
         // The largest value there is: nine full groups and a final bit.
-        let widest = [[0xffu8; 9].as_slice(), &[0x01]].concat();
+        let widest = [[0xff_u8; 9].as_slice(), &[0x01]].concat();
         assert_eq!(Cursor::new(&widest).uvarint(), Ok(u64::MAX));
 
         // One past it. Shifting would drop the payload and read this as zero.

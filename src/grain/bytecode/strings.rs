@@ -7,7 +7,7 @@ use std::prelude::v1::*;
 /// Names are the largest thing a load used to allocate: an `ImmutableString`
 /// is a reference-counted box, so a hundred of them is a hundred allocations
 /// and several kilobytes. Almost none of them need to be one — a call name, an
-/// operator, a getter and a property key are all handed to rhai as `&str`.
+/// operator, a getter and a property key are all handed to Rhai as `&str`.
 ///
 /// So the table is a byte blob borrowed straight out of the artifact, and a
 /// name is a slice of it. Two allocations for the whole table, and neither
@@ -217,8 +217,8 @@ mod tests {
     /// The property the whole type exists for.
     #[test]
     fn borrowing_points_into_the_caller_s_buffer() {
-        let blob = b"alphabeta".to_vec();
-        let table = Strings::borrowed(&blob, vec![0, 5, 9]).expect("sound");
+        let blob = b"alpha-beta".to_vec();
+        let table = Strings::borrowed(&blob, vec![0, 5, 6, 10]).expect("sound");
 
         let name = table.get(0).expect("present");
         assert_eq!(name, "alpha");

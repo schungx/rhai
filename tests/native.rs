@@ -54,7 +54,7 @@ fn test_native_overload() {
     assert_eq!(engine.eval::<String>(r#"let x = "hello"; let y = (); x + y"#).unwrap(), "hello Foo!");
 }
 
-/// A native asking rhai for a function it answers by name rather than by
+/// A native asking Rhai for a function it answers by name rather than by
 /// dispatch.
 ///
 /// `type_of` and `is_shared` have no registered implementation anywhere, and a

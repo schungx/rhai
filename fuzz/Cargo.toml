@@ -49,15 +49,15 @@ doc = false
 bench = false
 
 [[bin]]
-name = "roundtrip"
-path = "fuzz_targets/roundtrip.rs"
+name = "grain_roundtrip"
+path = "fuzz_targets/grain_roundtrip.rs"
 test = false
 doc = false
 bench = false
 
 [[bin]]
-name = "generated"
-path = "fuzz_targets/generated.rs"
+name = "grain_generated"
+path = "fuzz_targets/grain_generated.rs"
 test = false
 doc = false
 bench = false

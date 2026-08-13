@@ -2,9 +2,9 @@ use rhai::ImmutableString;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-/// Assigns a slot to every local, mirroring how rhai's own `Scope` grows.
+/// Assigns a slot to every local, mirroring how Rhai's own `Scope` grows.
 ///
-/// Locals live in the caller's `Scope`, and rhai pushes an entry per
+/// Locals live in the caller's `Scope`, and Rhai pushes an entry per
 /// declaration and truncates back on block exit. So a slot is just the entry's
 /// index, and a block boundary is a mark-and-truncate on this side too.
 ///

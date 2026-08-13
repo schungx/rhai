@@ -1,4 +1,4 @@
-// Random rhai scripts, for comparing the VM against the walker on programs
+// Random Rhai scripts, for comparing the VM against the walker on programs
 // nobody wrote.
 //
 // The hand-written corpus proves the constructs someone thought to test. This
@@ -7,7 +7,7 @@
 // other shapes of that kind. Every one is run both ways and the results
 // compared, so a divergence names a script that reproduces it.
 //
-// Two constraints follow from `fuzz/fuzz_targets/generated.rs` pulling this
+// Two constraints follow from `fuzz/fuzz_targets/grain_generated.rs` pulling this
 // file in with `include!` rather than depending on it: nothing may be imported
 // beyond `std`, and the header is `//` rather than `//!`, because an included
 // file cannot open with an inner attribute.
@@ -149,7 +149,7 @@ pub struct Generator {
     loops: usize,
     depth: usize,
     /// Nesting of blocks and control flow, capped for the same reason `depth`
-    /// is: rhai counts statements towards the same complexity limit, so a
+    /// is: Rhai counts statements towards the same complexity limit, so a
     /// `while` inside an `if` inside a `for` runs out of budget on its own.
     nesting: usize,
     /// Set while generating the inside of an interpolated string, where
@@ -218,7 +218,7 @@ impl Generator {
         let arity = self.rng.below(3);
         let params: Vec<String> = (0..arity).map(|i| format!("p{i}")).collect();
 
-        // A body sees its parameters and nothing else, which is also what rhai
+        // A body sees its parameters and nothing else, which is also what Rhai
         // gives it.
         let outer = std::mem::replace(&mut self.vars, params.clone());
         let outer_loops = std::mem::replace(&mut self.loops, 0);
@@ -362,7 +362,7 @@ impl Generator {
 
     fn try_catch(&mut self) -> String {
         let mut body = self.statements();
-        // A `throw` inside, most of the time: rhai's optimizer replaces a `try`
+        // A `throw` inside, most of the time: Rhai's optimizer replaces a `try`
         // whose body is pure with a plain block, so a pure body would test the
         // optimizer rather than the handler.
         if !self.rng.chance(3) {
@@ -434,7 +434,7 @@ impl Generator {
     fn atom(&mut self) -> String {
         match self.rng.below(8) {
             0..=2 => format!("{}", self.rng.below(64)),
-            // A float literal is not syntax under `no_float` — rhai reads the
+            // A float literal is not syntax under `no_float` — Rhai reads the
             // `.` as a property access — so the whole script would fail to
             // parse and test nothing.
             #[cfg(not(feature = "no_float"))]
@@ -490,7 +490,7 @@ impl Generator {
                 format!("({lhs} {op} {})", self.expression())
             }
             6 => format!("(-{})", self.expression()),
-            // `!` takes a condition rather than any expression: rhai rejects
+            // `!` takes a condition rather than any expression: Rhai rejects
             // `!9` at parse time the same way it rejects `if 9`.
             7 => format!("(!{})", self.condition()),
             // A literal is not syntax without the type behind it, and the arm

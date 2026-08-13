@@ -1,10 +1,10 @@
-//! Calling one compiled function, with the environment and receiver rhai gives
+//! Calling one compiled function, with the environment and receiver Rhai gives
 //! it.
 //!
 //! A program's library, source and module resolver used to be installed around
 //! its *main chunk* only, so a function reached through `call_fn` ran without
 //! them. That is not a corner: the compiler leaves anything it cannot lower as
-//! an AST in the library, and rhai finds it only in `global.lib`.
+//! an AST in the library, and Rhai finds it only in `global.lib`.
 //!
 //! The other half is `this`. An event handler bound to its state through
 //! `bind_this_ptr` is the common shape of a `call_fn` caller, and the whole of
@@ -26,14 +26,14 @@ fn holder(count: INT) -> Dynamic {
 /// call below. In *expression* position it becomes a fragment instead, which
 /// leaves the function compiled and would not exercise this at all.
 ///
-/// It used to be `this` here. That stopped being unlowerable, which would have
+/// It used to be `this` here. That stopped being non-lowerable, which would have
 /// left this test passing while checking nothing.
 const PROGRAM: &str = r#"
     fn labelled() { eval("1"); 42 }
     fn outer(m) { m.labelled() }
 "#;
 
-/// The same shape, but the un-lowered function's name is also a rhai built-in
+/// The same shape, but the un-lowered function's name is also a Rhai built-in
 /// (`Dynamic::tag`). Without the library the call does not fail — it silently
 /// resolves to the built-in getter and answers 0.
 const SHADOWED: &str = r#"

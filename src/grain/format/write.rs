@@ -21,7 +21,7 @@ use crate::grain::program::Program;
 /// says "no" leaves the author guessing which line to change.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WriteError {
-    /// The program still hands fragments to rhai's walker, and a fragment is a
+    /// The program still hands fragments to Rhai's walker, and a fragment is a
     /// real `Expr` tree.
     ///
     /// Names the first construct responsible and where it is, because a caller
@@ -35,7 +35,7 @@ pub enum WriteError {
         /// Where it is in the source
         pos: rhai::Position,
     },
-    /// The program still carries rhai's own function library rather than
+    /// The program still carries Rhai's own function library rather than
     /// chunks, so its functions are ASTs an artifact cannot hold.
     HasScriptFunctions,
     /// A pooled constant carries something that has no meaning in another
@@ -64,7 +64,7 @@ impl core::fmt::Display for WriteError {
             } => write!(
                 f,
                 "{construct} at {pos} is not compiled yet, so this program still has \
-                 {count} fragment(s) that only rhai's walker can evaluate"
+                 {count} fragment(s) that only Rhai's walker can evaluate"
             ),
             Self::HasScriptFunctions => {
                 f.write_str("script functions are still ASTs and cannot be written")
@@ -186,7 +186,7 @@ pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, 
 }
 
 /// A step's position, which travels with the step rather than in the position
-/// table — see [`Step::pos`]. Line zero means none, because rhai's own line
+/// table — see [`Step::pos`]. Line zero means none, because Rhai's own line
 /// numbers start at one.
 fn put_position(out: &mut Vec<u8>, pos: rhai::Position) {
     put_uvarint(out, pos.line().unwrap_or(0) as u64);
@@ -268,7 +268,7 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
 ///
 /// Rhai's parser keeps only the *hash* of a case value (`ast/stmt.rs:336`), so
 /// there is nothing here to re-hash at load — and by default those hashes do
-/// not survive the trip, because rhai's default features include
+/// not survive the trip, because Rhai's default features include
 /// `ahash/runtime-rng` and the seed is drawn per process. An artifact with a
 /// `switch` in it therefore requires `config::hashing::set_hashing_seed` with
 /// the same seed on both sides.

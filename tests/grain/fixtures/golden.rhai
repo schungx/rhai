@@ -6,7 +6,7 @@
 // means regenerating the artifact, which is the point — the pair only proves
 // anything while the artifact is older than the reader.
 //
-// No `switch`. A switch table carries hashes from rhai's per-process hasher
+// No `switch`. A switch table carries hashes from Rhai's per-process hasher
 // seed, so an artifact holding one is refused by any process that did not set
 // the same seed (`format/write.rs:237`). That is right for a real artifact and
 // useless for a fixture, which has to load anywhere.

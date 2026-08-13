@@ -22,7 +22,7 @@ use std::prelude::v1::*;
 /// what makes that free. The compact delta form in [`pos`](crate::grain::pos)
 /// is the wire form, expanded once at load.
 ///
-/// [`Positions::Stripped`] is not a degraded mode to apologise for: it is what
+/// [`Positions::Stripped`] is not a degraded mode to apologize for: it is what
 /// a device runs. Errors come back carrying an instruction address instead of a
 /// position, and the host that kept the table resolves it.
 #[derive(Debug, Clone, Default)]
@@ -159,7 +159,7 @@ impl core::fmt::Display for TableError {
     }
 }
 
-/// A [`Site`] is plain numbers, on purpose — turning it into rhai's own type is
+/// A [`Site`] is plain numbers, on purpose — turning it into Rhai's own type is
 /// this side's job.
 fn site_to_position(site: Site) -> Position {
     let (Ok(line), Ok(column)) = (u16::try_from(site.line), u16::try_from(site.column)) else {

@@ -1,14 +1,14 @@
 //! Reaching a compiled chunk from inside a native function.
 //!
 //! `[1, 2, 3].map(|x| x * 2)` leaves this VM in the middle of a call. `map` is
-//! rhai's, and the pointer it calls back is resolved by rhai's dispatch, which
+//! rhai's, and the pointer it calls back is resolved by Rhai's dispatch, which
 //! looks in `global.lib` and the engine's modules. Our chunks are in neither:
 //! [`Op::Call`](crate::bytecode::Op::Call) finds one by a name *index* that
 //! only the compiler and the call site share, and a `FnPtr` carries a string.
 //!
 //! So a program that hands a pointer out registers one native wrapper per
 //! compiled function for the length of the run. Direct dispatch is untouched —
-//! this is somewhere for rhai to look, not somewhere we look.
+//! this is somewhere for Rhai to look, not somewhere we look.
 //!
 //! # What being a native costs
 //!
@@ -20,7 +20,7 @@
 //!   `this`.** A capture is a curried value, and `_call_with_extra_args`
 //!   (`types/fn_ptr.rs:573`) tries `[this] ++ curry ++ args` first for anything
 //!   that is not a `Fn*` pointer. That shape is never right, and it is what a
-//!   wrapper answers to. Stock rhai does the same thing to its own name-only
+//!   wrapper answers to. Stock Rhai does the same thing to its own name-only
 //!   pointers — `stock_rhai_does_the_same_to_its_own_native_pointers` in
 //!   `tests/callback.rs` reproduces it with none of this involved — so the fix
 //!   is not here; it is upstream, or in not currying captures at all.
@@ -49,7 +49,7 @@ use crate::grain::program::SharedProgram;
 
 /// The most parameters a wrapper is registered for.
 ///
-/// A wrapper takes `Dynamic` throughout, and rhai only reaches a `Dynamic`
+/// A wrapper takes `Dynamic` throughout, and Rhai only reaches a `Dynamic`
 /// parameter by permuting the call's own argument types towards it — a search
 /// it caps at `MAX_DYNAMIC_PARAMETERS`, 16 (`func/call.rs:235`). A wider
 /// wrapper would be registered and never found, so it is left out rather than
@@ -57,14 +57,14 @@ use crate::grain::program::SharedProgram;
 /// native can call back into.
 const MAX_PARAMS: usize = 16;
 
-/// A wrapper per compiled function, for rhai to resolve a pointer against.
+/// A wrapper per compiled function, for Rhai to resolve a pointer against.
 ///
 /// Built once per run rather than cached on the program: the closures hold the
 /// program, so anything the program held back would be a cycle.
 pub(super) fn wrappers(program: &SharedProgram) -> Module {
     let mut module = Module::new();
 
-    // What rhai reports as the source of a function it found here. Its own
+    // What Rhai reports as the source of a function it found here. Its own
     // script library is the AST's, so this is the same string by the same
     // route.
     if let Some(source) = program.source() {
@@ -77,7 +77,7 @@ pub(super) fn wrappers(program: &SharedProgram) -> Module {
             continue;
         }
         // A `this`-taking chunk cannot be reached this way. A wrapper is
-        // registered at one arity, and how many arguments rhai asks for depends
+        // registered at one arity, and how many arguments Rhai asks for depends
         // on what the *native* appends beside the receiver — `map` adds an
         // index, `reduce` adds the running result — which the wrapper has no way
         // to know. Rhai's own pointer carries the body and sizes the call from
@@ -125,7 +125,7 @@ fn invoke(
     context: Option<&NativeCallContext>,
     args: &mut [&mut Dynamic],
 ) -> VmResult {
-    // Registered with `has_context`, so rhai always supplies one.
+    // Registered with `has_context`, so Rhai always supplies one.
     let context =
         context.ok_or_else(|| malformed("a callback wrapper was given no context".into()))?;
 

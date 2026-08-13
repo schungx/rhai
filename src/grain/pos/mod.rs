@@ -1,7 +1,7 @@
-//! Turning a rhaigrain instruction address back into a source position,
+//! Turning a Rhai Grain instruction address back into a source position,
 //! without `std`.
 //!
-//! A rhaigrain artifact carries no positions in its instruction stream. They
+//! A Rhai Grain artifact carries no positions in its instruction stream. They
 //! live in a separate table, so a device can be shipped the bytecode alone and
 //! the table kept on the host that compiled it — which is the point, because a
 //! position on every instruction is a large fraction of the artifact and is
@@ -16,8 +16,9 @@
 //!
 //! It resolves the first hop only. A script that was minified before it was
 //! compiled needs a second: the [`Site`] is a position in the *minified*
-//! source, and a Source Map v3 resolver such as `rhaiper-map` takes it the rest
-//! of the way to the original.
+//! source, and a Source Map v3 resolver such as
+//! [`rhaiper-map`](https://crates.io/crates/rhaiper-map) takes it the rest of
+//! the way to the original.
 //!
 //! ```text
 //! instruction address --[this crate]--> minified line:col --[a source map]--> original
@@ -40,7 +41,7 @@ pub mod varint;
 
 /// A place in a source file.
 ///
-/// Both fields follow rhai's own convention: `line` counts from 1, and
+/// Both fields follow Rhai's own convention: `line` counts from 1, and
 /// `column` counts characters from 1 with 0 meaning the start of a line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Site {
