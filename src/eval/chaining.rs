@@ -11,10 +11,7 @@ use crate::{
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{
-    convert::{TryFrom, TryInto},
-    hash::Hash,
-};
+use std::{convert::TryInto, hash::Hash};
 
 /// Function call hashes to index getters and setters.
 static INDEXER_HASHES: OnceCell<(u64, u64)> = OnceCell::new();
@@ -121,6 +118,9 @@ impl Engine {
         _add_if_not_found: bool,
         use_indexers: bool,
     ) -> RhaiResultOf<Target<'t>> {
+        #[cfg(not(feature = "no_index"))]
+        use std::convert::TryFrom;
+
         self.track_operation(global, Position::NONE)?;
 
         match target {
