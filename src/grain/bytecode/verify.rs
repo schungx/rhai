@@ -234,12 +234,13 @@ fn verify_chunk(
         high_water = high_water.max(depth);
 
         let op = code::decode(code, at).ok_or(VerifyError::Undecodable { at })?;
-        let (pops, pushes) = effect(&op, pools);
+        let (requires, pops, pushes) = effect(&op, pools);
+        assert!(requires >= pops);
 
-        if depth < pops {
+        if depth < requires {
             return Err(VerifyError::Underflow {
                 at,
-                need: pops,
+                need: requires,
                 have: depth,
             });
         }
@@ -388,16 +389,19 @@ fn verify_chunk(
     Ok(high_water)
 }
 
-/// How many operands an instruction consumes and produces.
-fn effect(op: &Op, pools: Pools) -> (usize, usize) {
+/// How many operands an instruction requires, consumes and produces.
+fn effect(op: &Op, pools: Pools) -> (usize, usize, usize) {
     match op {
         // A chain eats the indices and arguments its steps named, plus a root
         // that is not a slot, plus the value being assigned, and leaves one
         // behind. An index with no chain behind it reads as consuming nothing;
         // `check_indices` is what rejects it.
         Op::Chain(index) => match pools.chains.get(*index as usize) {
-            Some(chain) => (chain.consumes(), 1),
-            None => (0, 1),
+            Some(chain) => {
+                let consumes = chain.consumes();
+                (consumes, consumes, 1)
+            }
+            None => (0, 0, 1),
         },
 
         Op::Const(..)
@@ -410,79 +414,90 @@ fn effect(op: &Op, pools: Pools) -> (usize, usize) {
         | Op::MakeClosure(..)
         | Op::LoadThis
         | Op::LoadThisShared
-        | Op::EvalAst { .. } => (0, 1),
+        | Op::EvalAst { .. } => (0, 0, 1),
 
         // A binding check, which either raises or does nothing.
-        Op::RequireThis => (0, 0),
+        Op::RequireThis => (0, 0, 0),
 
         // Sharing is a change to the scope, not to the operand stack.
-        Op::Share(..) | Op::ShareNamed(..) => (0, 0),
+        Op::Share(..) | Op::ShareNamed(..) => (0, 0, 0),
 
-        Op::StoreLocal(..) | Op::DeclareLocal { .. } | Op::Pop => (1, 0),
+        Op::StoreLocal(..) | Op::DeclareLocal { .. } | Op::Pop => (1, 1, 0),
 
         // Pops the value, leaves nothing: the statement's unit value is a
         // separate `Op::Unit`.
-        Op::AssignLocal { .. } | Op::AssignNamed { .. } | Op::AssignThis { .. } => (1, 0),
+        Op::AssignLocal { .. } | Op::AssignNamed { .. } | Op::AssignThis { .. } => (1, 1, 0),
 
-        Op::JumpIfFalse { .. } | Op::JumpIfTrue { .. } | Op::Switch(..) => (1, 0),
+        Op::JumpIfFalse { .. } | Op::JumpIfTrue { .. } | Op::Switch(..) => (1, 1, 0),
 
         Op::Jump(..)
-        | Op::SkipIfNotUnit { .. }
         | Op::UnwindTo(..)
         | Op::Tick
         | Op::Checkpoint
         | Op::PushHandler { .. }
-        | Op::PopHandler => (0, 0),
+        | Op::PopHandler => (0, 0, 0),
+
+        Op::SkipIfNotUnit { .. } => (1, 0, 0),
 
         // Arguments in, result out.
-        Op::Call { argc, .. } => (*argc as usize, 1),
+        Op::Call { argc, .. } => (*argc as usize, *argc as usize, 1),
 
         // A named receiver's value is argument zero like any other, and so is
         // `this` — which is pushed first rather than last, but the depth is the
         // same either way. A local's is not on the stack at all. An `argc` of
         // zero names no receiver and is rejected when it runs.
         Op::CallRef { argc, receiver, .. } => match receiver {
-            Receiver::Local(..) => ((*argc as usize).saturating_sub(1), 1),
-            Receiver::Named(..) | Receiver::This => (*argc as usize, 1),
+            Receiver::Local(..) => {
+                let len = (*argc as usize).saturating_sub(1);
+                (len, len, 1)
+            }
+            Receiver::Named(..) | Receiver::This => (*argc as usize, *argc as usize, 1),
         },
 
         // Reorders what is already there, so the depth is unchanged — but it
         // has to reach every one of them, and saying so is what stops a
         // hand-made artifact reaching under the frame.
-        Op::Rotate(under) => (*under as usize + 1, *under as usize + 1),
+        Op::Rotate(under) => (
+            *under as usize + 1,
+            *under as usize + 1,
+            *under as usize + 1,
+        ),
 
-        Op::MakeArray(len) => (*len as usize, 1),
+        Op::MakeArray(len) => (*len as usize, *len as usize, 1),
 
         // A key and a value per entry, and the template underneath them.
-        Op::MakeMap(len) => (2 * *len as usize + 1, 1),
+        Op::MakeMap(len) => {
+            let len = 2 * *len as usize + 1;
+            (len, len, 1)
+        }
 
         // Measures the element it is standing on without taking it: the
         // literal is still being built and every element it has so far is
         // still on the stack.
-        Op::CheckSize { .. } => (1, 1),
+        Op::CheckSize { .. } => (1, 1, 1),
 
         // The buffer is an ordinary operand: started, appended to, then
         // replaced by the string it built.
         // A name in, a pointer out.
-        Op::MakeFnPtr | Op::IsShared => (1, 1),
+        Op::MakeFnPtr | Op::IsShared => (1, 1, 1),
         // The arguments and the pointer itself, leaving one of each.
-        Op::Curry(argc) => (*argc as usize + 1, 1),
-        Op::CallFnPtr { argc, .. } => (*argc as usize + 1, 1),
+        Op::Curry(argc) => (*argc as usize + 1, *argc as usize + 1, 1),
+        Op::CallFnPtr { argc, .. } => (*argc as usize + 1, *argc as usize + 1, 1),
 
-        Op::InterpolateStart => (0, 1),
-        Op::InterpolateAppend => (1, 0),
-        Op::InterpolateEnd => (1, 1),
+        Op::InterpolateStart => (0, 0, 1),
+        Op::InterpolateAppend => (1, 1, 0),
+        Op::InterpolateEnd => (1, 1, 1),
 
         // Pops the thrown value; nothing follows, so what it leaves is moot.
-        Op::Throw | Op::StoreShared(..) => (1, 0),
+        Op::Throw | Op::StoreShared(..) => (1, 1, 0),
 
         // The iterable goes onto the iterator stack, not back onto this one.
-        Op::IterInit => (1, 0),
+        Op::IterInit => (1, 1, 0),
         // Its two edges disagree, so the successor match does the work.
-        Op::IterNext { .. } | Op::IterDrop => (0, 0),
+        Op::IterNext { .. } | Op::IterDrop => (0, 0, 0),
 
         // Consumes whatever is left, so depth afterwards is not meaningful.
-        Op::Return => (0, 0),
+        Op::Return => (0, 0, 0),
     }
 }
 
