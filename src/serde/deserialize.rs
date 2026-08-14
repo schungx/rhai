@@ -1,6 +1,6 @@
 //! Implementations of [`serde::Deserialize`].
 
-use crate::{Dynamic, Identifier, ImmutableString, Scope, INT};
+use crate::{Dynamic, ImmutableString, Scope, INT};
 use serde::{
     de::{Error, SeqAccess, Visitor},
     Deserialize, Deserializer,
@@ -247,8 +247,8 @@ impl<'de> Visitor<'de> for DynamicVisitor {
     fn visit_map<M: serde::de::MapAccess<'de>>(self, mut map: M) -> Result<Self::Value, M::Error> {
         let mut m = crate::Map::new();
 
-        while let Some((k, v)) = map.next_entry()? {
-            m.insert(k, v);
+        while let Some((k, v)) = map.next_entry::<String, Dynamic>()? {
+            m.insert(k.into(), v);
         }
 
         Ok(m.into())
@@ -275,7 +275,7 @@ impl<'de> Deserialize<'de> for Scope<'_> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Debug, Clone, Hash, Deserialize)]
         struct ScopeEntry {
-            pub name: Identifier,
+            pub name: String,
             pub value: Dynamic,
             #[serde(default)]
             pub is_constant: bool,
