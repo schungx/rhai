@@ -68,6 +68,9 @@ pub struct GlobalRuntimeState {
     #[cfg(not(feature = "no_module"))]
     #[cfg(not(feature = "no_function"))]
     pub constants: Option<SharedGlobalConstants>,
+    /// Where a Grain program failed, innermost frame first.
+    #[cfg(feature = "grain")]
+    pub(crate) grain_faults: Option<crate::Shared<crate::Locked<Vec<crate::grain::Fault>>>>,
     /// Custom state that can be used by the external host.
     pub tag: Dynamic,
     /// Debugging interface.
@@ -101,6 +104,9 @@ impl Engine {
             #[cfg(not(feature = "no_module"))]
             #[cfg(not(feature = "no_function"))]
             constants: None,
+
+            #[cfg(feature = "grain")]
+            grain_faults: None,
 
             tag: self.default_tag().clone(),
 

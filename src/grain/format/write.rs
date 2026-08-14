@@ -113,6 +113,9 @@ pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, 
     out.push(abi.float_bytes);
     out.extend_from_slice(&abi.flags.to_le_bytes());
 
+    // All artifacts must know their debug ID in case they are stripped
+    out.extend_from_slice(&program.debug_id().to_le_bytes());
+
     put_str(&mut out, program.source().map_or("", |s| s.as_str()));
 
     // One blob and a list of spans, so a loader can point at the names where
@@ -143,7 +146,7 @@ pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, 
 
     put_uvarint(&mut out, program.chains().len() as u64);
     for chain in program.chains() {
-        put_chain_spec(&mut out, chain);
+        put_chain_spec(&mut out, chain, positions);
     }
 
     put_switches(&mut out, program.switches());
@@ -188,12 +191,20 @@ pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, 
 /// A step's position, which travels with the step rather than in the position
 /// table — see [`Step::pos`]. Line zero means none, because Rhai's own line
 /// numbers start at one.
-fn put_position(out: &mut Vec<u8>, pos: rhai::Position) {
-    put_uvarint(out, pos.line().unwrap_or(0) as u64);
-    put_uvarint(out, pos.position().unwrap_or(0) as u64);
+///
+/// Zeroed when stripping so an older reader goes on
+/// reading two varints and gets no position. The
+/// sites go to [`sites`](crate::grain::bytecode::sites) instead.
+fn put_position(out: &mut Vec<u8>, pos: rhai::Position, positions: Positions) {
+    let (line, column) = match positions {
+        Positions::Keep => (pos.line().unwrap_or(0), pos.position().unwrap_or(0)),
+        Positions::Strip => (0, 0),
+    };
+    put_uvarint(out, line as u64);
+    put_uvarint(out, column as u64);
 }
 
-fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
+fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain, positions: Positions) {
     match chain.root {
         Root::Local { slot, name } => {
             out.push(root_tag::LOCAL);
@@ -203,11 +214,11 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
         Root::Named { name, pos } => {
             out.push(root_tag::NAMED);
             put_uvarint(out, u64::from(name));
-            put_position(out, pos);
+            put_position(out, pos, positions);
         }
         Root::This { pos } => {
             out.push(root_tag::THIS);
-            put_position(out, pos);
+            put_position(out, pos, positions);
         }
         Root::Temporary => out.push(root_tag::TEMPORARY),
     }
@@ -223,8 +234,8 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
             } => {
                 out.push(step_tag::INDEX);
                 put_uvarint(out, u64::from(*operand));
-                put_position(out, *pos);
-                put_position(out, *bracket);
+                put_position(out, *pos, positions);
+                put_position(out, *bracket, positions);
             }
             Step::Property {
                 name,
@@ -236,7 +247,7 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
                 put_uvarint(out, u64::from(*name));
                 put_uvarint(out, u64::from(*getter));
                 put_uvarint(out, u64::from(*setter));
-                put_position(out, *pos);
+                put_position(out, *pos, positions);
             }
             Step::Method {
                 name,
@@ -248,7 +259,7 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain) {
                 put_uvarint(out, u64::from(*name));
                 out.push(*argc);
                 put_uvarint(out, u64::from(*operand));
-                put_position(out, *pos);
+                put_position(out, *pos, positions);
             }
         }
     }

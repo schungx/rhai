@@ -78,9 +78,33 @@
 //! ```
 //!
 //! Diagnostics are separable: [`Program::write_stripped`] hands back the
-//! artifact and its position table separately, so the device carries only the
-//! first and a failure there comes back as an instruction address the host
-//! turns into a source position with [`pos::resolve`].
+//! artifact and a [`Sidecar`] separately, so the device carries only the first.
+//! A failure comes back as one [`Fault`] per frame, and the host resolves those
+//! against the sidecar it kept — a stack of addresses on one side, a symbol
+//! file on the other, as a crash reporter does.
+//!
+//! ```
+//! use rhai::grain::{Compiler, Program, Vm};
+//! use rhai::{Engine, Scope};
+//!
+//! let engine = Engine::new();
+//! let ast = engine.compile("fn half(x) { x / 0 }\nhalf(4)")?;
+//! let stripped = Compiler::new().compile(&ast).write_stripped().unwrap();
+//!
+//! // The device has the artifact and nothing else. It fails, and all it can
+//! // say is which instructions — innermost frame first.
+//! let program = Program::read(&stripped.artifact).unwrap();
+//! let mut vm = Vm::new(&engine);
+//! let error = vm.eval_with_scope(&mut Scope::new(), &program).unwrap_err();
+//! assert!(error.position().is_none());
+//! let trace = vm.fault_trace();
+//!
+//! // The host kept the sidecar, and turns that back into a backtrace.
+//! let sites = stripped.sidecar.resolve(&trace);
+//! assert_eq!(sites[0].unwrap().line, 1); // the divide, inside `half`
+//! assert_eq!(sites[1].unwrap().line, 2); // the call to it
+//! # Ok::<_, Box<rhai::EvalAltResult>>(())
+//! ```
 
 // A VM that runs untrusted bytecode has no business containing any, and saying
 // so here makes it the compiler's problem rather than a promise. `crates/
@@ -95,5 +119,6 @@ mod program;
 mod vm;
 
 pub use compile::Compiler;
+pub use format::{Sidecar, Stripped};
 pub use program::Program;
-pub use vm::Vm;
+pub use vm::{Fault, Vm};

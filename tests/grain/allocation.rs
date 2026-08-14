@@ -251,7 +251,10 @@ fn allocation_footprint() {
     // tree, and the artifact that replaces it.
     let follow_program = Compiler::new().compile(&follow_ast.value);
     assert_eq!(follow_program.residual_count(), 0, "follow.rhai must lower completely, or there is nothing to write",);
-    let (follow_artifact, follow_table) = follow_program.write_stripped().expect("follow.rhai must be writable");
+    let follow_stripped = follow_program.write_stripped().expect("follow.rhai must be writable");
+    let follow_artifact = follow_stripped.artifact;
+    // Both halves of the sidecar are what stripping keeps off the wire.
+    let follow_table = follow_stripped.sidecar.positions.len() + follow_stripped.sidecar.chains.len();
     let follow_loaded = measure(|| rhai::grain::Program::read(&follow_artifact).expect("must load"));
 
     println!(
@@ -263,7 +266,7 @@ fn allocation_footprint() {
         follow_ast.count,
         follow_ast.peak,
         follow_artifact.len(),
-        follow_table.len(),
+        follow_table,
         follow_loaded.bytes,
         follow_loaded.count,
     );
@@ -284,7 +287,7 @@ fn allocation_footprint() {
         let program = Compiler::new().compile(&tree.value);
         assert_eq!(program.residual_count(), 0, "LOADABLE must lower completely, or this measures the walker",);
 
-        let (stripped, _) = program.write_stripped().expect("must be writable");
+        let stripped = program.write_stripped().expect("must be writable").artifact;
         let loaded = measure(|| rhai::grain::Program::read(&stripped).expect("must load"));
 
         // Borrowed, not copied: the code section contributes nothing at all to

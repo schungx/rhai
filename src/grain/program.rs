@@ -7,8 +7,10 @@ use crate::module_resolvers::StaticModuleResolver;
 use crate::{ast::Expr, ast::Stmt, tokenizer::Token, Dynamic, ImmutableString, Module, Shared};
 
 use crate::grain::bytecode::{
-    AssignOp, Chain, Chunk, Code, Op, Pools, Positions, Root, Strings, Switch, TableError,
+    site_to_position, sites, AssignOp, Chain, Chunk, Code, Op, Pools, Positions, Root, Strings,
+    Switch, TableError,
 };
+use crate::grain::format::Sidecar;
 
 /// Rhai's own `SharedModule`, which it does not re-export.
 pub(crate) type SharedModule = Shared<Module>;
@@ -102,6 +104,13 @@ pub struct Program<'a> {
     /// the table, so an error arrives as an instruction address and is resolved
     /// where the source is. See [`crate::bytecode::Positions`].
     positions: Positions,
+
+    /// Names the diagnostics that were compiled with this program.
+    ///
+    /// Survives [`Program::strip_positions`] and travels in the artifact, so a
+    /// program that no longer holds its positions can still say which sidecar
+    /// is the one that fits. See [`Program::debug_id`].
+    debug_id: u128,
 
     residuals: Vec<Expr>,
 
@@ -276,6 +285,12 @@ pub(crate) fn takes_this(code: &[u8], chunk: Chunk, chains: &[Chain]) -> bool {
 /// does not take ten positional arguments.
 pub(crate) struct Parts<'a> {
     pub positions: Positions,
+    /// Names the diagnostics, or `None` to derive one from `positions` and
+    /// `chains`.
+    ///
+    /// A loaded program passes the artifact's, because a stripped one no longer
+    /// has the diagnostics to derive it from.
+    pub debug_id: Option<u128>,
     pub residuals: Vec<Expr>,
     pub consts: Vec<Dynamic>,
     pub names: Strings<'a>,
@@ -306,6 +321,15 @@ impl<'a> Program<'a> {
             function.takes_this = takes_this(&code, function.chunk, &parts.chains);
         }
 
+        // Derived from the diagnostics it was built with, unless a loader
+        // supplied the artifact's.
+        let debug_id = parts.debug_id.unwrap_or_else(|| {
+            crate::grain::format::debug_id(
+                &parts.positions.to_table(),
+                &sites::encode(&parts.chains),
+            )
+        });
+
         let mut program = Self {
             code,
             main,
@@ -314,6 +338,7 @@ impl<'a> Program<'a> {
             makes_fn_pointers,
             has_typed_methods,
             positions: parts.positions,
+            debug_id,
             residuals: parts.residuals,
             consts: parts.consts,
             names: parts.names,
@@ -344,6 +369,7 @@ impl<'a> Program<'a> {
             makes_fn_pointers: self.makes_fn_pointers,
             has_typed_methods: self.has_typed_methods,
             positions: self.positions,
+            debug_id: self.debug_id,
             residuals: self.residuals,
             consts: self.consts,
             names: self.names.into_owned(),
@@ -578,28 +604,66 @@ impl<'a> Program<'a> {
         &self.positions
     }
 
-    /// Drop the position table, returning it in its compact wire form.
-    ///
-    /// This is the separation the debug layer exists for: ship the program to
-    /// the device and keep what comes back here. Errors then arrive with no
-    /// position, and [`pos::resolve`](crate::grain::pos::resolve) turns the failing instruction
-    /// address back into one — see [`Program::attach_positions`] for the
-    /// inverse.
-    pub fn strip_positions(&mut self) -> Vec<u8> {
-        let table = self.positions.to_table();
-        self.positions = Positions::Stripped;
-        table
+    /// Names the diagnostics this program was compiled with.
+    #[must_use]
+    pub fn debug_id(&self) -> u128 {
+        self.debug_id
     }
 
-    /// Put a stripped table back, so this program reports positions again.
+    /// Drop this program's diagnostics, returning them.
+    ///
+    /// See [`Program::attach_positions`] for the inverse.
+    pub fn strip_positions(&mut self) -> Sidecar {
+        let sidecar = self.sidecar();
+
+        self.positions = Positions::Stripped;
+        for chain in &mut self.chains {
+            for pos in chain.positions_mut() {
+                *pos = rhai::Position::NONE;
+            }
+        }
+
+        sidecar
+    }
+
+    /// Put a sidecar back, so this program reports positions again.
     ///
     /// # Errors
     ///
-    /// Refuses a malformed table, and refuses one whose addresses do not fit
-    /// this chunk — attaching another program's table would misreport every
-    /// error rather than reporting none, which is strictly worse.
-    pub fn attach_positions(&mut self, table: &[u8]) -> Result<(), TableError> {
-        self.positions = Positions::from_table(table, self.code.len())?;
+    /// Refuses a malformed sidecar, or one from another program. Attaching the
+    /// wrong one would misreport every error rather than reporting none.
+    pub fn attach_positions(&mut self, sidecar: &Sidecar) -> Result<(), TableError> {
+        if sidecar.debug_id != self.debug_id {
+            return Err(TableError::WrongProgram {
+                expected: sidecar.debug_id,
+                found: self.debug_id,
+            });
+        }
+
+        // Both decoded before either is applied, so a sidecar sound in one half
+        // and not the other leaves the program as it was.
+        let positions = Positions::from_table(&sidecar.positions, &self.code)?;
+        let sites = sites::decode(&sidecar.chains).map_err(TableError::ChainStream)?;
+
+        let slots = self.chains.iter().map(Chain::position_slots).sum::<u32>() as usize;
+        if sites.len() != slots {
+            return Err(TableError::ChainCount {
+                sites: sites.len(),
+                slots,
+            });
+        }
+
+        let mut sites = sites.into_iter();
+        for chain in &mut self.chains {
+            for pos in chain.positions_mut() {
+                *pos = sites
+                    .next()
+                    .flatten()
+                    .map_or(rhai::Position::NONE, site_to_position);
+            }
+        }
+
+        self.positions = positions;
         Ok(())
     }
 
@@ -735,6 +799,7 @@ mod tests {
             functions,
             Parts {
                 positions: Positions::default(),
+                debug_id: None,
                 residuals: Vec::new(),
                 consts: Vec::new(),
                 names: Strings::new(["f", "i64", "string"]),

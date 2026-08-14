@@ -394,6 +394,36 @@ fn script_functions_survive_the_round_trip() {
     }
 }
 
+/// Nothing about a compile may depend on the run that performed it.
+///
+/// The hash seed is fixed within a process, so this cannot catch a hash-ordered
+/// function list — `functions_are_lowered_in_a_stable_order` in `grain::compile`
+/// checks that directly. This covers the rest: a counter, an address-keyed
+/// dedup, anything that would make the second artifact differ.
+#[test]
+#[cfg(not(feature = "no_function"))]
+fn the_same_source_compiles_to_the_same_bytes() {
+    let engine = corpus::engine();
+    let source = "
+        fn zulu(x) { x + 1 }
+        fn alpha(a, b) { zulu(a) * b }
+        fn alpha(a) { zulu(a) }
+        fn mike() { 7 }
+        alpha(2, 3) + alpha(4) + mike()
+    ";
+
+    let ast = engine.compile(source).expect("must compile");
+    let first = Compiler::new().compile(&ast).write().expect("must be writable");
+    let second = Compiler::new().compile(&ast).write().expect("must be writable");
+
+    assert_eq!(first, second, "two compiles of one source disagree");
+
+    let reparsed = engine.compile(source).expect("must compile");
+    let third = Compiler::new().compile(&reparsed).write().expect("must be writable");
+
+    assert_eq!(first, third, "two parses of one source disagree");
+}
+
 /// A function the compiler cannot lower stays rhai's, and a program that still
 /// depends on Rhai's copy cannot be written — silently dropping it would
 /// produce an artifact that loads and then cannot find its own function.
@@ -616,10 +646,10 @@ fn a_stripped_program_reports_an_address_the_host_can_resolve() {
     let ast = engine.compile(source).expect("must compile");
     let full = Compiler::new().compile(&ast);
     let expected = run_stock(&engine, source);
-    let (shipped, table) = full.write_stripped().expect("must be writable");
+    let stripped = full.write_stripped().expect("must be writable");
 
     // Device: run bytes, with no table and no source.
-    let device = Program::read(&shipped).expect("the device must load it");
+    let device = Program::read(&stripped.artifact).expect("the device must load it");
     assert!(device.positions().is_stripped(), "a stripped artifact must not carry positions",);
 
     let mut vm = Vm::new(&engine);
@@ -627,22 +657,22 @@ fn a_stripped_program_reports_an_address_the_host_can_resolve() {
     let address = vm.fault_pc().expect("a failed run must name an instruction");
 
     // Host: resolve what came back.
-    let site = rhai::grain::pos::resolve(&table, address as u32).expect("the failing instruction must have a recorded site");
+    let site = rhai::grain::pos::resolve(&stripped.sidecar.positions, address as u32).expect("the failing instruction must have a recorded site");
 
     assert_eq!((site.line, site.column), (3, 3), "the division is at line 3, column 3 of {source:?}",);
 
-    // And the same program with its table attached says so itself, exactly as
+    // And the same program with its sidecar attached says so itself, exactly as
     // Rhai does — which is what makes the resolved site trustworthy.
-    let mut reattached = Program::read(&shipped).unwrap();
-    reattached.attach_positions(&table).expect("its own table must attach");
+    let mut reattached = Program::read(&stripped.artifact).unwrap();
+    reattached.attach_positions(&stripped.sidecar).expect("its own sidecar must attach");
     assert_eq!(run(&engine, reattached), expected);
 
     // The stripped run is the same failure, minus the position.
     assert!(error.position().is_none(), "a stripped program has no position to report, got {:?}", error.position(),);
 }
 
-/// Attaching another program's table would misreport every error rather than
-/// reporting none, which is strictly worse than having no table.
+/// Attaching another program's sidecar would misreport every error rather than
+/// reporting none, which is worse than having no sidecar at all.
 #[test]
 #[cfg(not(feature = "no_position"))]
 fn a_table_from_a_different_program_is_refused() {
@@ -651,11 +681,192 @@ fn a_table_from_a_different_program_is_refused() {
     let short = Compiler::new().compile(&engine.compile("1 + 1").unwrap());
     let long = Compiler::new().compile(&engine.compile("let a = 1; while a < 9 { a += 1 } a").unwrap());
 
-    let (_, long_table) = long.write_stripped().expect("must be writable");
-    let (short_bytes, _) = short.write_stripped().expect("must be writable");
+    let long_stripped = long.write_stripped().expect("must be writable");
+    let short_stripped = short.write_stripped().expect("must be writable");
 
-    let mut program = Program::read(&short_bytes).unwrap();
-    assert!(program.attach_positions(&long_table).is_err(), "a table naming instructions this chunk does not have must be refused",);
+    let mut program = Program::read(&short_stripped.artifact).unwrap();
+    assert!(program.attach_positions(&long_stripped.sidecar).is_err(), "a sidecar taken from another program must be refused",);
+}
+
+/// The whole point of the split, end to end.
+///
+/// A device runs an artifact with no positions in it, fails, and can say only
+/// which instructions — innermost frame first. The host resolves that against
+/// the sidecar it kept and has a backtrace.
+///
+/// Every frame resolves on its own, so a run that crossed a native is not a
+/// special case: `xs.map(|x| half(x))` gives the divide inside `half`, the call
+/// to it inside the closure, and the `map` that started it.
+///
+/// `unchecked` makes a division by zero a panic, and `no_position` leaves
+/// nothing to resolve.
+#[test]
+#[cfg(not(any(feature = "no_position", feature = "unchecked", feature = "no_function")))]
+fn a_device_reports_addresses_the_host_turns_into_a_backtrace() {
+    let engine = corpus::engine();
+
+    for (what, source, want) in [
+        ("in main", "let a = 1;\nlet b = 0;\na / b", &[(3, 3)][..]),
+        ("one call deep", "fn half(x) { x / 0 }\nhalf(4)", &[(1, 16), (2, 1)]),
+        ("two calls deep", "fn inner(x) { x / 0 }\nfn outer(y) { inner(y) }\nouter(2)", &[(1, 17), (2, 15), (3, 1)]),
+        // A chain step is reached through an array here and a callback through
+        // a method on one, so the restricted builds that remove either leave
+        // nothing here that parses.
+        #[cfg(not(feature = "no_index"))]
+        ("in a chain step", "let k = [1, 2];\nk[9]", &[(2, 3)]),
+        #[cfg(not(feature = "no_index"))]
+        #[cfg(not(feature = "no_closure"))]
+        #[cfg(not(feature = "no_object"))]
+        ("in a callback", "let xs = [1, 2, 3];\nxs.map(|x| x / 0)", &[(2, 14), (2, 4)]),
+        #[cfg(not(feature = "no_index"))]
+        #[cfg(not(feature = "no_closure"))]
+        #[cfg(not(feature = "no_object"))]
+        ("a compiled function through a callback", "fn half(x) { x / 0 }\nlet xs = [1, 2, 3];\nxs.map(|x| half(x))", &[(1, 16), (3, 12), (3, 4)]),
+    ] {
+        let ast = engine.compile(source).expect("must compile");
+        let stripped = Compiler::new().compile(&ast).write_stripped().expect("must be writable");
+
+        // Device: bytes, no source, no sidecar.
+        let device = Program::read(&stripped.artifact).expect("must load");
+        let (error, trace) = fail(&engine, device, what);
+        assert!(!format!("{error}").contains("(line "), "{what}: a stripped program must report no position",);
+
+        // Host: the sidecar, and the addresses that came back.
+        let sites: Vec<_> = stripped.sidecar.resolve(&trace).into_iter().map(|site| site.map(|s| (s.line, s.column))).collect();
+        let want: Vec<_> = want.iter().map(|&pair| Some(pair)).collect();
+
+        assert_eq!(sites, want, "{what}: the backtrace is wrong for {source:?}");
+    }
+}
+
+/// The two things that cross between a device and its host have to cross.
+///
+/// A fault trace goes one way and a sidecar is stored for later, so both are
+/// carried by whatever the caller already uses rather than by a format of their
+/// own — which is only true if the derives work.
+#[test]
+#[cfg(feature = "serde")]
+#[cfg(not(any(feature = "no_position", feature = "unchecked", feature = "no_function")))]
+fn a_trace_and_a_sidecar_survive_serde() {
+    let engine = corpus::engine();
+    let ast = engine.compile("fn half(x) { x / 0 }\nhalf(4)").expect("must compile");
+    let stripped = Compiler::new().compile(&ast).write_stripped().expect("must be writable");
+
+    let device = Program::read(&stripped.artifact).expect("must load");
+    let (_, trace) = fail(&engine, device, "serde");
+
+    let wire = serde_json::to_string(&trace).expect("a trace must serialize");
+    let back: Vec<rhai::grain::Fault> = serde_json::from_str(&wire).expect("and come back");
+    assert_eq!(back, trace);
+
+    let stored = serde_json::to_string(&stripped.sidecar).expect("a sidecar must serialize");
+    let reloaded: rhai::grain::Sidecar = serde_json::from_str(&stored).expect("and come back");
+    assert_eq!(reloaded, stripped.sidecar);
+
+    // The point of carrying both: resolving on the far side gives the same
+    // backtrace as resolving here.
+    assert_eq!(reloaded.resolve(&back), stripped.sidecar.resolve(&trace));
+}
+
+/// An error that was handled is not where the run failed.
+///
+/// Left in the trace, the frames a caught error unwound past would head the
+/// next one — where a reader looks first.
+#[test]
+#[cfg(not(any(feature = "no_position", feature = "unchecked", feature = "no_function")))]
+fn a_caught_error_leaves_no_frames_behind() {
+    let engine = corpus::engine();
+    let source = "
+        fn bad(x) { x / 0 }
+        try { bad(1) } catch { }
+        throw 42
+    ";
+
+    let ast = engine.compile(source).expect("must compile");
+    let stripped = Compiler::new().compile(&ast).write_stripped().expect("must be writable");
+    let device = Program::read(&stripped.artifact).expect("must load");
+
+    let (_, trace) = fail(&engine, device, "a caught error");
+
+    assert_eq!(trace.len(), 1, "only the `throw` is where this failed; the caught divide left {} frames behind", trace.len() - 1,);
+}
+
+/// Run a program that is expected to fail, keeping the error and the trace.
+///
+/// Mirrors [`run`]'s split on `makes_fn_pointers`: a program that hands a
+/// pointer to a native has to be shared to be run at all.
+#[cfg(not(any(feature = "no_position", feature = "unchecked", feature = "no_function")))]
+fn fail(engine: &Engine, program: Program, what: &str) -> (rhai::EvalAltResult, Vec<rhai::grain::Fault>) {
+    let mut scope = Scope::new();
+    let mut vm = Vm::new(engine);
+
+    let result = if program.makes_fn_pointers() {
+        let program = program.into_shared();
+        vm.eval_with_callbacks(&mut scope, &program)
+    } else {
+        vm.eval_with_scope(&mut scope, &program)
+    };
+
+    let error = result.err().unwrap_or_else(|| panic!("{what}: the case must fail"));
+    (*error, vm.fault_trace())
+}
+
+/// The case a check on the code alone cannot catch.
+///
+/// Two scripts differing only in whitespace compile to the same instructions,
+/// so nothing about the code separates them — while their positions, the half
+/// that was left behind, are exactly what changed. Swapping their sidecars
+/// would report every error a line or two out, which reads as an answer.
+///
+/// So the id is taken from the diagnostics rather than from the code, and the
+/// artifact carries it: the two artifacts differ here in that one field alone.
+#[test]
+#[cfg(not(feature = "no_position"))]
+fn a_sidecar_from_another_build_of_the_same_code_is_refused() {
+    let engine = corpus::engine();
+
+    let one = Compiler::new().compile(&engine.compile("let a = 1;\nlet b = 2;\na + b").unwrap());
+    let two = Compiler::new().compile(&engine.compile("let a = 1;\n\n\nlet b = 2;\na + b").unwrap());
+
+    let one_stripped = one.write_stripped().expect("must be writable");
+    let two_stripped = two.write_stripped().expect("must be writable");
+
+    assert_eq!(one.code(), two.code(), "the case needs two programs the code cannot tell apart",);
+    assert_ne!(one_stripped.sidecar.positions, two_stripped.sidecar.positions, "their positions are what differs",);
+    assert_ne!(one_stripped.sidecar.debug_id, two_stripped.sidecar.debug_id, "so their ids must differ too",);
+
+    let mut program = Program::read(&one_stripped.artifact).unwrap();
+    assert!(program.attach_positions(&two_stripped.sidecar).is_err(), "another build's sidecar must be refused",);
+    program.attach_positions(&one_stripped.sidecar).expect("its own sidecar must attach");
+}
+
+/// Stripping must not change which sidecar an artifact answers to.
+///
+/// The id names the diagnostics a program was compiled with, not the ones it
+/// still holds — otherwise stripping would rename the artifact and leave the
+/// sidecar it just produced unable to attach.
+///
+/// Indexing, so both halves of the sidecar are non-empty and the chain sites
+/// are covered along with the table.
+#[test]
+#[cfg(not(any(feature = "no_position", feature = "no_index")))]
+fn stripping_does_not_change_the_debug_id() {
+    let engine = corpus::engine();
+    let ast = engine.compile("let a = [1, 2];\nlet b = 0;\na[b] / b").expect("must compile");
+
+    let mut program = Compiler::new().compile(&ast);
+    let before = program.debug_id();
+    let sidecar = program.strip_positions();
+
+    assert_eq!(program.debug_id(), before, "stripping must not rename the program");
+    assert_eq!(sidecar.debug_id, before, "the sidecar must name what it came from");
+
+    // The long way round: strip in memory, then write, then load and reattach.
+    let bytes = program.write().expect("must be writable");
+    let mut loaded = Program::read(&bytes).expect("must load");
+
+    assert_eq!(loaded.debug_id(), before, "the id must survive the wire");
+    loaded.attach_positions(&sidecar).expect("its own sidecar must attach");
 }
 
 /// A stripped artifact that arrives with a table still in it is a contradiction
@@ -682,16 +893,16 @@ fn stripping_positions_shrinks_the_artifact() {
     for (name, _, full) in writable(&engine) {
         let ast = engine.compile(corpus::CASES.iter().find(|c| c.name == name).unwrap().source);
         let program = Compiler::new().compile(&ast.unwrap());
-        let (stripped, table) = program.write_stripped().expect("must be writable");
+        let stripped = program.write_stripped().expect("must be writable");
 
         with += full.len();
-        without += stripped.len();
-        tables += table.len();
+        without += stripped.artifact.len();
+        tables += stripped.sidecar.positions.len() + stripped.sidecar.chains.len();
     }
 
     println!(
         "\n{with} bytes with positions -> {without} stripped ({:.0}% smaller), \
-         {tables} bytes of table kept behind",
+         {tables} bytes of sidecar kept behind",
         100.0 * (with - without) as f64 / with as f64,
     );
 
@@ -730,5 +941,12 @@ fn artifact_size_census() {
     // Not a target, a tripwire. The plan is explicit that bytecode need not
     // beat minified source on bytes — but an encoding several times larger
     // than its input has a bug in it, not a tradeoff.
-    assert!(artifact_bytes < source_bytes * 3, "{artifact_bytes} artifact bytes for {source_bytes} of source is not an encoding",);
+    //
+    // The header is allowed for separately, or this measures the wrong thing:
+    // these scripts average forty source bytes, so a fixed 28 of magic,
+    // version, ABI and debug id would dominate a plain ratio and the density
+    // this is watching would stop showing through.
+    const HEADER: usize = 4 + 2 + 6 + 16;
+    let allowed = source_bytes * 3 + rows.len() * HEADER;
+    assert!(artifact_bytes < allowed, "{artifact_bytes} artifact bytes for {source_bytes} of source across {} scripts is not an encoding", rows.len(),);
 }
