@@ -144,6 +144,10 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
         return Err(ReadError::Abi(mismatch));
     }
 
+    // Carried rather than derived: a stripped artifact no longer holds the
+    // diagnostics this names.
+    let debug_id = u128::from_le_bytes(cursor.take(16)?.try_into().expect("sixteen bytes"));
+
     let source = cursor.str()?;
     let source = (!source.is_empty()).then(|| strings_interner.get(source));
 
@@ -221,7 +225,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
     let positions = if table_len == 0 {
         Positions::Stripped
     } else {
-        Positions::from_table(cursor.take(table_len)?, code_len)?
+        Positions::from_table(cursor.take(table_len)?, code)?
     };
 
     if !cursor.at_end() {
@@ -236,6 +240,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
         functions,
         Parts {
             positions,
+            debug_id: Some(debug_id),
             residuals: Vec::new(),
             consts,
             names,

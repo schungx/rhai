@@ -214,6 +214,18 @@ fn root_name<'p>(program: &'p Program, chain: &Chain) -> Option<&'p str> {
     }
 }
 
+/// Where chain `index`'s slots start in the sidecar's flat stream.
+///
+/// Walked rather than cached: only a chain that already failed asks.
+fn chain_slot_base(program: &Program, index: u32) -> u32 {
+    program
+        .chains()
+        .iter()
+        .take(index as usize)
+        .map(Chain::position_slots)
+        .sum()
+}
+
 /// The op-assignment a chain ends with, resolved out of the pool.
 fn chain_op<'p>(
     program: &'p Program,
@@ -285,6 +297,26 @@ fn malformed(detail: String) -> Box<EvalAltResult> {
     ))
 }
 
+/// One frame of a failed run, as an address rather than a position.
+///
+/// What a stripped program reports instead. Chunks share one instruction
+/// buffer, so an address names an instruction whichever chunk it is in.
+///
+/// Travels from the device that failed to the host holding the
+/// [`Sidecar`](crate::grain::Sidecar), by whatever the link uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Fault {
+    /// Byte offset of the instruction this frame stopped at.
+    pub address: usize,
+    /// Which chain slot raised, for an
+    /// [`Op::Chain`](crate::grain::bytecode::Op::Chain).
+    ///
+    /// One instruction walks every step of `a.b[i].c` and gets one address
+    /// between them, so the slot is what separates them.
+    pub slot: Option<u32>,
+}
+
 /// Executes a [`Program`] against an `Engine`.
 ///
 /// Holds one `GlobalRuntimeState` and one `Caches` for its whole lifetime, so
@@ -335,7 +367,20 @@ pub struct Vm<'e> {
     /// caller's back on the way out, reproducing `func/call.rs:669` without a
     /// conditional anywhere.
     this: Option<Dynamic>,
-    fault_pc: Option<usize>,
+    /// Whether this `Vm` started the run, and so may clear its trace.
+    ///
+    /// False for a [`Vm::reentrant`]: a callback clearing the trace would
+    /// discard frames the run around it already recorded.
+    owns_trace: bool,
+    /// Which step the innermost chain walk has reached.
+    ///
+    /// Saved and restored per chain, because a method step can run a body
+    /// holding another chain. See [`Vm::run_chain`].
+    chain_step: usize,
+    /// A failing chain's slot, waiting for the frame it happened in.
+    ///
+    /// Set by [`Vm::run_chain`], taken by the next [`Vm::record_fault`].
+    pending_slot: Option<u32>,
 }
 
 /// Take a receiver for a callee to own, and say whether it goes back.
@@ -393,9 +438,16 @@ impl<'e> Vm<'e> {
     /// A VM that dispatches through `engine`.
     #[must_use]
     pub fn new(engine: &'e Engine) -> Self {
+        let mut global = engine.new_global_runtime_state();
+
+        // Eagerly, because a callback gets a *clone* of this state and a clone
+        // of `None` is a separate `None`. Allocating on first fault would leave
+        // every callback recording into a cell of its own.
+        global.grain_faults = Some(crate::Shared::new(crate::Locked::new(Vec::new())));
+
         Self {
             engine,
-            global: engine.new_global_runtime_state(),
+            global,
             caches: Caches::new(),
             stack: Vec::new(),
             iterators: Vec::new(),
@@ -403,7 +455,9 @@ impl<'e> Vm<'e> {
             sizes: Vec::new(),
             unwind_floor: 0,
             this: None,
-            fault_pc: None,
+            owns_trace: true,
+            chain_step: 0,
+            pending_slot: None,
         }
     }
 
@@ -441,22 +495,72 @@ impl<'e> Vm<'e> {
             // A crossing carries no receiver: Rhai binds one only where it
             // dispatches a method, and this arrives through `call_fn_raw`.
             this: None,
-            fault_pc: None,
+            // `global` is a clone, so the trace is shared with the run that
+            // called in and is not this call's to clear.
+            owns_trace: false,
+            chain_step: 0,
+            pending_slot: None,
         }
+    }
+
+    /// Where the last run failed, innermost frame first.
+    ///
+    /// What a stripped program reports instead of a position;
+    /// [`restore`](crate::grain::restore::restore) turns it back into one.
+    ///
+    /// Cleared at the start of a run and whenever a `catch` handles an error,
+    /// so it describes the failure actually being reported.
+    #[must_use]
+    pub fn fault_trace(&self) -> Vec<Fault> {
+        self.global
+            .grain_faults
+            .as_ref()
+            .and_then(|faults| crate::func::native::locked_read(faults))
+            .map(|faults| faults.clone())
+            .unwrap_or_default()
     }
 
     /// Which instruction the last run failed at, if it failed.
     ///
-    /// This is what a stripped program reports instead of a position. The host
-    /// that kept the table resolves it with `rhaigrain_pos::resolve`, so a
-    /// device can stay silent about where its source was and still produce a
-    /// diagnostic someone can act on.
-    ///
-    /// Cleared at the start of every run, so it always describes the most
-    /// recent one.
+    /// The innermost frame of [`Vm::fault_trace`].
     #[must_use]
     pub fn fault_pc(&self) -> Option<usize> {
-        self.fault_pc
+        self.fault_trace().first().map(|fault| fault.address)
+    }
+
+    /// Note that a frame stopped at `address`, as an error leaves it.
+    fn record_fault(&mut self, address: usize) {
+        let fault = Fault {
+            address,
+            slot: self.pending_slot.take(),
+        };
+
+        // Normally already there, from `Vm::new` or from a reentrant call's
+        // clone. The fallback covers a `Vm` reached some other way.
+        let faults = self
+            .global
+            .grain_faults
+            .get_or_insert_with(|| crate::Shared::new(crate::Locked::new(Vec::new())));
+
+        if let Some(mut faults) = crate::func::native::locked_write(faults) {
+            faults.push(fault);
+        }
+    }
+
+    /// Forget where a run failed, because it did not or has not yet.
+    ///
+    /// A no-op on a reentrant `Vm`: the trace belongs to the run that called it.
+    fn clear_faults(&mut self) {
+        if !self.owns_trace {
+            return;
+        }
+
+        self.pending_slot = None;
+        if let Some(faults) = self.global.grain_faults.as_ref() {
+            if let Some(mut faults) = crate::func::native::locked_write(faults) {
+                faults.clear();
+            }
+        }
     }
 
     /// Run a program, returning its value.
@@ -506,6 +610,9 @@ impl<'e> Vm<'e> {
         pos: Position,
         this: Option<Dynamic>,
     ) -> (VmResult, Option<Dynamic>) {
+        // An entry point in its own right so the trace starts here rather than at `run_main`.
+        self.clear_faults();
+
         let Some(function) = program.function_named(name, args.len()) else {
             return (
                 Err(Box::new(EvalAltResult::ErrorFunctionNotFound(
@@ -782,14 +889,16 @@ impl<'e> Vm<'e> {
 
     /// The main chunk, against an environment the caller has already installed.
     fn run_main(&mut self, program: &Program, scope: &mut Scope) -> VmResult {
-        self.fault_pc = None;
+        self.clear_faults();
         let mut pc = program.main().entry() as usize;
         // Slots are indices into the caller's scope, so a caller that arrives
         // with variables already in it shifts every one of them.
         let base = scope.len();
         let result = self.execute(program, scope, *program.main(), base, &mut pc);
         if result.is_err() {
-            self.fault_pc = Some(pc);
+            // Whatever failed deeper already recorded itself,
+            // and this is the outermost frame of the same failure.
+            self.record_fault(pc);
         }
         result
     }
@@ -837,6 +946,35 @@ impl<'e> Vm<'e> {
     /// receiver by reference", not "did it actually write".
     #[inline(never)]
     fn run_chain(
+        &mut self,
+        program: &Program,
+        chain: &Chain,
+        index: u32,
+        scope: &mut Scope,
+        base: usize,
+        pos: Position,
+    ) -> VmResult {
+        // A method step can run a body holding a chain of its own, which writes
+        // the same field. Saved so the step reported is this chain's.
+        let outer_step = mem::replace(&mut self.chain_step, 0);
+        let result = self.run_chain_steps(program, chain, scope, base, pos);
+        let reached = mem::replace(&mut self.chain_step, outer_step);
+
+        if result.is_err() {
+            // Not if something deeper already claimed it: the slot belongs to
+            // the innermost frame's address.
+            if self.pending_slot.is_none() {
+                self.pending_slot = chain
+                    .step_slot(reached)
+                    .map(|slot| chain_slot_base(program, index) + slot);
+            }
+        }
+
+        result
+    }
+
+    /// [`Vm::run_chain`] without the bookkeeping around it.
+    fn run_chain_steps(
         &mut self,
         program: &Program,
         chain: &Chain,
@@ -1062,6 +1200,10 @@ impl<'e> Vm<'e> {
             return Ok((target.clone(), false));
         };
         let last = rest.is_empty();
+
+        // Which step a failure gets blamed on. The walk only descends, so the
+        // last one written is the one that raised.
+        self.chain_step = chain.steps.len() - steps.len();
 
         match step {
             // Without indexing of either kind there is no `[..]` to compile,
@@ -2370,7 +2512,7 @@ impl<'e> Vm<'e> {
         let mut reached = chunk.entry() as usize;
         let outcome = self.execute(program, &mut frame, chunk, 0, &mut reached);
         if outcome.is_err() {
-            self.fault_pc = Some(reached);
+            self.record_fault(reached);
         }
 
         outcome.or_else(|err| match *err {
@@ -2428,6 +2570,10 @@ impl<'e> Vm<'e> {
                     // dispatch loop never sees as one, because control got
                     // there through the error path rather than through a jump.
                     Ok(resume) => {
+                        // Handled, so the frames it unwound past are not where
+                        // this run failed. Left behind, they would head the
+                        // next error's trace.
+                        self.clear_faults();
                         self.engine
                             .track_operation(&mut self.global, program.position(resume))?;
                         start = resume;
@@ -2758,9 +2904,12 @@ impl<'e> Vm<'e> {
             // cannot leave it — every path reaches a `Return`, no jump goes
             // outside, nothing falls off — so a comparison here would cost
             // every instruction to restate something already established.
+            // No address in the message: `reached` is written every iteration,
+            // so the fault trace already names this instruction. Read it from
+            // `Vm::fault_pc`, corrupt artifact or not.
             let tag = *code.get(pc).ok_or_else(|| {
                 Box::new(EvalAltResult::ErrorRuntime(
-                    format!("ran off the end of a chunk at {pc}").into(),
+                    "ran off the end of a chunk".into(),
                     Position::NONE,
                 ))
             })?;
@@ -2771,14 +2920,14 @@ impl<'e> Vm<'e> {
             // straight off an artifact without trusting it; the verifier has
             // already made them unreachable for anything that loaded.
             let width = code::width(code, pc)
-                .ok_or_else(|| malformed(format!("undecodable instruction at {pc}")))?;
+                .ok_or_else(|| malformed("undecodable instruction".to_string()))?;
             let small = |offset: usize| {
                 code::u16_at(code, pc + offset)
-                    .ok_or_else(|| malformed(format!("truncated operand at {pc}")))
+                    .ok_or_else(|| malformed("truncated operand".to_string()))
             };
             let wide = |offset: usize| {
                 code::u32_at(code, pc + offset)
-                    .ok_or_else(|| malformed(format!("truncated operand at {pc}")))
+                    .ok_or_else(|| malformed("truncated operand".to_string()))
             };
 
             // Instructions carry no position; the table does, keyed on the
@@ -3441,7 +3590,7 @@ impl<'e> Vm<'e> {
                     let chain = program
                         .chain(index)
                         .ok_or_else(|| malformed(format!("no chain {index}")))?;
-                    let value = self.run_chain(program, chain, scope, base, pos())?;
+                    let value = self.run_chain(program, chain, index, scope, base, pos())?;
                     self.stack.push(value);
                 }
 
@@ -3562,7 +3711,7 @@ impl<'e> Vm<'e> {
                 // `code::width` already refused anything it does not know, so
                 // this is unreachable — but a wildcard is what stops a new tag
                 // from silently falling through to the next instruction.
-                _ => return Err(malformed(format!("unknown instruction {tag:#04x} at {pc}"))),
+                _ => return Err(malformed(format!("unknown instruction {tag:#04x}"))),
             }
 
             pc += width;
@@ -3653,6 +3802,7 @@ mod tests {
             functions,
             Parts {
                 positions: Positions::default(),
+                debug_id: None,
                 residuals,
                 consts,
                 names: Strings::new(NAMES),

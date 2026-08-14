@@ -203,6 +203,8 @@ impl Compiler {
             functions,
             Parts {
                 positions: Positions::dense(positions),
+                // Derived from what is being compiled in.
+                debug_id: None,
                 residuals: lowering.residuals,
                 consts: lowering.consts,
                 names: crate::grain::bytecode::Strings::new(&lowering.names),
@@ -789,12 +791,19 @@ impl Lowering {
     }
 
     /// Lower every script function the `AST` declares, and count the ones the
-    /// slot model turned down.
+    /// slot model turned down. Sorted for reproducability.
     #[cfg(not(feature = "no_function"))]
     fn functions(&mut self, ast: &AST) -> (Vec<LoweredFn>, usize) {
+        let mut defs: Vec<_> = ast
+            .shared_lib()
+            .iter_script_fn_info()
+            .map(|(.., def)| def)
+            .collect();
+        defs.sort_unstable_by(|a, b| declaration_order(a).cmp(&declaration_order(b)));
+
         let mut functions = Vec::new();
         let mut skipped = 0;
-        for (.., def) in ast.shared_lib().iter_script_fn_info() {
+        for def in defs {
             match self.function(def) {
                 Some(function) => functions.push(function),
                 None => skipped += 1,
@@ -2325,4 +2334,61 @@ fn wrap_statements(statements: Vec<Stmt>) -> Expr {
     );
 
     Expr::Stmt(Box::new(StmtBlock::new_with_span(statements, span)))
+}
+
+/// What orders one script function against another when lowering.
+///
+/// Everything that tells two declarations apart, nothing that varies between
+/// runs. Rhai refuses a duplicate name, arity and receiver, so this is total.
+#[cfg(not(feature = "no_function"))]
+fn declaration_order(def: &ScriptFuncDef) -> (&str, usize, Option<&str>) {
+    #[cfg(not(feature = "no_object"))]
+    let this_type = def.this_type.as_deref();
+    #[cfg(feature = "no_object")]
+    let this_type = None;
+
+    (&def.name, def.params.len(), this_type)
+}
+
+#[cfg(test)]
+#[cfg(not(feature = "no_function"))]
+mod tests {
+    use super::*;
+
+    /// Lowering order fixes every address inside a function, so it has to come
+    /// from the source rather than from a hash map.
+    ///
+    /// Checks the order itself rather than comparing two artifacts: the seed is
+    /// per process, so two compiles in one process agree either way.
+    #[test]
+    fn functions_are_lowered_in_a_stable_order() {
+        let engine = crate::Engine::new();
+        let ast = engine
+            .compile(
+                "fn zulu(x) { x + 1 }
+                 fn alpha(a, b) { a + b }
+                 fn alpha(a) { a }
+                 fn mike() { 1 }
+                 zulu(1) + alpha(2, 3) + alpha(4) + mike()",
+            )
+            .expect("must compile");
+        let program = Compiler::new().compile(&ast);
+
+        let order: Vec<_> = program
+            .functions()
+            .iter()
+            .map(|f| {
+                (
+                    program.name(f.name).expect("a compiled function is named"),
+                    f.params.len(),
+                )
+            })
+            .collect();
+
+        assert_eq!(
+            order,
+            [("alpha", 1), ("alpha", 2), ("mike", 0), ("zulu", 1)],
+            "functions must be lowered by name and arity, not by hash",
+        );
+    }
 }

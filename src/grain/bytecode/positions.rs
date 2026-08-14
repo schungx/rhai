@@ -85,16 +85,18 @@ impl Positions {
         }))
     }
 
-    /// Expand a compact table back to one entry per instruction.
+    /// Expand a compact table back to one entry per code byte.
     ///
-    /// `instructions` bounds the result, so a table naming an address past the
-    /// end of the chunk is refused rather than silently widening the array.
+    /// Every address has to name the *start* of an instruction in `code`.
+    /// Counting how many landed in range is not enough: another program's table
+    /// could pass that and then misreport every error.
     ///
     /// # Errors
     ///
-    /// Whatever [`pos::check`](crate::grain::pos::check) found, or [`TableError::PastTheEnd`]
-    /// for an address that does not name an instruction.
-    pub fn from_table(table: &[u8], instructions: usize) -> Result<Self, TableError> {
+    /// Whatever [`pos::check`](crate::grain::pos::check) found, or
+    /// [`TableError::PastTheEnd`] for an address that does not begin an
+    /// instruction.
+    pub fn from_table(table: &[u8], code: &[u8]) -> Result<Self, TableError> {
         crate::grain::pos::check(table).map_err(TableError::Malformed)?;
 
         let count = crate::grain::pos::count(table).map_err(TableError::Malformed)?;
@@ -102,22 +104,30 @@ impl Positions {
             return Ok(Self::Stripped);
         }
 
-        // `check` proved the table sound, so a miss here is an address that
-        // does not name an instruction in *this* chunk, which the count
-        // comparison below catches.
-        let positions: Vec<Position> = (0..instructions)
-            .map(|pc| {
-                crate::grain::pos::resolve(table, pc as u32)
-                    .map_or(Position::NONE, site_to_position)
-            })
-            .collect();
+        // Walked, not indexed: only an address the walk arrives at begins an
+        // instruction. One landing mid-instruction is as wrong as one past the
+        // end, and reads as a plausible position.
+        let mut positions = vec![Position::NONE; code.len()];
+        let mut matched = 0usize;
+        let mut at = 0usize;
+        while at < code.len() {
+            if let Some(site) = crate::grain::pos::resolve(table, at as u32) {
+                positions[at] = site_to_position(site);
+                matched += 1;
+            }
+            match crate::grain::bytecode::code::width(code, at) {
+                Some(width) => at += width,
+                // Not a stream this table can be checked against. Rejecting it
+                // is the verifier's job; here the count below reports it.
+                None => break,
+            }
+        }
 
-        let found = positions.iter().filter(|pos| !pos.is_none()).count();
-        if found != count as usize {
+        if matched != count as usize {
             return Err(TableError::PastTheEnd {
                 entries: count as usize,
-                matched: found,
-                instructions,
+                matched,
+                instructions: code.len(),
             });
         }
 
@@ -125,20 +135,37 @@ impl Positions {
     }
 }
 
-/// Why a position table could not be attached to a chunk.
+/// Why a sidecar could not be attached to a chunk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TableError {
     /// The table is not well formed.
     Malformed(crate::grain::pos::Error),
-    /// The table names addresses this chunk does not have, so it belongs to a
-    /// different program.
+    /// The table names addresses that do not begin an instruction of this
+    /// chunk, so it belongs to a different program.
     PastTheEnd {
         /// How many entries the table holds
         entries: usize,
         /// How many of them landed on an instruction
         matched: usize,
-        /// How many instructions the chunk has
+        /// How many code bytes the chunk has
         instructions: usize,
+    },
+    /// The sidecar was taken from a different program.
+    WrongProgram {
+        /// The sidecar's debug id
+        expected: u128,
+        /// This program's debug id
+        found: u128,
+    },
+    /// The chain site stream is not well formed.
+    ChainStream(super::sites::StreamError),
+    /// The chain site stream is sound but does not describe this program's
+    /// chains.
+    ChainCount {
+        /// How many sites the stream holds
+        sites: usize,
+        /// How many positions this program's chains carry
+        slots: usize,
     },
 }
 
@@ -152,8 +179,18 @@ impl core::fmt::Display for TableError {
                 instructions,
             } => write!(
                 f,
-                "position table has {entries} entries but only {matched} name one of this \
-                 chunk's {instructions} instructions, so it is a different program's"
+                "position table has {entries} entries but only {matched} begin an instruction \
+                 of this chunk's {instructions} code bytes, so it is a different program's"
+            ),
+            Self::WrongProgram { expected, found } => write!(
+                f,
+                "sidecar belongs to debug id {expected:#034x}, not to this program's {found:#034x}"
+            ),
+            Self::ChainStream(err) => write!(f, "{err}"),
+            Self::ChainCount { sites, slots } => write!(
+                f,
+                "chain site stream holds {sites} sites but this program's chains carry {slots} \
+                 positions, so it is a different program's"
             ),
         }
     }
@@ -161,7 +198,7 @@ impl core::fmt::Display for TableError {
 
 /// A [`Site`] is plain numbers, on purpose — turning it into Rhai's own type is
 /// this side's job.
-fn site_to_position(site: Site) -> Position {
+pub(crate) fn site_to_position(site: Site) -> Position {
     let (Ok(line), Ok(column)) = (u16::try_from(site.line), u16::try_from(site.column)) else {
         return Position::NONE;
     };
@@ -174,6 +211,14 @@ fn site_to_position(site: Site) -> Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::grain::bytecode::{assemble, Op};
+
+    /// Four one-byte instructions, so each of `sample`'s addresses begins one.
+    fn code() -> Vec<u8> {
+        let (code, _) = assemble(&[Op::Unit, Op::Unit, Op::Unit, Op::Unit]).expect("must assemble");
+        assert_eq!(code.len(), 4, "the sample assumes one byte an instruction");
+        code
+    }
 
     fn sample() -> Positions {
         Positions::dense(vec![
@@ -187,7 +232,7 @@ mod tests {
     #[test]
     fn a_table_survives_the_round_trip() {
         let table = sample().to_table();
-        let back = Positions::from_table(&table, 4).expect("the table is this chunk's");
+        let back = Positions::from_table(&table, &code()).expect("the table is this chunk's");
 
         for pc in 0..4 {
             assert_eq!(back.get(pc), sample().get(pc), "at {pc}");
@@ -198,7 +243,7 @@ mod tests {
     #[test]
     fn the_start_of_a_line_survives() {
         let table = sample().to_table();
-        let back = Positions::from_table(&table, 4).unwrap();
+        let back = Positions::from_table(&table, &code()).unwrap();
         assert_eq!(back.get(3), Position::new(3, 0));
     }
 
@@ -208,7 +253,7 @@ mod tests {
         assert!(stripped.is_stripped());
         assert_eq!(stripped.get(0), Position::NONE);
 
-        let empty = Positions::from_table(&stripped.to_table(), 4).unwrap();
+        let empty = Positions::from_table(&stripped.to_table(), &code()).unwrap();
         assert!(empty.is_stripped());
     }
 
@@ -222,14 +267,32 @@ mod tests {
     /// error, which is worse than reporting none.
     ///
     /// Under `no_position` every `Position` is `NONE`, so `sample()` collapses
-    /// to a stripped table — which any chunk length accepts, there being no
-    /// addresses in it to fall past the end of.
+    /// to a stripped table — which any chunk accepts, there being no addresses
+    /// in it to fall past the end of.
     #[test]
     #[cfg(not(feature = "no_position"))]
     fn a_table_from_another_program_is_refused() {
         let table = sample().to_table();
+        let (short, _) = assemble(&[Op::Unit, Op::Unit]).expect("must assemble");
         assert!(matches!(
-            Positions::from_table(&table, 2),
+            Positions::from_table(&table, &short),
+            Err(TableError::PastTheEnd { .. }),
+        ));
+    }
+
+    /// An address inside an instruction is as wrong as one past the end, and a
+    /// count of how many landed in range would not notice.
+    #[test]
+    #[cfg(not(feature = "no_position"))]
+    fn an_address_that_does_not_begin_an_instruction_is_refused() {
+        let table = sample().to_table();
+        // `Const` is three bytes, so this chunk begins instructions at 0 and 3
+        // only — and the sample names 1 and 3.
+        let (wide, _) = assemble(&[Op::Const(0), Op::Unit]).expect("must assemble");
+        assert_eq!(wide.len(), 4, "the case needs the same four bytes");
+
+        assert!(matches!(
+            Positions::from_table(&table, &wide),
             Err(TableError::PastTheEnd { .. }),
         ));
     }
@@ -238,7 +301,7 @@ mod tests {
     fn a_malformed_table_is_refused_rather_than_half_applied() {
         let table = sample().to_table();
         assert!(matches!(
-            Positions::from_table(&table[..table.len() - 1], 4),
+            Positions::from_table(&table[..table.len() - 1], &code()),
             Err(TableError::Malformed(..)),
         ));
     }

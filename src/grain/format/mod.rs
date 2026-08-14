@@ -12,6 +12,7 @@
 //! "RGRN"          magic
 //! u16             format version
 //! abi             INT width, FLOAT width, restriction bitmask
+//! u128            debug id, naming the diagnostics compiled with this
 //! varint + utf8   source name, empty for none
 //! section         names
 //! section         constants
@@ -51,7 +52,9 @@ pub use read::ReadError;
 pub use write::WriteError;
 
 use crate::grain::bytecode::VerifyError;
+use crate::grain::pos::Site;
 use crate::grain::program::Program;
+use crate::grain::vm::Fault;
 
 /// Identifies the format, so a file that is not one fails immediately rather
 /// than as a nonsense opcode.
@@ -60,7 +63,7 @@ const MAGIC: [u8; 4] = *b"RGRN";
 /// Bumped when an encoding changes in a way an older reader would misread.
 /// Additive changes that an older reader would reject anyway — a new op tag,
 /// a new constant tag — do not need it.
-const VERSION: u16 = 7;
+const VERSION: u16 = 8;
 
 /// Where a chain starts. Append only.
 mod root_tag {
@@ -107,7 +110,100 @@ mod constant {
     pub const RANGE_INCLUSIVE: u8 = 0x0b;
 }
 
+/// Everything a stripped artifact left behind.
+///
+/// Diagnostics are read only after something has already failed, which is what
+/// makes them worth leaving on the host. A device reports a [`Fault`] per
+/// frame; [`Sidecar::resolve`] turns those back into places in the source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Sidecar {
+    /// The position table, keyed on instruction address. Read with
+    /// [`pos::resolve`](crate::grain::pos::resolve).
+    pub positions: Vec<u8>,
+    /// Chain-step sites, keyed on slot. Read with
+    /// [`sites::resolve`](crate::grain::bytecode::sites::resolve).
+    pub chains: Vec<u8>,
+    /// Names these diagnostics, and the artifact they were taken out of.
+    ///
+    /// Derived from the two tables above rather than from the code, which is
+    /// the half every build of a script has in common: two versions differing
+    /// only in whitespace compile to identical instructions and would otherwise
+    /// be indistinguishable, while their positions are exactly what changed.
+    ///
+    /// The same idea as a PDB's GUID or an ELF build-id. Attaching a mismatched
+    /// sidecar would misreport every error rather than reporting none.
+    pub debug_id: u128,
+}
+
+/// An artifact and the diagnostics taken out of it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Stripped {
+    /// What the device loads.
+    pub artifact: Vec<u8>,
+    /// What the host keeps.
+    pub sidecar: Sidecar,
+}
+
+impl Sidecar {
+    /// Where each frame of a fault trace was in the source, innermost first.
+    ///
+    /// The whole host side of a failure that happened elsewhere. `None` for a
+    /// frame with no recorded site, which is most instructions.
+    ///
+    /// Check [`Sidecar::debug_id`] against the artifact's
+    /// [`Program::debug_id`](crate::grain::Program::debug_id) first — a trace
+    /// from another program resolves to plausible nonsense.
+    #[must_use]
+    pub fn resolve(&self, trace: &[Fault]) -> Vec<Option<Site>> {
+        trace.iter().map(|fault| self.site(*fault)).collect()
+    }
+
+    /// Where one frame was.
+    ///
+    /// The slot first, since a chain's address names every step of it equally.
+    /// The address is the fallback — coarse, but real.
+    #[must_use]
+    pub fn site(&self, fault: Fault) -> Option<Site> {
+        fault
+            .slot
+            .and_then(|slot| crate::grain::bytecode::sites::resolve(&self.chains, slot))
+            .or_else(|| {
+                u32::try_from(fault.address)
+                    .ok()
+                    .and_then(|address| crate::grain::pos::resolve(&self.positions, address))
+            })
+    }
+}
+
+/// Name a set of diagnostics by their content.
+///
+/// FNV-1a, not the engine's hasher, so ID doesn't change across invocations
+///
+/// 128 bits for forward compatibility
+pub(crate) fn debug_id(positions: &[u8], chains: &[u8]) -> u128 {
+    let mut hash = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d_u128;
+    for byte in positions.iter().chain(chains) {
+        hash ^= u128::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0000_0100_0000_0000_0000_0000_013b);
+    }
+    hash
+}
+
 impl<'a> Program<'a> {
+    /// The diagnostics this program carries, without taking them out of it.
+    ///
+    /// [`Program::strip_positions`] is the same thing and removes them. Called
+    /// on a program already stripped, the tables come back empty.
+    #[must_use]
+    pub fn sidecar(&self) -> Sidecar {
+        Sidecar {
+            positions: self.positions().to_table(),
+            chains: crate::grain::bytecode::sites::encode(self.chains()),
+            debug_id: self.debug_id(),
+        }
+    }
+
     /// Encode this program, diagnostics included.
     ///
     /// # Errors
@@ -119,21 +215,24 @@ impl<'a> Program<'a> {
         write::write(self, write::Positions::Keep)
     }
 
-    /// Encode this program without its position table, returning the table
-    /// separately.
+    /// Encode this program without its diagnostics, returning them separately.
     ///
-    /// This is the split the debug layer exists for. Ship the first half to the
-    /// device and keep the second: errors then arrive carrying an instruction
-    /// address, and [`pos::resolve`](crate::grain::pos::resolve) turns it back into a position
-    /// where the source still is. The table can also be sent back later with
-    /// [`Program::attach_positions`].
+    /// This is the split the debug layer exists for. Ship the artifact to the
+    /// device and keep the [`Sidecar`]: errors then arrive carrying an
+    /// instruction address, and
+    /// [`restore`](crate::grain::restore::restore) turns a whole failed run back
+    /// into the positions Rhai would have reported. The sidecar can also be sent
+    /// back later with [`Program::attach_positions`].
     ///
     /// # Errors
     ///
     /// As [`Program::write`].
-    pub fn write_stripped(&self) -> Result<(Vec<u8>, Vec<u8>), WriteError> {
-        let bytes = write::write(self, write::Positions::Strip)?;
-        Ok((bytes, self.positions().to_table()))
+    pub fn write_stripped(&self) -> Result<Stripped, WriteError> {
+        let artifact = write::write(self, write::Positions::Strip)?;
+        Ok(Stripped {
+            sidecar: self.sidecar(),
+            artifact,
+        })
     }
 
     /// Decode a program written by [`Program::write`], borrowing its

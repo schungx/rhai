@@ -44,6 +44,7 @@ pub mod varint;
 /// Both fields follow Rhai's own convention: `line` counts from 1, and
 /// `column` counts characters from 1 with 0 meaning the start of a line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Site {
     /// 1-based line.
     pub line: u32,

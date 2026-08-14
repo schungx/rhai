@@ -69,18 +69,26 @@ pub enum Step {
 impl Step {
     /// Where this step is in the source.
     ///
-    /// Every step carries one, and it is the one place diagnostics are not
-    /// strippable — four bytes per step, in the chain pool rather than the
-    /// position table. That is not an oversight twice over: a chain is a single
-    /// instruction, so the one entry the table holds for it cannot say which of
-    /// `a.b[i].c()` failed, and Rhai blames the step rather than the chain for
-    /// all three kinds. An index is reported against its index expression, a
-    /// property against the property (`eval/chaining.rs:1039`), a method
-    /// against the call (`:904`).
+    /// In the chain pool rather than the position table, because a chain is one
+    /// instruction and its single table entry cannot say which of `a.b[i].c()`
+    /// failed. Rhai blames the step for all three kinds: an index against its
+    /// index expression, a property against the property
+    /// (`eval/chaining.rs:1039`), a method against the call (`:904`).
     #[must_use]
     pub fn pos(&self) -> rhai::Position {
         match self {
             Step::Index { pos, .. } | Step::Property { pos, .. } | Step::Method { pos, .. } => *pos,
+        }
+    }
+
+    /// How many source positions this step carries.
+    ///
+    /// Two for an index, which keeps the `[` apart from what is inside it.
+    #[must_use]
+    pub fn position_slots(&self) -> u32 {
+        match self {
+            Step::Index { .. } => 2,
+            Step::Property { .. } | Step::Method { .. } => 1,
         }
     }
 }
@@ -166,6 +174,20 @@ pub enum Root {
     Temporary,
 }
 
+impl Root {
+    /// How many source positions this root carries.
+    ///
+    /// Only the two that can fail on their own; a slot and a temporary have
+    /// nothing to report against.
+    #[must_use]
+    pub fn position_slots(&self) -> u32 {
+        match self {
+            Root::Named { .. } | Root::This { .. } => 1,
+            Root::Local { .. } | Root::Temporary => 0,
+        }
+    }
+}
+
 /// A whole `a.b[i].c` chain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chain {
@@ -211,6 +233,74 @@ impl Chain {
     #[must_use]
     pub fn consumes(&self) -> usize {
         self.operands as usize + usize::from(self.roots_on_stack()) + usize::from(self.assigns())
+    }
+
+    /// How many source positions this chain carries.
+    ///
+    /// Also the stride from one chain's sidecar slots to the next one's.
+    #[must_use]
+    pub fn position_slots(&self) -> u32 {
+        self.root.position_slots() + self.steps.iter().map(Step::position_slots).sum::<u32>()
+    }
+
+    /// The slot holding step `index`'s own position.
+    ///
+    /// An index step owns two — this one, then the `[` — and this names the
+    /// first. A fault records the step, not which of its positions raised, so
+    /// `a[i]` restores to the index expression even where Rhai blamed the
+    /// bracket.
+    #[must_use]
+    pub fn step_slot(&self, index: usize) -> Option<u32> {
+        (index < self.steps.len()).then(|| {
+            self.root.position_slots()
+                + self.steps[..index]
+                    .iter()
+                    .map(Step::position_slots)
+                    .sum::<u32>()
+        })
+    }
+
+    /// Every source position this chain carries, in the order they are written.
+    ///
+    /// The one definition of that order, which the writer, the sidecar and
+    /// [`Chain::step_slot`] all follow. They must agree exactly: read back
+    /// against a different order, a stream restores plausible positions rather
+    /// than none.
+    pub fn positions(&self) -> impl Iterator<Item = rhai::Position> + '_ {
+        let root = match self.root {
+            Root::Named { pos, .. } | Root::This { pos } => Some(pos),
+            Root::Local { .. } | Root::Temporary => None,
+        };
+
+        root.into_iter().chain(
+            self.steps
+                .iter()
+                .flat_map(|step| match step {
+                    Step::Index { pos, bracket, .. } => [Some(*pos), Some(*bracket)],
+                    Step::Property { pos, .. } | Step::Method { pos, .. } => [Some(*pos), None],
+                })
+                .flatten(),
+        )
+    }
+
+    /// The same positions, to write back into.
+    pub fn positions_mut(&mut self) -> impl Iterator<Item = &mut rhai::Position> {
+        let Self { root, steps, .. } = self;
+
+        let root = match root {
+            Root::Named { pos, .. } | Root::This { pos } => Some(pos),
+            Root::Local { .. } | Root::Temporary => None,
+        };
+
+        root.into_iter().chain(
+            steps
+                .iter_mut()
+                .flat_map(|step| match step {
+                    Step::Index { pos, bracket, .. } => [Some(pos), Some(bracket)],
+                    Step::Property { pos, .. } | Step::Method { pos, .. } => [Some(pos), None],
+                })
+                .flatten(),
+        )
     }
 
     /// Whether walking this chain can change what it walks over.
