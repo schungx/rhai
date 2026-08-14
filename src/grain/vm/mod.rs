@@ -4038,7 +4038,7 @@ mod tests {
                     name: 1, // `g`
                     argc: 0,
                     operand: 0,
-                    flags: default(),
+                    flags: Default::default(),
                     pos: Position::NONE,
                 }],
                 tail: Tail::Read,

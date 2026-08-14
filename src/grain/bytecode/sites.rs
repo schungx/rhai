@@ -172,6 +172,7 @@ mod tests {
             vec![
                 Step::Index {
                     operand: 0,
+                    flags: Default::default(),
                     pos: Position::new(1, 3),
                     bracket: Position::new(1, 2),
                 },
@@ -179,6 +180,7 @@ mod tests {
                     name: 1,
                     getter: 2,
                     setter: 3,
+                    flags: Default::default(),
                     pos: Position::new(1, 6),
                 },
             ],
@@ -242,6 +244,7 @@ mod tests {
                 name: 0,
                 argc: 0,
                 operand: 0,
+                flags: Default::default(),
                 pos: Position::new(9, 9),
             }],
         ));
