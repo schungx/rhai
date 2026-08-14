@@ -61,7 +61,8 @@ impl Serialize for Dynamic {
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => {
                 let mut map = ser.serialize_map(Some(m.len()))?;
-                m.iter().try_for_each(|(k, v)| map.serialize_entry(k, v))?;
+                m.iter()
+                    .try_for_each(|(k, v)| map.serialize_entry(k.as_str(), v))?;
                 map.end()
             }
             Union::FnPtr(ref f, ..) if f.is_curried() => {
@@ -78,7 +79,10 @@ impl Serialize for Dynamic {
             Union::Shared(ref cell, ..) => cell.borrow().serialize(ser),
             #[cfg(not(feature = "no_closure"))]
             #[cfg(feature = "sync")]
+            #[cfg(not(feature = "no_std"))]
             Union::Shared(ref cell, ..) => cell.read().unwrap().serialize(ser),
+            #[cfg(feature = "no_std")]
+            Union::Shared(ref cell, ..) => cell.read().serialize(ser),
         }
     }
 }

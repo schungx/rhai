@@ -390,12 +390,12 @@ impl Engine {
                 // Let/const statement
                 let (var_name, expr, index) = &**x;
 
-                let access = if options.intersects(ASTFlags::CONSTANT) {
+                let access = if options.contains(ASTFlags::CONSTANT) {
                     AccessMode::ReadOnly
                 } else {
                     AccessMode::ReadWrite
                 };
-                let export = options.intersects(ASTFlags::EXPORTED);
+                let export = options.contains(ASTFlags::EXPORTED);
 
                 // Check variable definition filter
                 if let Some(ref filter) = self.def_var_filter {
@@ -637,7 +637,7 @@ impl Engine {
             // Do loop
             Stmt::Do(x, options, ..) => {
                 let FlowControl { expr, body, .. } = &**x;
-                let is_while = !options.intersects(ASTFlags::NEGATED);
+                let is_while = !options.contains(ASTFlags::NEGATED);
 
                 loop {
                     if !body.is_empty() {
@@ -780,7 +780,7 @@ impl Engine {
 
             // Continue/Break statement
             Stmt::BreakLoop(expr, options, pos) => {
-                let is_break = options.intersects(ASTFlags::BREAK);
+                let is_break = options.contains(ASTFlags::BREAK);
 
                 let value = match expr {
                     Some(ref expr) => self.eval_expr(global, caches, scope, this_ptr, expr)?,
@@ -878,12 +878,12 @@ impl Engine {
             }
 
             // Throw value
-            Stmt::Return(Some(expr), options, pos) if options.intersects(ASTFlags::BREAK) => self
+            Stmt::Return(Some(expr), options, pos) if options.contains(ASTFlags::BREAK) => self
                 .eval_expr(global, caches, scope, this_ptr, expr)
                 .and_then(|v| Err(ERR::ErrorRuntime(v.flatten(), *pos).into())),
 
             // Empty throw
-            Stmt::Return(None, options, pos) if options.intersects(ASTFlags::BREAK) => {
+            Stmt::Return(None, options, pos) if options.contains(ASTFlags::BREAK) => {
                 Err(ERR::ErrorRuntime(Dynamic::UNIT, *pos).into())
             }
 

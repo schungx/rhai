@@ -5,7 +5,7 @@ use crate::plugin::*;
 use crate::{def_package, Dynamic, FnPtr, Map, NativeCallContext, RhaiResultOf, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{convert::TryFrom, mem};
+use std::{collections::BTreeMap, convert::TryFrom, mem};
 
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
@@ -533,7 +533,12 @@ mod map_functions {
     #[rhai_fn(pure)]
     pub fn to_json(map: &mut Map) -> String {
         #[cfg(feature = "metadata")]
-        return serde_json::to_string(map).unwrap_or_else(|_| "ERROR".into());
+        return serde_json::to_string(
+            &map.iter()
+                .map(|(k, v)| (k.as_str(), v))
+                .collect::<BTreeMap<_, _>>(),
+        )
+        .unwrap_or_else(|_| "ERROR".into());
         #[cfg(not(feature = "metadata"))]
         return crate::format_map_as_json(map);
     }

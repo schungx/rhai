@@ -204,7 +204,7 @@ fn unsupported_kind(node: &ASTNode) -> Option<&'static str> {
             Stmt::Export(..) => "export",
             #[cfg(not(feature = "no_closure"))]
             Stmt::Share(..) => "a closure capture",
-            Stmt::Return(_, flags, ..) if flags.intersects(ASTFlags::BREAK) => "throw",
+            Stmt::Return(_, flags, ..) if flags.contains(ASTFlags::BREAK) => "throw",
             _ => return None,
         },
         ASTNode::Expr(expr) => match expr {
