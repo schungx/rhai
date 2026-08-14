@@ -5,7 +5,7 @@ use crate::plugin::*;
 use crate::{def_package, Dynamic, FnPtr, Map, NativeCallContext, RhaiResultOf, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{collections::BTreeMap, convert::TryFrom, mem};
+use std::{convert::TryFrom, mem};
 
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
@@ -536,7 +536,7 @@ mod map_functions {
         return serde_json::to_string(
             &map.iter()
                 .map(|(k, v)| (k.as_str(), v))
-                .collect::<BTreeMap<_, _>>(),
+                .collect::<std::collections::BTreeMap<_, _>>(),
         )
         .unwrap_or_else(|_| "ERROR".into());
         #[cfg(not(feature = "metadata"))]
