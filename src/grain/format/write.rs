@@ -391,6 +391,17 @@ fn put_constant(out: &mut Vec<u8>, value: &Dynamic) -> Result<(), String> {
         out.extend_from_slice(&number.to_le_bytes());
         return Ok(());
     }
+    #[cfg(feature = "decimal")]
+    if let Ok(number) = value.as_decimal() {
+        out.push(constant::DECIMAL);
+        let value = number.mantissa();
+        let scale = number.scale();
+        let mut buf = [0u8; core::mem::size_of::<i128>() + core::mem::size_of::<u32>()];
+        buf[0..core::mem::size_of::<i128>()].copy_from_slice(&value.to_le_bytes());
+        buf[core::mem::size_of::<i128>()..].copy_from_slice(&scale.to_le_bytes());
+        out.extend_from_slice(&buf);
+        return Ok(());
+    }
     if let Ok(character) = value.as_char() {
         out.push(constant::CHAR);
         put_uvarint(out, u32::from(character).into());

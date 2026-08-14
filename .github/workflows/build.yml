@@ -77,7 +77,7 @@ jobs:
         toolchain: [stable]
         experimental: [false]
         include:
-          # smoketests for different toolchains
+          # smoke-tests for different toolchains
           - {toolchain: stable, os: windows-latest, experimental: false, flags: ""}
           - {toolchain: stable, os: macos-latest, experimental: false, flags: ""}
           - {toolchain: beta, os: ubuntu-latest, experimental: false, flags: "--features unstable"}
