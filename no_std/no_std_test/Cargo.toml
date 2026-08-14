@@ -10,7 +10,7 @@ homepage = "https://github.com/rhaiscript/rhai/tree/no_std/no_std_test"
 repository = "https://github.com/rhaiscript/rhai"
 
 [dependencies]
-rhai = { path = "../../", features = ["no_std", "sync"], default-features = false }
+rhai = { path = "../../", features = ["no_std", "decimal", "metadata", "grain", "sync"], default-features = false }
 wee_alloc = { version = "0.4.5", default-features = false }
 
 [profile.dev]
