@@ -437,16 +437,36 @@ fn get_constant(
 
         constant::INT => {
             let value = cursor.ivarint()?;
-            Dynamic::from(rhai::INT::try_from(value).map_err(|_| ReadError::MalformedVarint)?)
+            Dynamic::from_int(rhai::INT::try_from(value).map_err(|_| ReadError::MalformedVarint)?)
         }
 
         #[cfg(not(feature = "no_float"))]
         constant::FLOAT => {
             let width = core::mem::size_of::<rhai::FLOAT>();
             let bits = cursor.take(width)?;
-            Dynamic::from(rhai::FLOAT::from_le_bytes(
+            Dynamic::from_float(rhai::FLOAT::from_le_bytes(
                 bits.try_into().expect("width matches the fingerprint"),
             ))
+        }
+
+        #[cfg(feature = "decimal")]
+        constant::DECIMAL => {
+            let width = core::mem::size_of::<i128>() + core::mem::size_of::<u32>();
+            let bits = cursor.take(width)?;
+            let value = i128::from_le_bytes(
+                bits[0..core::mem::size_of::<i128>()]
+                    .try_into()
+                    .expect("width matches the fingerprint"),
+            );
+            let scale = u32::from_le_bytes(
+                bits[core::mem::size_of::<i128>()..]
+                    .try_into()
+                    .expect("width matches the fingerprint"),
+            );
+            Dynamic::from_decimal(
+                rust_decimal::Decimal::try_from_i128_with_scale(value, scale)
+                    .map_err(|_| ReadError::MalformedVarint)?,
+            )
         }
 
         constant::CHAR => {

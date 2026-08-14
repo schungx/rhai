@@ -108,6 +108,7 @@ mod constant {
     pub const BLOB: u8 = 0x09;
     pub const RANGE: u8 = 0x0a;
     pub const RANGE_INCLUSIVE: u8 = 0x0b;
+    pub const DECIMAL: u8 = 0x0c;
 }
 
 /// Everything a stripped artifact left behind.

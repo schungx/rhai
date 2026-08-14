@@ -141,6 +141,11 @@ pub fn applies_to_this_build(name: &str) -> bool {
     ) {
         return false;
     }
+    // No `decimal` does not have support for `Decimal`.
+    #[cfg(not(feature = "decimal"))]
+    if matches!(name, "decimal_numbers" | "decimal_arithmetic") {
+        return false;
+    }
     // `no_function` removes `fn` and the anonymous form with it, so a case that
     // declares one, points at one, or has a `this` to be a method of does not
     // parse. The prefixes carry the families; the rest reach for a function
@@ -320,6 +325,8 @@ pub const CASES: &[Case] = &[
     case("int_arithmetic", "let a = 7; let b = 3; a * b - a / b + a % b"),
     case("float_arithmetic", "let a = 7.5; let b = 0.5; a * b + a / b"),
     case("mixed_numeric", "1 + 2.5"),
+    case("decimal_numbers", "let a = parse_decimal(\"42\")"),
+    case("decimal_arithmetic", "let a = parse_decimal(\"42\"); let b = 1; a + b"),
     case("comparison_chain", "let a = 5; a > 1 && a < 10 || a == 5"),
     case("bitwise", "let a = 0b1010; (a & 0b0110) | (a ^ 0b1111) << 2"),
     case("string_ops", r#"let s = "hello"; s + " " + "world" + s.len"#),

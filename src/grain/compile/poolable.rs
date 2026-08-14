@@ -5,6 +5,8 @@ use rhai::Map;
 #[cfg(not(feature = "no_index"))]
 use rhai::{Array, Blob};
 use rhai::{Dynamic, INT};
+#[cfg(feature = "decimal")]
+use rust_decimal::Decimal;
 
 /// Whether a constant can live in the artifact's constant pool.
 ///
@@ -54,6 +56,12 @@ pub(crate) fn is_poolable(value: &Dynamic) -> bool {
     #[cfg(not(feature = "no_index"))]
     if value.is_blob() {
         return value.read_lock::<Blob>().is_some();
+    }
+
+    // Decimals are enabled by `decimal`.
+    #[cfg(feature = "decimal")]
+    if value.is_decimal() {
+        return value.read_lock::<Decimal>().is_some();
     }
 
     // A range is a host type by representation but not by nature: Rhai builds
