@@ -74,6 +74,8 @@ pub mod tag {
     pub const JUMP_IF_TRUE: u8 = 0x11;
     /// [`Op::JumpIfFalse`](super::Op::JumpIfFalse).
     pub const JUMP_IF_FALSE: u8 = 0x12;
+    /// [`Op::SkipIfNotUnit`](super::Op::SkipIfNotUnit).
+    pub const SKIP_IF_NOT_UNIT: u8 = 0x13;
 
     // 0x20-2f - Shared values
     /// [`Op::Share`](super::Op::Share).
@@ -272,6 +274,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::JUMP as usize] = 5;
     widths[tag::JUMP_IF_TRUE as usize] = 5;
     widths[tag::JUMP_IF_FALSE as usize] = 5;
+    widths[tag::SKIP_IF_NOT_UNIT as usize] = 5;
 
     widths[tag::CALL_OP as usize] = 6;
     widths[tag::CALL_LOCAL_REF as usize] = 6;
@@ -480,6 +483,10 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
             }
             Op::JumpIfFalse { target: to } => {
                 code.push(tag::JUMP_IF_FALSE);
+                code.extend_from_slice(&target(*to)?.to_le_bytes());
+            }
+            Op::SkipIfNotUnit { target: to } => {
+                code.push(tag::SKIP_IF_NOT_UNIT);
                 code.extend_from_slice(&target(*to)?.to_le_bytes());
             }
 
@@ -770,6 +777,7 @@ fn encoded_width(op: &Op) -> usize {
         | Op::Jump(..)
         | Op::JumpIfTrue { .. }
         | Op::JumpIfFalse { .. }
+        | Op::SkipIfNotUnit { .. }
         | Op::IterNext { .. }
         | Op::PushHandler {
             catch_var: None, ..
@@ -850,6 +858,9 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
             target: u32_at(code, at + 1)?,
         },
         tag::JUMP_IF_FALSE => Op::JumpIfFalse {
+            target: u32_at(code, at + 1)?,
+        },
+        tag::SKIP_IF_NOT_UNIT => Op::SkipIfNotUnit {
             target: u32_at(code, at + 1)?,
         },
 

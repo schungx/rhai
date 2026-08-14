@@ -1,6 +1,17 @@
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
+use bitflags::bitflags;
+
+bitflags! {
+    /// Per-step flags for a chain.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct StepFlags: u8 {
+        /// The step short-circuits when the receiver is `()`.
+        const SKIP_IF_UNIT = 0b_0000_0001;
+    }
+}
+
 /// One step along `a.b[i].c(x)`.
 ///
 /// Steps live in the program's chain pool rather than in the instruction
@@ -33,6 +44,8 @@ pub enum Step {
     Index {
         /// Where the index sits on the operand stack.
         operand: u16,
+        /// Per-step flags, such as null-conditional chaining.
+        flags: StepFlags,
         /// Where the index expression starts.
         pos: rhai::Position,
         /// The `[` in front of it.
@@ -49,6 +62,8 @@ pub enum Step {
         getter: u32,
         /// `set$name`, for the write-back.
         setter: u32,
+        /// Per-step flags, such as null-conditional chaining.
+        flags: StepFlags,
         /// Where the property is in the source.
         pos: rhai::Position,
     },
@@ -61,6 +76,8 @@ pub enum Step {
         argc: u8,
         /// Where the first of them sits on the operand stack.
         operand: u16,
+        /// Per-step flags, such as null-conditional chaining.
+        flags: StepFlags,
         /// Where the call is in the source.
         pos: rhai::Position,
     },

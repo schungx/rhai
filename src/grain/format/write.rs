@@ -229,10 +229,12 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain, positions: Positions) {
         match step {
             Step::Index {
                 operand,
+                flags,
                 pos,
                 bracket,
             } => {
                 out.push(step_tag::INDEX);
+                out.push(flags.bits());
                 put_uvarint(out, u64::from(*operand));
                 put_position(out, *pos, positions);
                 put_position(out, *bracket, positions);
@@ -241,9 +243,11 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain, positions: Positions) {
                 name,
                 getter,
                 setter,
+                flags,
                 pos,
             } => {
                 out.push(step_tag::PROPERTY);
+                out.push(flags.bits());
                 put_uvarint(out, u64::from(*name));
                 put_uvarint(out, u64::from(*getter));
                 put_uvarint(out, u64::from(*setter));
@@ -253,9 +257,11 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain, positions: Positions) {
                 name,
                 argc,
                 operand,
+                flags,
                 pos,
             } => {
                 out.push(step_tag::METHOD);
+                out.push(flags.bits());
                 put_uvarint(out, u64::from(*name));
                 out.push(*argc);
                 put_uvarint(out, u64::from(*operand));

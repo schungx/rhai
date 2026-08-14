@@ -35,7 +35,7 @@ use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_T
 
 mod callback;
 
-use crate::grain::bytecode::{code, AssignOp, Chain, Receiver, Root, Step, Tail};
+use crate::grain::bytecode::{code, AssignOp, Chain, Receiver, Root, Step, StepFlags, Tail};
 use crate::grain::program::{Program, SharedModule, SharedProgram};
 
 /// Rhai's own `RhaiResult`, which it does not re-export.
@@ -909,6 +909,12 @@ impl<'e> Vm<'e> {
             .ok_or_else(|| malformed("operand stack underflow".to_string()))
     }
 
+    fn inspect(&mut self) -> Result<&Dynamic, Box<EvalAltResult>> {
+        self.stack
+            .last()
+            .ok_or_else(|| malformed("operand stack underflow".to_string()))
+    }
+
     /// `reached` tracks the instruction being executed, so a failure can be
     /// attributed to one. It is what a stripped program reports in place of a
     /// position.
@@ -1200,6 +1206,14 @@ impl<'e> Vm<'e> {
             return Ok((target.clone(), false));
         };
         let last = rest.is_empty();
+        let coalescing = match step {
+            Step::Index { flags, .. }
+            | Step::Property { flags, .. }
+            | Step::Method { flags, .. } => flags.contains(StepFlags::SKIP_IF_UNIT),
+        };
+        if coalescing && target.is_unit() {
+            return Ok((Dynamic::UNIT, false));
+        }
 
         // Which step a failure gets blamed on. The walk only descends, so the
         // last one written is the one that raised.
@@ -1216,6 +1230,7 @@ impl<'e> Vm<'e> {
             #[cfg(not(all(feature = "no_index", feature = "no_object")))]
             Step::Index {
                 operand,
+                flags: _,
                 pos: idx_pos,
                 bracket,
             } => {
@@ -1250,6 +1265,7 @@ impl<'e> Vm<'e> {
                 name,
                 getter,
                 setter,
+                flags: _,
                 pos: step_pos,
             } => self.walk_property(
                 program, chain, rest, target, operands, value, pos, *step_pos, *name, *getter,
@@ -1260,6 +1276,7 @@ impl<'e> Vm<'e> {
                 name,
                 argc,
                 operand,
+                flags: _,
                 pos: step_pos,
             } => {
                 let step_pos = *step_pos;
@@ -3253,6 +3270,15 @@ impl<'e> Vm<'e> {
                     }
                 }
 
+                code::tag::SKIP_IF_NOT_UNIT => {
+                    let target = wide(1)? as usize;
+                    let condition = self.inspect()?;
+                    if !condition.is_unit() {
+                        transfer!(target);
+                        continue;
+                    }
+                }
+
                 code::tag::CALL | code::tag::CALL_OP => {
                     let name_index = u32::from(small(1)?);
                     let name = program
@@ -3976,6 +4002,7 @@ mod tests {
                     name: 1, // `g`
                     argc: 0,
                     operand: 0,
+                    flags: Default::default(),
                     pos: Position::NONE,
                 }],
                 tail: Tail::Read,
@@ -4011,6 +4038,7 @@ mod tests {
                     name: 1, // `g`
                     argc: 0,
                     operand: 0,
+                    flags: default(),
                     pos: Position::NONE,
                 }],
                 tail: Tail::Read,
@@ -4061,6 +4089,7 @@ mod tests {
                     name: 2, // `push`
                     argc: 1,
                     operand: 0,
+                    flags: Default::default(),
                     pos: Position::NONE,
                 }],
                 tail: Tail::Read,
@@ -4147,6 +4176,7 @@ mod tests {
                     name: 3, // `len`
                     argc: 0,
                     operand: 0,
+                    flags: Default::default(),
                     pos: Position::NONE,
                 }],
                 tail: Tail::Read,
@@ -4159,6 +4189,29 @@ mod tests {
             format!("{err:?}").contains("ErrorUnboundThis"),
             "expected an unbound `this`, got {err:?}"
         );
+    }
+
+    #[test]
+    fn a_coalescing_step_short_circuits_on_unit() {
+        let program = program_with_chains(
+            &[&[Op::Unit, Op::Chain(0), Op::Return]],
+            Vec::new(),
+            vec![Chain {
+                root: Root::Temporary,
+                steps: vec![Step::Method {
+                    name: 3, // `len`
+                    argc: 0,
+                    operand: 0,
+                    flags: crate::grain::bytecode::StepFlags::SKIP_IF_UNIT,
+                    pos: Position::NONE,
+                }],
+                tail: Tail::Read,
+                operands: 0,
+            }],
+        );
+
+        let out = call(&program, None).expect("coalescing should skip method dispatch on unit");
+        assert!(out.is_unit(), "expected unit, got {out:?}");
     }
 
     #[test]

@@ -340,14 +340,9 @@ fn a_chain_rooted_at_a_name_survives_the_round_trip() {
 fn refusing_to_write_names_the_construct_responsible() {
     let engine = corpus::engine();
 
-    for (source, expected) in [
-        ("let x = 1; eval(\"x\")", "an unlowered expression"),
-        // `?.` short-circuits on unit rather than stepping, so it is not a
-        // chain this compiler can express whatever its root is. It is a
-        // property access, and goes with the rest of them under `no_object`.
-        #[cfg(not(feature = "no_object"))]
-        ("let x = 1; x?.y", "an unlowered expression"),
-    ] {
+    const SCRIPTS: &[(&str, &str)] = &[("let x = 1; eval(\"x\")", "an unlowered expression")];
+
+    for (source, expected) in SCRIPTS {
         let ast = engine.compile(source).expect("must compile");
         let program = Compiler::new().compile(&ast);
 
@@ -356,7 +351,7 @@ fn refusing_to_write_names_the_construct_responsible() {
         let Err(err @ WriteError::HasResiduals { construct, pos, .. }) = program.write() else {
             panic!("{source:?} must refuse to write");
         };
-        assert_eq!(construct, expected, "for {source:?}");
+        assert_eq!(&construct, expected, "for {source:?}");
         // Under `no_position` there is no "where" to say, and the naming half
         // above is the part that still means something.
         #[cfg(not(feature = "no_position"))]

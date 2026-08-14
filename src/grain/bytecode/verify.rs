@@ -208,10 +208,10 @@ fn verify_chunk(
     }
 
     let mut depth_at: Vec<Option<State>> = vec![None; code.len()];
-    let mut worklist = vec![(entry, State::default())];
+    let mut work_list = vec![(entry, State::default())];
     let mut high_water = 0usize;
 
-    while let Some((at, state)) = worklist.pop() {
+    while let Some((at, state)) = work_list.pop() {
         if at >= end {
             return Err(VerifyError::FallsOffTheEnd);
         }
@@ -284,7 +284,7 @@ fn verify_chunk(
                     target: target as u32,
                 });
             }
-            worklist.push((target, state));
+            work_list.push((target, state));
             Ok(())
         };
 
@@ -310,12 +310,14 @@ fn verify_chunk(
                         handlers: next_state.handlers,
                     },
                 )?;
-                worklist.push((next, next_state));
+                work_list.push((next, next_state));
             }
 
-            Op::JumpIfFalse { target } | Op::JumpIfTrue { target } => {
+            Op::JumpIfFalse { target }
+            | Op::JumpIfTrue { target }
+            | Op::SkipIfNotUnit { target } => {
                 go(target, next_state)?;
-                worklist.push((next, next_state));
+                work_list.push((next, next_state));
             }
 
             // The one instruction whose edges differ in more than where they
@@ -333,7 +335,7 @@ fn verify_chunk(
                         handlers: state.handlers,
                     },
                 )?;
-                worklist.push((
+                work_list.push((
                     next,
                     State {
                         // The item, and the count under it when there is one.
@@ -365,7 +367,7 @@ fn verify_chunk(
                 if next >= end {
                     return Err(VerifyError::FallsOffTheEnd);
                 }
-                worklist.push((next, next_state));
+                work_list.push((next, next_state));
             }
         }
     }
@@ -425,6 +427,7 @@ fn effect(op: &Op, pools: Pools) -> (usize, usize) {
         Op::JumpIfFalse { .. } | Op::JumpIfTrue { .. } | Op::Switch(..) => (1, 0),
 
         Op::Jump(..)
+        | Op::SkipIfNotUnit { .. }
         | Op::UnwindTo(..)
         | Op::Tick
         | Op::Checkpoint
@@ -688,6 +691,7 @@ mod tests {
             name,
             getter: 0,
             setter: 0,
+            flags: Default::default(),
             pos: rhai::Position::NONE,
         };
 
@@ -708,6 +712,7 @@ mod tests {
                     name: 3,
                     argc: 0,
                     operand: 0,
+                    flags: Default::default(),
                     pos: rhai::Position::NONE,
                 }],
                 Tail::Read,

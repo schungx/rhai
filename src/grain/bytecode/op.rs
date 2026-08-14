@@ -186,6 +186,13 @@ pub enum Op {
         /// Where to jump to
         target: u32,
     },
+    /// Inspects a condition and jump to `.0` if it is not `()`.
+    /// The condition is not popped, so the caller can read it afterwards.
+    /// Mirrors [`Op::JumpIfFalse`]; exists so short-circuit `??` lower.
+    SkipIfNotUnit {
+        /// Where to skip to
+        target: u32,
+    },
 
     /// Pop `argc` arguments and call the function named by `name`, pushing the
     /// result.

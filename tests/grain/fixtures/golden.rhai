@@ -1,15 +1,19 @@
-// The script behind `tests/fixtures/golden.rgrn`. See
-// `an_artifact_written_by_an_older_build_still_runs` in `tests/format.rs`.
-//
-// Deliberately wide rather than deliberately short: every encoder branch this
-// reaches is a branch the golden artifact pins against silent drift. Editing it
-// means regenerating the artifact, which is the point — the pair only proves
-// anything while the artifact is older than the reader.
-//
-// No `switch`. A switch table carries hashes from Rhai's per-process hasher
-// seed, so an artifact holding one is refused by any process that did not set
-// the same seed (`format/write.rs:237`). That is right for a real artifact and
-// useless for a fixture, which has to load anywhere.
+//! The script behind `tests/fixtures/golden.rgrn`.
+//!
+//! See `an_artifact_written_by_an_older_build_still_runs` in `tests/format.rs`.
+//!
+//! Deliberately wide rather than deliberately short: every encoder branch this
+//! reaches is a branch the golden artifact pins against silent drift. Editing it
+//! means regenerating the artifact, which is the point — the pair only proves
+//! anything while the artifact is older than the reader.
+//!
+//! Regenerate `tests/fixtures/golden.rgrn` by setting the environment variable
+//! `REGENERATE_GOLDEN=1` and running `cargo test --features grain --test grain golden`.
+//!
+//! No `switch`. A switch table carries hashes from Rhai's per-process hasher
+//! seed, so an artifact holding one is refused by any process that did not set
+//! the same seed (`format/write.rs:237`). That is right for a real artifact and
+//! useless for a fixture, which has to load anywhere.
 
 fn tally(items, bias) {
     let total = bias;

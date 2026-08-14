@@ -18,7 +18,7 @@ use crate::{Dynamic, ImmutableString, Position, AST};
 
 use crate::grain::bytecode::{
     assemble, resolve_switch_targets, AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step,
-    Switch, SwitchCase, SwitchRange, Tail,
+    StepFlags, Switch, SwitchCase, SwitchRange, Tail,
 };
 use crate::grain::compile::poolable::is_poolable;
 use crate::grain::compile::slots::Slots;
@@ -449,25 +449,27 @@ impl Lowering {
 
         for step in &steps {
             match step {
-                ChainStep::Index(index, bracket) => {
+                ChainStep::Index(index, bracket, flags) => {
                     self.expression(index);
                     lowered.push(Step::Index {
                         operand: operands,
+                        flags: *flags,
                         pos: index.start_position(),
                         bracket: *bracket,
                     });
                     operands += 1;
                 }
-                ChainStep::Property(prop, pos) => {
+                ChainStep::Property(prop, pos, flags) => {
                     let (getter, setter, name) = &**prop;
                     lowered.push(Step::Property {
                         name: self.push_name(name.clone()),
                         getter: self.push_name(getter.0.clone()),
                         setter: self.push_name(setter.0.clone()),
+                        flags: *flags,
                         pos: *pos,
                     });
                 }
-                ChainStep::Method(call, pos) => {
+                ChainStep::Method(call, pos, flags) => {
                     if !self.is_lowerable_call(call) {
                         if value_slot.is_some() {
                             self.rewind(rewind_mark);
@@ -491,6 +493,7 @@ impl Lowering {
                         name: self.push_name(call.name.clone()),
                         argc,
                         operand: first,
+                        flags: *flags,
                         pos: *pos,
                     });
                 }
@@ -1482,6 +1485,7 @@ impl Lowering {
 
             Expr::And(operands, ..) => self.short_circuit(operands, false),
             Expr::Or(operands, ..) => self.short_circuit(operands, true),
+            Expr::Coalesce(operands, ..) => self.coalesce(operands),
 
             Expr::FnCall(call, pos) if self.fn_ptr_call(call, *pos) => {}
 
@@ -1669,8 +1673,7 @@ impl Lowering {
             // position, because that is what `ErrorUnboundThis` carries.
             Expr::ThisPtr(pos) => self.emit_at(Op::LoadThis, *pos),
 
-            Expr::Coalesce(..)
-            | Expr::MethodCall(..)
+            Expr::MethodCall(..)
             | Expr::Property(..)
             | Expr::DynamicConstant(..)
             | Expr::FnCall(..)
@@ -1989,6 +1992,30 @@ impl Lowering {
         self.patch_here(past);
     }
 
+    /// Lower `??`: evaluate operands left to right, stopping at the
+    /// first that is not unit.
+    fn coalesce(&mut self, operands: &[Expr]) {
+        let mut decided = Vec::new();
+        let last = operands.len();
+
+        for operand in operands {
+            self.expression(operand);
+
+            // Leave the last operand to fall through, so it is the one that decides
+            // if all the other operands are `()`
+            if decided.len() < last - 1 {
+                let pos = operand.position();
+                let site = self.code.len();
+                self.emit_at(Op::SkipIfNotUnit { target: u32::MAX }, pos);
+                self.emit_at(Op::Pop, pos);
+                decided.push(site);
+            }
+        }
+        for site in decided {
+            self.patch_here(site);
+        }
+    }
+
     /// Lower a block, leaving its value — the last statement's, or unit if
     /// empty — on the stack, and dropping anything it declared.
     fn block(&mut self, statements: &[Stmt]) -> bool {
@@ -2083,6 +2110,7 @@ impl Lowering {
             Op::Jump(slot)
             | Op::JumpIfFalse { target: slot, .. }
             | Op::JumpIfTrue { target: slot, .. }
+            | Op::SkipIfNotUnit { target: slot, .. }
             | Op::IterNext { exit: slot, .. }
             | Op::PushHandler { target: slot, .. } => *slot = target,
             other => unreachable!("patched a {other:?}, which is not a jump"),
@@ -2232,7 +2260,7 @@ impl Lowering {
 /// only one position-table entry between all of them.
 enum ChainStep<'a> {
     /// The index expression, and the `[` it sits behind — see [`Step::Index`].
-    Index(&'a Expr, rhai::Position),
+    Index(&'a Expr, rhai::Position, crate::grain::bytecode::StepFlags),
     Property(
         &'a (
             (ImmutableString, u64),
@@ -2240,8 +2268,13 @@ enum ChainStep<'a> {
             ImmutableString,
         ),
         rhai::Position,
+        crate::grain::bytecode::StepFlags,
     ),
-    Method(&'a FnCallExpr, rhai::Position),
+    Method(
+        &'a FnCallExpr,
+        rhai::Position,
+        crate::grain::bytecode::StepFlags,
+    ),
 }
 
 /// Unpick Rhai's nested chain encoding into a root and a list of steps.
@@ -2257,8 +2290,7 @@ enum ChainStep<'a> {
 /// that says the first one's `b[0]` is an index expression rather than two
 /// steps (`eval/chaining.rs:698`).
 ///
-/// Returns `None` for `?.` and `?[]`, which short-circuit on unit rather than
-/// stepping, and for a dot onto anything but a property or a method.
+/// Returns `None` for a dot onto anything but a property or a method.
 fn flatten_chain(expr: &Expr) -> Option<(&Expr, Vec<ChainStep<'_>>)> {
     /// A chain node's parts: operand side, continuation side, and whether the
     /// step it introduces is a property rather than an index.
@@ -2278,8 +2310,10 @@ fn flatten_chain(expr: &Expr) -> Option<(&Expr, Vec<ChainStep<'_>>)> {
     let mut bracket = expr.position();
 
     loop {
+        let mut step_flags = StepFlags::default();
+
         if flags.contains(ASTFlags::NEGATED) {
-            return None;
+            step_flags.insert(StepFlags::SKIP_IF_UNIT);
         }
 
         // `rest` is the continuation only when it is a chain node *and* this
@@ -2295,12 +2329,12 @@ fn flatten_chain(expr: &Expr) -> Option<(&Expr, Vec<ChainStep<'_>>)> {
         };
 
         steps.push(match (dotted, operand) {
-            (true, Expr::Property(prop, pos)) => ChainStep::Property(prop, *pos),
-            (true, Expr::MethodCall(call, pos)) => ChainStep::Method(call, *pos),
+            (true, Expr::Property(prop, pos)) => ChainStep::Property(prop, *pos, step_flags),
+            (true, Expr::MethodCall(call, pos)) => ChainStep::Method(call, *pos, step_flags),
             // `a.(expr)` is not syntax, so a dot onto anything else is a shape
             // the parser only makes for something handled elsewhere.
             (true, _) => return None,
-            (false, index) => ChainStep::Index(index, bracket),
+            (false, index) => ChainStep::Index(index, bracket, step_flags),
         });
 
         match following {
@@ -2354,6 +2388,7 @@ fn declaration_order(def: &ScriptFuncDef) -> (&str, usize, Option<&str>) {
 #[cfg(not(feature = "no_function"))]
 mod tests {
     use super::*;
+    use crate::grain::bytecode::StepFlags;
 
     /// Lowering order fixes every address inside a function, so it has to come
     /// from the source rather than from a hash map.
@@ -2389,6 +2424,31 @@ mod tests {
             order,
             [("alpha", 1), ("alpha", 2), ("mike", 0), ("zulu", 1)],
             "functions must be lowered by name and arity, not by hash",
+        );
+    }
+
+    #[test]
+    #[cfg(not(feature = "no_object"))]
+    fn null_conditional_steps_are_lowered_into_chains() {
+        let engine = crate::Engine::new();
+        let ast = engine
+            .compile("let m = #{a: #{b: 1}}; m?.a?.b")
+            .expect("must compile");
+        let program = Compiler::new().compile(&ast);
+
+        let chain = program
+            .chains()
+            .iter()
+            .find(|chain| !chain.steps.is_empty())
+            .expect("the null-conditional expression must lower into a chain");
+
+        assert!(
+            chain.steps.iter().all(|step| match step {
+                Step::Index { flags, .. }
+                | Step::Property { flags, .. }
+                | Step::Method { flags, .. } => flags.contains(StepFlags::SKIP_IF_UNIT),
+            }),
+            "all steps in `m?.a?.b` must short-circuit on unit",
         );
     }
 }
