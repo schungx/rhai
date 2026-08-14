@@ -117,7 +117,6 @@ assert_eq!(sites[1].unwrap().line, 2); // the call to it
 ```
 "##
 )]
-
 // A VM that runs untrusted bytecode has no business containing any, and saying
 // so here makes it the compiler's problem rather than a promise. `crates/
 // rhaigrain-pos` declares the same.
