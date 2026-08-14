@@ -83,28 +83,40 @@
 //! against the sidecar it kept — a stack of addresses on one side, a symbol
 //! file on the other, as a crash reporter does.
 //!
-//! ```
-//! use rhai::grain::{Compiler, Program, Vm};
-//! use rhai::{Engine, Scope};
-//!
-//! let engine = Engine::new();
-//! let ast = engine.compile("fn half(x) { x / 0 }\nhalf(4)")?;
-//! let stripped = Compiler::new().compile(&ast).write_stripped().unwrap();
-//!
-//! // The device has the artifact and nothing else. It fails, and all it can
-//! // say is which instructions — innermost frame first.
-//! let program = Program::read(&stripped.artifact).unwrap();
-//! let mut vm = Vm::new(&engine);
-//! let error = vm.eval_with_scope(&mut Scope::new(), &program).unwrap_err();
-//! assert!(error.position().is_none());
-//! let trace = vm.fault_trace();
-//!
-//! // The host kept the sidecar, and turns that back into a backtrace.
-//! let sites = stripped.sidecar.resolve(&trace);
-//! assert_eq!(sites[0].unwrap().line, 1); // the divide, inside `half`
-//! assert_eq!(sites[1].unwrap().line, 2); // the call to it
-//! # Ok::<_, Box<rhai::EvalAltResult>>(())
-//! ```
+//! The example below needs script functions to have two frames, positions to
+//! resolve them to, and a division by zero that raises rather than panicking,
+//! so it is compiled only where all three exist.
+#![cfg_attr(
+    not(any(
+        feature = "no_function",
+        feature = "no_position",
+        feature = "unchecked"
+    )),
+    doc = r##"
+```
+use rhai::grain::{Compiler, Program, Vm};
+use rhai::{Engine, Scope};
+
+let engine = Engine::new();
+let ast = engine.compile("fn half(x) { x / 0 }\nhalf(4)")?;
+let stripped = Compiler::new().compile(&ast).write_stripped().unwrap();
+
+// The device has the artifact and nothing else. It fails, and all it can
+// say is which instructions — innermost frame first.
+let program = Program::read(&stripped.artifact).unwrap();
+let mut vm = Vm::new(&engine);
+let error = vm.eval_with_scope(&mut Scope::new(), &program).unwrap_err();
+assert!(error.position().is_none());
+let trace = vm.fault_trace();
+
+// The host kept the sidecar, and turns that back into a backtrace.
+let sites = stripped.sidecar.resolve(&trace);
+assert_eq!(sites[0].unwrap().line, 1); // the divide, inside `half`
+assert_eq!(sites[1].unwrap().line, 2); // the call to it
+# Ok::<_, Box<rhai::EvalAltResult>>(())
+```
+"##
+)]
 
 // A VM that runs untrusted bytecode has no business containing any, and saying
 // so here makes it the compiler's problem rather than a promise. `crates/
