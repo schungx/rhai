@@ -19,31 +19,49 @@
 //! fingerprint. They cannot close it everywhere, which is what the mirror is
 //! documented for.
 
-/// Restrictions that are not visible in a width.
-///
-/// Order is the wire order and must never change; append only. A flag's name
-/// is what the loader reports, so it has to match Rhai's own spelling.
-const FLAGS: &[(&str, bool)] = &[
-    ("sync", cfg!(feature = "sync")),
-    ("decimal", cfg!(feature = "decimal")),
-    ("no_index", cfg!(feature = "no_index")),
-    ("no_object", cfg!(feature = "no_object")),
-    ("no_closure", cfg!(feature = "no_closure")),
-    ("no_function", cfg!(feature = "no_function")),
-    ("no_module", cfg!(feature = "no_module")),
-    ("no_position", cfg!(feature = "no_position")),
-    ("no_custom_syntax", cfg!(feature = "no_custom_syntax")),
-    ("no_time", cfg!(feature = "no_time")),
-    ("unchecked", cfg!(feature = "unchecked")),
-];
+use bitflags::bitflags;
 
-/// `Engine` is only `Send + Sync` when Rhai is built with `sync`, so claiming
-/// the flag without Rhai agreeing fails to compile.
-#[cfg(feature = "sync")]
-const _: () = {
-    const fn assert_sync<T: Send + Sync>() {}
-    let _ = assert_sync::<rhai::Engine>;
-};
+bitflags! {
+    /// Feature flags.
+    ///
+    /// Order is the wire order and must never change; append only.
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct FeatureFlags: u32 {
+        const SYNC = 0b0000_0000_0000_0001;
+        const DECIMAL = 0b0000_0000_0000_0010;
+        const NO_INDEX = 0b0000_0000_0000_0100;
+        const NO_OBJECT = 0b0000_0000_0000_1000;
+        const NO_CLOSURE = 0b0000_0000_0001_0000;
+        const NO_FUNCTION = 0b0000_0000_0010_0000;
+        const NO_MODULE = 0b0000_0000_0100_0000;
+        const NO_POSITION = 0b0000_0000_1000_0000;
+        const NO_CUSTOM_SYNTAX = 0b0000_0001_0000_0000;
+        const NO_TIME = 0b0000_0010_0000_0000;
+        const UNCHECKED = 0b0000_0100_0000_0000;
+    }
+}
+
+use FeatureFlags as F;
+
+/// Restrictions that are not visible in a width.
+/// A flag's name is what the loader reports, so it has to match Rhai's own spelling.
+const FLAGS: &[(FeatureFlags, &'static str, bool)] = &[
+    (F::SYNC, "sync", cfg!(feature = "sync")),
+    (F::DECIMAL, "decimal", cfg!(feature = "decimal")),
+    (F::NO_INDEX, "no_index", cfg!(feature = "no_index")),
+    (F::NO_OBJECT, "no_object", cfg!(feature = "no_object")),
+    (F::NO_CLOSURE, "no_closure", cfg!(feature = "no_closure")),
+    (F::NO_FUNCTION, "no_function", cfg!(feature = "no_function")),
+    (F::NO_MODULE, "no_module", cfg!(feature = "no_module")),
+    (F::NO_POSITION, "no_position", cfg!(feature = "no_position")),
+    (
+        F::NO_CUSTOM_SYNTAX,
+        "no_custom_syntax",
+        cfg!(feature = "no_custom_syntax"),
+    ),
+    (F::NO_TIME, "no_time", cfg!(feature = "no_time")),
+    (F::UNCHECKED, "unchecked", cfg!(feature = "unchecked")),
+];
 
 /// The value representation an artifact was written against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,8 +71,8 @@ pub struct Abi {
     pub int_bytes: u8,
     /// `size_of::<rhai::FLOAT>()`, or 0 under `no_float`.
     pub float_bytes: u8,
-    /// `FLAGS` as a bitmask, low bit first.
-    pub flags: u32,
+    /// current build's feature flags.
+    pub features: FeatureFlags,
 }
 
 /// How two fingerprints differ.
@@ -111,22 +129,21 @@ impl Abi {
     /// The fingerprint of the running build.
     #[must_use]
     pub fn host() -> Self {
+        let int_bytes = core::mem::size_of::<rhai::INT>() as u8;
         #[cfg(not(feature = "no_float"))]
         let float_bytes = core::mem::size_of::<rhai::FLOAT>() as u8;
         #[cfg(feature = "no_float")]
         let float_bytes = 0u8;
 
-        let mut flags = 0u32;
-        for (bit, (_, on)) in FLAGS.iter().enumerate() {
-            if *on {
-                flags |= 1 << bit;
-            }
-        }
+        let mut features = F::empty();
+        FLAGS
+            .iter()
+            .for_each(|(flag, _, on)| features.set(*flag, *on));
 
         Self {
-            int_bytes: core::mem::size_of::<rhai::INT>() as u8,
+            int_bytes,
             float_bytes,
-            flags,
+            features,
         }
     }
 
@@ -151,17 +168,19 @@ impl Abi {
             });
         }
 
-        let differing = self.flags ^ host.flags;
-        if differing != 0 {
-            let bit = differing.trailing_zeros() as usize;
-            // A bit past the table means the writer knew a flag this build does
-            // not. Reporting it as unknown beats indexing out of bounds.
-            let flag = FLAGS
-                .get(bit)
-                .map_or("an unknown restriction", |(name, _)| *name);
+        let diff = self.features ^ host.features;
+        if !diff.is_empty() {
+            // A bit not in the table means the writer knows a flag this build does not.
+            // Reporting it as unknown.
+            let (bit, flag) = FLAGS
+                .iter()
+                .find(|(flag, _, _)| diff.contains(*flag))
+                .map_or((true, "an unknown feature flag"), |(bit, name, _)| {
+                    (self.features.contains(*bit), *name)
+                });
             return Some(AbiMismatch::Flag {
                 flag,
-                artifact: self.flags & (1 << bit) != 0,
+                artifact: bit,
             });
         }
 
@@ -219,7 +238,7 @@ mod tests {
     fn a_differing_restriction_is_refused_by_name() {
         let host = Abi::host();
         let restricted = Abi {
-            flags: host.flags ^ (1 << 3),
+            features: host.features ^ FeatureFlags::NO_OBJECT,
             ..host
         };
 
@@ -235,7 +254,7 @@ mod tests {
     fn a_flag_this_build_has_never_heard_of_does_not_panic() {
         let host = Abi::host();
         let future = Abi {
-            flags: host.flags ^ (1 << 31),
+            features: host.features ^ FeatureFlags::from_bits_retain(1_u32 << 31),
             ..host
         };
         assert!(matches!(
