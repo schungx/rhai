@@ -862,7 +862,7 @@ impl Stmt {
             // Loops that exit can be pure because it can never be infinite.
             Self::While(x, ..) if matches!(x.expr, Expr::BoolConstant(false, ..)) => true,
             Self::Do(x, options, ..) if matches!(x.expr, Expr::BoolConstant(..)) => match x.expr {
-                Expr::BoolConstant(cond, ..) if cond == options.intersects(ASTFlags::NEGATED) => {
+                Expr::BoolConstant(cond, ..) if cond == options.contains(ASTFlags::NEGATED) => {
                     x.body.iter().all(Self::is_pure)
                 }
                 _ => false,

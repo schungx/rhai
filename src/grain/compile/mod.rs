@@ -899,7 +899,7 @@ impl Lowering {
             Stmt::Var(payload, flags, ..) => {
                 // `export let x = ...` also binds a module alias, which the
                 // slot model does not represent.
-                if flags.intersects(ASTFlags::EXPORTED) || self.slots.is_full() {
+                if flags.contains(ASTFlags::EXPORTED) || self.slots.is_full() {
                     return false;
                 }
 
@@ -910,7 +910,7 @@ impl Lowering {
                 self.slots.declare(ident.name.clone());
                 self.emit(Op::DeclareLocal {
                     name,
-                    is_const: flags.intersects(ASTFlags::CONSTANT),
+                    is_const: flags.contains(ASTFlags::CONSTANT),
                 });
 
                 // A declaration evaluates to unit.
@@ -1255,7 +1255,7 @@ impl Lowering {
 
             Stmt::Do(payload, flags, ..) => {
                 let FlowControl { expr, body, .. } = &**payload;
-                let until = flags.intersects(ASTFlags::NEGATED);
+                let until = flags.contains(ASTFlags::NEGATED);
 
                 let top = self.here();
                 self.emit_at(Op::Tick, body.position());
@@ -1298,7 +1298,7 @@ impl Lowering {
                 let loop_handlers = active.handlers;
                 let owns_iterator = active.owns_iterator;
                 let (break_depth, continue_depth) = (active.break_depth, active.continue_depth);
-                let is_break = flags.intersects(ASTFlags::BREAK);
+                let is_break = flags.contains(ASTFlags::BREAK);
 
                 // A jump out of a loop skips whatever the straight-line path
                 // would have cleaned up. The nesting is lexical, so how many
@@ -1336,7 +1336,7 @@ impl Lowering {
             // `throw` shares this node, flagged, and unwinds as an error
             // rather than returning. The position is the keyword's, not the
             // expression's (`eval/stmt.rs:877`).
-            Stmt::Return(value, flags, pos) if flags.intersects(ASTFlags::BREAK) => {
+            Stmt::Return(value, flags, pos) if flags.contains(ASTFlags::BREAK) => {
                 match value {
                     Some(expr) => self.expression(expr),
                     None => self.emit(Op::Unit),
@@ -1348,7 +1348,7 @@ impl Lowering {
                 true
             }
 
-            Stmt::Return(value, flags, ..) if !flags.intersects(ASTFlags::BREAK) => {
+            Stmt::Return(value, flags, ..) if !flags.contains(ASTFlags::BREAK) => {
                 match value {
                     Some(expr) => self.expression(expr),
                     None => self.emit(Op::Unit),
@@ -2278,14 +2278,14 @@ fn flatten_chain(expr: &Expr) -> Option<(&Expr, Vec<ChainStep<'_>>)> {
     let mut bracket = expr.position();
 
     loop {
-        if flags.intersects(ASTFlags::NEGATED) {
+        if flags.contains(ASTFlags::NEGATED) {
             return None;
         }
 
         // `rest` is the continuation only when it is a chain node *and* this
         // node is not marked as the last one. Otherwise it is this step's own
         // operand — the index expression, or the property being read.
-        let next = (!flags.intersects(ASTFlags::BREAK))
+        let next = (!flags.contains(ASTFlags::BREAK))
             .then(|| parts(rest))
             .flatten();
 

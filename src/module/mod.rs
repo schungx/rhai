@@ -1087,7 +1087,7 @@ impl Module {
     #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        !self.flags.intersects(ModuleFlags::INDEXED_GLOBAL_FUNCTIONS)
+        !self.flags.contains(ModuleFlags::INDEXED_GLOBAL_FUNCTIONS)
             && self
                 .functions
                 .as_ref()
@@ -1129,14 +1129,14 @@ impl Module {
     #[inline(always)]
     #[must_use]
     pub const fn is_indexed(&self) -> bool {
-        self.flags.intersects(ModuleFlags::INDEXED)
+        self.flags.contains(ModuleFlags::INDEXED)
     }
 
     /// Is the [`Module`] an internal Rhai system module?
     #[inline(always)]
     #[must_use]
     pub const fn is_internal(&self) -> bool {
-        self.flags.intersects(ModuleFlags::INTERNAL)
+        self.flags.contains(ModuleFlags::INTERNAL)
     }
     /// Set whether the [`Module`] is a Rhai internal system module.
     #[inline(always)]
@@ -1147,7 +1147,7 @@ impl Module {
     #[inline(always)]
     #[must_use]
     pub const fn is_standard_lib(&self) -> bool {
-        self.flags.intersects(ModuleFlags::STANDARD_LIB)
+        self.flags.contains(ModuleFlags::STANDARD_LIB)
     }
     /// Set whether the [`Module`] is a Rhai standard library module.
     #[inline(always)]
@@ -2461,7 +2461,7 @@ impl Module {
     #[inline(always)]
     #[must_use]
     pub const fn contains_indexed_global_functions(&self) -> bool {
-        self.flags.intersects(ModuleFlags::INDEXED_GLOBAL_FUNCTIONS)
+        self.flags.contains(ModuleFlags::INDEXED_GLOBAL_FUNCTIONS)
     }
 
     /// Scan through all the sub-modules in the [`Module`] and build a hash index of all
