@@ -2306,9 +2306,7 @@ impl<'e> Vm<'e> {
         // (`func/call.rs:1449-1454`), and a function this compiler lowered
         // copies its first argument whatever it is handed, exactly as Rhai
         // copies it before running a script function (`func/call.rs:661`).
-        let by_reference = place
-            .map(|value| !is_shared!(value) && !value.is_read_only())
-            .unwrap_or(false)
+        let by_reference = place.map_or(false, |value| !is_shared!(value) && !value.is_read_only())
             && program.function(name_index, argc).is_none();
 
         // All three want the ordinary shape, with every argument on the stack.

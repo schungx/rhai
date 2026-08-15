@@ -18,7 +18,7 @@ use std::{
 pub fn calc_offset_len(length: usize, start: crate::INT, len: crate::INT) -> (usize, usize) {
     let start = if start < 0 {
         usize::try_from(start.unsigned_abs()).map_or(0, |x| length - usize::min(x, length))
-    } else if usize::try_from(start).map(|x| x >= length).unwrap_or(true) {
+    } else if usize::try_from(start).map_or(true, |x| x >= length) {
         return (length, 0);
     } else {
         usize::try_from(start).unwrap()
@@ -26,10 +26,7 @@ pub fn calc_offset_len(length: usize, start: crate::INT, len: crate::INT) -> (us
 
     let len = if len <= 0 {
         0
-    } else if usize::try_from(len)
-        .map(|x| x > length - start)
-        .unwrap_or(true)
-    {
+    } else if usize::try_from(len).map_or(true, |x| x > length - start) {
         length - start
     } else {
         usize::try_from(len).unwrap()
