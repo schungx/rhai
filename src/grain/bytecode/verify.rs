@@ -234,9 +234,16 @@ fn verify_chunk(
         high_water = high_water.max(depth);
 
         let op = code::decode(code, at).ok_or(VerifyError::Undecodable { at })?;
-        let (requires, pops, pushes) = effect(&op, pools);
-        assert!(requires >= pops);
 
+        let (requires, pops, pushes) = effect(&op, pools);
+
+        // Number of slots to pop from the stack must necessarily
+        // be <= the number of slots required to be on the stack.
+        // Otherwise there is an error in the `effect` mapping table.
+        if pops > requires {
+            return Err(VerifyError::Undecodable { at });
+        }
+        // Check if there are enough stack slots to inspect/pop
         if depth < requires {
             return Err(VerifyError::Underflow {
                 at,
@@ -244,6 +251,7 @@ fn verify_chunk(
                 have: depth,
             });
         }
+
         let next_state = State {
             operands: depth - pops + pushes,
             iters: match op {
