@@ -1739,6 +1739,7 @@ impl Lowering {
 
     /// Push the arguments left to right, then dispatch.
     fn lower_call(&mut self, call: &FnCallExpr, pos: Position) {
+        let capture_parent_scope = call.capture_parent_scope;
         let argc = u8::try_from(call.args.len()).expect("checked by is_lowerable_call");
 
         // `f(x, ..)` is `x.f(..)`, so the variable is read after the other
@@ -1773,6 +1774,7 @@ impl Lowering {
                     name,
                     argc,
                     receiver,
+                    capture_parent_scope,
                 },
                 pos,
             );
@@ -1791,7 +1793,15 @@ impl Lowering {
             .then(|| call.op_token.clone())
             .flatten()
             .map(|token| self.push_token(token));
-        self.emit_at(Op::Call { name, argc, op }, pos);
+        self.emit_at(
+            Op::Call {
+                name,
+                argc,
+                op,
+                capture_parent_scope,
+            },
+            pos,
+        );
     }
 
     /// Whether a name read is a variable read at all.
@@ -1952,8 +1962,7 @@ impl Lowering {
             return false;
         }
 
-        !call.capture_parent_scope
-            && !call_has_namespace!(call)
+        !call_has_namespace!(call)
             && call.args.len() <= u8::MAX as usize
             && !SYNTACTIC.contains(&call.name.as_str())
     }

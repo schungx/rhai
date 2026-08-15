@@ -217,6 +217,8 @@ pub enum Op {
         argc: u8,
         /// Index into the operator pool; absent unless the call is an operator.
         op: Option<u32>,
+        /// Captures the parent scope.
+        capture_parent_scope: bool,
     },
 
     /// Call `name` with a variable as its first argument, taken by reference.
@@ -245,6 +247,8 @@ pub enum Op {
         argc: u8,
         /// Where the first argument is found.
         receiver: Receiver,
+        /// Captures the parent scope.
+        capture_parent_scope: bool,
     },
 
     /// Move the top of the operand stack down past `.0` values.

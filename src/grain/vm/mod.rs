@@ -593,7 +593,8 @@ impl<'e> Vm<'e> {
         level: usize,
         pos: Position,
     ) -> VmResult {
-        self.call_function_with_this(program, name, args, level, pos, None)
+        let scope = &mut Scope::new();
+        self.call_function_with_this(program, name, args, level, scope, true, pos, None)
             .0
     }
 
@@ -607,6 +608,8 @@ impl<'e> Vm<'e> {
         name: &str,
         args: FnArgsVec<Dynamic>,
         level: usize,
+        scope: &mut Scope,
+        rewind_scope: bool,
         pos: Position,
         this: Option<Dynamic>,
     ) -> (VmResult, Option<Dynamic>) {
@@ -630,8 +633,17 @@ impl<'e> Vm<'e> {
         self.stack.extend(args);
 
         let restore = mem::replace(&mut self.global.level, level);
-        let (result, this) =
-            self.call_compiled_with_this(program, name, &params, chunk, first, pos, this);
+        let (result, this) = self.call_compiled_with_this(
+            program,
+            name,
+            &params,
+            chunk,
+            first,
+            scope,
+            rewind_scope,
+            pos,
+            this,
+        );
         self.global.level = restore;
 
         self.stack.truncate(first);
@@ -726,7 +738,16 @@ impl<'e> Vm<'e> {
                     return (Ok(Dynamic::UNIT), this);
                 }
             }
-            vm.call_function_with_this(program, name, arg_values, 0, Position::NONE, this)
+            vm.call_function_with_this(
+                program,
+                name,
+                arg_values,
+                0,
+                scope,
+                options.rewind_scope,
+                Position::NONE,
+                this,
+            )
         });
 
         // Before the errors below, both of them: Rhai's mutation through `this`
@@ -950,7 +971,6 @@ impl<'e> Vm<'e> {
     /// that, and it is deliberately coarse in the same way Rhai's is — rhai's
     /// flag is `func.is_method()`, "does the resolved function take its
     /// receiver by reference", not "did it actually write".
-    #[inline(never)]
     fn run_chain(
         &mut self,
         program: &Program,
@@ -1316,12 +1336,16 @@ impl<'e> Vm<'e> {
                     let (bound, write_back) = bind_this(target);
                     let at = self.stack.len();
                     self.stack.extend(args);
+                    // A chained call always starts an empty scope.
+                    let new_scope = &mut Scope::new();
                     let (result, returned) = self.call_compiled_with_this(
                         program,
                         name,
                         &params,
                         chunk,
                         at,
+                        new_scope,
+                        true,
                         step_pos,
                         Some(bound),
                     );
@@ -1725,10 +1749,10 @@ impl<'e> Vm<'e> {
 
         let op_assign_name = program
             .name(op.op_assign_name)
-            .ok_or_else(|| malformed("no op-assign name".to_string()))?;
+            .ok_or_else(|| malformed(format!("no op-assign name {}", op.op_assign_name)))?;
         let op_name = program
             .name(op.op_name)
-            .ok_or_else(|| malformed("no operator name".to_string()))?;
+            .ok_or_else(|| malformed(format!("no operator name {}", op.op_name)))?;
 
         // The real scope may be borrowed by the target, and dispatch does not
         // read it anyway — operators resolve against the engine.
@@ -1778,7 +1802,6 @@ impl<'e> Vm<'e> {
     /// the cell. The other two places can only ever produce a value.
     ///
     /// Kept out of the dispatch loop for the reason [`Vm::call_compiled`] is.
-    #[inline(never)]
     fn load_named(
         &mut self,
         name: &str,
@@ -1860,7 +1883,6 @@ impl<'e> Vm<'e> {
     /// resolver produced, a module's constant, a `const` entry
     /// (`eval/stmt.rs:330-344` and `eval/stmt.rs:118-122`). All three are
     /// `ErrorAssignmentToConstant`, so the distinction never reaches a script.
-    #[inline(never)]
     fn assign_named(
         &mut self,
         program: &Program,
@@ -1918,7 +1940,6 @@ impl<'e> Vm<'e> {
     /// table is keyed on names from the pool, and a pointer carries a string —
     /// so the name is matched against it first and only the miss goes to
     /// `call_raw`.
-    #[inline(never)]
     #[allow(clippy::too_many_arguments)]
     fn call_fn_ptr(
         &mut self,
@@ -1983,12 +2004,17 @@ impl<'e> Vm<'e> {
             self.stack
                 .splice(first..first, pointer.curry().iter().cloned());
 
+            // A function pointer call always starts with an empty scope.
+            let new_scope = &mut Scope::new();
+
             let (result, returned) = self.call_compiled_with_this(
                 program,
                 pointer.fn_name(),
                 &params,
                 chunk,
                 first,
+                new_scope,
+                true,
                 pos,
                 bound.take(),
             );
@@ -2085,7 +2111,6 @@ impl<'e> Vm<'e> {
     /// substitutes the mapped type name when the call returns a non-string.
     /// The size limit is checked after every segment against the running
     /// total, not once at the end.
-    #[inline(never)]
     fn append_segment(
         &mut self,
         segment: Dynamic,
@@ -2152,7 +2177,6 @@ impl<'e> Vm<'e> {
     /// The iterable is flattened first — so iterating a captured array walks a
     /// snapshot rather than the shared cell — and is consumed by value, which
     /// is why the iterator is built once and held for the life of the loop.
-    #[inline(never)]
     fn iter_init(&mut self, iterable: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
         let iterable = iterable.flatten();
         let type_id = iterable.type_id();
@@ -2194,6 +2218,7 @@ impl<'e> Vm<'e> {
         name_index: u32,
         argc: usize,
         first: usize,
+        scope: &mut Scope,
         pos: Position,
     ) -> VmResult {
         let name = program
@@ -2201,7 +2226,15 @@ impl<'e> Vm<'e> {
             .ok_or_else(|| malformed(format!("no name {name_index}")))?;
 
         if let Some(function) = program.function(name_index, argc) {
-            return self.call_compiled(program, name, &function.params, function.chunk, first, pos);
+            return self.call_compiled(
+                program,
+                name,
+                &function.params,
+                function.chunk,
+                first,
+                scope,
+                pos,
+            );
         }
 
         // Arguments are already contiguous at the top of the operand stack,
@@ -2210,20 +2243,8 @@ impl<'e> Vm<'e> {
         // afterwards rather than reusing them.
         let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
-        // A scope of the callee's own, because the scope an `EvalContext`
-        // carries is the one a *script* function's body runs in
-        // (`func/call.rs:639`), and Rhai passes `None` there (`:1476`).
-        // Handing over this frame's would let such a body read the caller's
-        // locals — reachable, because the functions this compiler skips are
-        // exactly the ones Rhai can still find in `global.lib`.
-        let mut detached = Scope::new();
-        let mut context = EvalContext::new(
-            self.engine,
-            &mut self.global,
-            &mut self.caches,
-            &mut detached,
-            None,
-        );
+        let mut context =
+            EvalContext::new(self.engine, &mut self.global, &mut self.caches, scope, None);
         context
             .call_fn_raw(name, false, false, &mut args)
             .map_err(|err| dispatch_failure(err, pos))
@@ -2235,7 +2256,6 @@ impl<'e> Vm<'e> {
     /// The other arguments are already on the operand stack and were evaluated
     /// before the receiver was reached, which is the order Rhai uses and is
     /// observable whenever one of them writes to the receiver.
-    #[inline(never)]
     #[allow(clippy::too_many_arguments)]
     fn call_by_reference(
         &mut self,
@@ -2245,6 +2265,7 @@ impl<'e> Vm<'e> {
         receiver: Receiver,
         scope: &mut Scope,
         base: usize,
+        capture_parent_scope: bool,
         pos: Position,
     ) -> VmResult {
         let name = program
@@ -2264,7 +2285,17 @@ impl<'e> Vm<'e> {
         // The register is not a scope entry, so it takes a path of its own
         // rather than a third [`Site`].
         if let Receiver::This = receiver {
-            return self.call_by_this(program, name_index, name, argc, pos);
+            let mut new_scope;
+            let use_scope = if capture_parent_scope {
+                // Reuse parent scope.
+                scope
+            } else {
+                // Create detached scope.
+                new_scope = Scope::new();
+                &mut new_scope
+            };
+
+            return self.call_by_this(program, name_index, name, argc, use_scope, pos);
         }
 
         // A named receiver's value is already argument zero — [`Op::LoadNamed`]
@@ -2318,7 +2349,18 @@ impl<'e> Vm<'e> {
                 let value = scope.get_mut_by_index(index).flatten_clone();
                 self.stack.insert(first, value);
             }
-            let value = self.call_stacked(program, name_index, argc, first, pos);
+
+            let mut new_scope;
+            let use_scope = if capture_parent_scope {
+                // Reuse parent scope.
+                scope
+            } else {
+                // Create detached scope.
+                new_scope = Scope::new();
+                &mut new_scope
+            };
+
+            let value = self.call_stacked(program, name_index, argc, first, use_scope, pos);
             self.stack.truncate(first);
             return value;
         }
@@ -2372,13 +2414,13 @@ impl<'e> Vm<'e> {
     ///
     /// The snapshot is what gets passed when the register cannot be lent out,
     /// and dead weight when it can — the trade [`Receiver::Named`] makes too.
-    #[inline(never)]
     fn call_by_this(
         &mut self,
         program: &Program,
         name_index: u32,
         name: &str,
         argc: usize,
+        scope: &mut Scope,
         pos: Position,
     ) -> VmResult {
         let first = self
@@ -2397,7 +2439,7 @@ impl<'e> Vm<'e> {
             && program.function(name_index, argc).is_none();
 
         if !by_reference {
-            let value = self.call_stacked(program, name_index, argc, first, pos);
+            let value = self.call_stacked(program, name_index, argc, first, scope, pos);
             self.stack.truncate(first);
             return value;
         }
@@ -2437,9 +2479,10 @@ impl<'e> Vm<'e> {
         params: &[u32],
         chunk: crate::grain::bytecode::Chunk,
         first: usize,
+        scope: &mut Scope,
         pos: Position,
     ) -> VmResult {
-        self.call_compiled_with_this(program, name, params, chunk, first, pos, None)
+        self.call_compiled_with_this(program, name, params, chunk, first, scope, true, pos, None)
             .0
     }
 
@@ -2458,7 +2501,6 @@ impl<'e> Vm<'e> {
     /// Kept out of the dispatch loop. Inlined, it is enough extra code to change
     /// register allocation across every other instruction — measured as a
     /// uniform slowdown on benchmarks that call no functions at all.
-    #[inline(never)]
     fn call_compiled_with_this(
         &mut self,
         program: &Program,
@@ -2466,6 +2508,8 @@ impl<'e> Vm<'e> {
         params: &[u32],
         chunk: crate::grain::bytecode::Chunk,
         first: usize,
+        scope: &mut Scope,
+        rewind_scope: bool,
         pos: Position,
         this: Option<Dynamic>,
     ) -> (VmResult, Option<Dynamic>) {
@@ -2474,7 +2518,16 @@ impl<'e> Vm<'e> {
         let result = match self.engine.track_operation(&mut self.global, pos) {
             Ok(()) => {
                 self.global.level += 1;
-                let result = self.call_compiled_body(program, name, params, chunk, first, pos);
+                let result = self.call_compiled_body(
+                    program,
+                    name,
+                    params,
+                    chunk,
+                    first,
+                    scope,
+                    rewind_scope,
+                    pos,
+                );
                 self.global.level -= 1;
                 result
             }
@@ -2491,6 +2544,8 @@ impl<'e> Vm<'e> {
         params: &[u32],
         chunk: crate::grain::bytecode::Chunk,
         first: usize,
+        scope: &mut Scope,
+        rewind_scope: bool,
         pos: Position,
     ) -> VmResult {
         #[cfg(not(feature = "unchecked"))]
@@ -2506,8 +2561,8 @@ impl<'e> Vm<'e> {
             }
         }
 
-        // A fresh scope: a function sees its parameters and nothing else.
-        let mut frame = Scope::new();
+        let scope_start_len = scope.len();
+
         for (param, slot) in params.iter().zip(first..) {
             let name = program
                 .name(*param)
@@ -2519,13 +2574,23 @@ impl<'e> Vm<'e> {
                 .get_mut(slot)
                 .ok_or_else(|| malformed("call with too few arguments".to_string()))?
                 .take();
-            frame.push_dynamic(name, value);
+            scope.push_dynamic(name, value);
         }
+        let scope_end_len = scope.len();
 
         // A function's parameters are its first locals, sitting at 0 upwards in
         // a scope that holds nothing else — so slot 0 is index 0.
         let mut reached = chunk.entry() as usize;
-        let outcome = self.execute(program, &mut frame, chunk, 0, &mut reached);
+        let outcome = self.execute(program, scope, chunk, scope_start_len, &mut reached);
+
+        // Rewind scope.
+        if rewind_scope {
+            scope.rewind(scope_start_len);
+        } else if scope_end_len != scope_start_len {
+            // Remove arguments only, leaving new variables in the scope
+            scope.remove_range(scope_start_len, scope_end_len - scope_start_len);
+        }
+
         if outcome.is_err() {
             self.record_fault(reached);
         }
@@ -2661,7 +2726,6 @@ impl<'e> Vm<'e> {
     /// Out of line: it is a handful of instructions in the common case and a
     /// call to Rhai in the rare one, and the dispatch loop is measurably
     /// sensitive to what shares its registers.
-    #[inline(never)]
     fn check_size(
         &mut self,
         index: u16,
@@ -2741,7 +2805,7 @@ impl<'e> Vm<'e> {
     /// Out of line for the reason [`Vm::catch`] is: it sits on the error edge
     /// of the frame, where nothing is hot and everything competes with the
     /// dispatch loop for the same registers.
-    #[inline(never)]
+    #[cold]
     fn unwind_after_error(&self, scope: &mut Scope) {
         if scope.len() > self.unwind_floor {
             scope.rewind(self.unwind_floor);
@@ -2756,7 +2820,7 @@ impl<'e> Vm<'e> {
     /// Kept out of line for the reason [`Vm::call_compiled`] is: it sits on
     /// the dispatch loop's error edge, and letting it inline there costs every
     /// instruction that never fails.
-    #[inline(never)]
+    #[cold]
     fn catch(
         &mut self,
         program: &Program,
@@ -3282,9 +3346,10 @@ impl<'e> Vm<'e> {
                     let name = program
                         .name(name_index)
                         .ok_or_else(|| malformed(format!("no name {name_index}")))?;
-                    let argc = code[pc + 3] as usize;
+                    let capture_parent_scope = code[pc + 3] != 0;
+                    let argc = code[pc + 4] as usize;
                     let op = if tag == code::tag::CALL_OP {
-                        let index = u32::from(small(4)?);
+                        let index = u32::from(small(5)?);
                         Some(
                             program
                                 .token(index)
@@ -3329,7 +3394,18 @@ impl<'e> Vm<'e> {
                         }
                     }
 
-                    let value = self.call_stacked(program, name_index, argc, first, pos())?;
+                    let mut new_scope;
+                    let use_scope = if capture_parent_scope {
+                        // Reuse parent scope.
+                        &mut *scope
+                    } else {
+                        // Create detached scope.
+                        new_scope = Scope::new();
+                        &mut new_scope
+                    };
+
+                    let value =
+                        self.call_stacked(program, name_index, argc, first, use_scope, pos())?;
                     self.stack.truncate(first);
                     self.stack.push(value);
                 }
@@ -3338,12 +3414,13 @@ impl<'e> Vm<'e> {
                 | code::tag::CALL_NAMED_REF
                 | code::tag::CALL_THIS_REF => {
                     let name_index = u32::from(small(1)?);
-                    let argc = code[pc + 3] as usize;
+                    let capture_parent_scope = code[pc + 3] != 0;
+                    let argc = code[pc + 4] as usize;
                     // `this` is a register, so this one carries no operand for
                     // the receiver and is two bytes shorter.
                     let receiver = match tag {
-                        code::tag::CALL_LOCAL_REF => Receiver::Local(small(4)?),
-                        code::tag::CALL_NAMED_REF => Receiver::Named(u32::from(small(4)?)),
+                        code::tag::CALL_LOCAL_REF => Receiver::Local(small(5)?),
+                        code::tag::CALL_NAMED_REF => Receiver::Named(u32::from(small(5)?)),
                         _ => Receiver::This,
                     };
 
@@ -3354,6 +3431,7 @@ impl<'e> Vm<'e> {
                         receiver,
                         scope,
                         base,
+                        capture_parent_scope,
                         pos(),
                     )?;
                     self.stack.push(value);
@@ -3942,6 +4020,7 @@ mod tests {
                         name: 1,
                         argc: 0,
                         op: None,
+                        capture_parent_scope: false,
                     },
                     Op::Return,
                 ],
@@ -3968,6 +4047,7 @@ mod tests {
                         name: 1,
                         argc: 0,
                         op: None,
+                        capture_parent_scope: false,
                     },
                     Op::Pop,
                     Op::LoadThis,
@@ -4116,6 +4196,7 @@ mod tests {
                     name: 2, // `push`
                     argc: 2,
                     receiver: Receiver::This,
+                    capture_parent_scope: false,
                 },
                 Op::Return,
             ],
@@ -4148,6 +4229,7 @@ mod tests {
                     name: 2,
                     argc: 2,
                     receiver: Receiver::This,
+                    capture_parent_scope: false,
                 },
                 Op::Return,
             ],

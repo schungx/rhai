@@ -162,6 +162,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "error_wrong_arity"
                 | "for_over_captured_array"
                 | "for_return_from_body"
+                | "fn_call_captures_parent_scope"
                 | "map_computed_order"
                 | "map_read_of_absent_key_is_not_visible_to_a_closure"
                 | "switch_on_a_shared_subject_matches"
@@ -446,6 +447,7 @@ pub const CASES: &[Case] = &[
     case("const_read", "const K = 10; K * 2"),
     // --- functions --------------------------------------------------------
     case("fn_call", "fn add(a, b) { a + b } add(2, 3)"),
+    case("fn_call_captures_parent_scope", r#"fn foo(x) { x + y * z }  let x = 42; let y = 1; let z = 9; foo!(x)"#),
     // Kept shallow deliberately: Rhai's default call-depth limit is far lower
     // in debug builds than in release, and this case is about recursion working
     // at all, not about the limit. The limit gets its own case.

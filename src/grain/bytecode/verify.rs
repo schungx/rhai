@@ -535,11 +535,11 @@ fn check_indices(at: usize, code: &[u8], pools: Pools) -> Result<(), VerifyError
         // when it runs, as every other slot is.
         tag::CALL_NAMED_REF => {
             bounded(index(1), "name", pools.names)?;
-            bounded(index(4), "name", pools.names)
+            bounded(index(5), "name", pools.names)
         }
         tag::CALL_OP => {
             bounded(index(1), "name", pools.names)?;
-            bounded(index(4), "operator", pools.tokens)
+            bounded(index(5), "operator", pools.tokens)
         }
         tag::ASSIGN_LOCAL => bounded(index(3), "name", pools.names),
         tag::LOAD_NAMED

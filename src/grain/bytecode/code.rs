@@ -220,7 +220,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::REQUIRE_THIS as usize] = 1;
     widths[tag::ASSIGN_THIS as usize] = 1;
     widths[tag::ASSIGN_THIS_OP as usize] = 3;
-    widths[tag::CALL_THIS_REF as usize] = 4;
+    widths[tag::CALL_THIS_REF as usize] = 5;
 
     // The receiver's value is on the stack for all of these; only where it came
     // from differs, and only two of them need an operand to say it.
@@ -247,7 +247,7 @@ static WIDTHS: [u8; 256] = {
 
     widths[tag::ASSIGN_NAMED_OP as usize] = 5;
 
-    widths[tag::CALL as usize] = 4;
+    widths[tag::CALL as usize] = 5;
 
     widths[tag::ASSIGN_LOCAL as usize] = 5;
     widths[tag::JUMP as usize] = 5;
@@ -255,9 +255,9 @@ static WIDTHS: [u8; 256] = {
     widths[tag::JUMP_IF_FALSE as usize] = 5;
     widths[tag::SKIP_IF_NOT_UNIT as usize] = 5;
 
-    widths[tag::CALL_OP as usize] = 6;
-    widths[tag::CALL_LOCAL_REF as usize] = 6;
-    widths[tag::CALL_NAMED_REF as usize] = 6;
+    widths[tag::CALL_OP as usize] = 7;
+    widths[tag::CALL_LOCAL_REF as usize] = 7;
+    widths[tag::CALL_NAMED_REF as usize] = 7;
 
     widths[tag::ASSIGN_LOCAL_OP as usize] = 7;
 
@@ -473,18 +473,22 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 name,
                 argc,
                 op: None,
+                capture_parent_scope,
             } => {
                 code.push(tag::CALL);
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
+                code.push(if *capture_parent_scope { 1 } else { 0 });
                 code.push(*argc);
             }
             Op::Call {
                 name,
                 argc,
                 op: Some(token),
+                capture_parent_scope,
             } => {
                 code.push(tag::CALL_OP);
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
+                code.push(if *capture_parent_scope { 1 } else { 0 });
                 code.push(*argc);
                 code.extend_from_slice(&small(*token as usize, "operators")?.to_le_bytes());
             }
@@ -493,6 +497,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 name,
                 argc,
                 receiver,
+                capture_parent_scope,
             } => {
                 // `this` is a register and needs no operand to address it, so
                 // its encoding is the other two minus the trailing `u16`.
@@ -505,6 +510,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 };
                 code.push(operand.map_or(tag::CALL_THIS_REF, |(tag, _)| tag));
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
+                code.push(if *capture_parent_scope { 1 } else { 0 });
                 code.push(*argc);
                 if let Some((_, operand)) = operand {
                     code.extend_from_slice(&operand.to_le_bytes());
@@ -750,7 +756,7 @@ fn encoded_width(op: &Op) -> usize {
         | Op::CallRef {
             receiver: Receiver::This,
             ..
-        } => 4,
+        } => 5,
         Op::AssignLocal { op: None, .. }
         | Op::AssignNamed { op: Some(..), .. }
         | Op::Jump(..)
@@ -769,7 +775,7 @@ fn encoded_width(op: &Op) -> usize {
         | Op::CallRef {
             receiver: Receiver::Local(..) | Receiver::Named(..),
             ..
-        } => 6,
+        } => 7,
         Op::AssignLocal { op: Some(..), .. } => 7,
     }
 }
@@ -845,29 +851,34 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
 
         tag::CALL => Op::Call {
             name: u32::from(small(1)?),
-            argc: code[at + 3],
+            capture_parent_scope: code[at + 3] != 0,
+            argc: code[at + 4],
             op: None,
         },
         tag::CALL_OP => Op::Call {
             name: u32::from(small(1)?),
-            argc: code[at + 3],
-            op: Some(u32::from(small(4)?)),
+            capture_parent_scope: code[at + 3] != 0,
+            argc: code[at + 4],
+            op: Some(u32::from(small(5)?)),
         },
 
         tag::CALL_LOCAL_REF => Op::CallRef {
             name: u32::from(small(1)?),
-            argc: code[at + 3],
-            receiver: Receiver::Local(small(4)?),
+            capture_parent_scope: code[at + 3] != 0,
+            argc: code[at + 4],
+            receiver: Receiver::Local(small(5)?),
         },
         tag::CALL_THIS_REF => Op::CallRef {
             name: u32::from(small(1)?),
-            argc: code[at + 3],
+            capture_parent_scope: code[at + 3] != 0,
+            argc: code[at + 4],
             receiver: Receiver::This,
         },
         tag::CALL_NAMED_REF => Op::CallRef {
             name: u32::from(small(1)?),
-            argc: code[at + 3],
-            receiver: Receiver::Named(u32::from(small(4)?)),
+            capture_parent_scope: code[at + 3] != 0,
+            argc: code[at + 4],
+            receiver: Receiver::Named(u32::from(small(5)?)),
         },
         tag::ROTATE => Op::Rotate(code[at + 1]),
 
@@ -1018,26 +1029,31 @@ mod tests {
                 name: 1,
                 argc: 2,
                 op: None,
+                capture_parent_scope: false,
             },
             Op::Call {
                 name: 1,
                 argc: 2,
                 op: Some(3),
+                capture_parent_scope: false,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::Local(4),
+                capture_parent_scope: false,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::Named(5),
+                capture_parent_scope: false,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::This,
+                capture_parent_scope: false,
             },
             Op::CallFnPtr {
                 argc: 1,
