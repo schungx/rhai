@@ -517,16 +517,22 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 // `this` is a register and needs no operand to address it, so
                 // its encoding is the other two minus the trailing `u16`.
                 let operand = match receiver {
-                    Receiver::Local(slot) if *capture_parent_scope => {
-                        Some((tag::CALL_LOCAL_REF_CAPTURE, *slot))
-                    }
-                    Receiver::Local(slot) => Some((tag::CALL_LOCAL_REF, *slot)),
-                    Receiver::Named(var) if *capture_parent_scope => {
-                        Some((tag::CALL_NAMED_REF_CAPTURE, small(*var as usize, "names")?))
-                    }
-                    Receiver::Named(var) => {
-                        Some((tag::CALL_NAMED_REF, small(*var as usize, "names")?))
-                    }
+                    Receiver::Local(slot) => Some((
+                        if *capture_parent_scope {
+                            tag::CALL_LOCAL_REF_CAPTURE
+                        } else {
+                            tag::CALL_LOCAL_REF
+                        },
+                        *slot,
+                    )),
+                    Receiver::Named(var) => Some((
+                        if *capture_parent_scope {
+                            tag::CALL_NAMED_REF_CAPTURE
+                        } else {
+                            tag::CALL_NAMED_REF
+                        },
+                        small(*var as usize, "names")?,
+                    )),
                     Receiver::This => None,
                 };
                 code.push(operand.map_or(

@@ -3420,17 +3420,24 @@ impl<'e> Vm<'e> {
                     let argc = code[pc + 3] as usize;
                     // `this` is a register, so this one carries no operand for
                     // the receiver and is two bytes shorter.
-                    let (receiver, capture_parent_scope) = match tag {
-                        code::tag::CALL_LOCAL_REF => (Receiver::Local(small(4)?), false),
-                        code::tag::CALL_LOCAL_REF_CAPTURE => (Receiver::Local(small(4)?), true),
-                        code::tag::CALL_NAMED_REF => (Receiver::Named(u32::from(small(4)?)), false),
-                        code::tag::CALL_NAMED_REF_CAPTURE => {
-                            (Receiver::Named(u32::from(small(4)?)), true)
+                    let receiver = match tag {
+                        code::tag::CALL_LOCAL_REF | code::tag::CALL_LOCAL_REF_CAPTURE => {
+                            Receiver::Local(small(4)?)
                         }
-                        code::tag::CALL_THIS_REF => (Receiver::This, false),
-                        code::tag::CALL_THIS_REF_CAPTURE => (Receiver::This, true),
+                        code::tag::CALL_NAMED_REF | code::tag::CALL_NAMED_REF_CAPTURE => {
+                            Receiver::Named(u32::from(small(4)?))
+                        }
+                        code::tag::CALL_THIS_REF | code::tag::CALL_THIS_REF_CAPTURE => {
+                            Receiver::This
+                        }
                         _ => unreachable!(),
                     };
+                    let capture_parent_scope = matches!(
+                        tag,
+                        code::tag::CALL_LOCAL_REF_CAPTURE
+                            | code::tag::CALL_NAMED_REF_CAPTURE
+                            | code::tag::CALL_THIS_REF_CAPTURE
+                    );
 
                     let value = self.call_by_reference(
                         program,
