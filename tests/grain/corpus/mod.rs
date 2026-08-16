@@ -162,6 +162,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "error_wrong_arity"
                 | "for_over_captured_array"
                 | "for_return_from_body"
+                | "fn_call_captures_parent_scope"
                 | "map_computed_order"
                 | "map_read_of_absent_key_is_not_visible_to_a_closure"
                 | "switch_on_a_shared_subject_matches"
@@ -196,6 +197,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
             | "call_style_receiver_is_also_an_argument"
             | "call_style_receiver_twice_over"
             | "call_style_shared_receiver"
+            | "chain_index_coalesce"
             | "closure_call_mutates_an_array"
             | "closure_filter_binds_this"
             | "closure_for_each_binds_this"
@@ -270,6 +272,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "call_style_mutating_host_type"
                 | "call_style_shared_receiver"
                 | "char_ops"
+                | "chain_property_coalesce"
                 | "closure_call_mutates_an_array"
                 | "closure_call_on_a_local_inline"
                 | "closure_call_on_a_local_reads"
@@ -310,6 +313,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "nested_containers"
                 | "property_assign_deep"
                 | "string_ops"
+                | "temp_root_array_method"
                 | "try_catch_native_error"
                 | "type_of_method_style"
         )
@@ -443,6 +447,7 @@ pub const CASES: &[Case] = &[
     case("const_read", "const K = 10; K * 2"),
     // --- functions --------------------------------------------------------
     case("fn_call", "fn add(a, b) { a + b } add(2, 3)"),
+    case("fn_call_captures_parent_scope", r#"fn foo(x) { x + y * z }  let x = 42; let y = 1; let z = 9; foo!(x)"#),
     // Kept shallow deliberately: Rhai's default call-depth limit is far lower
     // in debug builds than in release, and this case is about recursion working
     // at all, not about the limit. The limit gets its own case.
@@ -593,6 +598,11 @@ pub const CASES: &[Case] = &[
     // one does not cover the other. A string rather than an array, because
     // Rhai indexes arrays with integers only and slices them with `extract`.
     case("string_slice_inclusive", r#"let s = "hello world"; s[6..=9]"#),
+    // --- coalesce ---
+    case("coalesce", "let a = (); let b = (); let c = 42; a ?? b ?? c"),
+    case("coalesce_middle", "let a = (); let b = 42; let c = 123; a ?? b ?? c"),
+    case("chain_index_coalesce", "let a = (); a?[1]?[2]"),
+    case("chain_property_coalesce", "let a = (); a?.b?.c"),
     // --- chains rooted at something that is not a variable ------------------
     // Rhai evaluates the root into a temporary and walks that
     // (`eval/chaining.rs:561-571`), so there is no scope entry behind it and
@@ -792,7 +802,7 @@ pub const CASES: &[Case] = &[
     case("type_of_a_host_type", "let w = widget(1); type_of(w)"),
     case("type_of_method_style", "let s = \"a\"; s.type_of()"),
     case("type_of_a_pointer", "let r = \"\"; { let f = |x| x; r = type_of(f); } r"),
-    // Optimizer tests
+    // --- optimizer ---
     case("optimizer_folding_switch", "let a = 1; { let b = 99; switch b { _ => b } }"),
     case("optimizer_folding_variables_access", "let a = 1; { let b = 99; b; b; b; b }"),
     case("optimizer_folding_internal_variables_access", "let a = 1; { let b = 99; b; b; b; b } a"),

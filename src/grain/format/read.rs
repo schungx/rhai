@@ -4,8 +4,8 @@ use core::convert::{TryFrom, TryInto};
 use std::prelude::v1::*;
 
 use crate::grain::bytecode::{
-    AssignOp, BadTable, Chain, Chunk, Positions, Root, Step, Strings, Switch, SwitchCase,
-    SwitchRange, TableError, Tail, VerifyError,
+    AssignOp, BadTable, Chain, Chunk, Positions, Root, Step, StepFlags, Strings, Switch,
+    SwitchCase, SwitchRange, TableError, Tail, VerifyError,
 };
 use crate::grain::format::abi::{Abi, AbiMismatch};
 use crate::grain::format::{constant, root_tag, step_tag, tail_tag, Cursor, MAGIC, VERSION};
@@ -302,9 +302,21 @@ fn get_chain(cursor: &mut Cursor) -> Result<Chain, ReadError> {
 
     let mut steps = Vec::new();
     for _ in 0..cursor.uvarint()? {
-        steps.push(match cursor.byte()? {
+        // Chain type tag
+        let tag = cursor.byte()?;
+
+        // Chain step flags
+        let flags = cursor.byte()?;
+        let flags = StepFlags::from_bits(flags).ok_or(ReadError::UnknownTag {
+            section: "chain step flags",
+            tag: flags,
+        })?;
+
+        // Add the step to the chain
+        steps.push(match tag {
             step_tag::INDEX => Step::Index {
                 operand: cursor.small()?,
+                flags,
                 pos: get_position(cursor)?,
                 bracket: get_position(cursor)?,
             },
@@ -312,15 +324,17 @@ fn get_chain(cursor: &mut Cursor) -> Result<Chain, ReadError> {
                 name: cursor.index()?,
                 getter: cursor.index()?,
                 setter: cursor.index()?,
+                flags,
                 pos: get_position(cursor)?,
             },
             step_tag::METHOD => Step::Method {
                 name: cursor.index()?,
                 argc: cursor.byte()?,
                 operand: cursor.small()?,
+                flags,
                 pos: get_position(cursor)?,
             },
-            tag => {
+            _ => {
                 return Err(ReadError::UnknownTag {
                     section: "chain step",
                     tag,

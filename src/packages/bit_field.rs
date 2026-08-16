@@ -108,7 +108,7 @@ mod bit_field_functions {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
 
-        if to >= 0 && usize::try_from(to).map(|x| x >= INT_BITS).unwrap_or(true) {
+        if to >= 0 && usize::try_from(to).map_or(true, |x| x >= INT_BITS) {
             return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
         }
 
@@ -199,7 +199,7 @@ mod bit_field_functions {
         let from = INT::max(*range.start(), 0);
         let to = INT::max(*range.end(), from - 1);
 
-        if to >= 0 && usize::try_from(to).map(|x| x >= INT_BITS).unwrap_or(true) {
+        if to >= 0 && usize::try_from(to).map_or(true, |x| x >= INT_BITS) {
             return Err(ERR::ErrorBitFieldBounds(INT_BITS, to, Position::NONE).into());
         }
 

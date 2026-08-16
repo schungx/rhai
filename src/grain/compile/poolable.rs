@@ -41,16 +41,14 @@ pub(crate) fn is_poolable(value: &Dynamic) -> bool {
     if value.is_array() {
         return value
             .read_lock::<Array>()
-            .map(|array| array.iter().all(is_poolable))
-            .unwrap_or(false);
+            .map_or(false, |array| array.iter().all(is_poolable));
     }
 
     #[cfg(not(feature = "no_object"))]
     if value.is_map() {
         return value
             .read_lock::<Map>()
-            .map(|map| map.values().all(is_poolable))
-            .unwrap_or(false);
+            .map_or(false, |map| map.values().all(is_poolable));
     }
 
     #[cfg(not(feature = "no_index"))]

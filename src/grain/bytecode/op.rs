@@ -186,6 +186,13 @@ pub enum Op {
         /// Where to jump to
         target: u32,
     },
+    /// Inspects a condition and jump to `.0` if it is not `()`.
+    /// The condition is not popped, so the caller can read it afterwards.
+    /// Mirrors [`Op::JumpIfFalse`]; exists so short-circuit `??` lower.
+    SkipIfNotUnit {
+        /// Where to skip to
+        target: u32,
+    },
 
     /// Pop `argc` arguments and call the function named by `name`, pushing the
     /// result.
@@ -210,6 +217,8 @@ pub enum Op {
         argc: u8,
         /// Index into the operator pool; absent unless the call is an operator.
         op: Option<u32>,
+        /// This call captures the parent's scope.
+        capture_parent_scope: bool,
     },
 
     /// Call `name` with a variable as its first argument, taken by reference.
@@ -238,6 +247,8 @@ pub enum Op {
         argc: u8,
         /// Where the first argument is found.
         receiver: Receiver,
+        /// This call captures the parent's scope.
+        capture_parent_scope: bool,
     },
 
     /// Move the top of the operand stack down past `.0` values.

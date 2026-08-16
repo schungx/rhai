@@ -167,6 +167,16 @@ pub mod tag {
     pub const CALL_FN_PTR_ON_NAMED: u8 = 0x40;
     /// [`Op::CallFnPtr`](super::Op::CallFnPtr) on the frame's receiver.
     pub const CALL_FN_PTR_ON_THIS: u8 = 0x41;
+    /// [`Op::SkipIfNotUnit`](super::Op::SkipIfNotUnit).
+    pub const SKIP_IF_NOT_UNIT: u8 = 0x42;
+    /// [`Op::Call`](super::Op::Call) capturing the parent's scope.
+    pub const CALL_CAPTURE: u8 = 0x43;
+    /// [`Op::CallRef`](super::Op::CallRef) through [`Receiver::Local`](super::Receiver::Local) capturing the parent's scope.
+    pub const CALL_LOCAL_REF_CAPTURE: u8 = 0x44;
+    /// [`Op::CallRef`](super::Op::CallRef) through [`Receiver::Named`](super::Receiver::Named) capturing the parent's scope.
+    pub const CALL_NAMED_REF_CAPTURE: u8 = 0x45;
+    /// [`Op::CallRef`](super::Op::CallRef) through [`Receiver::This`](super::Receiver::This) capturing the parent's scope.
+    pub const CALL_THIS_REF_CAPTURE: u8 = 0x46;
 }
 
 /// How wide each tag's instruction is, with 0 for the tags that are not one.
@@ -219,6 +229,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::ASSIGN_THIS as usize] = 1;
     widths[tag::ASSIGN_THIS_OP as usize] = 3;
     widths[tag::CALL_THIS_REF as usize] = 4;
+    widths[tag::CALL_THIS_REF_CAPTURE as usize] = 4;
 
     // The receiver's value is on the stack for all of these; only where it came
     // from differs, and only two of them need an operand to say it.
@@ -246,15 +257,19 @@ static WIDTHS: [u8; 256] = {
     widths[tag::ASSIGN_NAMED_OP as usize] = 5;
 
     widths[tag::CALL as usize] = 4;
+    widths[tag::CALL_CAPTURE as usize] = 4;
 
     widths[tag::ASSIGN_LOCAL as usize] = 5;
     widths[tag::JUMP as usize] = 5;
     widths[tag::JUMP_IF_TRUE as usize] = 5;
     widths[tag::JUMP_IF_FALSE as usize] = 5;
+    widths[tag::SKIP_IF_NOT_UNIT as usize] = 5;
 
     widths[tag::CALL_OP as usize] = 6;
     widths[tag::CALL_LOCAL_REF as usize] = 6;
+    widths[tag::CALL_LOCAL_REF_CAPTURE as usize] = 6;
     widths[tag::CALL_NAMED_REF as usize] = 6;
+    widths[tag::CALL_NAMED_REF_CAPTURE as usize] = 6;
 
     widths[tag::ASSIGN_LOCAL_OP as usize] = 7;
 
@@ -461,13 +476,23 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 code.push(tag::JUMP_IF_FALSE);
                 code.extend_from_slice(&target(*to)?.to_le_bytes());
             }
+            Op::SkipIfNotUnit { target: to } => {
+                code.push(tag::SKIP_IF_NOT_UNIT);
+                code.extend_from_slice(&target(*to)?.to_le_bytes());
+            }
 
             Op::Call {
                 name,
                 argc,
                 op: None,
+                capture_parent_scope,
             } => {
-                code.push(tag::CALL);
+                let operand = if *capture_parent_scope {
+                    tag::CALL_CAPTURE
+                } else {
+                    tag::CALL
+                };
+                code.push(operand);
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
                 code.push(*argc);
             }
@@ -475,6 +500,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 name,
                 argc,
                 op: Some(token),
+                ..
             } => {
                 code.push(tag::CALL_OP);
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
@@ -486,17 +512,37 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 name,
                 argc,
                 receiver,
+                capture_parent_scope,
             } => {
                 // `this` is a register and needs no operand to address it, so
                 // its encoding is the other two minus the trailing `u16`.
                 let operand = match receiver {
-                    Receiver::Local(slot) => Some((tag::CALL_LOCAL_REF, *slot)),
-                    Receiver::Named(var) => {
-                        Some((tag::CALL_NAMED_REF, small(*var as usize, "names")?))
-                    }
+                    Receiver::Local(slot) => Some((
+                        if *capture_parent_scope {
+                            tag::CALL_LOCAL_REF_CAPTURE
+                        } else {
+                            tag::CALL_LOCAL_REF
+                        },
+                        *slot,
+                    )),
+                    Receiver::Named(var) => Some((
+                        if *capture_parent_scope {
+                            tag::CALL_NAMED_REF_CAPTURE
+                        } else {
+                            tag::CALL_NAMED_REF
+                        },
+                        small(*var as usize, "names")?,
+                    )),
                     Receiver::This => None,
                 };
-                code.push(operand.map_or(tag::CALL_THIS_REF, |(tag, _)| tag));
+                code.push(operand.map_or(
+                    if *capture_parent_scope {
+                        tag::CALL_THIS_REF_CAPTURE
+                    } else {
+                        tag::CALL_THIS_REF
+                    },
+                    |(tag, _)| tag,
+                ));
                 code.extend_from_slice(&small(*name as usize, "names")?.to_le_bytes());
                 code.push(*argc);
                 if let Some((_, operand)) = operand {
@@ -749,6 +795,7 @@ fn encoded_width(op: &Op) -> usize {
         | Op::Jump(..)
         | Op::JumpIfTrue { .. }
         | Op::JumpIfFalse { .. }
+        | Op::SkipIfNotUnit { .. }
         | Op::IterNext { .. }
         | Op::PushHandler {
             catch_var: None, ..
@@ -831,32 +878,40 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::JUMP_IF_FALSE => Op::JumpIfFalse {
             target: u32_at(code, at + 1)?,
         },
+        tag::SKIP_IF_NOT_UNIT => Op::SkipIfNotUnit {
+            target: u32_at(code, at + 1)?,
+        },
 
-        tag::CALL => Op::Call {
+        tag @ (tag::CALL | tag::CALL_CAPTURE) => Op::Call {
             name: u32::from(small(1)?),
             argc: code[at + 3],
             op: None,
+            capture_parent_scope: tag == tag::CALL_CAPTURE,
         },
         tag::CALL_OP => Op::Call {
             name: u32::from(small(1)?),
             argc: code[at + 3],
             op: Some(u32::from(small(4)?)),
+            capture_parent_scope: false,
         },
 
-        tag::CALL_LOCAL_REF => Op::CallRef {
+        tag @ (tag::CALL_LOCAL_REF | tag::CALL_LOCAL_REF_CAPTURE) => Op::CallRef {
             name: u32::from(small(1)?),
             argc: code[at + 3],
             receiver: Receiver::Local(small(4)?),
+            capture_parent_scope: tag == tag::CALL_LOCAL_REF_CAPTURE,
         },
-        tag::CALL_THIS_REF => Op::CallRef {
+        tag @ (tag::CALL_THIS_REF | tag::CALL_THIS_REF_CAPTURE) => Op::CallRef {
             name: u32::from(small(1)?),
             argc: code[at + 3],
             receiver: Receiver::This,
+            capture_parent_scope: tag == tag::CALL_THIS_REF_CAPTURE,
         },
-        tag::CALL_NAMED_REF => Op::CallRef {
+        tag @ (tag::CALL_NAMED_REF | tag::CALL_NAMED_REF_CAPTURE) => Op::CallRef {
             name: u32::from(small(1)?),
             argc: code[at + 3],
             receiver: Receiver::Named(u32::from(small(4)?)),
+            capture_parent_scope: tag == tag::CALL_NAMED_REF_CAPTURE,
         },
         tag::ROTATE => Op::Rotate(code[at + 1]),
 
@@ -1007,26 +1062,55 @@ mod tests {
                 name: 1,
                 argc: 2,
                 op: None,
+                capture_parent_scope: false,
+            },
+            Op::Call {
+                name: 1,
+                argc: 2,
+                op: None,
+                capture_parent_scope: true,
             },
             Op::Call {
                 name: 1,
                 argc: 2,
                 op: Some(3),
+                capture_parent_scope: false,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::Local(4),
+                capture_parent_scope: false,
+            },
+            Op::CallRef {
+                name: 1,
+                argc: 2,
+                receiver: Receiver::Local(4),
+                capture_parent_scope: true,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::Named(5),
+                capture_parent_scope: false,
+            },
+            Op::CallRef {
+                name: 1,
+                argc: 2,
+                receiver: Receiver::Named(5),
+                capture_parent_scope: true,
             },
             Op::CallRef {
                 name: 1,
                 argc: 2,
                 receiver: Receiver::This,
+                capture_parent_scope: false,
+            },
+            Op::CallRef {
+                name: 1,
+                argc: 2,
+                receiver: Receiver::This,
+                capture_parent_scope: true,
             },
             Op::CallFnPtr {
                 argc: 1,
