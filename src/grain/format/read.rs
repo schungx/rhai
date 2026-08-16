@@ -7,7 +7,7 @@ use crate::grain::bytecode::{
     AssignOp, BadTable, Chain, Chunk, Positions, Root, Step, StepFlags, Strings, Switch,
     SwitchCase, SwitchRange, TableError, Tail, VerifyError,
 };
-use crate::grain::format::abi::{Abi, AbiMismatch, FeatureFlags};
+use crate::grain::format::abi::{Abi, AbiMismatch};
 use crate::grain::format::{constant, root_tag, step_tag, tail_tag, Cursor, MAGIC, VERSION};
 use crate::grain::program::{Function, Parts, Program};
 
@@ -138,9 +138,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
     let abi = Abi {
         int_bytes: cursor.byte()?,
         float_bytes: cursor.byte()?,
-        features: FeatureFlags::from_bits_retain(u32::from_le_bytes(
-            cursor.take(4)?.try_into().expect("four bytes"),
-        )),
+        flags: u32::from_le_bytes(cursor.take(4)?.try_into().expect("four bytes")),
     };
     if let Some(mismatch) = abi.incompatible_with(Abi::host()) {
         return Err(ReadError::Abi(mismatch));
