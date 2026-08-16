@@ -527,19 +527,22 @@ fn check_indices(at: usize, code: &[u8], pools: Pools) -> Result<(), VerifyError
     match code[at] {
         tag::CONST => bounded(index(1), "constant", pools.consts),
         tag::DECLARE_LOCAL | tag::DECLARE_CONST => bounded(index(1), "name", pools.names),
-        tag::CALL | tag::CALL_LOCAL_REF | tag::CALL_THIS_REF => {
-            bounded(index(1), "name", pools.names)
-        }
+        tag::CALL
+        | tag::CALL_CAPTURE
+        | tag::CALL_LOCAL_REF
+        | tag::CALL_LOCAL_REF_CAPTURE
+        | tag::CALL_THIS_REF
+        | tag::CALL_THIS_REF_CAPTURE => bounded(index(1), "name", pools.names),
         // The function's, then the receiver variable's. The slot a local
         // receiver names is not a pool index and is checked against the scope
         // when it runs, as every other slot is.
-        tag::CALL_NAMED_REF => {
+        tag::CALL_NAMED_REF | tag::CALL_NAMED_REF_CAPTURE => {
             bounded(index(1), "name", pools.names)?;
-            bounded(index(5), "name", pools.names)
+            bounded(index(4), "name", pools.names)
         }
         tag::CALL_OP => {
             bounded(index(1), "name", pools.names)?;
-            bounded(index(5), "operator", pools.tokens)
+            bounded(index(4), "operator", pools.tokens)
         }
         tag::ASSIGN_LOCAL => bounded(index(3), "name", pools.names),
         tag::LOAD_NAMED

@@ -3341,15 +3341,15 @@ impl<'e> Vm<'e> {
                     }
                 }
 
-                code::tag::CALL | code::tag::CALL_OP => {
+                code::tag::CALL | code::tag::CALL_CAPTURE | code::tag::CALL_OP => {
                     let name_index = u32::from(small(1)?);
                     let name = program
                         .name(name_index)
                         .ok_or_else(|| malformed(format!("no name {name_index}")))?;
-                    let capture_parent_scope = code[pc + 3] != 0;
-                    let argc = code[pc + 4] as usize;
+                    let capture_parent_scope = tag == code::tag::CALL_CAPTURE;
+                    let argc = code[pc + 3] as usize;
                     let op = if tag == code::tag::CALL_OP {
-                        let index = u32::from(small(5)?);
+                        let index = u32::from(small(4)?);
                         Some(
                             program
                                 .token(index)
@@ -3411,17 +3411,25 @@ impl<'e> Vm<'e> {
                 }
 
                 code::tag::CALL_LOCAL_REF
+                | code::tag::CALL_LOCAL_REF_CAPTURE
                 | code::tag::CALL_NAMED_REF
-                | code::tag::CALL_THIS_REF => {
+                | code::tag::CALL_NAMED_REF_CAPTURE
+                | code::tag::CALL_THIS_REF
+                | code::tag::CALL_THIS_REF_CAPTURE => {
                     let name_index = u32::from(small(1)?);
-                    let capture_parent_scope = code[pc + 3] != 0;
-                    let argc = code[pc + 4] as usize;
+                    let argc = code[pc + 3] as usize;
                     // `this` is a register, so this one carries no operand for
                     // the receiver and is two bytes shorter.
-                    let receiver = match tag {
-                        code::tag::CALL_LOCAL_REF => Receiver::Local(small(5)?),
-                        code::tag::CALL_NAMED_REF => Receiver::Named(u32::from(small(5)?)),
-                        _ => Receiver::This,
+                    let (receiver, capture_parent_scope) = match tag {
+                        code::tag::CALL_LOCAL_REF => (Receiver::Local(small(4)?), false),
+                        code::tag::CALL_LOCAL_REF_CAPTURE => (Receiver::Local(small(4)?), true),
+                        code::tag::CALL_NAMED_REF => (Receiver::Named(u32::from(small(4)?)), false),
+                        code::tag::CALL_NAMED_REF_CAPTURE => {
+                            (Receiver::Named(u32::from(small(4)?)), true)
+                        }
+                        code::tag::CALL_THIS_REF => (Receiver::This, false),
+                        code::tag::CALL_THIS_REF_CAPTURE => (Receiver::This, true),
+                        _ => unreachable!(),
                     };
 
                     let value = self.call_by_reference(

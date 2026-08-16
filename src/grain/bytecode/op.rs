@@ -217,7 +217,7 @@ pub enum Op {
         argc: u8,
         /// Index into the operator pool; absent unless the call is an operator.
         op: Option<u32>,
-        /// Captures the parent scope.
+        /// This call captures the parent's scope.
         capture_parent_scope: bool,
     },
 
@@ -247,7 +247,7 @@ pub enum Op {
         argc: u8,
         /// Where the first argument is found.
         receiver: Receiver,
-        /// Captures the parent scope.
+        /// This call captures the parent's scope.
         capture_parent_scope: bool,
     },
 
