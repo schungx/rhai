@@ -50,7 +50,7 @@ pub struct Function {
     /// Whether the body reads or writes the frame's receiver.
     ///
     /// Derived from the chunk rather than encoded — see [`takes_this`]. It is
-    /// what keeps such a function reachable by rhai, which needs the body to
+    /// what keeps such a function reachable by Rhai, which needs the body to
     /// size a call a native makes through a pointer.
     pub takes_this: bool,
     pub chunk: Chunk,
@@ -141,7 +141,7 @@ pub struct Program<'a> {
 
     /// One dispatch table per `switch`, for the same reason.
     ///
-    /// Case hashes are rhai's, and Rhai's hasher is seeded per process unless
+    /// Case hashes are Rhai's, and Rhai's hasher is seeded per process unless
     /// the host says otherwise — so an artifact carrying any of these carries
     /// a [`probe`](crate::bytecode::probe) too, and refuses to load against a
     /// hasher that would disagree with it.
@@ -251,7 +251,7 @@ pub(crate) fn makes_fn_pointers(code: &[u8]) -> bool {
 /// pointer to a `this`-taking chunk cannot go through a native wrapper — the
 /// wrapper is registered at one arity, and how many arguments Rhai will ask for
 /// depends on what the *native* appends, which the wrapper cannot know. So such
-/// a function is left to rhai, which has the body and can size the call itself.
+/// a function is left to Rhai, which has the body and can size the call itself.
 pub(crate) fn takes_this(code: &[u8], chunk: Chunk, chains: &[Chain]) -> bool {
     use crate::grain::bytecode::code::tag;
 

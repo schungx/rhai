@@ -945,7 +945,7 @@ impl Lowering {
             // lowering rather than becoming a fragment.
             Stmt::FnCall(call, ..) if call.name == crate::engine::KEYWORD_EVAL => false,
 
-            // `this` on the left. Ahead of the two variable arms because rhai's
+            // `this` on the left. Ahead of the two variable arms because Rhai's
             // parser puts it there too (`parser.rs:2002`), and because the
             // chain arm below would otherwise take `this.x = 1`'s sibling.
             Stmt::Assignment(payload) if matches!(&payload.1.lhs, Expr::ThisPtr(..)) => {
@@ -1291,7 +1291,7 @@ impl Lowering {
 
             Stmt::BreakLoop(value, flags, ..) => {
                 let Some(active) = self.loops.last() else {
-                    // Outside any loop this is a parse error in rhai, so it
+                    // Outside any loop this is a parse error in Rhai, so it
                     // should be unreachable; bail rather than emit a jump to
                     // nowhere.
                     return false;
@@ -1884,21 +1884,21 @@ impl Lowering {
             // there, so the call has to reach the walker and fail the way Rhai
             // fails it. Lowering it would answer a question Rhai refuses.
             #[cfg(not(feature = "no_closure"))]
-            ("is_shared", 1) => {
+            (crate::engine::KEYWORD_IS_SHARED, 1) => {
                 self.unflattened(&call.args[0]);
                 self.emit_at(Op::IsShared, pos);
             }
-            // Both of these are reported against the *argument* rather than
+            // All of these are reported against the *argument* rather than
             // against the call: Rhai reads it, and everything it can then
             // complain about — a name that is not a string, a string that is
             // not an identifier, a first argument that is not a pointer — is
             // filled in with the argument's position (`func/call.rs:1217`,
             // `:1220`, `:1232`).
-            ("Fn", 1) => {
+            (crate::engine::KEYWORD_FN_PTR, 1) => {
                 self.expression(&call.args[0]);
                 self.emit_at(Op::MakeFnPtr, call.args[0].position());
             }
-            ("curry", _) if argc > 1 => {
+            (crate::engine::KEYWORD_FN_PTR_CURRY, _) if argc > 1 => {
                 let mut args = call.args.iter();
                 self.expression(args.next().expect("checked by the arity"));
                 for arg in args {
@@ -1909,7 +1909,9 @@ impl Lowering {
                 }
                 self.emit_at(Op::Curry((argc - 1) as u8), call.args[0].position());
             }
-            ("call", _) if argc >= 1 && argc <= u8::MAX as usize + 1 => {
+            (crate::engine::KEYWORD_FN_PTR_CALL, _)
+                if argc >= 1 && argc <= u8::MAX as usize + 1 =>
+            {
                 for arg in call.args.iter() {
                     self.expression(arg);
                 }

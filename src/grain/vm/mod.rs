@@ -681,11 +681,11 @@ impl<'e> Vm<'e> {
     /// Three of the five options mean something here:
     ///
     /// * `eval_ast` runs the program's main chunk before the call, so what the
-    ///   top level declares is in scope for it. On by default, as in rhai.
+    ///   top level declares is in scope for it. On by default, as in Rhai.
     /// * `rewind_scope` truncates the scope back afterwards. On by default.
     /// * `tag` sets the evaluation's custom state.
     ///
-    /// `this_ptr` binds the callee's receiver, as it does in rhai. A write
+    /// `this_ptr` binds the callee's receiver, as it does in Rhai. A write
     /// through `this` lands in the pointer's own `Dynamic` — including when the
     /// call goes on to fail, because Rhai reaches `this` through the caller's
     /// storage and a body that mutates and then raises has already written.
@@ -968,7 +968,7 @@ impl<'e> Vm<'e> {
     /// Write-back is only for the levels where a borrow was not possible:
     /// a getter on a host type hands back a value, and Rhai calls the setter
     /// afterwards if the sub-chain was a method call. `changed` reproduces
-    /// that, and it is deliberately coarse in the same way Rhai's is — rhai's
+    /// that, and it is deliberately coarse in the same way Rhai's is — Rhai's
     /// flag is `func.is_method()`, "does the resolved function take its
     /// receiver by reference", not "did it actually write".
     fn run_chain(
@@ -1672,7 +1672,7 @@ impl<'e> Vm<'e> {
                 } else {
                     value
                 };
-                // A setter's return value is thrown away, as in rhai.
+                // A setter's return value is thrown away, as in Rhai.
                 let _ = call(self, setter, &mut [target, &mut new_val])?;
                 return Ok((Dynamic::UNIT, true));
             }
@@ -2021,7 +2021,7 @@ impl<'e> Vm<'e> {
             bound = returned;
             result
         } else {
-            // Anything else is rhai's: a native function, a name registered
+            // Anything else is Rhai's: a native function, a name registered
             // elsewhere, or a pointer it built itself.
             let mut args: FnArgsVec<Dynamic> = self.stack.drain(at + 1..).collect();
             let context = native_context(self.engine, pointer.fn_name(), None, &self.global, pos);
@@ -2171,7 +2171,7 @@ impl<'e> Vm<'e> {
     /// (`eval/stmt.rs:680-703`).
     ///
     /// Three places are searched by `TypeId`, in order, and the order is
-    /// rhai's: the modules in the global namespace, then the imports, then the
+    /// Rhai's: the modules in the global namespace, then the imports, then the
     /// statically registered sub-modules. Nothing matching is `ErrorFor`.
     ///
     /// The iterable is flattened first — so iterating a captured array walks a
@@ -2250,7 +2250,7 @@ impl<'e> Vm<'e> {
             .map_err(|err| dispatch_failure(err, pos))
     }
 
-    /// The same call, with a variable as its first argument and rhai's
+    /// The same call, with a variable as its first argument and Rhai's
     /// method-call rewrite applied to it (`func/call.rs:1434-1460`).
     ///
     /// The other arguments are already on the operand stack and were evaluated

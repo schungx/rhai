@@ -114,7 +114,7 @@ fn the_round_trip_covers_something_worth_covering() {
         "while_loop",       // jumps, Tick, AssignLocal with an op
         "loop_break_value", // backpatched jumps
         // A position that has to survive. `unchecked` turns the failure it
-        // rests on into a panic in rhai, so the case is not run at all there.
+        // rests on into a panic in Rhai, so the case is not run at all there.
         #[cfg(not(feature = "unchecked"))]
         "error_divide_by_zero",
         "switch_range", // a switch table, and the hasher probe with it
@@ -419,7 +419,7 @@ fn the_same_source_compiles_to_the_same_bytes() {
     assert_eq!(first, third, "two parses of one source disagree");
 }
 
-/// A function the compiler cannot lower stays rhai's, and a program that still
+/// A function the compiler cannot lower stays Rhai's, and a program that still
 /// depends on Rhai's copy cannot be written — silently dropping it would
 /// produce an artifact that loads and then cannot find its own function.
 #[test]

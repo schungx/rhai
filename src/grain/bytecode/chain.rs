@@ -25,7 +25,7 @@ pub enum Step {
     /// `[i]`, where the index was evaluated onto the operand stack before the
     /// chain instruction ran, at `operand` from the first of them.
     ///
-    /// Pre-evaluating mirrors rhai, which collects every index in a chain into
+    /// Pre-evaluating mirrors Rhai, which collects every index in a chain into
     /// `idx_values` before walking it (`eval/chaining.rs:568`). It has to
     /// happen first: evaluating an index halfway down would need the operand
     /// stack while a borrow of the container is live.

@@ -581,7 +581,7 @@ pub const CASES: &[Case] = &[
     // A chain is walked where its root lives rather than in a copy of it, so
     // the access mode of the entry is what refuses a write — not the fact that
     // the walk was handed something detached. All three have to agree with
-    // rhai, which reaches the same entry through a `Target`.
+    // Rhai, which reaches the same entry through a `Target`.
     // No `A[0] = 9` case: Rhai blames `ErrorAssignmentToConstant` on the
     // variable and the VM blames it on the `[`, because `Root::Local` carries
     // no position of its own the way `Root::Named` and `Root::This` do. That

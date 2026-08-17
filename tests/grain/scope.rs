@@ -692,7 +692,7 @@ fn call_fn_mirrors_the_engines() {
     let sum: INT = vm.call_fn(&mut scope, &program, "add", (2 as INT, 3 as INT)).expect("must call");
     assert_eq!(sum, 5);
     // `eval_ast` ran the body, and `rewind_scope` took back what it declared.
-    // Both default to on, as they do in rhai.
+    // Both default to on, as they do in Rhai.
     assert_eq!(scope.len(), 0, "the default rewinds what the body declared");
 
     let keep = rhai::CallFnOptions::new().rewind_scope(false);

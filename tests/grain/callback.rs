@@ -1,6 +1,6 @@
 //! Natives that call a compiled function back.
 //!
-//! `[1, 2, 3].map(|x| x * 2)` is the shape: `map` is rhai's, and the pointer it
+//! `[1, 2, 3].map(|x| x * 2)` is the shape: `map` is Rhai's, and the pointer it
 //! is handed is resolved by Rhai's dispatch rather than by ours. This is where
 //! the wrappers that make that resolve are held to the walker's behaviour, and
 //! where the places it still diverges are pinned rather than left to be
@@ -117,7 +117,7 @@ fn a_capturing_closure_reaches_a_native_with_its_arguments_rotated() {
 /// The same rotation, with nothing of ours involved.
 ///
 /// `Fn(s)` on a computed name is the one spelling that gets a name-only
-/// pointer out of stock rhai, which is what every pointer we make is. Curry it,
+/// pointer out of stock Rhai, which is what every pointer we make is. Curry it,
 /// point it at a native, and hand it to `map`: Rhai passes the element first
 /// and the curried value second, while `f.call(1)` on the very same pointer
 /// passes them the other way round.

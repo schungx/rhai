@@ -197,10 +197,10 @@ pub enum Op {
     /// Pop `argc` arguments and call the function named by `name`, pushing the
     /// result.
     ///
-    /// Dispatch goes through rhai, so every registered function, operator and
+    /// Dispatch goes through Rhai, so every registered function, operator and
     /// script function resolves exactly as it would in the walker. Only calls
     /// Rhai handles syntactically before dispatch — `Fn`, `call`, `curry`,
-    /// `eval`, `is_def_var` — are excluded, and stay fragments.
+    /// `eval`, `is_def_var` — are excluded.
     ///
     /// The position table's entry for this instruction is the call site. Rhai's
     /// dispatch path takes one and reports failures against it; `call_fn_raw`
@@ -404,7 +404,7 @@ pub enum Op {
         /// there.
         ///
         /// `None` in call position, and for a receiver with nowhere to write
-        /// back to: `[1, 2].call(f)` mutates a temporary, as it does in rhai.
+        /// back to: `[1, 2].call(f)` mutates a temporary, as it does in Rhai.
         /// Only meaningful when `method` is set.
         receiver: Option<Receiver>,
     },
@@ -498,7 +498,7 @@ pub enum Op {
     ///
     /// Emitted on loop back-edges. Rhai ticks per AST node, so counts differ;
     /// what this preserves is that a limit is enforced and an interrupt is
-    /// honoured, which is what stops `loop {}` from being unkillable.
+    /// honoured, which is what allows `loop {}` to be killed.
     ///
     /// Its table entry is read on every iteration rather than only on failure,
     /// which is why the in-memory position table is dense.

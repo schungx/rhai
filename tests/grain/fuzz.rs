@@ -346,7 +346,7 @@ fn generated_scripts_agree_with_the_walker() {
     // So the two are counted apart, and this is the one that means something.
     assert!(
         unparsed.is_empty(),
-        "{} of {SCRIPTS} scripts are not valid rhai, so the generator is \
+        "{} of {SCRIPTS} scripts are not valid Rhai, so the generator is \
          emitting syntax rather than testing it:{}",
         unparsed.len(),
         unparsed.iter().take(5).cloned().collect::<String>(),

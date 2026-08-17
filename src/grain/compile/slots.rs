@@ -10,7 +10,7 @@ use std::prelude::v1::*;
 ///
 /// Shadowing needs no special handling: a second `let x` pushes a second entry,
 /// and resolution scans backwards, so the newer slot wins while the older one
-/// stays addressable by anything compiled before it — which is exactly rhai's
+/// stays addressable by anything compiled before it — which is exactly Rhai's
 /// behaviour.
 #[derive(Debug, Default)]
 pub(crate) struct Slots {

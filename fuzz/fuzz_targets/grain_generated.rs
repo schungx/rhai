@@ -38,7 +38,7 @@ fn engine() -> Engine {
     engine.set_max_string_size(8192);
     engine.set_max_array_size(2048);
     engine.set_max_map_size(64);
-    // Pinned for the reason `tests/fuzz.rs` pins them: rhai's defaults are
+    // Pinned for the reason `tests/fuzz.rs` pins them: Rhai's defaults are
     // `debug_assertions`-gated (`api/limits.rs:10-36`), so an unpinned harness
     // explores one script space here and a different one under `cargo test`.
     // Same numbers in both, so a finding from one reproduces in the other.

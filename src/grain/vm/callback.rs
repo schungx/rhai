@@ -1,7 +1,7 @@
 //! Reaching a compiled chunk from inside a native function.
 //!
 //! `[1, 2, 3].map(|x| x * 2)` leaves this VM in the middle of a call. `map` is
-//! rhai's, and the pointer it calls back is resolved by Rhai's dispatch, which
+//! Rhai's, and the pointer it calls back is resolved by Rhai's dispatch, which
 //! looks in `global.lib` and the engine's modules. Our chunks are in neither:
 //! [`Op::Call`](crate::bytecode::Op::Call) finds one by a name *index* that
 //! only the compiler and the call site share, and a `FnPtr` carries a string.
@@ -82,7 +82,7 @@ pub(super) fn wrappers(program: &SharedProgram) -> Module {
         // index, `reduce` adds the running result — which the wrapper has no way
         // to know. Rhai's own pointer carries the body and sizes the call from
         // its declared arity (`types/fn_ptr.rs:501-535`); a name-only pointer,
-        // which is all a wrapper can be, cannot. So these are left to rhai,
+        // which is all a wrapper can be, cannot. So these are left to Rhai,
         // and `Program::needs_walker` is what keeps its copy alive for them.
         if function.takes_this {
             continue;

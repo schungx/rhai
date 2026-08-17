@@ -2,7 +2,7 @@
 //!
 //! The other target proves a hostile artifact cannot misbehave. This one
 //! proves a well-formed one still means what it said: compile, write, read
-//! back, run, and get what rhai's own evaluator got — the differential corpus
+//! back, run, and get what Rhai's own evaluator got — the differential corpus
 //! generalized from cases someone thought of to inputs nobody did.
 //!
 //! Both halves are load-bearing and they fail differently. A divergence here

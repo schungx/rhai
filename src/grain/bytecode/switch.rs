@@ -4,7 +4,7 @@ use std::prelude::v1::*;
 
 /// A `switch`, as one dispatch table.
 ///
-/// Matching a case is *hash* equality, not `==`. That distinction is rhai's
+/// Matching a case is *hash* equality, not `==`. That distinction is Rhai's
 /// and it is visible: `switch 1 { 1.0 => .. }` does not match, because an
 /// integer and a float hash differently, while `1 == 1.0` is true.
 ///
