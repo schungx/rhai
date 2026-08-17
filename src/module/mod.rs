@@ -217,6 +217,7 @@ impl FuncRegistration {
     ///
     /// * **Metadata**: No metadata for the function is registered.
     ///
+    /// # Example
     /// ```
     /// # use rhai::{Module, FuncRegistration, FnNamespace};
     /// let mut module = Module::new();

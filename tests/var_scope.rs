@@ -299,6 +299,33 @@ fn test_var_is_def() {
 }
 
 #[test]
+fn test_var_is_def_registration() {
+    let mut engine = Engine::new();
+
+    engine.register_fn("is_def_var", |name: &str| name.to_string());
+
+    assert!(engine
+        .eval::<bool>(
+            r#"
+                let x = 42;
+                is_def_var("x")
+            "#
+        )
+        .unwrap());
+
+    engine.register_fn("is_def_var", |name: &str, _: bool, _: INT| name.to_string());
+
+    assert!(engine
+        .eval::<String>(
+            r#"
+                let x = 42;
+                is_def_var("x", true, 42)
+            "#
+        )
+        .is_err());
+}
+
+#[test]
 fn test_scope_eval() {
     let engine = Engine::new();
 

@@ -540,6 +540,33 @@ fn test_functions_is_def() {
 }
 
 #[test]
+fn test_functions_is_def_registration() {
+    let mut engine = Engine::new();
+
+    engine.register_fn("is_def_fn", |name: &str, _: INT| name.to_string());
+
+    assert!(engine
+        .eval::<bool>(
+            r#"
+                fn foo(x) { x + 1 }
+                is_def_fn("foo", 1)
+            "#
+        )
+        .unwrap());
+
+    engine.register_fn("is_def_fn", |name: &str| name.to_string());
+
+    assert!(engine
+        .eval::<String>(
+            r#"
+                fn foo() { 1 }
+                is_def_fn("foo")
+            "#
+        )
+        .is_err());
+}
+
+#[test]
 #[cfg(not(feature = "unchecked"))]
 fn test_functions_max() {
     let mut engine = Engine::new();

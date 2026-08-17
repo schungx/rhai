@@ -10,6 +10,9 @@ fn test_type_of() {
 
     let mut engine = Engine::new();
 
+    #[cfg(not(feature = "no_optimize"))]
+    engine.set_optimization_level(rhai::OptimizationLevel::None);
+
     #[cfg(not(feature = "only_i32"))]
     assert_eq!(engine.eval::<String>("type_of(60 + 5)").unwrap(), "i64");
 
@@ -46,4 +49,20 @@ fn test_type_of() {
 
     #[cfg(feature = "only_i32")]
     assert_eq!(engine.eval::<String>("let x = 123; type_of(x)").unwrap(), "i32");
+}
+
+#[test]
+fn test_type_of_registration() {
+    let mut engine = Engine::new();
+
+    #[cfg(not(feature = "no_optimize"))]
+    engine.set_optimization_level(rhai::OptimizationLevel::None);
+
+    engine.register_fn("type_of", |name: &str| name.to_string());
+
+    assert_eq!(engine.eval::<String>("type_of(true)").unwrap(), "bool");
+
+    engine.register_fn("type_of", |name: &str, _: bool| name.to_string());
+
+    assert!(engine.eval::<String>(r#"type_of("x", true)"#).is_err());
 }

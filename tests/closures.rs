@@ -201,6 +201,36 @@ fn test_closures() {
 
 #[test]
 #[cfg(not(feature = "no_closure"))]
+fn test_closures_is_shared_registration() {
+    let mut engine = Engine::new();
+
+    engine.register_fn("is_shared", |name: &str| name.to_string());
+
+    assert!(engine
+        .eval::<bool>(
+            "
+                let a = 41;
+                let foo = |x| { a += x };
+                is_shared(a)
+            "
+        )
+        .unwrap());
+
+    engine.register_fn("is_shared", |name: &str, _: bool| name.to_string());
+
+    assert!(engine
+        .eval::<String>(
+            r#"
+                let a = 41;
+                let foo = |x| { a += x };
+                is_shared(a, true)
+            "#
+        )
+        .is_err());
+}
+
+#[test]
+#[cfg(not(feature = "no_closure"))]
 fn test_closures_sharing() {
     let mut engine = Engine::new();
 
