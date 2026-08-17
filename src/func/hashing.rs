@@ -152,6 +152,8 @@ pub fn calc_fn_hash_full(base: u64, params: impl IntoIterator<Item = TypeId>) ->
 }
 
 /// Calculate a [`u64`] hash key from a base [`u64`] hash key and the type of the `this` pointer.
+///
+/// Not available under `no_object` or `no_function`.
 #[cfg(not(feature = "no_object"))]
 #[cfg(not(feature = "no_function"))]
 #[inline]

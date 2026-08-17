@@ -7,7 +7,7 @@ use std::prelude::v1::*;
 
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_index"))]
-use crate::{Array, Dynamic, NativeCallContext};
+use crate::{Array, NativeCallContext};
 
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_index"))]
@@ -75,7 +75,7 @@ mod debugging_functions {
                                         (_pos.position().unwrap_or(0) as INT).into(),
                                     );
                                 }
-                                Dynamic::from_map(map)
+                                crate::Dynamic::from_map(map)
                             }
                             #[cfg(feature = "no_object")]
                             display.into()

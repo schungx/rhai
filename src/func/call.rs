@@ -629,6 +629,7 @@ impl Engine {
                 ));
             }
             #[cfg(not(feature = "no_function"))]
+            #[cfg(not(feature = "no_object"))]
             crate::engine::KEYWORD_IS_DEF_FN if args.len() == 3 => {
                 let this_type = args[0]
                     .as_immutable_string_ref()
