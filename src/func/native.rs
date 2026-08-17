@@ -520,28 +520,24 @@ impl<'a> NativeCallContext<'a> {
 
         let fn_name = fn_name.as_ref();
         let op_token = Token::lookup_symbol_from_syntax(fn_name);
+        let op_token = op_token.as_ref();
         let args_len = args.len();
+        let pos = self.call_position();
 
         if native_only {
-            if let Some(result) =
-                self.engine()
-                    .exec_syntactic_fn_call(fn_name, args, self.call_position())?
+            if let Some(result) = self
+                .engine()
+                .exec_syntactic_fn_call(global, caches, fn_name, args, pos)?
             {
                 return Ok(result);
             }
 
+            let hash = calc_fn_hash(None, fn_name, args_len);
+
             return self
                 .engine()
                 .exec_native_fn_call(
-                    global,
-                    caches,
-                    fn_name,
-                    op_token.as_ref(),
-                    calc_fn_hash(None, fn_name, args_len),
-                    args,
-                    is_ref_mut,
-                    false,
-                    self.call_position(),
+                    global, caches, fn_name, op_token, hash, args, is_ref_mut, false, pos,
                 )
                 .map(|(r, ..)| r);
         }
@@ -556,7 +552,7 @@ impl<'a> NativeCallContext<'a> {
             ),
             #[cfg(feature = "no_function")]
             true => FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len)),
-            _ => FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len)),
+            false => FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len)),
         };
 
         self.engine()
@@ -565,12 +561,12 @@ impl<'a> NativeCallContext<'a> {
                 caches,
                 None,
                 fn_name,
-                op_token.as_ref(),
+                op_token,
                 hash,
                 args,
                 is_ref_mut,
                 is_method_call,
-                self.call_position(),
+                pos,
             )
             .map(|(r, ..)| r)
     }

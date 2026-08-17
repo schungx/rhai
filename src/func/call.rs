@@ -352,6 +352,10 @@ impl Engine {
     ) -> RhaiResultOf<(Dynamic, bool)> {
         self.track_operation(global, pos)?;
 
+        if let Some(result) = self.exec_syntactic_fn_call(global, caches, name, args, pos)? {
+            return Ok((result, false));
+        }
+
         // Check if function access already in the cache
         let local_entry = &mut None;
         let a = Some(&mut *args);
@@ -577,12 +581,14 @@ impl Engine {
         }
     }
 
-    /// Implement built-in functions.
+    /// Implement built-in syntactic functions.
     ///
     /// These are functions (e.g. `type_of`, `is_shared`) that are not registered as normal
     /// functions but provided by Rhai.
     pub(crate) fn exec_syntactic_fn_call(
         &self,
+        global: &mut GlobalRuntimeState,
+        caches: &mut Caches,
         fn_name: &str,
         args: &FnCallArgs,
         pos: Position,
@@ -593,7 +599,9 @@ impl Engine {
                 let typ = self.get_interned_string(self.map_type_name(args[0].type_name()));
                 return Ok(Some(typ.into()));
             }
+            KEYWORD_TYPE_OF => (),
 
+            // Handle is_shared()
             #[cfg(not(feature = "no_closure"))]
             crate::engine::KEYWORD_IS_SHARED if args.len() == 1 => {
                 return Ok(Some(args[0].is_shared().into()))
@@ -601,12 +609,57 @@ impl Engine {
             #[cfg(not(feature = "no_closure"))]
             crate::engine::KEYWORD_IS_SHARED => (),
 
+            // Handle is_def_fn()
+            #[cfg(not(feature = "no_function"))]
+            crate::engine::KEYWORD_IS_DEF_FN if args.len() == 2 => {
+                let fn_name = args[0]
+                    .as_immutable_string_ref()
+                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, pos))?;
+                let num_params = args[1]
+                    .as_int()
+                    .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, pos))?;
+
+                return Ok(Some(
+                    usize::try_from(num_params)
+                        .map(|num_params| {
+                            let hash_script = calc_fn_hash(None, &fn_name, num_params);
+                            self.has_script_fn(global, caches, hash_script).into()
+                        })
+                        .unwrap_or(Dynamic::FALSE),
+                ));
+            }
+            #[cfg(not(feature = "no_function"))]
+            crate::engine::KEYWORD_IS_DEF_FN if args.len() == 3 => {
+                let this_type = args[0]
+                    .as_immutable_string_ref()
+                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, pos))?;
+                let fn_name = args[1]
+                    .as_immutable_string_ref()
+                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, pos))?;
+                let num_params = args[2]
+                    .as_int()
+                    .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, pos))?;
+
+                return Ok(Some(
+                    usize::try_from(num_params)
+                        .map(|num_params| {
+                            let hash_script = crate::calc_typed_method_hash(
+                                calc_fn_hash(None, &fn_name, num_params),
+                                &this_type,
+                            );
+                            self.has_script_fn(global, caches, hash_script).into()
+                        })
+                        .unwrap_or(Dynamic::FALSE),
+                ));
+            }
             #[cfg(not(feature = "no_function"))]
             crate::engine::KEYWORD_IS_DEF_FN => (),
 
-            KEYWORD_TYPE_OF | KEYWORD_FN_PTR | KEYWORD_EVAL | KEYWORD_IS_DEF_VAR
-            | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY => (),
+            // Other syntactic functions
+            KEYWORD_IS_DEF_VAR | KEYWORD_FN_PTR | KEYWORD_EVAL | KEYWORD_FN_PTR_CALL
+            | KEYWORD_FN_PTR_CURRY => (),
 
+            // Normal functions
             _ => return Ok(None),
         }
 
@@ -637,10 +690,8 @@ impl Engine {
         pos: Position,
     ) -> RhaiResultOf<(Dynamic, bool)> {
         // These may be redirected from method style calls.
-        if hashes.is_native_only() {
-            if let Some(result) = self.exec_syntactic_fn_call(fn_name, args, pos)? {
-                return Ok((result, false));
-            }
+        if let Some(result) = self.exec_syntactic_fn_call(global, caches, fn_name, args, pos)? {
+            return Ok((result, false));
         }
 
         // Check for data race.
@@ -1312,74 +1363,6 @@ impl Engine {
                 let (arg_value, ..) =
                     self.get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), arg)?;
                 return Ok(arg_value.is_shared().into());
-            }
-
-            // Handle is_def_fn(fn_name, arity)
-            #[cfg(not(feature = "no_function"))]
-            crate::engine::KEYWORD_IS_DEF_FN if num_args == 2 => {
-                let first = first_arg.unwrap();
-                let (arg_value, arg_pos) =
-                    self.get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), first)?;
-
-                let fn_name = arg_value
-                    .into_immutable_string()
-                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, arg_pos))?;
-
-                let (arg_value, arg_pos) =
-                    self.get_arg_value(global, caches, scope, this_ptr, &args_expr[0])?;
-
-                let num_params = arg_value
-                    .as_int()
-                    .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, arg_pos))?;
-
-                return Ok(usize::try_from(num_params)
-                    .map(|num_params| {
-                        let hash_script = calc_fn_hash(None, &fn_name, num_params);
-                        self.has_script_fn(global, caches, hash_script).into()
-                    })
-                    .unwrap_or(Dynamic::FALSE));
-            }
-
-            // Handle is_def_fn(this_type, fn_name, arity)
-            #[cfg(not(feature = "no_function"))]
-            #[cfg(not(feature = "no_object"))]
-            crate::engine::KEYWORD_IS_DEF_FN if num_args == 3 => {
-                let first = first_arg.unwrap();
-                let (arg_value, arg_pos) =
-                    self.get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), first)?;
-
-                let this_type = arg_value
-                    .into_immutable_string()
-                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, arg_pos))?;
-
-                let (arg_value, arg_pos) = self.get_arg_value(
-                    global,
-                    caches,
-                    scope,
-                    this_ptr.as_deref_mut(),
-                    &args_expr[0],
-                )?;
-
-                let fn_name = arg_value
-                    .into_immutable_string()
-                    .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, arg_pos))?;
-
-                let (arg_value, arg_pos) =
-                    self.get_arg_value(global, caches, scope, this_ptr, &args_expr[1])?;
-
-                let num_params = arg_value
-                    .as_int()
-                    .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, arg_pos))?;
-
-                return Ok(usize::try_from(num_params)
-                    .map(|num_params| {
-                        let hash_script = crate::calc_typed_method_hash(
-                            calc_fn_hash(None, &fn_name, num_params),
-                            &this_type,
-                        );
-                        self.has_script_fn(global, caches, hash_script).into()
-                    })
-                    .unwrap_or(Dynamic::FALSE));
             }
 
             // Handle is_def_var(fn_name)

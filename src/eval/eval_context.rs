@@ -487,9 +487,10 @@ fn _call_fn_raw(
     let op_token = Token::lookup_symbol_from_syntax(fn_name);
     let op_token = op_token.as_ref();
     let args_len = args.len();
+    let pos = Position::NONE;
 
     if native_only {
-        if let Some(result) = engine.exec_syntactic_fn_call(fn_name, args, Position::NONE)? {
+        if let Some(result) = engine.exec_syntactic_fn_call(global, caches, fn_name, args, pos)? {
             return Ok(result);
         }
 
@@ -497,15 +498,7 @@ fn _call_fn_raw(
 
         return engine
             .exec_native_fn_call(
-                global,
-                caches,
-                fn_name,
-                op_token,
-                hash,
-                args,
-                is_ref_mut,
-                false,
-                Position::NONE,
+                global, caches, fn_name, op_token, hash, args, is_ref_mut, false, pos,
             )
             .map(|(r, ..)| r);
     }
@@ -534,7 +527,7 @@ fn _call_fn_raw(
             args,
             is_ref_mut,
             is_method_call,
-            Position::NONE,
+            pos,
         )
         .map(|(r, ..)| r)
 }
