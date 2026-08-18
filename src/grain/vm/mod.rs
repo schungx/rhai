@@ -1193,7 +1193,7 @@ impl<'e> Vm<'e> {
                 // what makes writing through it an error.
                 if let Some(value) = self.resolve_var(name, scope, var_pos)? {
                     return Ok(ChainRoot {
-                        value: RootValue::Detached(value.into_read_only()),
+                        value: RootValue::Detached(value),
                         pos: var_pos,
                     });
                 }
@@ -1844,7 +1844,7 @@ impl<'e> Vm<'e> {
         // A resolver hands back a value, not a place, so it is read-only —
         // which is what makes assigning to one an error.
         if let Some(value) = self.resolve_var(name, scope, pos)? {
-            return Ok(value.into_read_only());
+            return Ok(value);
         }
 
         if let Some(value) = scope.get(name) {
@@ -1900,12 +1900,11 @@ impl<'e> Vm<'e> {
             self.global.always_search_scope = true;
         }
 
-        resolved.map_err(|err| {
-            if err.position().is_none() {
-                return reposition(err, pos);
-            }
-            err
-        })
+        match resolved {
+            Ok(Some(value)) => Ok(Some(value.into_read_only())),
+            Ok(None) => Ok(None),
+            Err(err) => Err(positioned(err, pos)),
+        }
     }
 
     /// Assign to a variable no slot names.
@@ -1931,38 +1930,38 @@ impl<'e> Vm<'e> {
             ))
         };
 
-        if self.resolve_var(name, scope, pos)?.is_some() {
-            return Err(constant());
+        // Try the variable resolver first.
+        if let Some(mut value) = self.resolve_var(name, scope, pos)? {
+            if value.is_read_only() {
+                return Err(constant());
+            }
+            let mut target = place(&mut value, name, pos)?;
+            return self.store(program, op, &mut target, rhs, pos);
         }
 
-        match scope.is_constant(name) {
-            Some(true) => return Err(constant()),
-            Some(false) => {}
+        // Search the scope.
+        match scope.get_mut_raw(name) {
+            Some(None) => Err(constant()),
+            Some(Some(entry)) => {
+                let mut target = place(entry, name, pos)?;
+                self.store(program, op, &mut target, rhs, pos)
+            }
             // Not a variable at all. A module's is a value rather than a
             // place, so writing to one is the same refusal as writing to a
             // `const`.
-            None => {
-                return Err(
-                    if self
-                        .engine
-                        .global_modules
-                        .iter()
-                        .any(|module| module.get_var(name).is_some())
-                    {
-                        constant()
-                    } else {
-                        missing(name, pos)
-                    },
-                )
-            }
+            None => Err(
+                if self
+                    .engine
+                    .global_modules
+                    .iter()
+                    .any(|module| module.get_var(name).is_some())
+                {
+                    constant()
+                } else {
+                    missing(name, pos)
+                },
+            ),
         }
-
-        let entry = scope
-            .get_mut(name)
-            .ok_or_else(|| malformed(format!("`{name}` is in scope but not writable")))?;
-        let mut target = place(entry, name, pos)?;
-
-        self.store(program, op, &mut target, rhs, pos)
     }
 
     /// Call a function pointer, preferring a chunk we compiled.
