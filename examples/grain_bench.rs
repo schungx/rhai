@@ -78,7 +78,7 @@ const CASES: &[Case] = &[
     },
     Case {
         name: "script fn calls",
-        source: "fn add(a, b) { a + b } let s = 0; let i = 0; while i < 5000 { s = add(s, i); i += 1; } s",
+        source: "fn add(a, b) { a + b } let s = 0; for i in 0..5000 { s = add(s, i); i += 1; } s",
         iterations: 20,
         callbacks: false,
         floor: 1.55,
@@ -96,7 +96,7 @@ const CASES: &[Case] = &[
     // lose.
     Case {
         name: "switch, 4 arms",
-        source: "let s = 0; let i = 0; while i < 20000 { \
+        source: "let s = 0; for i in 0..20000 { \
                  switch i % 4 { 0 => s += 1, 1 => s += 2, 2 => s += 3, _ => s += 4 } \
                  i += 1; } s",
         iterations: 20,
@@ -105,7 +105,7 @@ const CASES: &[Case] = &[
     },
     Case {
         name: "switch, 16 arms",
-        source: "let s = 0; let i = 0; while i < 20000 { \
+        source: "let s = 0; for i in 0..20000 { \
                  switch i % 16 { \
                  0 => s += 1, 1 => s += 2, 2 => s += 3, 3 => s += 4, \
                  4 => s += 5, 5 => s += 6, 6 => s += 7, 7 => s += 8, \
@@ -118,7 +118,7 @@ const CASES: &[Case] = &[
     },
     Case {
         name: "branch heavy",
-        source: "let s = 0; let i = 0; while i < 20000 { if i % 3 == 0 { s += 1; } else if i % 3 == 1 { s += 2; } else { s -= 1; } i += 1; } s",
+        source: "let s = 0; for i in 0..20000 { if i % 3 == 0 { s += 1; } else if i % 3 == 1 { s += 2; } else { s -= 1; } i += 1; } s",
         iterations: 20,
         callbacks: false,
         floor: 1.45,
@@ -140,7 +140,7 @@ const CASES: &[Case] = &[
     // where it lives rather than copied out and put back.
     Case {
         name: "native callbacks",
-        source: "let a = []; let i = 0; while i < 500 { a.push(i); i += 1; } \
+        source: "let a = []; for i in 0..500 { a.push(i); i += 1; } \
                  let b = a.map(|x| x * 2); b.filter(|x| x % 3 == 0).len()",
         iterations: 20,
         callbacks: true,
