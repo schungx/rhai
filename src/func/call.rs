@@ -1201,7 +1201,7 @@ impl Engine {
         first_arg: Option<&Expr>,
         args_expr: &[Expr],
         hashes: FnCallHashes,
-        capture_scope: bool,
+        capture_parent_scope: bool,
         pos: Position,
     ) -> RhaiResult {
         let mut first_arg = first_arg;
@@ -1430,7 +1430,7 @@ impl Engine {
         //
         // If so, do it separately because we cannot convert the first argument (if it is a simple
         // variable access) to &mut because `scope` is needed.
-        if capture_scope && !scope.is_empty() {
+        if capture_parent_scope && !scope.is_empty() {
             for expr in first_arg.iter().copied().chain(args_expr.iter()) {
                 let (value, ..) =
                     self.get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), expr)?;

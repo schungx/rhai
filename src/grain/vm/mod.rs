@@ -2234,6 +2234,125 @@ impl<'e> Vm<'e> {
         Ok(())
     }
 
+    // Some syntactic calls can be self-implemented or short-circuited.
+    fn call_syntactic(
+        &mut self,
+        program: &Program,
+        name: &str,
+        argc: usize,
+        first: usize,
+        scope: &mut Scope,
+        pos: Position,
+    ) -> Result<Option<Dynamic>, Box<EvalAltResult>> {
+        match name {
+            #[cfg(not(feature = "no_closure"))]
+            crate::engine::KEYWORD_IS_SHARED => {
+                return Err(EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into())
+            }
+            crate::engine::KEYWORD_IS_DEF_VAR => {
+                if argc != 1 {
+                    return Err(EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into());
+                }
+                let var_name = self.stack[first].as_immutable_string_ref().map_err(|typ| {
+                    self.engine
+                        .make_type_mismatch_err::<ImmutableString>(typ, pos)
+                })?;
+                return Ok(Some(scope.contains(&var_name).into()));
+            }
+            #[cfg(not(feature = "no_function"))]
+            crate::engine::KEYWORD_IS_DEF_FN => {
+                let (this_type, fn_name, arity) = match argc {
+                    2 => {
+                        let var_name = self.stack[first]
+                            .as_immutable_string_ref()
+                            .as_deref()
+                            .cloned()
+                            .map_err(|typ| {
+                                self.engine
+                                    .make_type_mismatch_err::<ImmutableString>(typ, pos)
+                            })?;
+                        let arity = self.stack[first + 1]
+                            .as_int()
+                            .map_err(|typ| self.engine.make_type_mismatch_err::<INT>(typ, pos))?;
+                        (None, var_name, arity as usize)
+                    }
+                    3 => {
+                        let this_type = self.stack[first]
+                            .as_immutable_string_ref()
+                            .as_deref()
+                            .cloned()
+                            .map_err(|typ| {
+                                self.engine
+                                    .make_type_mismatch_err::<ImmutableString>(typ, pos)
+                            })?;
+                        let var_name = self.stack[first + 1]
+                            .as_immutable_string_ref()
+                            .as_deref()
+                            .cloned()
+                            .map_err(|typ| {
+                                self.engine
+                                    .make_type_mismatch_err::<ImmutableString>(typ, pos)
+                            })?;
+                        let arity = self.stack[first + 2]
+                            .as_int()
+                            .map_err(|typ| self.engine.make_type_mismatch_err::<INT>(typ, pos))?;
+                        (Some(this_type), var_name, arity as usize)
+                    }
+                    _ => {
+                        return Err(
+                            EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into()
+                        )
+                    }
+                };
+
+                // Check if there is a compiled function.
+                for f in program.functions() {
+                    let local_name = program
+                        .name(f.name)
+                        .ok_or_else(|| malformed(format!("no name {}", f.name)))?;
+
+                    if local_name == fn_name.as_str() && f.params.len() == arity {
+                        if let Some(ref this_type) = this_type {
+                            if let Some(local_this_type_index) = f.this_type {
+                                let local_this_type_name =
+                                    program.name(local_this_type_index).ok_or_else(|| {
+                                        malformed(format!("no name {local_this_type_index}"))
+                                    })?;
+
+                                if local_this_type_name == this_type {
+                                    return Ok(Some(Dynamic::TRUE));
+                                }
+                            }
+                        } else if f.this_type.is_none() {
+                            return Ok(Some(Dynamic::TRUE));
+                        }
+                    }
+                }
+
+                // Call into Rhai.
+                let mut args = self.stack[first..].iter_mut().collect::<FnArgsVec<_>>();
+
+                return self
+                    .engine
+                    .exec_syntactic_fn_call(
+                        &mut self.global,
+                        &mut self.caches,
+                        name,
+                        &mut args,
+                        pos,
+                    )
+                    .map_err(|err| dispatch_failure(err, pos))?
+                    .ok_or_else(|| {
+                        EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into()
+                    })
+                    .map(Some);
+            }
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
     /// Call `name` with `argc` arguments sitting contiguously from `first` up.
     ///
     /// A function this compiler lowered is called directly, with no hash and no
@@ -2244,15 +2363,13 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         name_index: u32,
+        name: &str,
         argc: usize,
         first: usize,
         scope: &mut Scope,
         pos: Position,
     ) -> VmResult {
-        let name = program
-            .name(name_index)
-            .ok_or_else(|| malformed(format!("no name {name_index}")))?;
-
+        // Run compiled function if available.
         if let Some(function) = program.function(name_index, argc) {
             return self.call_compiled(
                 program,
@@ -2295,6 +2412,7 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         name_index: u32,
+        name: &str,
         argc: usize,
         receiver: Receiver,
         scope: &mut Scope,
@@ -2302,10 +2420,6 @@ impl<'e> Vm<'e> {
         capture_parent_scope: bool,
         pos: Position,
     ) -> VmResult {
-        let name = program
-            .name(name_index)
-            .ok_or_else(|| malformed(format!("no name {name_index}")))?;
-
         // Every argument count here includes the receiver, so zero of them
         // names no receiver at all and the instruction is nonsense. Only an
         // artifact can say it; the compiler emits one of these for a call that
@@ -2319,17 +2433,15 @@ impl<'e> Vm<'e> {
         // The register is not a scope entry, so it takes a path of its own
         // rather than a third [`Site`].
         if let Receiver::This = receiver {
-            let mut new_scope;
-            let use_scope = if capture_parent_scope {
-                // Reuse parent scope.
-                scope
-            } else {
-                // Create detached scope.
-                new_scope = Scope::new();
-                &mut new_scope
-            };
-
-            return self.call_by_this(program, name_index, name, argc, use_scope, pos);
+            return self.call_by_this(
+                program,
+                name_index,
+                name,
+                argc,
+                scope,
+                capture_parent_scope,
+                pos,
+            );
         }
 
         // A named receiver's value is already argument zero — [`Op::LoadNamed`]
@@ -2383,20 +2495,23 @@ impl<'e> Vm<'e> {
                 let value = scope.get_mut_by_index(index).flatten_clone();
                 self.stack.insert(first, value);
             }
-
-            let mut new_scope;
-            let use_scope = if capture_parent_scope {
-                // Reuse parent scope.
-                scope
-            } else {
-                // Create detached scope.
-                new_scope = Scope::new();
-                &mut new_scope
-            };
-
-            let value = self.call_stacked(program, name_index, argc, first, use_scope, pos);
+            // Check if it is a built-in syntactic function.
+            let value =
+                if let Some(value) = self.call_syntactic(program, name, argc, first, scope, pos)? {
+                    value
+                } else {
+                    // Detach the scope with a new one if not capturing the parent's.
+                    let mut detached;
+                    let scope = if !capture_parent_scope {
+                        detached = Scope::new();
+                        &mut detached
+                    } else {
+                        scope
+                    };
+                    self.call_stacked(program, name_index, name, argc, first, scope, pos)?
+                };
             self.stack.truncate(first);
-            return value;
+            return Ok(value);
         }
 
         let value = {
@@ -2455,6 +2570,7 @@ impl<'e> Vm<'e> {
         name: &str,
         argc: usize,
         scope: &mut Scope,
+        capture_parent_scope: bool,
         pos: Position,
     ) -> VmResult {
         let first = self
@@ -2473,9 +2589,23 @@ impl<'e> Vm<'e> {
             && program.function(name_index, argc).is_none();
 
         if !by_reference {
-            let value = self.call_stacked(program, name_index, argc, first, scope, pos);
+            // Check if it is a built-in syntactic function.
+            let value =
+                if let Some(value) = self.call_syntactic(program, name, argc, first, scope, pos)? {
+                    value
+                } else {
+                    // Detach the scope with a new one if not capturing the parent's.
+                    let mut detached;
+                    let scope = if !capture_parent_scope {
+                        detached = Scope::new();
+                        &mut detached
+                    } else {
+                        scope
+                    };
+                    self.call_stacked(program, name_index, name, argc, first, scope, pos)?
+                };
             self.stack.truncate(first);
-            return value;
+            return Ok(value);
         }
 
         let value = {
@@ -3427,18 +3557,22 @@ impl<'e> Vm<'e> {
                         }
                     }
 
-                    let mut new_scope;
-                    let use_scope = if capture_parent_scope {
-                        // Reuse parent scope.
-                        &mut *scope
+                    // Check if it is a built-in syntactic function.
+                    let value = if let Some(value) =
+                        self.call_syntactic(program, name, argc, first, scope, pos())?
+                    {
+                        value
                     } else {
-                        // Create detached scope.
-                        new_scope = Scope::new();
-                        &mut new_scope
+                        // Detach the scope with a new one if not capturing the parent's.
+                        let mut detached;
+                        let scope = if !capture_parent_scope {
+                            detached = Scope::new();
+                            &mut detached
+                        } else {
+                            &mut *scope
+                        };
+                        self.call_stacked(program, name_index, name, argc, first, scope, pos())?
                     };
-
-                    let value =
-                        self.call_stacked(program, name_index, argc, first, use_scope, pos())?;
                     self.stack.truncate(first);
                     self.stack.push(value);
                 }
@@ -3450,6 +3584,9 @@ impl<'e> Vm<'e> {
                 | code::tag::CALL_THIS_REF
                 | code::tag::CALL_THIS_REF_CAPTURE => {
                     let name_index = u32::from(small(1)?);
+                    let name = program
+                        .name(name_index)
+                        .ok_or_else(|| malformed(format!("no name {name_index}")))?;
                     let argc = code[pc + 3] as usize;
                     // `this` is a register, so this one carries no operand for
                     // the receiver and is two bytes shorter.
@@ -3475,6 +3612,7 @@ impl<'e> Vm<'e> {
                     let value = self.call_by_reference(
                         program,
                         name_index,
+                        name,
                         argc,
                         receiver,
                         scope,

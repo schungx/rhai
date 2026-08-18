@@ -163,6 +163,7 @@ pub fn applies_to_this_build(name: &str) -> bool {
                 | "for_over_captured_array"
                 | "for_return_from_body"
                 | "fn_call_captures_parent_scope"
+                | "is_def_fn"
                 | "map_computed_order"
                 | "map_read_of_absent_key_is_not_visible_to_a_closure"
                 | "switch_on_a_shared_subject_matches"
@@ -438,6 +439,8 @@ pub const CASES: &[Case] = &[
     case("let_from_switch", "let x = 2; let y = switch x { 1 => \"one\", 2 => \"two\", _ => \"other\" }; y"),
     case("let_from_if", "let c = true; let y = if c { let a = 1; a } else { let b = 2; b }; y + 10"),
     case("let_from_block", "let a = 3; let y = { let z = a; z * 2 }; y"),
+    case("is_def_var_true", r#"let a = 42; is_def_var("a")"#),
+    case("is_def_var_false", r#"let a = 42; is_def_var("b")"#),
     // A block among a call's arguments, where the scope grows while operands
     // are already on the stack.
     case("block_as_argument", "fn add(a, b) { a + b } let n = 2; add({ let t = n; t + 1 }, 10)"),
@@ -448,6 +451,7 @@ pub const CASES: &[Case] = &[
     // --- functions --------------------------------------------------------
     case("fn_call", "fn add(a, b) { a + b } add(2, 3)"),
     case("fn_call_captures_parent_scope", r#"fn foo(x) { x + y * z }  let x = 42; let y = 1; let z = 9; foo!(x)"#),
+    case("is_def_fn", r#"fn add(x, y) { x + y } is_def_fn("add", 2)"#),
     // Kept shallow deliberately: Rhai's default call-depth limit is far lower
     // in debug builds than in release, and this case is about recursion working
     // at all, not about the limit. The limit gets its own case.
