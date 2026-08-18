@@ -136,11 +136,13 @@ fn test_fn_ptr_curry() {
     );
 }
 
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_index"))]
+#[cfg(not(feature = "no_object"))]
 #[test]
 fn test_fn_ptr_curry_arg_order() {
     let engine = Engine::new();
 
-    #[cfg(not(feature = "no_function"))]
     assert_eq!(
         engine
             .eval::<rhai::Array>(
