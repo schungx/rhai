@@ -1340,10 +1340,13 @@ impl Module {
         &self,
         hash: u64,
     ) -> Option<&Shared<crate::ast::ScriptFuncDef>> {
-        self.functions
-            .as_ref()
-            .and_then(|m| m.get(&hash))
-            .and_then(|(f, _)| f.get_script_fn_def())
+        if let Some(ref functions) = self.functions {
+            functions
+                .get(&hash)
+                .and_then(|(f, _)| f.get_script_fn_def())
+        } else {
+            None
+        }
     }
 
     /// Get a shared reference to the script-defined function in the [`Module`] based on name
