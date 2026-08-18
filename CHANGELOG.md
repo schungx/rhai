@@ -23,6 +23,7 @@ Since the Rhai Grain VM must run a script exactly the same as the standard AST i
 * Fixes a very serious bug in optimizer that erroneously removes statements involving variable access which should be considered side effects ([`#1126`](https://github.com/rhaiscript/rhai/pull/1126)).
 * Fixes bug in `switch` statement that fails to try ranges when all conditions of exact matches fail ([`#1117`](https://github.com/rhaiscript/rhai/pull/1118)).
 * Fixes bug in `switch` statement that fails to match shared values ([`#1123`](https://github.com/rhaiscript/rhai/pull/1123)).
+* Fixes bug in optimizer that fails to optimize closures ([`#1114`](https://github.com/rhaiscript/rhai/pull/1114)).
 
 Bug fixes
 ---------

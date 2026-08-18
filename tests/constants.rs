@@ -26,7 +26,7 @@ fn test_constant_scope() {
     scope.push_constant("x", 42 as INT);
 
     assert!(matches!(
-        *engine.run_with_scope(&mut scope, "x = 1").expect_err("expects error"),
+        *engine.eval_with_scope::<()>(&mut scope, "x = 1").expect_err("expects error"),
         EvalAltResult::ErrorAssignmentToConstant(x, ..) if x == "x"
     ));
 }
@@ -118,5 +118,5 @@ fn test_constant_mut() {
         42
     );
 
-    assert!(matches!(*engine.run_with_scope(&mut scope, "MY_NUMBER.value = 42;").unwrap_err(), EvalAltResult::ErrorNonPureMethodCallOnConstant(..)));
+    assert!(matches!(*engine.eval_with_scope::<()>(&mut scope, "MY_NUMBER.value = 42;").unwrap_err(), EvalAltResult::ErrorNonPureMethodCallOnConstant(..)));
 }

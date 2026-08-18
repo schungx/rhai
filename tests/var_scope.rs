@@ -5,30 +5,30 @@ fn test_var_scope() {
     let engine = Engine::new();
     let mut scope = Scope::new();
 
-    engine.run_with_scope(&mut scope, "let x = 4 + 5").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "let x = 4 + 5").unwrap();
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "x").unwrap(), 9);
-    engine.run_with_scope(&mut scope, "x += 1; x += 2;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "x += 1; x += 2;").unwrap();
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "x").unwrap(), 12);
 
     scope.set_value("x", 42 as INT);
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "x").unwrap(), 42);
 
-    engine.run_with_scope(&mut scope, "{ let x = 3 }").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "{ let x = 3 }").unwrap();
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "x").unwrap(), 42);
 
     scope.clear();
-    engine.run_with_scope(&mut scope, "let x = 3; let x = 42; let x = 123;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "let x = 3; let x = 42; let x = 123;").unwrap();
     assert_eq!(scope.len(), 1);
     assert_eq!(scope.get_value::<INT>("x").unwrap(), 123);
 
     scope.clear();
-    engine.run_with_scope(&mut scope, "let x = 3; let y = 0; let x = 42; let y = 999; let x = 123;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "let x = 3; let y = 0; let x = 42; let y = 999; let x = 123;").unwrap();
     assert_eq!(scope.len(), 2);
     assert_eq!(scope.get_value::<INT>("x").unwrap(), 123);
     assert_eq!(scope.get_value::<INT>("y").unwrap(), 999);
 
     scope.clear();
-    engine.run_with_scope(&mut scope, "const x = 3; let y = 0; let x = 42; let y = 999;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "const x = 3; let y = 0; let x = 42; let y = 999;").unwrap();
     assert_eq!(scope.len(), 2);
     assert_eq!(scope.get_value::<INT>("x").unwrap(), 42);
     assert_eq!(scope.get_value::<INT>("y").unwrap(), 999);
@@ -36,7 +36,7 @@ fn test_var_scope() {
     assert!(!scope.is_constant("y").unwrap());
 
     scope.clear();
-    engine.run_with_scope(&mut scope, "const x = 3; let y = 0; let x = 42; let y = 999; const x = 123;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "const x = 3; let y = 0; let x = 42; let y = 999; const x = 123;").unwrap();
     assert_eq!(scope.len(), 2);
     assert_eq!(scope.get_value::<INT>("x").unwrap(), 123);
     assert_eq!(scope.get_value::<INT>("y").unwrap(), 999);
@@ -44,7 +44,7 @@ fn test_var_scope() {
     assert!(!scope.is_constant("y").unwrap());
 
     scope.clear();
-    engine.run_with_scope(&mut scope, "let x = 3; let y = 0; { let x = 42; let y = 999; } let x = 123;").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "let x = 3; let y = 0; { let x = 42; let y = 999; } let x = 123;").unwrap();
 
     assert_eq!(scope.len(), 2);
     assert_eq!(scope.get_value::<INT>("x").unwrap(), 123);
@@ -87,7 +87,7 @@ fn test_var_scope_max() {
     engine.set_max_variables(5);
 
     engine
-        .run_with_scope(
+        .eval_with_scope::<()>(
             &mut scope,
             "
                 let a = 0;
@@ -102,7 +102,7 @@ fn test_var_scope_max() {
     scope.clear();
 
     engine
-        .run_with_scope(
+        .eval_with_scope::<()>(
             &mut scope,
             "
                 let a = 0;
@@ -119,7 +119,7 @@ fn test_var_scope_max() {
 
     #[cfg(not(feature = "no_function"))]
     engine
-        .run_with_scope(
+        .eval_with_scope::<()>(
             &mut scope,
             "
                 fn foo(n) {
@@ -147,24 +147,26 @@ fn test_var_scope_max() {
     scope.clear();
 
     #[cfg(not(feature = "no_function"))]
-    engine
-        .run_with_scope(
-            &mut scope,
-            "
+    {
+        let _ = engine
+            .eval_with_scope::<INT>(
+                &mut scope,
+                "
                 fn foo(a, b, c, d, e) {
                     42
                 }
 
                 foo(0, 0, 0, 0, 0);
             ",
-        )
-        .unwrap();
+            )
+            .unwrap();
+    }
 
     scope.clear();
 
     assert!(matches!(
         *engine
-            .run_with_scope(
+            .eval_with_scope::<()>(
                 &mut scope,
                 "
                     let a = 0;
@@ -184,7 +186,7 @@ fn test_var_scope_max() {
     #[cfg(not(feature = "no_function"))]
     assert!(matches!(
         *engine
-            .run_with_scope(
+            .eval_with_scope::<()>(
                 &mut scope,
                 "
                     fn foo(n) {
@@ -218,7 +220,7 @@ fn test_var_scope_max() {
     #[cfg(not(feature = "no_function"))]
     assert!(matches!(
         *engine
-            .run_with_scope(
+            .eval_with_scope::<()>(
                 &mut scope,
                 "
                     fn foo(a, b, c, d, e, f) {
@@ -339,7 +341,7 @@ fn test_scope_eval() {
     scope.push("z", 999 as INT);
 
     // First invocation
-    engine.run_with_scope(&mut scope, " let x = 4 + 5 - y + z; y = 1;").expect("variables y and z should exist");
+    engine.eval_with_scope::<()>(&mut scope, " let x = 4 + 5 - y + z; y = 1;").expect("variables y and z should exist");
 
     // Second invocation using the same state
     let result = engine.eval_with_scope::<INT>(&mut scope, "x").unwrap();
@@ -440,7 +442,7 @@ fn test_var_def_filter() {
     let mut engine = Engine::new();
 
     let ast = engine.compile("let x = 42;").unwrap();
-    engine.run_ast(&ast).unwrap();
+    let _ = engine.eval_ast::<()>(&ast).unwrap();
 
     #[allow(deprecated)] // not deprecated but unstable
     engine.on_def_var(|_, info, _| match (info.name(), info.nesting_level()) {
@@ -450,7 +452,7 @@ fn test_var_def_filter() {
 
     assert_eq!(engine.eval::<INT>("let y = 42; let y = 123; let z = y + 1; z").unwrap(), 124);
     assert!(matches!(engine.compile("let x = 42;").unwrap_err().err_type(), ParseErrorType::ForbiddenVariable(s) if s == "x"));
-    assert!(matches!(*engine.run_ast(&ast).expect_err("should err"), EvalAltResult::ErrorForbiddenVariable(s, _) if s == "x"));
+    assert!(matches!(*engine.eval_ast::<()>(&ast).expect_err("should err"), EvalAltResult::ErrorForbiddenVariable(s, _) if s == "x"));
     let _ = engine.run("const x = 42;").unwrap_err();
     let _ = engine.run("let y = 42; { let x = y + 1; }").unwrap_err();
     let _ = engine.run("let y = 42; { let x = y + 1; }").unwrap_err();
@@ -476,6 +478,6 @@ fn test_var_scope_cloning() {
     let mut scope = Scope::new();
     scope.push("foo", Foo { field: 1 });
 
-    engine.run_with_scope(&mut scope, "let x = 42; print(x + foo.field);").unwrap();
+    engine.eval_with_scope::<()>(&mut scope, "let x = 42; print(x + foo.field);").unwrap();
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "let x = 42; x + foo.field").unwrap(), 43);
 }

@@ -175,10 +175,12 @@ fn test_get_set_chain_without_write_back() {
     #[cfg(not(feature = "no_index"))]
     assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "outer[2].value").unwrap(), 84);
 
-    engine.run_with_scope(&mut scope, "print(outer.inner.value)").unwrap();
+    let _ = engine.eval_with_scope::<()>(&mut scope, "print(outer.inner.value)").unwrap();
 
     #[cfg(not(feature = "no_index"))]
-    engine.run_with_scope(&mut scope, "print(outer[0].value)").unwrap();
+    {
+        let _ = engine.eval_with_scope::<()>(&mut scope, "print(outer[0].value)").unwrap();
+    }
 }
 
 #[test]

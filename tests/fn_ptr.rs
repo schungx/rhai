@@ -136,6 +136,29 @@ fn test_fn_ptr_curry() {
     );
 }
 
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_index"))]
+#[cfg(not(feature = "no_object"))]
+#[test]
+fn test_fn_ptr_curry_arg_order() {
+    let engine = Engine::new();
+
+    assert_eq!(
+        engine
+            .eval::<rhai::Array>(
+                r#"
+                    fn sub(b) { this - b }
+                    [1, 2, 3].map(Fn("sub").curry(10))
+                "#
+            )
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_int().unwrap())
+            .collect::<Vec<_>>(),
+        [-9, -8, -7]
+    );
+}
+
 #[test]
 #[cfg(not(feature = "no_function"))]
 fn test_fn_ptr_call() {

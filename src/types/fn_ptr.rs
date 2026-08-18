@@ -60,10 +60,9 @@ impl FnPtrType {
         num_args: usize,
     ) -> Option<&'a Shared<crate::ast::ScriptFuncDef>> {
         match self {
-            Self::Script { num_params, hash } if *num_params == num_args => global
-                .lib
-                .iter()
-                .find_map(|lib| lib.get_script_fn_by_hash(*hash)),
+            Self::Script { num_params, hash } if *num_params == num_args => {
+                global.lib[0].get_script_fn_by_hash(*hash)
+            }
             _ => None,
         }
     }
