@@ -25,6 +25,7 @@ pub use debugger::{
     BreakPoint, Debugger, DebuggerCommand, DebuggerEvent, DebuggerStatus, OnDebuggerCallback,
     OnDebuggingInit,
 };
+pub(crate) use eval_context::_call_fn_raw;
 pub use eval_context::{EvalContext, EvalContextFrameGuard};
 
 pub use global_state::GlobalRuntimeState;

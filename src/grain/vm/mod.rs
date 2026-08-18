@@ -83,6 +83,36 @@ fn native_context<'a>(
     NativeCallContext::from((engine, fn_name, source, global, pos))
 }
 
+#[inline(always)]
+fn call_engine(
+    engine: &Engine,
+    global: &mut GlobalRuntimeState,
+    caches: &mut Caches,
+    scope: &mut Scope,
+    fn_name: &str,
+    args: &mut [&mut Dynamic],
+    is_ref_mut: bool,
+    is_method_call: bool,
+    pos: Position,
+) -> VmResult {
+    let native_only = !crate::tokenizer::is_valid_function_name(fn_name);
+    #[cfg(not(feature = "no_function"))]
+    let native_only = native_only && !crate::parser::is_anonymous_fn(fn_name);
+
+    crate::eval::_call_fn_raw(
+        engine,
+        global,
+        caches,
+        scope,
+        fn_name,
+        args,
+        native_only,
+        is_ref_mut,
+        is_method_call,
+        pos,
+    )
+}
+
 /// Stamp the call site on an error that passes through a function boundary
 /// unwrapped, as Rhai does for exits and system exceptions
 /// (`func/script.rs:134`).
@@ -1358,17 +1388,17 @@ impl<'e> Vm<'e> {
                     let mut call_args: FnArgsVec<&mut Dynamic> = core::iter::once(&mut *target)
                         .chain(args.iter_mut())
                         .collect();
-                    let mut detached = Scope::new();
-                    let mut context = EvalContext::new(
+                    call_engine(
                         self.engine,
                         &mut self.global,
                         &mut self.caches,
-                        &mut detached,
-                        None,
-                    );
-                    context
-                        .call_fn_raw(name, true, true, &mut call_args)
-                        .map_err(|err| dispatch_failure(err, step_pos))?
+                        &mut Scope::new(),
+                        name,
+                        &mut call_args,
+                        true,
+                        true,
+                        step_pos,
+                    )?
                 };
 
                 if last {
@@ -1513,6 +1543,7 @@ impl<'e> Vm<'e> {
 
     /// Call the index getter, which unlike the setter is allowed to fail.
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+    #[inline(always)]
     fn call_indexer(
         &mut self,
         name: &str,
@@ -1520,22 +1551,17 @@ impl<'e> Vm<'e> {
         index: &mut Dynamic,
         pos: Position,
     ) -> VmResult {
-        let mut detached = Scope::new();
-        let mut context = EvalContext::new(
+        call_engine(
             self.engine,
             &mut self.global,
             &mut self.caches,
-            &mut detached,
-            None,
-        );
-        context
-            .call_fn_raw(name, true, false, &mut [target, index])
-            .map_err(|mut err| {
-                if err.position().is_none() {
-                    err.set_position(pos);
-                }
-                err
-            })
+            &mut Scope::new(),
+            name,
+            &mut [target, index],
+            true,
+            false,
+            pos,
+        )
     }
 
     /// Put an element back into a container that had no reference to give.
@@ -1544,6 +1570,7 @@ impl<'e> Vm<'e> {
     /// temporary; this is the replay Rhai does at `eval/chaining.rs:744`,
     /// including swallowing "this type cannot be indexed" the way it does.
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+    #[inline(always)]
     fn call_indexer_set(
         &mut self,
         target: &mut Dynamic,
@@ -1551,16 +1578,18 @@ impl<'e> Vm<'e> {
         value: &mut Dynamic,
         pos: Position,
     ) -> Result<(), Box<EvalAltResult>> {
-        let mut detached = Scope::new();
-        let mut context = EvalContext::new(
+        let result = call_engine(
             self.engine,
             &mut self.global,
             &mut self.caches,
-            &mut detached,
-            None,
+            &mut Scope::new(),
+            FN_IDX_SET,
+            &mut [target, index, value],
+            true,
+            false,
+            pos,
         );
-
-        match context.call_fn_raw(FN_IDX_SET, true, false, &mut [target, index, value]) {
+        match result {
             Ok(_) => Ok(()),
             Err(err) if matches!(*err, EvalAltResult::ErrorIndexingType(..)) => Ok(()),
             Err(mut err) => {
@@ -1648,17 +1677,17 @@ impl<'e> Vm<'e> {
             let fn_name = program
                 .name(fn_name)
                 .ok_or_else(|| malformed(format!("no name {fn_name}")))?;
-            let mut detached = Scope::new();
-            let mut context = EvalContext::new(
+            call_engine(
                 vm.engine,
                 &mut vm.global,
                 &mut vm.caches,
-                &mut detached,
-                None,
-            );
-            context
-                .call_fn_raw(fn_name, true, true, args)
-                .map_err(|err| positioned(err, step_pos))
+                &mut Scope::new(),
+                fn_name,
+                args,
+                true,
+                true,
+                step_pos,
+            )
         };
 
         if last {
@@ -1756,32 +1785,35 @@ impl<'e> Vm<'e> {
 
         // The real scope may be borrowed by the target, and dispatch does not
         // read it anyway — operators resolve against the engine.
-        let mut detached = Scope::new();
-        let mut context = EvalContext::new(
+        let result = call_engine(
             self.engine,
             &mut self.global,
             &mut self.caches,
-            &mut detached,
-            None,
+            &mut Scope::new(),
+            op_assign_name,
+            &mut [target, &mut rhs],
+            true,
+            false,
+            pos,
         );
-
-        match context.call_fn_raw(op_assign_name, true, false, &mut [target, &mut rhs]) {
+        match result {
             Ok(_) => Ok(()),
             Err(err)
                 if matches!(&*err,
                     EvalAltResult::ErrorFunctionNotFound(name, ..)
                         if name.starts_with(op_assign_name)) =>
             {
-                let mut context = EvalContext::new(
+                let value = call_engine(
                     self.engine,
                     &mut self.global,
                     &mut self.caches,
-                    &mut detached,
-                    None,
-                );
-                let value = context
-                    .call_fn_raw(op_name, true, false, &mut [&mut *target, &mut rhs])
-                    .map_err(|err| positioned(err, pos))?;
+                    &mut Scope::new(),
+                    op_name,
+                    &mut [target, &mut rhs],
+                    true,
+                    false,
+                    pos,
+                )?;
                 *target = value;
                 Ok(())
             }
@@ -2243,11 +2275,17 @@ impl<'e> Vm<'e> {
         // afterwards rather than reusing them.
         let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
-        let mut context =
-            EvalContext::new(self.engine, &mut self.global, &mut self.caches, scope, None);
-        context
-            .call_fn_raw(name, false, false, &mut args)
-            .map_err(|err| dispatch_failure(err, pos))
+        call_engine(
+            self.engine,
+            &mut self.global,
+            &mut self.caches,
+            scope,
+            name,
+            &mut args,
+            false,
+            false,
+            pos,
+        )
     }
 
     /// The same call, with a variable as its first argument and Rhai's
@@ -2385,17 +2423,17 @@ impl<'e> Vm<'e> {
             // this frame's — see [`Vm::call_stacked`], which has to build one
             // for the same reason and cannot borrow this one because the
             // receiver is holding it.
-            let mut detached = Scope::new();
-            let mut context = EvalContext::new(
+            call_engine(
                 self.engine,
                 &mut self.global,
                 &mut self.caches,
-                &mut detached,
-                None,
-            );
-            context
-                .call_fn_raw(name, true, false, &mut args)
-                .map_err(|err| dispatch_failure(err, pos))
+                &mut Scope::new(),
+                name,
+                &mut args,
+                true,
+                false,
+                pos,
+            )
         };
 
         self.stack.truncate(first);
@@ -2454,18 +2492,17 @@ impl<'e> Vm<'e> {
             let mut args: FnArgsVec<&mut Dynamic> = core::iter::once(entry)
                 .chain(self.stack[first + 1..].iter_mut())
                 .collect();
-            // A scope of the callee's own, for [`Vm::call_stacked`]'s reason.
-            let mut detached = Scope::new();
-            let mut context = EvalContext::new(
+            call_engine(
                 self.engine,
                 &mut self.global,
                 &mut self.caches,
-                &mut detached,
-                None,
-            );
-            context
-                .call_fn_raw(name, true, false, &mut args)
-                .map_err(|err| dispatch_failure(err, pos))
+                &mut Scope::new(),
+                name,
+                &mut args,
+                true,
+                false,
+                pos,
+            )
         };
 
         self.stack.truncate(first);
