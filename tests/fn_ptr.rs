@@ -1,4 +1,4 @@
-use rhai::{Dynamic, Engine, EvalAltResult, FnPtr, Scope, INT};
+use rhai::{Dynamic, Engine, EvalAltResult, FnPtr, NativeCallContext, Scope, INT};
 
 #[test]
 fn test_fn_ptr() {
@@ -156,6 +156,82 @@ fn test_fn_ptr_curry_arg_order() {
             .map(|v| v.as_int().unwrap())
             .collect::<Vec<_>>(),
         [-9, -8, -7]
+    );
+
+    assert_eq!(
+        engine
+            .eval::<rhai::Array>(
+                r#"
+                    fn sub(a, b) { a - b }
+                    [1, 2, 3].map(Fn("sub").curry(10))
+                "#
+            )
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_int().unwrap())
+            .collect::<Vec<_>>(),
+        [9, 8, 7]
+    );
+
+    assert_eq!(
+        engine
+            .eval::<INT>(
+                r#"
+                    fn sub(a, b) { a - b }
+                    Fn("sub").curry(10).call(1)
+                "#
+            )
+            .unwrap(),
+        9
+    );
+}
+
+#[test]
+#[cfg(not(feature = "no_object"))]
+fn test_fn_ptr_curry_native_call_raw_order() {
+    let mut engine = Engine::new();
+
+    engine.register_fn("foo", |context: NativeCallContext, fp: FnPtr| -> Result<INT, Box<rhai::EvalAltResult>> {
+        let mut this = Dynamic::from(2 as INT);
+        let result: INT = fp.call_as_method_within_context(&context, &mut this, (3 as INT,))?;
+        Ok(this.as_int().unwrap() * 1000 + result)
+    });
+    engine.register_raw_fn::<INT>("native", [std::any::TypeId::of::<INT>(), std::any::TypeId::of::<INT>(), std::any::TypeId::of::<INT>()], |_, args| {
+        let a = args[0].as_int().unwrap();
+        let c = args[2].as_int().unwrap();
+        let b = &mut *args[1].write_lock::<INT>().unwrap();
+        *b = a * 100 + *b * 10 + c;
+        Ok((*b).into())
+    });
+
+    let mut fp = FnPtr::new("native").unwrap();
+    fp.add_curry((1 as INT).into());
+
+    let mut scope = Scope::new();
+    scope.push("fp", fp);
+
+    assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "foo(fp)").unwrap(), 2123);
+}
+
+#[test]
+#[cfg(not(feature = "no_index"))]
+#[cfg(not(feature = "no_object"))]
+fn test_fn_ptr_curry_native_callback_arg_order() {
+    let mut engine = Engine::new();
+    engine.register_fn("sub", |a: INT, b: INT| a - b);
+
+    assert_eq!(
+        engine
+            .eval::<rhai::Array>(
+                r#"
+                    [1, 2, 3].map(Fn("sub").curry(10))
+                "#,
+            )
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_int().unwrap())
+            .collect::<Vec<_>>(),
+        [9, 8, 7]
     );
 }
 
@@ -325,4 +401,27 @@ fn test_fn_ptr_embed() {
             42,
         );
     }
+}
+
+#[test]
+#[cfg(not(feature = "no_object"))]
+fn test_fn_ptr_curry_embedded_native_call_raw_order() {
+    let mut engine = Engine::new();
+
+    engine.register_fn("foo", |context: NativeCallContext, fp: FnPtr| -> Result<INT, Box<rhai::EvalAltResult>> {
+        let mut this = Dynamic::from(2 as INT);
+        fp.call_as_method_within_context(&context, &mut this, (3 as INT,))
+    });
+
+    let mut fp = FnPtr::from_fn("native", |_, args| {
+        let digits = args.iter().map(|value| value.as_int().unwrap()).collect::<Vec<_>>();
+        Ok((digits[0] * 100 + digits[1] * 10 + digits[2]).into())
+    })
+    .unwrap();
+    fp.add_curry((1 as INT).into());
+
+    let mut scope = Scope::new();
+    scope.push("fp", fp);
+
+    assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "foo(fp)").unwrap(), 123);
 }

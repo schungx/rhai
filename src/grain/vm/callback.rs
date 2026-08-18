@@ -13,17 +13,8 @@
 //! # What being a native costs
 //!
 //! Rhai reaches its own closures through a `Fn*` pointer carrying the body, and
-//! that shortcut is what these wrappers cannot have. Two consequences, both
-//! measured rather than assumed:
+//! that shortcut is what these wrappers cannot have. One consequence:
 //!
-//! * **Argument order, for a capturing closure called by a native that binds
-//!   `this`.** A capture is a curried value, and `_call_with_extra_args`
-//!   (`types/fn_ptr.rs:573`) tries `[this] ++ curry ++ args` first for anything
-//!   that is not a `Fn*` pointer. That shape is never right, and it is what a
-//!   wrapper answers to. Stock Rhai does the same thing to its own name-only
-//!   pointers — `stock_rhai_does_the_same_to_its_own_native_pointers` in
-//!   `tests/callback.rs` reproduces it with none of this involved — so the fix
-//!   is not here; it is upstream, or in not currying captures at all.
 //! * **Speed, and call budget.** Rhai resolves a wrapper by name and type on
 //!   every element, from a cache it builds fresh per crossing, where its own
 //!   pointer skips resolution entirely. `native callbacks` in

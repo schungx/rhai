@@ -422,6 +422,8 @@ impl FnPtr {
         this_ptr: Option<&mut Dynamic>,
         arg_values: impl AsMut<[Dynamic]>,
     ) -> RhaiResult {
+        let global = context.global_runtime_state();
+        let mut this_ptr = this_ptr;
         let mut arg_values = arg_values;
         let mut arg_values = arg_values.as_mut();
         let mut args_data;
@@ -433,45 +435,100 @@ impl FnPtr {
             arg_values = &mut *args_data;
         }
 
-        let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
-        args.extend(arg_values.iter_mut());
-
+        // Linked to scripted function?
         #[cfg(not(feature = "no_function"))]
-        let fn_def = self
-            .typ
-            .get_linked_script(context.global_runtime_state(), args.len());
+        if let Some(fn_def) = self.typ.get_linked_script(global, arg_values.len()) {
+            let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
+            args.extend(arg_values.iter_mut());
+
+            let global = &mut global.clone();
+            global.level += 1;
+
+            return context.engine().call_script_fn(
+                global,
+                &mut crate::eval::Caches::new(),
+                &mut crate::Scope::new(),
+                this_ptr,
+                #[cfg(not(feature = "no_function"))]
+                self.env.as_deref(),
+                #[cfg(feature = "no_function")]
+                None,
+                fn_def,
+                args,
+                true,
+                context.call_position(),
+            );
+        }
+
+        // Embedded native Rust function?
+        let mut obj;
 
         match self.typ {
-            // Linked to scripted function?
-            #[cfg(not(feature = "no_function"))]
-            _ if fn_def.is_some() => {
-                let global = &mut context.global_runtime_state().clone();
+            FnPtrType::Native(ref func) => {
+                let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
+                args.extend(arg_values.iter_mut());
+
+                let global = &mut global.clone();
                 global.level += 1;
+                let engine = context.engine();
+                let pos = context.call_position();
 
-                let caches = &mut crate::eval::Caches::new();
+                // Arguments order is: curry + this_ptr (cloned) + args
+                if let Some(this_ptr) = this_ptr {
+                    obj = this_ptr.clone();
+                    args.insert(self.curry().len(), &mut obj);
+                }
 
-                return context.engine().call_script_fn(
-                    global,
-                    caches,
-                    &mut crate::Scope::new(),
-                    this_ptr,
-                    #[cfg(not(feature = "no_function"))]
-                    self.env.as_deref(),
-                    #[cfg(feature = "no_function")]
-                    None,
-                    fn_def.unwrap(),
-                    args,
-                    true,
-                    context.call_position(),
-                );
+                let context = (engine, self.fn_name(), None, &*global, pos).into();
+
+                return func(context, args)
+                    .and_then(|r| engine.check_data_size(r, pos))
+                    .map_err(|err| err.fill_position(pos));
             }
             _ => (),
         }
 
+        // Curried method call must check where the `this_ptr` is inserted into the arguments.
+        // For script-defined functions, `this_ptr` is always the first argument,
+        // but for native Rust functions, it goes after the curried arguments.
+        if let Some(this_ptr) = this_ptr.as_deref_mut() {
+            let curry_len = self.curry().len();
+            if curry_len > 0 {
+                // Check if a script-defined function exists with the name and number of parameters.
+                // If not, then it'll hit a native Rust function.
+                #[cfg(not(feature = "no_function"))]
+                let is_native = {
+                    let hash_script = crate::calc_fn_hash(None, self.fn_name(), arg_values.len());
+                    let mut caches = crate::eval::Caches::new();
+                    !context
+                        .engine()
+                        .has_script_fn(global, &mut caches, hash_script)
+                };
+                // No script-defined functions under `no_function`.
+                #[cfg(feature = "no_function")]
+                let is_native = true;
+
+                // Native Rust function, insert `this_ptr` after the curried arguments.
+                // Arguments order is: curry + this_ptr (cloned) + args
+                if is_native {
+                    let mut args_data = FnArgsVec::with_capacity(arg_values.len() + 1);
+                    args_data.extend(arg_values[..curry_len].iter_mut().map(mem::take));
+                    args_data.push(this_ptr.clone());
+                    args_data.extend(arg_values[curry_len..].iter_mut().map(mem::take));
+                    let args = &mut args_data.iter_mut().collect::<FnArgsVec<_>>();
+                    return context.call_native_fn_raw(self.fn_name(), false, args);
+                }
+            }
+        }
+
+        // Go through normal dispatch otherwise.
+        let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
+        args.extend(arg_values.iter_mut());
+
         let is_method = this_ptr.is_some();
 
-        if let Some(obj) = this_ptr {
-            args.insert(0, obj);
+        if let Some(this_ptr) = this_ptr {
+            args.insert(0, this_ptr);
         }
 
         context.call_fn_raw(self.fn_name(), is_method, is_method, args)
