@@ -29,7 +29,7 @@ fn test_options_allow() {
 
     engine.set_allow_looping(false);
 
-    engine.run_ast(&ast).unwrap();
+    let _ = engine.eval_ast::<()>(&ast).unwrap();
 
     let _ = engine.compile("let x = 0; while x < 10 { x += 1; }").unwrap_err();
 
@@ -45,7 +45,7 @@ fn test_options_allow() {
     let mut scope = Scope::new();
     scope.push("x", 42 as INT);
 
-    let _ = engine.run_with_scope(&mut scope, "let x = 42;").unwrap_err();
+    let _ = engine.eval_with_scope::<()>(&mut scope, "let x = 42;").unwrap_err();
 }
 
 #[test]

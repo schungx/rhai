@@ -269,7 +269,7 @@ fn test_call_fn_events() {
 
             // Evaluate the script to initialize it and other state variables.
             // In a real application you'd again be handling errors...
-            engine.run_ast_with_scope(&mut scope, &ast).unwrap();
+            let _ = engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast).unwrap();
 
             // The event handler is essentially these three items:
             Handler { engine, scope, ast }
