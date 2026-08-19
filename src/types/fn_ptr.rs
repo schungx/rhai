@@ -461,10 +461,9 @@ impl FnPtr {
         }
 
         // Embedded native Rust function?
-        let mut obj;
-
         match self.typ {
             FnPtrType::Native(ref func) => {
+                let mut cloned_this_ptr;
                 let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
                 args.extend(arg_values.iter_mut());
 
@@ -472,12 +471,11 @@ impl FnPtr {
                 global.level += 1;
                 let engine = context.engine();
                 let pos = context.call_position();
-
                 if let Some(this_ptr) = this_ptr {
                     if self.is_curried() {
-                        obj = this_ptr.clone();
+                        cloned_this_ptr = this_ptr.clone();
                         // Arguments order is: curry + this_ptr (cloned) + args
-                        args.insert(self.curry().len(), &mut obj);
+                        args.insert(self.curry().len(), &mut cloned_this_ptr);
                     } else {
                         // Arguments order is: this_ptr (&mut) + args
                         args.insert(0, this_ptr);
@@ -648,7 +646,7 @@ impl FnPtr {
             .or_else(|err| match *err {
                 ERR::ErrorFunctionNotFound(sig, ..) if sig.starts_with(self.fn_name()) => {
                     if MOVE_PTR {
-                        if let Some(ref mut this_ptr) = this_ptr {
+                        if let Some(this_ptr) = this_ptr.as_deref_mut() {
                             let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len() + 1);
                             if move_this_ptr_to_args == 0 {
                                 args2.push(this_ptr.clone());
