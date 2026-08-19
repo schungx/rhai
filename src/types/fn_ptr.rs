@@ -473,10 +473,15 @@ impl FnPtr {
                 let engine = context.engine();
                 let pos = context.call_position();
 
-                // Arguments order is: curry + this_ptr (cloned) + args
                 if let Some(this_ptr) = this_ptr {
-                    obj = this_ptr.clone();
-                    args.insert(self.curry().len(), &mut obj);
+                    if self.is_curried() {
+                        obj = this_ptr.clone();
+                        // Arguments order is: curry + this_ptr (cloned) + args
+                        args.insert(self.curry().len(), &mut obj);
+                    } else {
+                        // Arguments order is: this_ptr (&mut) + args
+                        args.insert(0, this_ptr);
+                    }
                 }
 
                 let context = (engine, self.fn_name(), None, &*global, pos).into();
@@ -603,11 +608,12 @@ impl FnPtr {
                             if move_this_ptr_to_args == 0 {
                                 args2.push(this_ptr.clone());
                                 args2.extend(args);
+                                args2.extend(extras);
                             } else {
                                 args2.extend(args);
+                                args2.extend(extras);
                                 args2.insert(move_this_ptr_to_args, this_ptr.clone());
                             }
-                            args2.extend(extras);
                             return self.call_raw(ctx, None, args2);
                         }
                     }

@@ -113,9 +113,8 @@ fn call_engine(
     )
 }
 
-/// Stamp the call site on an error that passes through a function boundary
-/// unwrapped, as Rhai does for exits and system exceptions
-/// (`func/script.rs:134`).
+/// Stamp the call site on an error that passes through a function boundary unwrapped,
+/// as Rhai does for exits and system exceptions (`func/script.rs:134`).
 fn reposition(mut err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
     err.set_position(pos);
     err
@@ -123,9 +122,7 @@ fn reposition(mut err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> 
 
 /// Stamp the site on an error that arrived without one.
 ///
-/// Dispatch raises `ErrorFunctionNotFound` at `Position::NONE` and leaves
-/// positioning to the caller, which has the expression that failed. Unlike
-/// [`reposition`] this never overwrites a position the callee already set.
+/// Unlike [`reposition`] this never overwrites a position the callee already set.
 fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
     if err.position().is_none() {
         reposition(err, pos)
@@ -139,7 +136,7 @@ fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
 /// This is `fill_position`, which Rhai applies to the whole of
 /// `exec_native_fn_call` — the callee not being found, the call being refused,
 /// and the error a native *returned* alike (`func/call.rs:365`, `:406`,
-/// `:413`). `call_fn_raw` has no position to give, so all of them arrive bare.
+/// `:413`).
 ///
 /// What looks like a counter-example is not one: `1 / 0` reports
 /// `ErrorArithmetic` with no position at all, because under `fast_operators` a
@@ -1817,7 +1814,7 @@ impl<'e> Vm<'e> {
                 *target = value;
                 Ok(())
             }
-            Err(err) => Err(positioned(err, pos)),
+            Err(err) => Err(dispatch_failure(err, pos)),
         }
     }
 
@@ -1903,7 +1900,7 @@ impl<'e> Vm<'e> {
         match resolved {
             Ok(Some(value)) => Ok(Some(value.into_read_only())),
             Ok(None) => Ok(None),
-            Err(err) => Err(positioned(err, pos)),
+            Err(err) => Err(dispatch_failure(err, pos)),
         }
     }
 
@@ -2822,7 +2819,7 @@ impl<'e> Vm<'e> {
 
             self.engine
                 .throw_on_size(*total)
-                .map_err(|err| positioned(err, pos))
+                .map_err(|err| dispatch_failure(err, pos))
         }
     }
 
