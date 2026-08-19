@@ -1932,37 +1932,23 @@ impl Lowering {
 
     /// Whether a call can go through generic dispatch.
     ///
-    /// Rhai resolves a handful of names syntactically in `eval_fn_call_expr`
-    /// before dispatch ever happens (`func/call.rs:1109-1340`), so routing
-    /// those through `call_fn_raw` would change what they mean. A call that
-    /// captures the enclosing scope is closure construction, and a qualified
-    /// name resolves against imported modules; neither is a plain call.
+    /// Rhai resolves a handful of names syntactically before dispatch ever happens,
+    /// so routing those through `call_fn_raw` would change what they mean.
+    /// A call that captures the enclosing scope is closure construction,
+    /// and a qualified name resolves against imported modules;
+    /// neither is a plain call.
     fn is_lowerable_call(&self, call: &FnCallExpr) -> bool {
+        // These are handled by `is_syntactic_call` above, but only at the
+        // arities Rhai treats syntactically — at any other arity it falls
+        // through to ordinary dispatch, and so must catch them here.
         const SYNTACTIC: &[&str] = &[
             crate::engine::KEYWORD_EVAL,
-            crate::engine::KEYWORD_IS_DEF_VAR,
-            #[cfg(not(feature = "no_function"))]
-            crate::engine::KEYWORD_IS_DEF_FN,
-        ];
-
-        // `is_shared` belongs here for a sharper reason than the rest: Rhai
-        // answers it syntactically in both call positions (`func/call.rs:1240`
-        // and `:929`) and registers no function for it anywhere, so a lowered
-        // call raises `ErrorFunctionNotFound` where the walker returns a bool.
-        const FN_CALL: &[&str] = &[
             crate::engine::KEYWORD_FN_PTR,
             crate::engine::KEYWORD_FN_PTR_CALL,
             crate::engine::KEYWORD_FN_PTR_CURRY,
             #[cfg(not(feature = "no_closure"))]
             crate::engine::KEYWORD_IS_SHARED,
         ];
-
-        // These are handled by `fn_ptr_call` above, but only at the arities
-        // Rhai treats syntactically — at any other arity it falls through to
-        // ordinary dispatch, and so must this.
-        if FN_CALL.contains(&call.name.as_str()) {
-            return false;
-        }
 
         !call_has_namespace!(call)
             && call.args.len() <= u8::MAX as usize
