@@ -60,29 +60,7 @@ macro_rules! is_shared {
     }};
 }
 
-/// A chunk that does not agree with itself — a slot past the end of the scope,
-/// an index into a pool that has no such entry, an operand stack that ran dry.
-///
-/// Reachable only through a compiler bug or a corrupt artifact, never through
-/// anything a script can express. Verification turns most of these into load
-/// time failures; the rest surface as runtime errors rather than panics, so a
-/// bad chunk cannot take the host down.
-/// Build a [`NativeCallContext`] from its parts.
-///
-/// `NativeCallContext::new_with_all_fields` is the obvious spelling but is
-/// `#[cfg(not(feature = "no_module"))]`. The `From` impl over the same five
-/// fields is not gated and assigns exactly the same ones, so this works in
-/// either configuration without a cfg of its own.
-fn native_context<'a>(
-    engine: &'a Engine,
-    fn_name: &'a str,
-    source: Option<&'a str>,
-    global: &'a GlobalRuntimeState,
-    pos: Position,
-) -> NativeCallContext<'a> {
-    NativeCallContext::from((engine, fn_name, source, global, pos))
-}
-
+/// Make a function call into Rhai using [`_call_fn_raw`](crate::eval::_call_fn_raw).
 #[inline(always)]
 fn call_engine(
     engine: &Engine,
@@ -135,8 +113,7 @@ fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
 ///
 /// This is `fill_position`, which Rhai applies to the whole of
 /// `exec_native_fn_call` — the callee not being found, the call being refused,
-/// and the error a native *returned* alike (`func/call.rs:365`, `:406`,
-/// `:413`).
+/// and the error a native *returned* alike (`func/call.rs:365`, `:406`, `:413`).
 ///
 /// What looks like a counter-example is not one: `1 / 0` reports
 /// `ErrorArithmetic` with no position at all, because under `fast_operators` a
@@ -1743,7 +1720,7 @@ impl<'e> Vm<'e> {
         }
         let (func, need_context) = get_builtin_op_assignment_fn(&op.op_assign, target, rhs)?;
         let context =
-            need_context.then(|| native_context(self.engine, "", None, &self.global, pos()));
+            need_context.then(|| (self.engine, "", None, &self.global, pos()).into());
         Some(
             func(context, &mut [target, rhs])
                 .map(|_| ())
@@ -2052,7 +2029,7 @@ impl<'e> Vm<'e> {
             // Anything else is Rhai's: a native function, a name registered
             // elsewhere, or a pointer it built itself.
             let mut args: FnArgsVec<Dynamic> = self.stack.drain(at + 1..).collect();
-            let context = native_context(self.engine, pointer.fn_name(), None, &self.global, pos);
+            let context = (self.engine, pointer.fn_name(), None, &self.global, pos).into();
             pointer
                 .call_raw(&context, bound.as_mut(), &mut args)
                 .map_err(|mut err| {
@@ -2153,7 +2130,7 @@ impl<'e> Vm<'e> {
         // host's `to_string` for strings is not consulted here even though `+`
         // would consult it.
         if !item.is_string() {
-            let context = native_context(self.engine, FUNC_TO_STRING, None, &self.global, pos);
+            let context = (self.engine, FUNC_TO_STRING, None, &self.global, pos).into();
             rendered = Some(print_with_func(FUNC_TO_STRING, &context, &mut item));
         }
 
@@ -3552,9 +3529,7 @@ impl<'e> Vm<'e> {
                             .then(|| get_builtin_binary_op_fn(token, lhs, rhs))
                             .flatten();
                         if let Some((func, need_context)) = builtin {
-                            let context = need_context.then(|| {
-                                native_context(self.engine, name, None, &self.global, pos())
-                            });
+                            let context = need_context.then(|| (self.engine, name, None, &self.global, pos()).into());
                             let value = func(context, &mut [lhs, rhs])?;
                             self.stack.truncate(first);
                             self.stack.push(value);
