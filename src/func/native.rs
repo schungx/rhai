@@ -4,7 +4,7 @@ use super::call::FnCallArgs;
 use crate::ast::FnCallHashes;
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::plugin::PluginFunc;
-use crate::tokenizer::{is_valid_function_name, Token, TokenizeState};
+use crate::tokenizer::{is_valid_identifier, Token, TokenizeState};
 use crate::types::dynamic::Variant;
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, EvalContext, FnArgsVec, FuncArgs,
@@ -468,7 +468,7 @@ impl<'a> NativeCallContext<'a> {
         args: &mut [&mut Dynamic],
     ) -> RhaiResult {
         let name = fn_name.as_ref();
-        let native_only = !is_valid_function_name(name);
+        let native_only = !is_valid_identifier(name);
         #[cfg(not(feature = "no_function"))]
         let native_only = native_only && !crate::parser::is_anonymous_fn(name);
 

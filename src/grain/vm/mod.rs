@@ -71,7 +71,7 @@ fn call_engine(
     is_method_call: bool,
     pos: Position,
 ) -> VmResult {
-    let native_only = !crate::tokenizer::is_valid_function_name(fn_name);
+    let native_only = !crate::tokenizer::is_valid_identifier(fn_name);
     #[cfg(not(feature = "no_function"))]
     let native_only = native_only && !crate::parser::is_anonymous_fn(fn_name);
 
@@ -1698,8 +1698,7 @@ impl<'e> Vm<'e> {
             return None;
         }
         let (func, need_context) = get_builtin_op_assignment_fn(&op.op_assign, target, rhs)?;
-        let context =
-            need_context.then(|| (self.engine, "", None, &self.global, pos()).into());
+        let context = need_context.then(|| (self.engine, "", None, &self.global, pos()).into());
         Some(
             func(context, &mut [target, rhs])
                 .map(|_| ())
@@ -3508,7 +3507,8 @@ impl<'e> Vm<'e> {
                             .then(|| get_builtin_binary_op_fn(token, lhs, rhs))
                             .flatten();
                         if let Some((func, need_context)) = builtin {
-                            let context = need_context.then(|| (self.engine, name, None, &self.global, pos()).into());
+                            let context = need_context
+                                .then(|| (self.engine, name, None, &self.global, pos()).into());
                             let value = func(context, &mut [lhs, rhs])?;
                             self.stack.truncate(first);
                             self.stack.push(value);
