@@ -262,6 +262,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
             false,
             is_ref_mut,
             false,
+            Position::NONE,
         )
         .and_then(|result| {
             result.try_cast_result().map_err(|r| {
@@ -308,6 +309,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
             true,
             is_ref_mut,
             false,
+            Position::NONE,
         )
         .and_then(|result| {
             result.try_cast_result().map_err(|r| {
@@ -363,6 +365,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
             native_only,
             is_ref_mut,
             is_method_call,
+            Position::NONE,
         )
     }
     /// Call a registered native Rust function inside the [evaluation context][`EvalContext`].
@@ -402,6 +405,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
             true,
             is_ref_mut,
             false,
+            Position::NONE,
         )
     }
 
@@ -470,7 +474,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
 }
 
 /// Call a function (native Rust or scripted) inside the [evaluation context][`EvalContext`].
-fn _call_fn_raw(
+pub(crate) fn _call_fn_raw(
     engine: &Engine,
     global: &mut GlobalRuntimeState,
     caches: &mut Caches,
@@ -480,6 +484,7 @@ fn _call_fn_raw(
     native_only: bool,
     is_ref_mut: bool,
     is_method_call: bool,
+    pos: Position,
 ) -> RhaiResult {
     defer! { let orig_level = global.level; global.level += 1 }
 
@@ -487,7 +492,6 @@ fn _call_fn_raw(
     let op_token = Token::lookup_symbol_from_syntax(fn_name);
     let op_token = op_token.as_ref();
     let args_len = args.len();
-    let pos = Position::NONE;
 
     if native_only {
         if let Some(result) = engine.exec_syntactic_fn_call(global, caches, fn_name, args, pos)? {

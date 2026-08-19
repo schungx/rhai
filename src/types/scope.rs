@@ -795,6 +795,20 @@ impl Scope<'_> {
                 AccessMode::ReadOnly => None,
             })
     }
+    /// Get a mutable reference to the value of an entry in the [`Scope`].
+    ///
+    /// If the entry by the specified name is not found, [`None`] is returned.
+    ///
+    /// If the entry is read-only, [`Some`]`(`[`None`]`))` is returned.
+    #[inline]
+    #[must_use]
+    pub(crate) fn get_mut_raw(&mut self, name: &str) -> Option<Option<&mut Dynamic>> {
+        self.search(name)
+            .map(move |n| match self.values[n].access_mode() {
+                AccessMode::ReadWrite => Some(self.get_mut_by_index(n)),
+                AccessMode::ReadOnly => None,
+            })
+    }
     /// Get a mutable reference to the value of an entry in the [`Scope`] based on the index.
     ///
     /// # Panics
