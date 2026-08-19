@@ -2245,10 +2245,6 @@ impl<'e> Vm<'e> {
         pos: Position,
     ) -> Result<Option<Dynamic>, Box<EvalAltResult>> {
         match name {
-            #[cfg(not(feature = "no_closure"))]
-            crate::engine::KEYWORD_IS_SHARED => {
-                return Err(EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into())
-            }
             crate::engine::KEYWORD_IS_DEF_VAR => {
                 if argc != 1 {
                     return Err(EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into());
