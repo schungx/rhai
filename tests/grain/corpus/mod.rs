@@ -373,8 +373,10 @@ pub const CASES: &[Case] = &[
     case("loop_break_value", "let i = 0; loop { i += 1; if i > 4 { break i * 10; } }"),
     case("continue_skips", "let s = 0; for i in 0..10 { if i % 2 == 0 { continue; } s += i; } s"),
     case("for_range", "let s = 0; for i in 0..5 { s += i; } s"),
+    case("for_range_call_stepped", "let s = 0; for i in range(2, 11, 3) { s += i; } s"),
     case("for_array", "let s = 0; for x in [10, 20, 30] { s += x; } s"),
     case("for_with_counter", "let s = 0; for (x, i) in [10, 20, 30] { s += x * i; } s"),
+    case("for_range_call_with_counter", "let s = 0; for (x, i) in range(3, 10, 2) { s += x * (i + 1); } s"),
     // The loop variable is pushed once and mutated in place rather than
     // re-pushed each iteration (eval/stmt.rs:752); a VM that re-pushes would
     // leave the scope a different depth.

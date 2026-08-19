@@ -1128,10 +1128,12 @@ impl Lowering {
                 let (var, counter, flow) = &**payload;
                 let outside = u16::try_from(self.slots.depth()).expect("slot count is bounded");
 
-                self.expression(&flow.expr);
-                // `ErrorFor` is reported against the iterable's *start*, which
-                // for `a.b` or a call is not its `position`.
-                self.emit_at(Op::IterInit, flow.expr.start_position());
+                if !self.lower_direct_int_step_range_init(&flow.expr) {
+                    self.expression(&flow.expr);
+                    // `ErrorFor` is reported against the iterable's *start`, which
+                    // for `a.b` or a call is not its `position`.
+                    self.emit_at(Op::IterInit, flow.expr.start_position());
+                }
                 self.iters += 1;
 
                 // Counter first, matching the order Rhai pushes them in, so
@@ -1802,6 +1804,34 @@ impl Lowering {
             },
             pos,
         );
+    }
+
+    /// Lower `range(from, to, step)` in a `for` directly into iterator setup.
+    ///
+    /// The loop still uses the ordinary `IterNext`, counter handling and
+    /// break/continue bookkeeping; only the hot construction of the stepped
+    /// integer range is taken out of native-call dispatch.
+    fn lower_direct_int_step_range_init(&mut self, expr: &Expr) -> bool {
+        let Expr::FnCall(call, pos) = expr else {
+            return false;
+        };
+        let call = &**call;
+
+        if call.name != "range"
+            || call.args.len() != 3
+            || call.capture_parent_scope
+            || call.op_token.is_some()
+            || call_has_namespace!(call)
+            || self.script_fns.contains(&call.name)
+        {
+            return false;
+        }
+
+        for arg in &call.args {
+            self.expression(arg);
+        }
+        self.emit_at(Op::IterInitIntStepRange, *pos);
+        true
     }
 
     /// Whether a name read is a variable read at all.

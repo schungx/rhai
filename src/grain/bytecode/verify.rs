@@ -255,7 +255,7 @@ fn verify_chunk(
         let next_state = State {
             operands: depth - pops + pushes,
             iters: match op {
-                Op::IterInit => state.iters + 1,
+                Op::IterInit | Op::IterInitIntStepRange => state.iters + 1,
                 Op::IterDrop => state
                     .iters
                     .checked_sub(1)
@@ -501,6 +501,7 @@ fn effect(op: &Op, pools: Pools) -> (usize, usize, usize) {
 
         // The iterable goes onto the iterator stack, not back onto this one.
         Op::IterInit => (1, 1, 0),
+        Op::IterInitIntStepRange => (3, 3, 0),
         // Its two edges disagree, so the successor match does the work.
         Op::IterNext { .. } | Op::IterDrop => (0, 0, 0),
 

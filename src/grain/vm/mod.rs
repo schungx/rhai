@@ -1,4 +1,5 @@
 use core::mem;
+use core::ops::{Range, RangeInclusive};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -12,8 +13,10 @@ use crate::engine::{FN_IDX_GET, FN_IDX_SET};
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
-use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
+use crate::func::{calc_fn_hash, get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
+use crate::packages::iter_basic::StepRange;
 use crate::packages::string_basic::print_with_func;
+use crate::tokenizer::Token;
 use crate::types::dynamic::DynamicWriteLock;
 use crate::types::fn_ptr::FnPtrType;
 // `Variant` is only re-exported from the crate root under `internals`, so it
@@ -111,6 +114,46 @@ fn call_engine(
         is_method_call,
         pos,
     )
+}
+
+#[inline(always)]
+fn call_native_direct(
+    engine: &Engine,
+    global: &mut GlobalRuntimeState,
+    caches: &mut Caches,
+    fn_name: &str,
+    args: &mut [&mut Dynamic],
+    is_ref_mut: bool,
+    pos: Position,
+) -> VmResult {
+    let op_token = Token::lookup_symbol_from_syntax(fn_name);
+    let hash = calc_fn_hash(None, fn_name, args.len());
+
+    engine
+        .exec_native_fn_call(
+            global,
+            caches,
+            fn_name,
+            op_token.as_ref(),
+            hash,
+            args,
+            is_ref_mut,
+            false,
+            pos,
+        )
+        .map(|(r, ..)| r)
+}
+
+#[cfg(not(feature = "unchecked"))]
+#[inline(always)]
+fn int_step_add(x: INT, y: INT) -> Option<INT> {
+    x.checked_add(y)
+}
+
+#[cfg(feature = "unchecked")]
+#[inline(always)]
+fn int_step_add(x: INT, y: INT) -> Option<INT> {
+    Some(x + y)
 }
 
 /// Stamp the call site on an error that passes through a function boundary unwrapped,
@@ -273,8 +316,26 @@ fn chain_op<'p>(
 /// scope too, and checks it for overflow before writing it — a loop long
 /// enough to wrap the counter is an error rather than a wrap
 /// (`eval/stmt.rs:729`).
+enum IterItems {
+    IntRange(Range<INT>),
+    IntRangeInclusive(RangeInclusive<INT>),
+    IntStepRange(StepRange<INT>),
+    Dynamic(Box<dyn Iterator<Item = VmResult>>),
+}
+
+impl IterItems {
+    fn next(&mut self) -> Option<VmResult> {
+        match self {
+            Self::IntRange(range) => range.next().map(|value| Ok(Dynamic::from(value))),
+            Self::IntRangeInclusive(range) => range.next().map(|value| Ok(Dynamic::from(value))),
+            Self::IntStepRange(range) => range.next().map(|value| Ok(Dynamic::from(value))),
+            Self::Dynamic(items) => items.next(),
+        }
+    }
+}
+
 struct Iteration {
-    items: Box<dyn Iterator<Item = VmResult>>,
+    items: IterItems,
     /// The index of the item last handed out, starting one below the first.
     count: INT,
 }
@@ -2209,6 +2270,28 @@ impl<'e> Vm<'e> {
         let iterable = iterable.flatten();
         let type_id = iterable.type_id();
 
+        if type_id == core::any::TypeId::of::<Range<INT>>() {
+            self.iterators.push(Iteration {
+                items: IterItems::IntRange(iterable.cast::<Range<INT>>()),
+                count: -1,
+            });
+            return Ok(());
+        }
+        if type_id == core::any::TypeId::of::<RangeInclusive<INT>>() {
+            self.iterators.push(Iteration {
+                items: IterItems::IntRangeInclusive(iterable.cast::<RangeInclusive<INT>>()),
+                count: -1,
+            });
+            return Ok(());
+        }
+        if type_id == core::any::TypeId::of::<StepRange<INT>>() {
+            self.iterators.push(Iteration {
+                items: IterItems::IntStepRange(iterable.cast::<StepRange<INT>>()),
+                count: -1,
+            });
+            return Ok(());
+        }
+
         let func = self
             .engine
             .global_modules
@@ -2228,7 +2311,59 @@ impl<'e> Vm<'e> {
         let func = func.ok_or_else(|| Box::new(EvalAltResult::ErrorFor(pos)))?;
 
         self.iterators.push(Iteration {
-            items: func(iterable),
+            items: IterItems::Dynamic(func(iterable)),
+            count: -1,
+        });
+        Ok(())
+    }
+
+    fn iter_init_int_step_range(
+        &mut self,
+        pos: Position,
+        from: Dynamic,
+        to: Dynamic,
+        step: Dynamic,
+    ) -> Result<(), Box<EvalAltResult>> {
+        let from = from
+            .as_int()
+            .map_err(|typ| self.engine.make_type_mismatch_err::<INT>(typ, pos))?;
+        let to = to
+            .as_int()
+            .map_err(|typ| self.engine.make_type_mismatch_err::<INT>(typ, pos))?;
+        let step = step
+            .as_int()
+            .map_err(|typ| self.engine.make_type_mismatch_err::<INT>(typ, pos))?;
+
+        let mut dir = 0;
+        if let Some(next) = int_step_add(from, step) {
+            #[cfg(not(feature = "unchecked"))]
+            if next == from {
+                return Err(Box::new(EvalAltResult::ErrorInFunctionCall(
+                    "range".into(),
+                    String::new(),
+                    Box::new(EvalAltResult::ErrorArithmetic(
+                        "step value cannot be zero".into(),
+                        Position::NONE,
+                    )),
+                    pos,
+                )));
+            }
+
+            match from.cmp(&to) {
+                core::cmp::Ordering::Less if next > from => dir = 1,
+                core::cmp::Ordering::Greater if next < from => dir = -1,
+                _ => {}
+            }
+        }
+
+        self.iterators.push(Iteration {
+            items: IterItems::IntStepRange(StepRange {
+                from,
+                to,
+                step,
+                add: int_step_add,
+                dir,
+            }),
             count: -1,
         });
         Ok(())
@@ -2390,6 +2525,18 @@ impl<'e> Vm<'e> {
         // afterwards rather than reusing them.
         let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
+        if program.lib().is_none() {
+            return call_native_direct(
+                self.engine,
+                &mut self.global,
+                &mut self.caches,
+                name,
+                &mut args,
+                false,
+                pos,
+            );
+        }
+
         call_engine(
             self.engine,
             &mut self.global,
@@ -2548,21 +2695,33 @@ impl<'e> Vm<'e> {
             let mut args: FnArgsVec<&mut Dynamic> = core::iter::once(entry)
                 .chain(self.stack[rest..].iter_mut())
                 .collect();
-            // The scope a dispatched script function runs in, which is never
-            // this frame's — see [`Vm::call_stacked`], which has to build one
-            // for the same reason and cannot borrow this one because the
-            // receiver is holding it.
-            call_engine(
-                self.engine,
-                &mut self.global,
-                &mut self.caches,
-                &mut Scope::new(),
-                name,
-                &mut args,
-                true,
-                false,
-                pos,
-            )
+            if program.lib().is_none() {
+                call_native_direct(
+                    self.engine,
+                    &mut self.global,
+                    &mut self.caches,
+                    name,
+                    &mut args,
+                    true,
+                    pos,
+                )
+            } else {
+                // The scope a dispatched script function runs in, which is never
+                // this frame's — see [`Vm::call_stacked`], which has to build one
+                // for the same reason and cannot borrow this one because the
+                // receiver is holding it.
+                call_engine(
+                    self.engine,
+                    &mut self.global,
+                    &mut self.caches,
+                    &mut Scope::new(),
+                    name,
+                    &mut args,
+                    true,
+                    false,
+                    pos,
+                )
+            }
         };
 
         self.stack.truncate(first);
@@ -2624,17 +2783,29 @@ impl<'e> Vm<'e> {
             let mut args: FnArgsVec<&mut Dynamic> = core::iter::once(entry)
                 .chain(self.stack[first + 1..].iter_mut())
                 .collect();
-            call_engine(
-                self.engine,
-                &mut self.global,
-                &mut self.caches,
-                &mut Scope::new(),
-                name,
-                &mut args,
-                true,
-                false,
-                pos,
-            )
+            if program.lib().is_none() {
+                call_native_direct(
+                    self.engine,
+                    &mut self.global,
+                    &mut self.caches,
+                    name,
+                    &mut args,
+                    true,
+                    pos,
+                )
+            } else {
+                call_engine(
+                    self.engine,
+                    &mut self.global,
+                    &mut self.caches,
+                    &mut Scope::new(),
+                    name,
+                    &mut args,
+                    true,
+                    false,
+                    pos,
+                )
+            }
         };
 
         self.stack.truncate(first);
@@ -3923,6 +4094,13 @@ impl<'e> Vm<'e> {
                 code::tag::ITER_INIT => {
                     let iterable = self.pop()?;
                     self.iter_init(iterable, pos())?;
+                }
+
+                code::tag::ITER_INIT_INT_STEP_RANGE => {
+                    let step = self.pop()?;
+                    let to = self.pop()?;
+                    let from = self.pop()?;
+                    self.iter_init_int_step_range(pos(), from, to, step)?;
                 }
 
                 code::tag::ITER_DROP => {

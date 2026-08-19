@@ -177,6 +177,8 @@ pub mod tag {
     pub const CALL_NAMED_REF_CAPTURE: u8 = 0x45;
     /// [`Op::CallRef`](super::Op::CallRef) through [`Receiver::This`](super::Receiver::This) capturing the parent's scope.
     pub const CALL_THIS_REF_CAPTURE: u8 = 0x46;
+    /// [`Op::IterInitIntStepRange`](super::Op::IterInitIntStepRange).
+    pub const ITER_INIT_INT_STEP_RANGE: u8 = 0x47;
 }
 
 /// How wide each tag's instruction is, with 0 for the tags that are not one.
@@ -199,6 +201,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::RETURN as usize] = 1;
     widths[tag::THROW as usize] = 1;
     widths[tag::ITER_INIT as usize] = 1;
+    widths[tag::ITER_INIT_INT_STEP_RANGE as usize] = 1;
     widths[tag::ITER_DROP as usize] = 1;
 
     widths[tag::STORE_SHARED as usize] = 3;
@@ -651,6 +654,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
             Op::Checkpoint => code.push(tag::CHECKPOINT),
             Op::Throw => code.push(tag::THROW),
             Op::IterInit => code.push(tag::ITER_INIT),
+            Op::IterInitIntStepRange => code.push(tag::ITER_INIT_INT_STEP_RANGE),
             Op::IterDrop => code.push(tag::ITER_DROP),
             Op::PopHandler => code.push(tag::POP_HANDLER),
 
@@ -748,6 +752,7 @@ fn encoded_width(op: &Op) -> usize {
         | Op::Checkpoint
         | Op::Throw
         | Op::IterInit
+        | Op::IterInitIntStepRange
         | Op::IterDrop
         | Op::PopHandler
         | Op::InterpolateStart
@@ -968,6 +973,7 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::CHECKPOINT => Op::Checkpoint,
         tag::THROW => Op::Throw,
         tag::ITER_INIT => Op::IterInit,
+        tag::ITER_INIT_INT_STEP_RANGE => Op::IterInitIntStepRange,
         tag::ITER_DROP => Op::IterDrop,
         tag::ITER_NEXT => Op::IterNext {
             exit: u32_at(code, at + 1)?,

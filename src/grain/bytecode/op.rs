@@ -574,6 +574,18 @@ pub enum Op {
     /// position from the one [`Op::IterNext`] uses.
     IterInit,
 
+    /// Pop `from`, `to` and `step`, build the integer `range(from, to, step)`
+    /// iterator directly, and start iterating it.
+    ///
+    /// This is the same loop shape as [`Op::IterInit`], but it avoids routing a
+    /// hot integer stepped range through native-call dispatch just to construct
+    /// a [`StepRange<INT>`](crate::packages::iter_basic::StepRange). Used only
+    /// for the built-in `range` call with three arguments.
+    ///
+    /// Its table entry is the call's position, which is where `range` reports a
+    /// bad step value and where a type mismatch at the call is surfaced.
+    IterInitIntStepRange,
+
     /// Advance the current iterator: push the next item and fall through, or
     /// drop the iterator and jump to `exit`.
     ///
