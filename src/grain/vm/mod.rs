@@ -1004,10 +1004,16 @@ impl<'e> Vm<'e> {
         result
     }
 
+    #[inline(always)]
+    #[must_use]
     fn pop(&mut self) -> Result<Dynamic, Box<EvalAltResult>> {
-        self.stack
+        #[cfg(not(feature = "unchecked"))]
+        return self
+            .stack
             .pop()
-            .ok_or_else(|| malformed("operand stack underflow".to_string()))
+            .ok_or_else(|| malformed("operand stack underflow".to_string()));
+        #[cfg(feature = "unchecked")]
+        return Ok(self.stack.pop().expect("operand stack underflow"));
     }
 
     fn inspect(&mut self) -> Result<&Dynamic, Box<EvalAltResult>> {
@@ -1090,11 +1096,14 @@ impl<'e> Vm<'e> {
     ) -> VmResult {
         // Step operands were pushed first, then the root if it is one that has
         // to be evaluated, then the value being assigned.
+        #[cfg(not(feature = "unchecked"))]
         let operands_at = self
             .stack
             .len()
             .checked_sub(chain.consumes())
             .ok_or_else(|| malformed("chain with too few operands".to_string()))?;
+        #[cfg(feature = "unchecked")]
+        let operands_at = self.stack.len() - chain.consumes();
 
         let ChainRoot {
             value: mut root,
@@ -2145,11 +2154,15 @@ impl<'e> Vm<'e> {
         frame_base: usize,
         pos: Position,
     ) -> VmResult {
+        #[cfg(not(feature = "unchecked"))]
         let base = self
             .stack
             .len()
             .checked_sub(argc + 1)
             .ok_or_else(|| malformed("function pointer call is missing its target".into()))?;
+        #[cfg(feature = "unchecked")]
+        let base = self.stack.len() - argc - 1;
+
         let mut at = base;
 
         // In method position a target that is not a pointer means the *first
@@ -2713,11 +2726,15 @@ impl<'e> Vm<'e> {
             }
             Receiver::This => unreachable!("taken above"),
         };
+
+        #[cfg(not(feature = "unchecked"))]
         let first = self
             .stack
             .len()
             .checked_sub(on_stack)
             .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
+        #[cfg(feature = "unchecked")]
+        let first = self.stack.len() - on_stack;
 
         let place = match at {
             Site::Slot(index) => Some(scope.get_mut_by_index(index)),
@@ -2812,11 +2829,14 @@ impl<'e> Vm<'e> {
         capture: bool,
         pos: Position,
     ) -> VmResult {
+        #[cfg(not(feature = "unchecked"))]
         let first = self
             .stack
             .len()
             .checked_sub(argc)
             .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
+        #[cfg(feature = "unchecked")]
+        let first = self.stack.len() - argc;
 
         // Rhai turns `f(this, ..)` into `this.f(..)` for a receiver that is not
         // shared, and read-only is *not* part of that test — unlike the variable
@@ -3550,8 +3570,12 @@ impl<'e> Vm<'e> {
             // and nothing allocated. The bounds checks are what let this run
             // straight off an artifact without trusting it; the verifier has
             // already made them unreachable for anything that loaded.
+            #[cfg(not(feature = "unchecked"))]
             let width = code::width(code, pc)
-                .ok_or_else(|| malformed("undecodable instruction".to_string()))?;
+                .ok_or_else(|| malformed(format!("undecodable instruction at {pc}")))?;
+            #[cfg(feature = "unchecked")]
+            let width = code::width_unchecked(code, pc);
+
             let small = |offset: usize| {
                 code::u16_at(code, pc + offset)
                     .ok_or_else(|| malformed("truncated operand".to_string()))
@@ -3934,11 +3958,14 @@ impl<'e> Vm<'e> {
                         None
                     };
 
+                    #[cfg(not(feature = "unchecked"))]
                     let first = self
                         .stack
                         .len()
                         .checked_sub(argc)
                         .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let first = self.stack.len() - argc;
 
                     // Reach the same built-in the walker reaches. Gated on
                     // Rhai's own `fast_operators()` rather than a guard of our
@@ -4031,14 +4058,22 @@ impl<'e> Vm<'e> {
 
                 code::tag::ROTATE => {
                     let under = code[pc + 1] as usize;
+                    #[cfg(not(feature = "unchecked"))]
                     let top = self
                         .stack
                         .len()
                         .checked_sub(1)
                         .ok_or_else(|| malformed("rotate on an empty stack".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let top = self.stack.len() - 1;
+
+                    #[cfg(not(feature = "unchecked"))]
                     let to = top
                         .checked_sub(under)
                         .ok_or_else(|| malformed("rotate past the bottom".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let to = top - under;
+
                     self.stack[to..].rotate_right(1);
                 }
 
@@ -4047,11 +4082,15 @@ impl<'e> Vm<'e> {
                 #[cfg(not(feature = "no_index"))]
                 code::tag::MAKE_ARRAY => {
                     let len = small(1)? as usize;
+
+                    #[cfg(not(feature = "unchecked"))]
                     let first = self
                         .stack
                         .len()
                         .checked_sub(len)
                         .ok_or_else(|| malformed("array with too few elements".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let first = self.stack.len() - len;
 
                     // The running total belongs to this literal and goes with
                     // it. `Op::CheckSize` is what filled it in, one element at
@@ -4074,11 +4113,16 @@ impl<'e> Vm<'e> {
                 #[cfg(not(feature = "no_object"))]
                 code::tag::MAKE_MAP => {
                     let len = small(1)? as usize;
+
+                    #[cfg(not(feature = "unchecked"))]
                     let first = self
                         .stack
                         .len()
                         .checked_sub(2 * len + 1)
                         .ok_or_else(|| malformed("map with too few operands".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let first = self.stack.len() - (2 * len + 1);
+
                     // As for `MakeArray`: nothing was pushed for a literal
                     // with no computed entries, so nothing may be popped.
                     if len > 0 {
@@ -4087,9 +4131,14 @@ impl<'e> Vm<'e> {
 
                     let mut parts = self.stack.drain(first..);
                     let template = parts.next().expect("checked above");
+
+                    #[cfg(not(feature = "unchecked"))]
                     let mut map = template
                         .try_cast::<Map>()
                         .ok_or_else(|| malformed("map literal without a template".to_string()))?;
+                    #[cfg(feature = "unchecked")]
+                    let mut map = template.cast::<Map>();
+
                     while let Some(key) = parts.next() {
                         let value = parts.next().expect("pairs, checked above");
                         let key = key.into_immutable_string().map_err(|actual| {
@@ -4220,15 +4269,21 @@ impl<'e> Vm<'e> {
 
                 code::tag::CURRY => {
                     let argc = code[pc + 1] as usize;
+
+                    #[cfg(not(feature = "unchecked"))]
                     let at = self
                         .stack
                         .len()
                         .checked_sub(argc + 1)
                         .ok_or_else(|| malformed("curry is missing its target".into()))?;
+                    #[cfg(feature = "unchecked")]
+                    let at = self.stack.len() - (argc + 1);
+
                     let mut pointer = self.stack[at]
                         .clone()
                         .try_cast::<FnPtr>()
                         .ok_or_else(|| self.mismatch::<FnPtr>(self.stack[at].type_name(), pos()))?;
+
                     for value in self.stack.drain(at + 1..) {
                         pointer.add_curry(value);
                     }
@@ -4359,12 +4414,20 @@ impl<'e> Vm<'e> {
                     // Counted before the item is unwrapped, as Rhai does, so a
                     // loop long enough to wrap the counter is an error rather
                     // than a wrap.
-                    iteration.count = iteration.count.checked_add(1).ok_or_else(|| {
-                        Box::new(EvalAltResult::ErrorArithmetic(
-                            format!("for-loop counter overflow: {}", iteration.count),
-                            pos(),
-                        ))
-                    })?;
+                    #[cfg(not(feature = "unchecked"))]
+                    {
+                        iteration.count = iteration.count.checked_add(1).ok_or_else(|| {
+                            Box::new(EvalAltResult::ErrorArithmetic(
+                                format!("for-loop counter overflow: {}", iteration.count),
+                                pos(),
+                            ))
+                        })?;
+                    }
+                    #[cfg(feature = "unchecked")]
+                    {
+                        iteration.count += 1;
+                    }
+
                     let count = iteration.count;
 
                     // A fallible iterator's error is positioned at the
