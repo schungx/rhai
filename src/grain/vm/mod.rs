@@ -35,7 +35,7 @@ use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_T
 
 mod callback;
 
-use crate::grain::bytecode::{code, AssignOp, Chain, Receiver, Root, Step, StepFlags, Tail};
+use crate::grain::bytecode::{code, AssignOp, Chain, Chunk, Receiver, Root, Step, StepFlags, Tail};
 use crate::grain::program::{Program, SharedModule, SharedProgram};
 
 /// Rhai's own `RhaiResult`, which it does not re-export.
@@ -2234,7 +2234,10 @@ impl<'e> Vm<'e> {
         Ok(())
     }
 
-    // Some syntactic calls can be self-implemented or short-circuited.
+    /// Called only by [`call_syntactic_or_stacked`] after it has checked for a
+    /// syntactic call.
+    ///
+    /// Some syntactic calls can be self-implemented or short-circuited.
     fn call_syntactic(
         &mut self,
         program: &Program,
@@ -2349,7 +2352,10 @@ impl<'e> Vm<'e> {
         Ok(None)
     }
 
-    /// Call `name` with `argc` arguments sitting contiguously from `first` up.
+    /// Called only by [`call_syntactic_or_stacked`] after it has checked for a
+    /// syntactic call.
+    ///
+    /// Call function with `argc` arguments sitting contiguously from `first` up.
     ///
     /// A function this compiler lowered is called directly, with no hash and no
     /// module walk: the call site's name index and the function's come from the
@@ -2397,6 +2403,42 @@ impl<'e> Vm<'e> {
         )
     }
 
+    /// This is the main entry-point for function calls.
+    ///
+    /// First check whether the call is a syntactic one (e.g. `is_def_fn`)
+    /// which are self-implemented or directly called into the
+    /// corresponding Rhai functinon.
+    ///
+    /// If the call is not to a syntactic one, it calls the function
+    /// normally, with arguments pushed onto the stack.
+    fn call_syntactic_or_stacked(
+        &mut self,
+        program: &Program,
+        name_index: u32,
+        name: &str,
+        argc: usize,
+        first: usize,
+        scope: &mut Scope,
+        capture: bool,
+        pos: Position,
+    ) -> VmResult {
+        // Check if it is a built-in syntactic function.
+        match self.call_syntactic(program, name, argc, first, scope, pos)? {
+            Some(value) => Ok(value),
+            None => {
+                // Detach the scope with a new one if not capturing the parent's.
+                let mut detached;
+                let scope = if !capture {
+                    detached = Scope::new();
+                    &mut detached
+                } else {
+                    scope
+                };
+                self.call_stacked(program, name_index, name, argc, first, scope, pos)
+            }
+        }
+    }
+
     /// The same call, with a variable as its first argument and Rhai's
     /// method-call rewrite applied to it (`func/call.rs:1434-1460`).
     ///
@@ -2413,7 +2455,7 @@ impl<'e> Vm<'e> {
         receiver: Receiver,
         scope: &mut Scope,
         base: usize,
-        capture_parent_scope: bool,
+        capture: bool,
         pos: Position,
     ) -> VmResult {
         // Every argument count here includes the receiver, so zero of them
@@ -2429,15 +2471,7 @@ impl<'e> Vm<'e> {
         // The register is not a scope entry, so it takes a path of its own
         // rather than a third [`Site`].
         if let Receiver::This = receiver {
-            return self.call_by_this(
-                program,
-                name_index,
-                name,
-                argc,
-                scope,
-                capture_parent_scope,
-                pos,
-            );
+            return self.call_by_this(program, name_index, name, argc, scope, capture, pos);
         }
 
         // A named receiver's value is already argument zero — [`Op::LoadNamed`]
@@ -2491,21 +2525,9 @@ impl<'e> Vm<'e> {
                 let value = scope.get_mut_by_index(index).flatten_clone();
                 self.stack.insert(first, value);
             }
-            // Check if it is a built-in syntactic function.
-            let value =
-                if let Some(value) = self.call_syntactic(program, name, argc, first, scope, pos)? {
-                    value
-                } else {
-                    // Detach the scope with a new one if not capturing the parent's.
-                    let mut detached;
-                    let scope = if !capture_parent_scope {
-                        detached = Scope::new();
-                        &mut detached
-                    } else {
-                        scope
-                    };
-                    self.call_stacked(program, name_index, name, argc, first, scope, pos)?
-                };
+            let value = self.call_syntactic_or_stacked(
+                program, name_index, name, argc, first, scope, capture, pos,
+            )?;
             self.stack.truncate(first);
             return Ok(value);
         }
@@ -2566,7 +2588,7 @@ impl<'e> Vm<'e> {
         name: &str,
         argc: usize,
         scope: &mut Scope,
-        capture_parent_scope: bool,
+        capture: bool,
         pos: Position,
     ) -> VmResult {
         let first = self
@@ -2585,21 +2607,9 @@ impl<'e> Vm<'e> {
             && program.function(name_index, argc).is_none();
 
         if !by_reference {
-            // Check if it is a built-in syntactic function.
-            let value =
-                if let Some(value) = self.call_syntactic(program, name, argc, first, scope, pos)? {
-                    value
-                } else {
-                    // Detach the scope with a new one if not capturing the parent's.
-                    let mut detached;
-                    let scope = if !capture_parent_scope {
-                        detached = Scope::new();
-                        &mut detached
-                    } else {
-                        scope
-                    };
-                    self.call_stacked(program, name_index, name, argc, first, scope, pos)?
-                };
+            let value = self.call_syntactic_or_stacked(
+                program, name_index, name, argc, first, scope, capture, pos,
+            )?;
             self.stack.truncate(first);
             return Ok(value);
         }
@@ -2636,7 +2646,7 @@ impl<'e> Vm<'e> {
         program: &Program,
         name: &str,
         params: &[u32],
-        chunk: crate::grain::bytecode::Chunk,
+        chunk: Chunk,
         first: usize,
         scope: &mut Scope,
         pos: Position,
@@ -2665,7 +2675,7 @@ impl<'e> Vm<'e> {
         program: &Program,
         name: &str,
         params: &[u32],
-        chunk: crate::grain::bytecode::Chunk,
+        chunk: Chunk,
         first: usize,
         scope: &mut Scope,
         rewind_scope: bool,
@@ -2701,7 +2711,7 @@ impl<'e> Vm<'e> {
         program: &Program,
         name: &str,
         params: &[u32],
-        chunk: crate::grain::bytecode::Chunk,
+        chunk: Chunk,
         first: usize,
         scope: &mut Scope,
         rewind_scope: bool,
@@ -2781,7 +2791,7 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         scope: &mut Scope,
-        chunk: crate::grain::bytecode::Chunk,
+        chunk: Chunk,
         base: usize,
         reached: &mut usize,
     ) -> VmResult {
@@ -3505,7 +3515,7 @@ impl<'e> Vm<'e> {
                     let name = program
                         .name(name_index)
                         .ok_or_else(|| malformed(format!("no name {name_index}")))?;
-                    let capture_parent_scope = tag == code::tag::CALL_CAPTURE;
+                    let capture = tag == code::tag::CALL_CAPTURE;
                     let argc = code[pc + 3] as usize;
                     let op = if tag == code::tag::CALL_OP {
                         let index = u32::from(small(4)?);
@@ -3554,21 +3564,16 @@ impl<'e> Vm<'e> {
                     }
 
                     // Check if it is a built-in syntactic function.
-                    let value = if let Some(value) =
-                        self.call_syntactic(program, name, argc, first, scope, pos())?
-                    {
-                        value
-                    } else {
-                        // Detach the scope with a new one if not capturing the parent's.
-                        let mut detached;
-                        let scope = if !capture_parent_scope {
-                            detached = Scope::new();
-                            &mut detached
-                        } else {
-                            &mut *scope
-                        };
-                        self.call_stacked(program, name_index, name, argc, first, scope, pos())?
-                    };
+                    let value = self.call_syntactic_or_stacked(
+                        program,
+                        name_index,
+                        name,
+                        argc,
+                        first,
+                        scope,
+                        capture,
+                        pos(),
+                    )?;
                     self.stack.truncate(first);
                     self.stack.push(value);
                 }
@@ -3598,7 +3603,7 @@ impl<'e> Vm<'e> {
                         }
                         _ => unreachable!(),
                     };
-                    let capture_parent_scope = matches!(
+                    let capture = matches!(
                         tag,
                         code::tag::CALL_LOCAL_REF_CAPTURE
                             | code::tag::CALL_NAMED_REF_CAPTURE
@@ -3613,7 +3618,7 @@ impl<'e> Vm<'e> {
                         receiver,
                         scope,
                         base,
-                        capture_parent_scope,
+                        capture,
                         pos(),
                     )?;
                     self.stack.push(value);
