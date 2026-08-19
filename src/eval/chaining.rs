@@ -57,7 +57,7 @@ impl From<&Expr> for ChainType {
 impl Engine {
     /// Call a get indexer.
     #[inline]
-    fn call_indexer_get(
+    pub(crate) fn call_indexer_get(
         &self,
         global: &mut GlobalRuntimeState,
         caches: &mut Caches,
@@ -78,7 +78,7 @@ impl Engine {
 
     /// Call a set indexer.
     #[inline]
-    fn call_indexer_set(
+    pub(crate) fn call_indexer_set(
         &self,
         global: &mut GlobalRuntimeState,
         caches: &mut Caches,

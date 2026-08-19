@@ -5,8 +5,6 @@ use std::prelude::v1::*;
 // Indexing survives either feature alone — a map is indexed by string, an
 // array by number — and only goes when both do. `eval/chaining.rs` is gated on
 // exactly this, and takes the getter and setter names with it.
-#[cfg(not(all(feature = "no_index", feature = "no_object")))]
-use crate::engine::{FN_IDX_GET, FN_IDX_SET};
 // Measuring a value is measuring what an array, a map or a string holds, so
 // the same pair of features takes it away — see the note above.
 #[cfg(not(feature = "unchecked"))]
@@ -1500,7 +1498,13 @@ impl<'e> Vm<'e> {
 
         if matches!(chain.tail, Tail::Assign { op: Some(_) }) {
             let mut probe = index.clone();
-            if let Ok(mut current) = self.call_indexer(FN_IDX_GET, target, &mut probe, pos) {
+            if let Ok(mut current) = self.engine.call_indexer_get(
+                &mut self.global,
+                &mut self.caches,
+                target,
+                &mut probe,
+                pos,
+            ) {
                 self.store(
                     program,
                     chain_op(program, chain)?,
@@ -1513,29 +1517,6 @@ impl<'e> Vm<'e> {
         }
 
         self.call_indexer_set(target, index, &mut new_val, pos)
-    }
-
-    /// Call the index getter, which unlike the setter is allowed to fail.
-    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
-    #[inline(always)]
-    fn call_indexer(
-        &mut self,
-        name: &str,
-        target: &mut Dynamic,
-        index: &mut Dynamic,
-        pos: Position,
-    ) -> VmResult {
-        call_engine(
-            self.engine,
-            &mut self.global,
-            &mut self.caches,
-            &mut Scope::new(),
-            name,
-            &mut [target, index],
-            true,
-            false,
-            pos,
-        )
     }
 
     /// Put an element back into a container that had no reference to give.
@@ -1552,19 +1533,17 @@ impl<'e> Vm<'e> {
         value: &mut Dynamic,
         pos: Position,
     ) -> Result<(), Box<EvalAltResult>> {
-        let result = call_engine(
-            self.engine,
+        let result = self.engine.call_indexer_set(
             &mut self.global,
             &mut self.caches,
-            &mut Scope::new(),
-            FN_IDX_SET,
-            &mut [target, index, value],
+            target,
+            index,
+            value,
             true,
-            false,
             pos,
         );
-        match result {
-            Ok(_) => Ok(()),
+        match result.map(|_| ()) {
+            Ok(()) => Ok(()),
             Err(err) if matches!(*err, EvalAltResult::ErrorIndexingType(..)) => Ok(()),
             Err(mut err) => {
                 if err.position().is_none() {
