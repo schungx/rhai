@@ -1714,12 +1714,9 @@ impl<'e> Vm<'e> {
 
         // The name is a map key for maps, and the same string is what a host
         // type's fallback string indexer is addressed with.
-        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         let key = program
             .name(name)
             .ok_or_else(|| malformed(format!("no name {name}")))?;
-        #[cfg(all(feature = "no_index", feature = "no_object"))]
-        let _ = name;
 
         // A map is the one property holder that is not a host type, and
         // `no_object` removes both it and the syntax that would reach one.
