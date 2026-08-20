@@ -653,7 +653,7 @@ impl Engine {
                 #[cfg(feature = "no_module")]
                 let hash = calc_fn_hash(None, &id, 0);
 
-                let hashes = if is_valid_function_name(&id) {
+                let hashes = if is_valid_identifier(&id) {
                     FnCallHashes::from_hash(hash)
                 } else {
                     FnCallHashes::from_native_only(hash)
@@ -721,7 +721,7 @@ impl Engine {
                     #[cfg(feature = "no_module")]
                     let hash = calc_fn_hash(None, &id, args.len());
 
-                    let hashes = if is_valid_function_name(&id) {
+                    let hashes = if is_valid_identifier(&id) {
                         FnCallHashes::from_hash(hash)
                     } else {
                         FnCallHashes::from_native_only(hash)
@@ -2128,7 +2128,7 @@ impl Engine {
             (lhs, Expr::FnCall(mut f, func_pos)) => {
                 // Recalculate hash
                 let args_len = f.args.len() + 1;
-                f.hashes = if is_valid_function_name(&f.name) {
+                f.hashes = if is_valid_identifier(&f.name) {
                     #[cfg(not(feature = "no_function"))]
                     {
                         FnCallHashes::from_script_and_native(
@@ -2183,7 +2183,7 @@ impl Engine {
                     Expr::FnCall(mut f, func_pos) => {
                         // Recalculate hash
                         let args_len = f.args.len() + 1;
-                        f.hashes = if is_valid_function_name(&f.name) {
+                        f.hashes = if is_valid_identifier(&f.name) {
                             #[cfg(not(feature = "no_function"))]
                             {
                                 FnCallHashes::from_script_and_native(
@@ -2323,7 +2323,7 @@ impl Engine {
 
             let op: SmartString = (&op_token).into();
             let hash = calc_fn_hash(None, &op, 2);
-            let native_only = !is_valid_function_name(&op);
+            let native_only = !is_valid_identifier(&op);
 
             let mut op_base = FnCallExpr {
                 #[cfg(not(feature = "no_module"))]

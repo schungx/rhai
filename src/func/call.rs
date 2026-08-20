@@ -10,7 +10,7 @@ use crate::engine::{
 #[cfg(feature = "internals")]
 use crate::eval::EvalContext;
 use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
-use crate::tokenizer::{is_valid_function_name, Token};
+use crate::tokenizer::{is_valid_identifier, Token};
 use crate::types::{dynamic::Union, fn_ptr::FnPtrType};
 use crate::{
     calc_fn_hash, calc_fn_hash_full, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position,
@@ -899,7 +899,7 @@ impl Engine {
                         let _is_anon = fn_ptr.is_anonymous();
 
                         // Recalculate hashes
-                        let new_hash = if !_is_anon && !is_valid_function_name(fn_name) {
+                        let new_hash = if !_is_anon && !is_valid_identifier(fn_name) {
                             FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args.len()))
                         } else {
                             FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args.len()))
@@ -1001,7 +1001,7 @@ impl Engine {
                         // Recalculate hash
                         let num_args = args.len();
 
-                        let new_hash = if !_is_anon && !is_valid_function_name(&name) {
+                        let new_hash = if !_is_anon && !is_valid_identifier(&name) {
                             FnCallHashes::from_native_only(calc_fn_hash(None, &name, num_args))
                         } else {
                             #[cfg(not(feature = "no_function"))]
@@ -1106,7 +1106,7 @@ impl Engine {
                                     // Recalculate the hash based on the new function name and new arguments
                                     let num_args = call_args.len() + 1;
 
-                                    hash = if !_is_anon && !is_valid_function_name(fn_name) {
+                                    hash = if !_is_anon && !is_valid_identifier(fn_name) {
                                         FnCallHashes::from_native_only(calc_fn_hash(
                                             None, fn_name, num_args,
                                         ))
@@ -1312,7 +1312,7 @@ impl Engine {
                 // Recalculate hash
                 let args_len = num_args + curry.len();
 
-                hashes = if !_is_anon && !is_valid_function_name(fn_name) {
+                hashes = if !_is_anon && !is_valid_identifier(fn_name) {
                     FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len))
                 } else {
                     FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len))

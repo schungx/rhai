@@ -5,8 +5,6 @@ use std::prelude::v1::*;
 // Indexing survives either feature alone — a map is indexed by string, an
 // array by number — and only goes when both do. `eval/chaining.rs` is gated on
 // exactly this, and takes the getter and setter names with it.
-#[cfg(not(all(feature = "no_index", feature = "no_object")))]
-use crate::engine::{FN_IDX_GET, FN_IDX_SET};
 // Measuring a value is measuring what an array, a map or a string holds, so
 // the same pair of features takes it away — see the note above.
 #[cfg(not(feature = "unchecked"))]
@@ -60,29 +58,7 @@ macro_rules! is_shared {
     }};
 }
 
-/// A chunk that does not agree with itself — a slot past the end of the scope,
-/// an index into a pool that has no such entry, an operand stack that ran dry.
-///
-/// Reachable only through a compiler bug or a corrupt artifact, never through
-/// anything a script can express. Verification turns most of these into load
-/// time failures; the rest surface as runtime errors rather than panics, so a
-/// bad chunk cannot take the host down.
-/// Build a [`NativeCallContext`] from its parts.
-///
-/// `NativeCallContext::new_with_all_fields` is the obvious spelling but is
-/// `#[cfg(not(feature = "no_module"))]`. The `From` impl over the same five
-/// fields is not gated and assigns exactly the same ones, so this works in
-/// either configuration without a cfg of its own.
-fn native_context<'a>(
-    engine: &'a Engine,
-    fn_name: &'a str,
-    source: Option<&'a str>,
-    global: &'a GlobalRuntimeState,
-    pos: Position,
-) -> NativeCallContext<'a> {
-    NativeCallContext::from((engine, fn_name, source, global, pos))
-}
-
+/// Make a function call into Rhai using [`_call_fn_raw`](crate::eval::_call_fn_raw).
 #[inline(always)]
 fn call_engine(
     engine: &Engine,
@@ -95,7 +71,7 @@ fn call_engine(
     is_method_call: bool,
     pos: Position,
 ) -> VmResult {
-    let native_only = !crate::tokenizer::is_valid_function_name(fn_name);
+    let native_only = !crate::tokenizer::is_valid_identifier(fn_name);
     #[cfg(not(feature = "no_function"))]
     let native_only = native_only && !crate::parser::is_anonymous_fn(fn_name);
 
@@ -152,8 +128,7 @@ fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
 ///
 /// This is `fill_position`, which Rhai applies to the whole of
 /// `exec_native_fn_call` — the callee not being found, the call being refused,
-/// and the error a native *returned* alike (`func/call.rs:365`, `:406`,
-/// `:413`).
+/// and the error a native *returned* alike (`func/call.rs:365`, `:406`, `:413`).
 ///
 /// What looks like a counter-example is not one: `1 / 0` reports
 /// `ErrorArithmetic` with no position at all, because under `fast_operators` a
@@ -1587,7 +1562,13 @@ impl<'e> Vm<'e> {
 
         if matches!(chain.tail, Tail::Assign { op: Some(_) }) {
             let mut probe = index.clone();
-            if let Ok(mut current) = self.call_indexer(FN_IDX_GET, target, &mut probe, pos) {
+            if let Ok(mut current) = self.engine.call_indexer_get(
+                &mut self.global,
+                &mut self.caches,
+                target,
+                &mut probe,
+                pos,
+            ) {
                 self.store(
                     program,
                     chain_op(program, chain)?,
@@ -1600,29 +1581,6 @@ impl<'e> Vm<'e> {
         }
 
         self.call_indexer_set(target, index, &mut new_val, pos)
-    }
-
-    /// Call the index getter, which unlike the setter is allowed to fail.
-    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
-    #[inline(always)]
-    fn call_indexer(
-        &mut self,
-        name: &str,
-        target: &mut Dynamic,
-        index: &mut Dynamic,
-        pos: Position,
-    ) -> VmResult {
-        call_engine(
-            self.engine,
-            &mut self.global,
-            &mut self.caches,
-            &mut Scope::new(),
-            name,
-            &mut [target, index],
-            true,
-            false,
-            pos,
-        )
     }
 
     /// Put an element back into a container that had no reference to give.
@@ -1639,19 +1597,17 @@ impl<'e> Vm<'e> {
         value: &mut Dynamic,
         pos: Position,
     ) -> Result<(), Box<EvalAltResult>> {
-        let result = call_engine(
-            self.engine,
+        let result = self.engine.call_indexer_set(
             &mut self.global,
             &mut self.caches,
-            &mut Scope::new(),
-            FN_IDX_SET,
-            &mut [target, index, value],
+            target,
+            index,
+            value,
             true,
-            false,
             pos,
         );
-        match result {
-            Ok(_) => Ok(()),
+        match result.map(|_| ()) {
+            Ok(()) => Ok(()),
             Err(err) if matches!(*err, EvalAltResult::ErrorIndexingType(..)) => Ok(()),
             Err(mut err) => {
                 if err.position().is_none() {
@@ -1810,8 +1766,7 @@ impl<'e> Vm<'e> {
             return None;
         }
         let (func, need_context) = get_builtin_op_assignment_fn(&op.op_assign, target, rhs)?;
-        let context =
-            need_context.then(|| native_context(self.engine, "", None, &self.global, pos()));
+        let context = need_context.then(|| (self.engine, "", None, &self.global, pos()).into());
         Some(
             func(context, &mut [target, rhs])
                 .map(|_| ())
@@ -2120,7 +2075,7 @@ impl<'e> Vm<'e> {
             // Anything else is Rhai's: a native function, a name registered
             // elsewhere, or a pointer it built itself.
             let mut args: FnArgsVec<Dynamic> = self.stack.drain(at + 1..).collect();
-            let context = native_context(self.engine, pointer.fn_name(), None, &self.global, pos);
+            let context = (self.engine, pointer.fn_name(), None, &self.global, pos).into();
             pointer
                 .call_raw(&context, bound.as_mut(), &mut args)
                 .map_err(|mut err| {
@@ -2221,7 +2176,7 @@ impl<'e> Vm<'e> {
         // host's `to_string` for strings is not consulted here even though `+`
         // would consult it.
         if !item.is_string() {
-            let context = native_context(self.engine, FUNC_TO_STRING, None, &self.global, pos);
+            let context = (self.engine, FUNC_TO_STRING, None, &self.global, pos).into();
             rendered = Some(print_with_func(FUNC_TO_STRING, &context, &mut item));
         }
 
@@ -3785,9 +3740,8 @@ impl<'e> Vm<'e> {
                             .then(|| get_builtin_binary_op_fn(token, lhs, rhs))
                             .flatten();
                         if let Some((func, need_context)) = builtin {
-                            let context = need_context.then(|| {
-                                native_context(self.engine, name, None, &self.global, pos())
-                            });
+                            let context = need_context
+                                .then(|| (self.engine, name, None, &self.global, pos()).into());
                             let value = func(context, &mut [lhs, rhs])?;
                             self.stack.truncate(first);
                             self.stack.push(value);

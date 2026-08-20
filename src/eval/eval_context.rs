@@ -2,7 +2,7 @@
 
 use super::{Caches, GlobalRuntimeState};
 use crate::ast::FnCallHashes;
-use crate::tokenizer::{is_valid_function_name, Token};
+use crate::tokenizer::{is_valid_identifier, Token};
 use crate::types::dynamic::Variant;
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, FnArgsVec, FuncArgs, ImmutableString,
@@ -351,7 +351,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
         args: &mut [&mut Dynamic],
     ) -> RhaiResult {
         let name = fn_name.as_ref();
-        let native_only = !is_valid_function_name(name);
+        let native_only = !is_valid_identifier(name);
         #[cfg(not(feature = "no_function"))]
         let native_only = native_only && !crate::parser::is_anonymous_fn(name);
 
