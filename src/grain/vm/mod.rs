@@ -2297,7 +2297,7 @@ impl<'e> Vm<'e> {
     /// Some syntactic calls can be self-implemented or short-circuited.
     fn call_syntactic(
         &mut self,
-        program: &Program,
+        #[cfg_attr(feature = "no_function", allow(unused))] program: &Program,
         name: &str,
         argc: usize,
         first: usize,
@@ -3507,7 +3507,11 @@ impl<'e> Vm<'e> {
                     let name = program
                         .name(index)
                         .ok_or_else(|| malformed(format!("no name {index}")))?;
-                    let value = self.pop()?;
+                    // Flattened, as Rhai flattens a declaration's initializer
+                    // (`eval/stmt.rs:438`). A native can hand back a cell that is
+                    // already shared, and sharing must stop at the `let` rather
+                    // than becoming a property of the new local.
+                    let value = self.pop()?.flatten();
                     if tag == code::tag::DECLARE_CONST {
                         scope.push_constant_dynamic(name, value);
                     } else {
