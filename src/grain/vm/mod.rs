@@ -1618,6 +1618,74 @@ impl<'e> Vm<'e> {
         }
     }
 
+    // Try to get a property through an indexer.
+    fn try_index_get(
+        &mut self,
+        target: &mut Dynamic,
+        key: &str,
+        err: Box<EvalAltResult>,
+        pos: Position,
+    ) -> VmResult {
+        match *err {
+            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+            EvalAltResult::ErrorDotExpr(..) => {
+                use std::str::FromStr;
+                let mut index = Dynamic::from_str(key).expect("a string");
+                self.engine
+                    .call_indexer_get(&mut self.global, &mut self.caches, target, &mut index, pos)
+                    .map_err(|err2| match *err2 {
+                        EvalAltResult::ErrorIndexingType(..) => err,
+                        _ => positioned(err2, pos),
+                    })
+            }
+            _ => Err(err),
+        }
+    }
+
+    // Try to set a property through an index setter.
+    fn try_index_set(
+        &mut self,
+        target: &mut Dynamic,
+        key: &str,
+        value: &mut Dynamic,
+        fail_silently: bool,
+        err: Box<EvalAltResult>,
+        pos: Position,
+    ) -> VmResult {
+        match *err {
+            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+            EvalAltResult::ErrorDotExpr(..) => {
+                use std::str::FromStr;
+                let mut index = Dynamic::from_str(key).expect("a string");
+                let result = self
+                    .engine
+                    .call_indexer_set(
+                        &mut self.global,
+                        &mut self.caches,
+                        target,
+                        &mut index,
+                        value,
+                        true,
+                        pos,
+                    )
+                    .map(|_| ());
+
+                match result {
+                    Ok(()) => Ok(Dynamic::UNIT),
+                    Err(err2) if matches!(*err2, EvalAltResult::ErrorIndexingType(..)) => {
+                        if fail_silently {
+                            Ok(Dynamic::UNIT)
+                        } else {
+                            Err(err)
+                        }
+                    }
+                    Err(err2) => Err(positioned(err2, pos)),
+                }
+            }
+            _ => Err(err),
+        }
+    }
+
     /// `.name`, which is a key on a map and a getter call on anything else.
     ///
     /// The distinction is Rhai's and it is made at runtime, not at parse time
@@ -1643,13 +1711,14 @@ impl<'e> Vm<'e> {
         setter: u32,
     ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
         let last = rest.is_empty();
-        // The key names a map entry; a host type is reached through the getter
-        // and setter names instead, which are looked up below.
-        #[cfg(not(feature = "no_object"))]
+
+        // The name is a map key for maps, and the same string is what a host
+        // type's fallback string indexer is addressed with.
+        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         let key = program
             .name(name)
             .ok_or_else(|| malformed(format!("no name {name}")))?;
-        #[cfg(feature = "no_object")]
+        #[cfg(all(feature = "no_index", feature = "no_object"))]
         let _ = name;
 
         // A map is the one property holder that is not a host type, and
@@ -1712,32 +1781,34 @@ impl<'e> Vm<'e> {
                 // `x.p += 1` has to read `p` back through the getter before it
                 // can add to it — the setter takes a finished value.
                 let mut new_val = if matches!(chain.tail, Tail::Assign { op: Some(_) }) {
-                    let mut current = call(self, getter, &mut [target])?;
+                    let mut current = call(self, getter, &mut [target])
+                        .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
                     self.store(program, chain_op(program, chain)?, &mut current, value, pos)?;
                     current
                 } else {
                     value
                 };
                 // A setter's return value is thrown away, as in Rhai.
-                let _ = call(self, setter, &mut [target, &mut new_val])?;
+                let _ = call(self, setter, &mut [target, &mut new_val]).or_else(|err| {
+                    self.try_index_set(target, key, &mut new_val, false, err, step_pos)
+                })?;
                 return Ok((Dynamic::UNIT, true));
             }
-            let out = call(self, getter, &mut [target])?;
+            let out = call(self, getter, &mut [target])
+                .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
             return Ok((out, false));
         }
 
         // A getter returns a value, so the rest of the chain works on a
         // temporary. Rhai puts it back through the setter when the sub-chain
         // was a method call, and skips the setter otherwise.
-        let mut temp = call(self, getter, &mut [target])?;
+        let mut temp = call(self, getter, &mut [target])
+            .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
         let (out, changed) =
             self.walk_chain(program, chain, rest, &mut temp, operands, value, pos)?;
         if changed {
-            let _ = call(self, setter, &mut [target, &mut temp]).or_else(|err| match *err {
-                // Fail silently if the property is read-only, as Rhai does (`eval/chaining.rs:1039`).
-                EvalAltResult::ErrorDotExpr(..) => Ok(Dynamic::UNIT),
-                _ => Err(err),
-            })?;
+            let _ = call(self, setter, &mut [target, &mut temp])
+                .or_else(|err| self.try_index_set(target, key, &mut temp, true, err, step_pos))?;
         }
         Ok((out, changed))
     }
@@ -2430,7 +2501,7 @@ impl<'e> Vm<'e> {
     ///
     /// First check whether the call is a syntactic one (e.g. `is_def_fn`)
     /// which are self-implemented or directly called into the
-    /// corresponding Rhai functinon.
+    /// corresponding Rhai function.
     ///
     /// If the call is not to a syntactic one, it calls the function
     /// normally, with arguments pushed onto the stack.

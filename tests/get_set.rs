@@ -51,6 +51,7 @@ fn test_get_set() {
 
     assert_eq!(engine.eval::<INT>(r"let a = new_ts(); a.abc").unwrap(), 4);
     assert_eq!(engine.eval::<INT>(r"let a = new_ts(); a.abc = 42; a.abc").unwrap(), 42);
+    assert_eq!(engine.eval::<INT>(r"let a = new_ts(); a.abc += 10; a.abc").unwrap(), 14);
 }
 
 #[test]

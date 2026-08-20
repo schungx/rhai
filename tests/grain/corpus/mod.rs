@@ -101,6 +101,19 @@ pub fn engine() -> rhai::Engine {
             Ok(())
         },
     );
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+    engine.register_indexer_get_set(
+        |w: &mut Widget, name: &str| -> Result<INT, Box<rhai::EvalAltResult>> {
+            let index = name.len() as INT - 1;
+            w.cells.get(index as usize).copied().ok_or_else(|| out_of_range(index, w.cells.len()))
+        },
+        |w: &mut Widget, name: &str, v: INT| -> Result<(), Box<rhai::EvalAltResult>> {
+            let index = name.len() as INT - 1;
+            let len = w.cells.len();
+            *w.cells.get_mut(index as usize).ok_or_else(|| out_of_range(index, len))? = v;
+            Ok(())
+        },
+    );
 
     #[cfg(not(feature = "no_object"))]
     {
@@ -750,9 +763,13 @@ pub const CASES: &[Case] = &[
     case("host_index_set", "let w = widget(1); w[1] = 99; w[1]"),
     case("host_method_mutates", "let w = widget(4); w.bump(); w.level"),
     case("host_method_pure", "let w = widget(4); w.doubled()"),
+    case("host_string_index_property_get_fallback", "let w = widget(1); w.a"),
+    case("host_string_index_property_set_fallback", "let w = widget(1); w.ab = 77; w.ab"),
+    case("host_string_index_property_op_assign_fallback", "let w = widget(1); w.a += 5; w.a"),
     // Two levels, so the middle one is a temporary.
     case("host_temp_set", "let h = holder(3); h.inner.level = 8; h.inner.level"),
     case("host_temp_index_set", "let h = holder(3); h.inner[0] = 7; h.inner[0]"),
+    case("host_temp_string_index_property_set_fallback", "let h = holder(3); h.inner.ab = 7; h.inner.ab"),
     // The mirror of it: an *index* step handing back the temporary, with the
     // property below. The index has to survive the getter to address the setter
     // with afterwards.
