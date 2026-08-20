@@ -10,26 +10,25 @@ use std::prelude::v1::*;
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
+use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
 use crate::types::dynamic::DynamicWriteLock;
 use crate::types::fn_ptr::FnPtrType;
+use crate::types::StringsInterner;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
 use crate::ast::Expr;
-#[cfg(not(feature = "no_function"))]
-use crate::types::dynamic::Variant;
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
-#[cfg(not(feature = "no_function"))]
-use crate::CallFnOptions;
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
+#[cfg(not(feature = "no_function"))]
+use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
-    eval::Caches, eval::GlobalRuntimeState, Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec,
-    Scope,
+    Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString,
+    NativeCallContext, Position, Scope, FUNC_TO_STRING, INT,
 };
-use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT};
 
 mod callback;
 
@@ -348,6 +347,7 @@ pub struct Vm<'e> {
     global: GlobalRuntimeState,
     caches: Caches,
     stack: Vec<Dynamic>,
+    strings_interner: StringsInterner,
     /// One entry per `for` loop currently running.
     ///
     /// Not on the operand stack, because an iterator is not a `Dynamic`. A
@@ -478,6 +478,7 @@ impl<'e> Vm<'e> {
             engine,
             global,
             caches: Caches::new(),
+            strings_interner: StringsInterner::new(256),
             stack: Vec::new(),
             iterators: Vec::new(),
             handlers: Vec::new(),
@@ -518,6 +519,7 @@ impl<'e> Vm<'e> {
             engine: context.engine(),
             global: context.global_runtime_state().clone(),
             caches: Caches::new(),
+            strings_interner: StringsInterner::new(256),
             stack: Vec::new(),
             iterators: Vec::new(),
             handlers: Vec::new(),
@@ -1619,6 +1621,9 @@ impl<'e> Vm<'e> {
     }
 
     // Try to get a property through an indexer.
+    //
+    // This requires `no_index` and `no_object` to be off,
+    // otherwise it just passes the error through.
     fn try_index_get(
         &mut self,
         target: &mut Dynamic,
@@ -1626,11 +1631,13 @@ impl<'e> Vm<'e> {
         err: Box<EvalAltResult>,
         pos: Position,
     ) -> VmResult {
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        return Err(err);
+
+        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         match *err {
-            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
             EvalAltResult::ErrorDotExpr(..) => {
-                use std::str::FromStr;
-                let mut index = Dynamic::from_str(key).expect("a string");
+                let mut index = self.strings_interner.get(key).into();
                 self.engine
                     .call_indexer_get(&mut self.global, &mut self.caches, target, &mut index, pos)
                     .map_err(|err2| match *err2 {
@@ -1643,6 +1650,9 @@ impl<'e> Vm<'e> {
     }
 
     // Try to set a property through an index setter.
+    //
+    // This requires `no_index` and `no_object` to be off,
+    // otherwise it just passes the error through.
     fn try_index_set(
         &mut self,
         target: &mut Dynamic,
@@ -1652,12 +1662,14 @@ impl<'e> Vm<'e> {
         err: Box<EvalAltResult>,
         pos: Position,
     ) -> VmResult {
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        return Err(err);
+
+        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         match *err {
-            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
             EvalAltResult::ErrorDotExpr(..) => {
-                use std::str::FromStr;
-                let mut index = Dynamic::from_str(key).expect("a string");
-                let result = self
+                let mut index = self.strings_interner.get(key).into();
+                match self
                     .engine
                     .call_indexer_set(
                         &mut self.global,
@@ -1668,9 +1680,8 @@ impl<'e> Vm<'e> {
                         true,
                         pos,
                     )
-                    .map(|_| ());
-
-                match result {
+                    .map(|_| ())
+                {
                     Ok(()) => Ok(Dynamic::UNIT),
                     Err(err2) if matches!(*err2, EvalAltResult::ErrorIndexingType(..)) => {
                         if fail_silently {
@@ -4039,7 +4050,7 @@ impl<'e> Vm<'e> {
                     self.stack.push(
                         FnPtr {
                             name: name.into(),
-                            curry: ThinVec::new(),
+                            curry: Default::default(),
                             #[cfg(not(feature = "no_function"))]
                             env: None,
                             typ: FnPtrType::Normal,
