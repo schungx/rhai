@@ -347,6 +347,7 @@ pub struct Vm<'e> {
     global: GlobalRuntimeState,
     caches: Caches,
     stack: Vec<Dynamic>,
+    #[cfg_attr(any(feature = "no_index", feature = "no_object"), allow(unused))]
     strings_interner: StringsInterner,
     /// One entry per `for` loop currently running.
     ///
@@ -1631,11 +1632,8 @@ impl<'e> Vm<'e> {
         err: Box<EvalAltResult>,
         pos: Position,
     ) -> VmResult {
-        #[cfg(any(feature = "no_index", feature = "no_object"))]
-        return Err(err);
-
-        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
-        match *err {
+        #[cfg(not(any(feature = "no_index", feature = "no_object")))]
+        return match *err {
             EvalAltResult::ErrorDotExpr(..) => {
                 let mut index = self.strings_interner.get(key).into();
                 self.engine
@@ -1646,6 +1644,11 @@ impl<'e> Vm<'e> {
                     })
             }
             _ => Err(err),
+        };
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        {
+            let _ = (target, key, pos);
+            return Err(err);
         }
     }
 
@@ -1662,11 +1665,8 @@ impl<'e> Vm<'e> {
         err: Box<EvalAltResult>,
         pos: Position,
     ) -> VmResult {
-        #[cfg(any(feature = "no_index", feature = "no_object"))]
-        return Err(err);
-
-        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
-        match *err {
+        #[cfg(not(any(feature = "no_index", feature = "no_object")))]
+        return match *err {
             EvalAltResult::ErrorDotExpr(..) => {
                 let mut index = self.strings_interner.get(key).into();
                 match self
@@ -1694,6 +1694,11 @@ impl<'e> Vm<'e> {
                 }
             }
             _ => Err(err),
+        };
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        {
+            let _ = (target, key, value, fail_silently, pos);
+            return Err(err);
         }
     }
 
