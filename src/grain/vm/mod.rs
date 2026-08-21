@@ -10,26 +10,25 @@ use std::prelude::v1::*;
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
+use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
 use crate::types::dynamic::DynamicWriteLock;
 use crate::types::fn_ptr::FnPtrType;
+use crate::types::StringsInterner;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
 use crate::ast::Expr;
-#[cfg(not(feature = "no_function"))]
-use crate::types::dynamic::Variant;
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
-#[cfg(not(feature = "no_function"))]
-use crate::CallFnOptions;
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
+#[cfg(not(feature = "no_function"))]
+use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
-    eval::Caches, eval::GlobalRuntimeState, Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec,
-    Scope,
+    Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString,
+    NativeCallContext, Position, Scope, FUNC_TO_STRING, INT,
 };
-use crate::{FnPtr, ImmutableString, NativeCallContext, Position, ThinVec, FUNC_TO_STRING, INT};
 
 mod callback;
 
@@ -348,6 +347,8 @@ pub struct Vm<'e> {
     global: GlobalRuntimeState,
     caches: Caches,
     stack: Vec<Dynamic>,
+    #[cfg_attr(any(feature = "no_index", feature = "no_object"), allow(unused))]
+    strings_interner: StringsInterner,
     /// One entry per `for` loop currently running.
     ///
     /// Not on the operand stack, because an iterator is not a `Dynamic`. A
@@ -478,6 +479,7 @@ impl<'e> Vm<'e> {
             engine,
             global,
             caches: Caches::new(),
+            strings_interner: StringsInterner::new(256),
             stack: Vec::new(),
             iterators: Vec::new(),
             handlers: Vec::new(),
@@ -518,6 +520,7 @@ impl<'e> Vm<'e> {
             engine: context.engine(),
             global: context.global_runtime_state().clone(),
             caches: Caches::new(),
+            strings_interner: StringsInterner::new(256),
             stack: Vec::new(),
             iterators: Vec::new(),
             handlers: Vec::new(),
@@ -1618,6 +1621,87 @@ impl<'e> Vm<'e> {
         }
     }
 
+    // Try to get a property through an indexer.
+    //
+    // This requires `no_index` and `no_object` to be off,
+    // otherwise it just passes the error through.
+    fn try_index_get(
+        &mut self,
+        target: &mut Dynamic,
+        key: &str,
+        err: Box<EvalAltResult>,
+        pos: Position,
+    ) -> VmResult {
+        #[cfg(not(any(feature = "no_index", feature = "no_object")))]
+        return match *err {
+            EvalAltResult::ErrorDotExpr(..) => {
+                let mut index = self.strings_interner.get(key).into();
+                self.engine
+                    .call_indexer_get(&mut self.global, &mut self.caches, target, &mut index, pos)
+                    .map_err(|err2| match *err2 {
+                        EvalAltResult::ErrorIndexingType(..) => err,
+                        _ => positioned(err2, pos),
+                    })
+            }
+            _ => Err(err),
+        };
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        {
+            let _ = (target, key, pos);
+            return Err(err);
+        }
+    }
+
+    // Try to set a property through an index setter.
+    //
+    // This requires `no_index` and `no_object` to be off,
+    // otherwise it just passes the error through.
+    fn try_index_set(
+        &mut self,
+        target: &mut Dynamic,
+        key: &str,
+        value: &mut Dynamic,
+        fail_silently: bool,
+        err: Box<EvalAltResult>,
+        pos: Position,
+    ) -> VmResult {
+        #[cfg(not(any(feature = "no_index", feature = "no_object")))]
+        return match *err {
+            EvalAltResult::ErrorDotExpr(..) => {
+                let mut index = self.strings_interner.get(key).into();
+                match self
+                    .engine
+                    .call_indexer_set(
+                        &mut self.global,
+                        &mut self.caches,
+                        target,
+                        &mut index,
+                        value,
+                        true,
+                        pos,
+                    )
+                    .map(|_| ())
+                {
+                    Ok(()) => Ok(Dynamic::UNIT),
+                    Err(err2) if matches!(*err2, EvalAltResult::ErrorIndexingType(..)) => {
+                        if fail_silently {
+                            Ok(Dynamic::UNIT)
+                        } else {
+                            Err(err)
+                        }
+                    }
+                    Err(err2) => Err(positioned(err2, pos)),
+                }
+            }
+            _ => Err(err),
+        };
+        #[cfg(any(feature = "no_index", feature = "no_object"))]
+        {
+            let _ = (target, key, value, fail_silently, pos);
+            return Err(err);
+        }
+    }
+
     /// `.name`, which is a key on a map and a getter call on anything else.
     ///
     /// The distinction is Rhai's and it is made at runtime, not at parse time
@@ -1643,14 +1727,12 @@ impl<'e> Vm<'e> {
         setter: u32,
     ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
         let last = rest.is_empty();
-        // The key names a map entry; a host type is reached through the getter
-        // and setter names instead, which are looked up below.
-        #[cfg(not(feature = "no_object"))]
+
+        // The name is a map key for maps, and the same string is what a host
+        // type's fallback string indexer is addressed with.
         let key = program
             .name(name)
             .ok_or_else(|| malformed(format!("no name {name}")))?;
-        #[cfg(feature = "no_object")]
-        let _ = name;
 
         // A map is the one property holder that is not a host type, and
         // `no_object` removes both it and the syntax that would reach one.
@@ -1712,32 +1794,34 @@ impl<'e> Vm<'e> {
                 // `x.p += 1` has to read `p` back through the getter before it
                 // can add to it — the setter takes a finished value.
                 let mut new_val = if matches!(chain.tail, Tail::Assign { op: Some(_) }) {
-                    let mut current = call(self, getter, &mut [target])?;
+                    let mut current = call(self, getter, &mut [target])
+                        .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
                     self.store(program, chain_op(program, chain)?, &mut current, value, pos)?;
                     current
                 } else {
                     value
                 };
                 // A setter's return value is thrown away, as in Rhai.
-                let _ = call(self, setter, &mut [target, &mut new_val])?;
+                let _ = call(self, setter, &mut [target, &mut new_val]).or_else(|err| {
+                    self.try_index_set(target, key, &mut new_val, false, err, step_pos)
+                })?;
                 return Ok((Dynamic::UNIT, true));
             }
-            let out = call(self, getter, &mut [target])?;
+            let out = call(self, getter, &mut [target])
+                .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
             return Ok((out, false));
         }
 
         // A getter returns a value, so the rest of the chain works on a
         // temporary. Rhai puts it back through the setter when the sub-chain
         // was a method call, and skips the setter otherwise.
-        let mut temp = call(self, getter, &mut [target])?;
+        let mut temp = call(self, getter, &mut [target])
+            .or_else(|err| self.try_index_get(target, key, err, step_pos))?;
         let (out, changed) =
             self.walk_chain(program, chain, rest, &mut temp, operands, value, pos)?;
         if changed {
-            let _ = call(self, setter, &mut [target, &mut temp]).or_else(|err| match *err {
-                // Fail silently if the property is read-only, as Rhai does (`eval/chaining.rs:1039`).
-                EvalAltResult::ErrorDotExpr(..) => Ok(Dynamic::UNIT),
-                _ => Err(err),
-            })?;
+            let _ = call(self, setter, &mut [target, &mut temp])
+                .or_else(|err| self.try_index_set(target, key, &mut temp, true, err, step_pos))?;
         }
         Ok((out, changed))
     }
@@ -2430,7 +2514,7 @@ impl<'e> Vm<'e> {
     ///
     /// First check whether the call is a syntactic one (e.g. `is_def_fn`)
     /// which are self-implemented or directly called into the
-    /// corresponding Rhai functinon.
+    /// corresponding Rhai function.
     ///
     /// If the call is not to a syntactic one, it calls the function
     /// normally, with arguments pushed onto the stack.
@@ -3971,7 +4055,7 @@ impl<'e> Vm<'e> {
                     self.stack.push(
                         FnPtr {
                             name: name.into(),
-                            curry: ThinVec::new(),
+                            curry: Default::default(),
                             #[cfg(not(feature = "no_function"))]
                             env: None,
                             typ: FnPtrType::Normal,
