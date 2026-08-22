@@ -9,9 +9,10 @@ use crate::ast::{
 use crate::engine::{Precedence, OP_CONTAINS, OP_NOT};
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::{hashing::get_hasher, StraightHashMap};
+#[cfg(not(feature = "no_function"))]
+use crate::tokenizer::is_valid_function_name;
 use crate::tokenizer::{
-    is_reserved_keyword_or_symbol, is_valid_function_name, is_valid_identifier, Token, TokenStream,
-    TokenizerControl,
+    is_reserved_keyword_or_symbol, is_valid_identifier, Token, TokenStream, TokenizerControl,
 };
 use crate::types::dynamic::{AccessMode, Union};
 use crate::{

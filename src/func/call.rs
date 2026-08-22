@@ -587,8 +587,8 @@ impl Engine {
     /// functions but provided by Rhai.
     pub(crate) fn exec_syntactic_fn_call(
         &self,
-        global: &mut GlobalRuntimeState,
-        caches: &mut Caches,
+        _global: &mut GlobalRuntimeState,
+        _caches: &mut Caches,
         fn_name: &str,
         args: &FnCallArgs,
         pos: Position,
@@ -623,7 +623,7 @@ impl Engine {
                     usize::try_from(num_params)
                         .map(|num_params| {
                             let hash_script = calc_fn_hash(None, &fn_name, num_params);
-                            self.has_script_fn(global, caches, hash_script).into()
+                            self.has_script_fn(_global, _caches, hash_script).into()
                         })
                         .unwrap_or(Dynamic::FALSE),
                 ));
@@ -648,7 +648,7 @@ impl Engine {
                                 calc_fn_hash(None, &fn_name, num_params),
                                 &this_type,
                             );
-                            self.has_script_fn(global, caches, hash_script).into()
+                            self.has_script_fn(_global, _caches, hash_script).into()
                         })
                         .unwrap_or(Dynamic::FALSE),
                 ));
