@@ -430,7 +430,7 @@ fn effect(op: &Op, pools: Pools) -> (usize, usize, usize) {
         // Sharing is a change to the scope, not to the operand stack.
         Op::Share(..) | Op::ShareNamed(..) => (0, 0, 0),
 
-        Op::StoreLocal(..) | Op::DeclareLocal { .. } | Op::Pop => (1, 1, 0),
+        Op::StoreLocal { .. } | Op::DeclareLocal { .. } | Op::Pop => (1, 1, 0),
 
         // Pops the value, leaves nothing: the statement's unit value is a
         // separate `Op::Unit`.
