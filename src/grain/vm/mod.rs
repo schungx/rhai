@@ -13,7 +13,7 @@ use crate::eval::calc_data_sizes;
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
-use crate::types::dynamic::DynamicWriteLock;
+use crate::types::dynamic::{AccessMode, DynamicWriteLock};
 use crate::types::fn_ptr::FnPtrType;
 use crate::types::StringsInterner;
 // `Variant` is only re-exported from the crate root under `internals`, so it
@@ -3506,13 +3506,18 @@ impl<'e> Vm<'e> {
                         .push(scope.get_mut_by_index(index).flatten_clone());
                 }
 
-                code::tag::STORE_LOCAL => {
+                code::tag::STORE_LOCAL | code::tag::STORE_CONST => {
                     let slot = small(1)?;
                     let index = base + slot as usize;
                     if index >= scope.len() {
                         return Err(malformed(format!("local slot {slot} is out of scope")));
                     }
-                    let value = self.pop()?;
+                    let mut value = self.pop()?;
+                    value.set_access_mode(if tag == code::tag::STORE_CONST {
+                        AccessMode::ReadOnly
+                    } else {
+                        AccessMode::ReadWrite
+                    });
                     // Through the cell, not over it — see `place`.
                     *place(scope.get_mut_by_index(index), "", pos())? = value;
                 }

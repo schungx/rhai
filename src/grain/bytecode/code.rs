@@ -26,6 +26,7 @@
 use alloc::borrow::Cow;
 
 use crate::grain::bytecode::{Op, Receiver};
+use crate::types::dynamic::AccessMode;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -179,6 +180,8 @@ pub mod tag {
     pub const CALL_THIS_REF_CAPTURE: u8 = 0x46;
     /// [`Op::Statement`](super::Op::Statement).
     pub const STATEMENT: u8 = 0x47;
+    /// [`Op::StoreLocal`](super::Op::StoreLocal) as a constant.
+    pub const STORE_CONST: u8 = 0x48;
 }
 
 /// How wide each tag's instruction is, with 0 for the tags that are not one.
@@ -246,6 +249,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::CONST as usize] = 3;
     widths[tag::LOAD_LOCAL as usize] = 3;
     widths[tag::STORE_LOCAL as usize] = 3;
+    widths[tag::STORE_CONST as usize] = 3;
     widths[tag::DECLARE_LOCAL as usize] = 3;
     widths[tag::DECLARE_CONST as usize] = 3;
     widths[tag::UNWIND_TO as usize] = 3;
@@ -396,8 +400,15 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 code.push(tag::LOAD_LOCAL);
                 code.extend_from_slice(&slot.to_le_bytes());
             }
-            Op::StoreLocal(slot) => {
-                code.push(tag::STORE_LOCAL);
+            Op::StoreLocal {
+                slot,
+                is_const: access_mode,
+            } => {
+                code.push(if *access_mode == Some(AccessMode::ReadOnly) {
+                    tag::STORE_CONST
+                } else {
+                    tag::STORE_LOCAL
+                });
                 code.extend_from_slice(&slot.to_le_bytes());
             }
 
@@ -774,7 +785,7 @@ fn encoded_width(op: &Op) -> usize {
         },
         Op::Const(..)
         | Op::LoadLocal(..)
-        | Op::StoreLocal(..)
+        | Op::StoreLocal { .. }
         | Op::DeclareLocal { .. }
         | Op::UnwindTo(..)
         | Op::Statement { .. }
@@ -837,7 +848,14 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::TRUE => Op::Bool(true),
 
         tag::LOAD_LOCAL => Op::LoadLocal(small(1)?),
-        tag::STORE_LOCAL => Op::StoreLocal(small(1)?),
+        tag::STORE_LOCAL => Op::StoreLocal {
+            slot: small(1)?,
+            is_const: None,
+        },
+        tag::STORE_CONST => Op::StoreLocal {
+            slot: small(1)?,
+            is_const: Some(AccessMode::ReadOnly),
+        },
 
         tag::ASSIGN_LOCAL => Op::AssignLocal {
             slot: small(1)?,
@@ -1047,7 +1065,10 @@ mod tests {
             Op::Bool(true),
             Op::Bool(false),
             Op::LoadLocal(3),
-            Op::StoreLocal(4),
+            Op::StoreLocal {
+                slot: 4,
+                is_const: None,
+            },
             Op::AssignLocal {
                 slot: 1,
                 var_name: 2,

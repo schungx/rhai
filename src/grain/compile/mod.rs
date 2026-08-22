@@ -13,7 +13,7 @@ use crate::ast::{
     ASTFlags, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock, SwitchCasesCollection,
 };
 use crate::tokenizer::Token;
-use crate::types::Span;
+use crate::types::{dynamic::AccessMode, Span};
 use crate::{Dynamic, ImmutableString, Position, AST};
 
 use crate::grain::bytecode::{
@@ -438,7 +438,10 @@ impl Lowering {
                 is_const: false,
             });
             self.expression(value);
-            self.emit(Op::StoreLocal(value_slot));
+            self.emit(Op::StoreLocal {
+                slot: value_slot,
+                is_const: None,
+            });
 
             Some(value_slot)
         } else {
@@ -947,25 +950,25 @@ impl Lowering {
                 if flags.contains(ASTFlags::EXPORTED) || self.slots.is_full() {
                     return false;
                 }
+                let is_const = flags.contains(ASTFlags::CONSTANT);
 
                 let (ident, init, index) = &**payload;
                 self.expression(init);
 
-                match index {
-                    Some(index) => {
-                        let slot = self.slots.depth() - index.get();
-                        let slot =
-                            u16::try_from(slot).expect("slot index is within the compiler's range");
-                        self.emit(Op::StoreLocal(slot));
-                    }
-                    None => {
-                        let name = self.push_name(ident.name.clone());
-                        self.slots.declare(ident.name.clone());
-                        self.emit(Op::DeclareLocal {
-                            name,
-                            is_const: flags.contains(ASTFlags::CONSTANT),
-                        });
-                    }
+                if let Some(index) = index {
+                    let slot = self.slots.depth() - index.get();
+                    let slot =
+                        u16::try_from(slot).expect("slot index is within the compiler's range");
+                    let is_const = if is_const {
+                        Some(AccessMode::ReadOnly)
+                    } else {
+                        None
+                    };
+                    self.emit(Op::StoreLocal { slot, is_const });
+                } else {
+                    let name = self.push_name(ident.name.clone());
+                    self.slots.declare(ident.name.clone());
+                    self.emit(Op::DeclareLocal { name, is_const });
                 }
 
                 // A declaration evaluates to unit.
