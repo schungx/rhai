@@ -948,15 +948,25 @@ impl Lowering {
                     return false;
                 }
 
-                let (ident, init, ..) = &**payload;
+                let (ident, init, index) = &**payload;
                 self.expression(init);
 
-                let name = self.push_name(ident.name.clone());
-                self.slots.declare(ident.name.clone());
-                self.emit(Op::DeclareLocal {
-                    name,
-                    is_const: flags.contains(ASTFlags::CONSTANT),
-                });
+                match index {
+                    Some(index) => {
+                        let slot = self.slots.depth() - index.get();
+                        let slot =
+                            u16::try_from(slot).expect("slot index is within the compiler's range");
+                        self.emit(Op::StoreLocal(slot));
+                    }
+                    None => {
+                        let name = self.push_name(ident.name.clone());
+                        self.slots.declare(ident.name.clone());
+                        self.emit(Op::DeclareLocal {
+                            name,
+                            is_const: flags.contains(ASTFlags::CONSTANT),
+                        });
+                    }
+                }
 
                 // A declaration evaluates to unit.
                 self.emit(Op::Unit);
