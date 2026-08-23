@@ -1,5 +1,4 @@
 use crate::tokenizer::Token;
-use crate::types::dynamic::AccessMode;
 
 /// What `x op= y` needs to reproduce Rhai's resolution order.
 ///
@@ -105,8 +104,8 @@ pub enum Op {
     StoreLocal {
         /// The slot index
         slot: u16,
-        /// Whether the value's access mode should be overwritten.
-        is_const: Option<AccessMode>,
+        /// Whether the value should be stored as a constant.
+        is_const: bool,
     },
 
     /// Push the value of the variable named `.0`, found by name.

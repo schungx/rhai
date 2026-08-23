@@ -26,7 +26,6 @@
 use alloc::borrow::Cow;
 
 use crate::grain::bytecode::{Op, Receiver};
-use crate::types::dynamic::AccessMode;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -400,11 +399,8 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 code.push(tag::LOAD_LOCAL);
                 code.extend_from_slice(&slot.to_le_bytes());
             }
-            Op::StoreLocal {
-                slot,
-                is_const: access_mode,
-            } => {
-                code.push(if *access_mode == Some(AccessMode::ReadOnly) {
+            Op::StoreLocal { slot, is_const } => {
+                code.push(if *is_const {
                     tag::STORE_CONST
                 } else {
                     tag::STORE_LOCAL
@@ -850,11 +846,11 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::LOAD_LOCAL => Op::LoadLocal(small(1)?),
         tag::STORE_LOCAL => Op::StoreLocal {
             slot: small(1)?,
-            is_const: None,
+            is_const: false,
         },
         tag::STORE_CONST => Op::StoreLocal {
             slot: small(1)?,
-            is_const: Some(AccessMode::ReadOnly),
+            is_const: true,
         },
 
         tag::ASSIGN_LOCAL => Op::AssignLocal {
@@ -1067,7 +1063,11 @@ mod tests {
             Op::LoadLocal(3),
             Op::StoreLocal {
                 slot: 4,
-                is_const: None,
+                is_const: false,
+            },
+            Op::StoreLocal {
+                slot: 4,
+                is_const: true,
             },
             Op::AssignLocal {
                 slot: 1,

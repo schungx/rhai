@@ -13,7 +13,7 @@ use crate::ast::{
     ASTFlags, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock, SwitchCasesCollection,
 };
 use crate::tokenizer::Token;
-use crate::types::{dynamic::AccessMode, Span};
+use crate::types::Span;
 use crate::{Dynamic, ImmutableString, Position, AST};
 
 use crate::grain::bytecode::{
@@ -440,7 +440,7 @@ impl Lowering {
             self.expression(value);
             self.emit(Op::StoreLocal {
                 slot: value_slot,
-                is_const: None,
+                is_const: false,
             });
 
             Some(value_slot)
@@ -959,11 +959,6 @@ impl Lowering {
                     let slot = self.slots.depth() - index.get();
                     let slot =
                         u16::try_from(slot).expect("slot index is within the compiler's range");
-                    let is_const = if is_const {
-                        Some(AccessMode::ReadOnly)
-                    } else {
-                        None
-                    };
                     self.emit(Op::StoreLocal { slot, is_const });
                 } else {
                     let name = self.push_name(ident.name.clone());
