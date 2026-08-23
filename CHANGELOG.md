@@ -36,6 +36,7 @@ Enhancements
 
 * `BloomFilterU64` is modified to take the sizes of the bit array as a `const` generic parameter instead of hard-coded to be 256 slots (32 bytes).
 * The `serde` and `metadata` features can now be used in `no-std` builds ([`#1130`](https://github.com/rhaiscript/rhai/pull/1130)).
+* Allow `no-std` builds for `wasm32-unknown-unknown`.
 
 
 Version 1.25.1
