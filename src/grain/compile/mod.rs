@@ -1742,6 +1742,7 @@ impl Lowering {
                         },
                         pos,
                     );
+                    self.caps.insert(Caps::FN_PTR);
                 } else {
                     self.emit_at(Op::Curry(argc), pos);
                     self.caps.insert(Caps::FN_PTR | Caps::CURRYING);

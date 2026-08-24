@@ -465,7 +465,6 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
         | Op::Pop
         | Op::AssignLocal { .. }
         | Op::AssignNamed { .. }
-        | Op::AssignThis { .. }
         | Op::JumpIfFalse { .. }
         | Op::JumpIfTrue { .. }
         | Op::Switch(..)
@@ -477,15 +476,11 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
         | Op::PopHandler
         | Op::SkipIfNotUnit { .. }
         | Op::Call { .. }
-        | Op::CallFnPtr { .. }
         | Op::Rotate(..)
         | Op::CheckSize { .. }
         | Op::InterpolateStart
         | Op::InterpolateAppend
         | Op::InterpolateEnd
-        | Op::MakeFnPtr
-        | Op::MakeClosure(..)
-        | Op::Curry(..)
         | Op::Throw
         | Op::IterInit
         | Op::IterNext { .. }
@@ -496,12 +491,16 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
         | Op::StoreShared(..)
         | Op::Statement { .. } => Caps::empty(),
 
+        Op::MakeFnPtr | Op::MakeClosure(..) | Op::CallFnPtr { .. } => Caps::FN_PTR,
+
+        Op::Curry(..) => Caps::FN_PTR | Caps::CURRYING,
+
         // `EvalAst` is a host-only instruction, so it is never in an artifact.
         Op::EvalAst { .. } => Caps::empty(),
 
         Op::Share(..) | Op::ShareNamed(..) => Caps::SHARING,
 
-        Op::RequireThis | Op::LoadThis | Op::LoadThisShared => Caps::THIS,
+        Op::RequireThis | Op::LoadThis | Op::LoadThisShared | Op::AssignThis { .. } => Caps::THIS,
 
         Op::CallRef { receiver, .. } => match receiver {
             Receiver::Local(..) | Receiver::Named(..) => Caps::empty(),
