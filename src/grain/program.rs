@@ -10,7 +10,7 @@ use crate::grain::bytecode::{
     site_to_position, sites, AssignOp, Chain, Chunk, Code, Op, Pools, Positions, Root, Strings,
     Switch, TableError,
 };
-use crate::grain::format::Sidecar;
+use crate::grain::format::{Caps, Sidecar};
 
 /// Rhai's own `SharedModule`, which it does not re-export.
 pub(crate) type SharedModule = Shared<Module>;
@@ -73,6 +73,9 @@ pub struct Function {
 /// artifact format refuses to write a `Program` that has any, so nothing
 /// reaching a device can depend on them.
 pub struct Program<'a> {
+    /// The capabilities required by this program's instructions.
+    caps: Caps,
+
     /// Every chunk's instructions, concatenated: main first, then each
     /// function. One buffer means one position table and one instruction
     /// address, so a device that fails reports a single number.
@@ -86,10 +89,6 @@ pub struct Program<'a> {
 
     /// The deepest chunk's operand-stack need, cached.
     max_stack: u16,
-
-    /// Whether the program can hand a function pointer to something that
-    /// might call it back. See [`Program::makes_fn_pointers`].
-    makes_fn_pointers: bool,
 
     /// Whether any function was declared for a receiver type.
     ///
@@ -224,24 +223,6 @@ fn node_position(node: &ASTNode) -> rhai::Position {
     }
 }
 
-/// Whether any instruction in `code` produces a function pointer.
-///
-/// Read off the bytes rather than tracked while lowering, because a program
-/// read from an artifact has no lowering to have tracked it — and the answer
-/// has to be the same either way or one of the two paths silently loses its
-/// callbacks.
-///
-/// Deliberately over-broad: it says yes to a pointer that is only ever called
-/// directly. Narrowing it would mean deciding where a pointer *goes*, which is
-/// a dataflow question over values that outlive the instruction that made
-/// them. Being wrong the other way loses a call at run time.
-pub(crate) fn makes_fn_pointers(code: &[u8]) -> bool {
-    use crate::grain::bytecode::code::tag;
-
-    crate::grain::bytecode::disassemble(code)
-        .any(|(at, ..)| matches!(code[at], tag::MAKE_CLOSURE | tag::MAKE_FN_PTR | tag::CURRY))
-}
-
 /// Whether a chunk reads or writes the frame's receiver.
 ///
 /// Read off the bytes for [`makes_fn_pointers`]'s reason: a program loaded from
@@ -306,12 +287,12 @@ pub(crate) struct Parts<'a> {
 
 impl<'a> Program<'a> {
     pub(crate) fn new(
+        caps: Caps,
         code: Code<'a>,
         main: Chunk,
         functions: Vec<Function>,
         parts: Parts<'a>,
     ) -> Self {
-        let makes_fn_pointers = makes_fn_pointers(&code);
         let has_typed_methods = functions.iter().any(|f| f.this_type.is_some());
 
         // Derived here so a program means the same whether it was compiled or
@@ -331,11 +312,11 @@ impl<'a> Program<'a> {
         });
 
         let mut program = Self {
+            caps,
             code,
             main,
             functions,
             max_stack: 0,
-            makes_fn_pointers,
             has_typed_methods,
             positions: parts.positions,
             debug_id,
@@ -363,10 +344,10 @@ impl<'a> Program<'a> {
     pub fn into_owned(self) -> Program<'static> {
         Program {
             code: Code::Owned(self.code.into_owned()),
+            caps: self.caps,
             main: self.main,
             functions: self.functions,
             max_stack: self.max_stack,
-            makes_fn_pointers: self.makes_fn_pointers,
             has_typed_methods: self.has_typed_methods,
             positions: self.positions,
             debug_id: self.debug_id,
@@ -401,7 +382,13 @@ impl<'a> Program<'a> {
     /// Cheap enough to run on every compile, and the gate an artifact loaded
     /// from a wire has to pass before the VM will touch it.
     pub fn verify(&self) -> Result<Vec<u16>, crate::grain::bytecode::VerifyError> {
-        crate::grain::bytecode::verify(&self.code, &self.chunks(), self.pools())
+        crate::grain::bytecode::verify(
+            self.caps,
+            &self.code,
+            &self.functions(),
+            &self.chunks(),
+            &self.pools(),
+        )
     }
 
     /// Every chunk, main first, in the order they sit in the code.
@@ -448,6 +435,12 @@ impl<'a> Program<'a> {
     #[must_use]
     pub fn code(&self) -> &[u8] {
         &self.code
+    }
+
+    /// The capabilities required by every chunk's instructions.
+    #[must_use]
+    pub fn caps(&self) -> Caps {
+        self.caps
     }
 
     /// The compiled script functions.
@@ -528,7 +521,7 @@ impl<'a> Program<'a> {
     /// the script. False is the common answer and costs nothing.
     #[must_use]
     pub fn makes_fn_pointers(&self) -> bool {
-        self.makes_fn_pointers
+        self.caps().contains(Caps::FN_PTR)
     }
 
     /// How much operand stack the deepest chunk needs.
@@ -794,6 +787,7 @@ mod tests {
             .collect();
 
         Program::new(
+            Caps::FUNCTION,
             code.into(),
             whole,
             functions,
@@ -847,6 +841,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "no_function"))]
     fn a_receiver_type_survives_the_round_trip() {
         let program = program_of(&[(0, Some(1), 0), (0, None, 0)]);
 

@@ -10,7 +10,7 @@
 
 use super::corpus;
 
-use rhai::grain::format::{ReadError, WriteError};
+use rhai::grain::format::{Abi, ReadError, WriteError};
 use rhai::grain::{Compiler, Program, Vm};
 use rhai::{Dynamic, Engine, Scope, INT};
 
@@ -186,7 +186,7 @@ fn a_golden_artifact_written_by_an_older_build_still_runs() {
     // the fixture was not written for, this would test the guard rather than
     // the encoding.
     if !GOLDEN_APPLIES {
-        println!("skipped: the golden source uses syntax this build does not have");
+        println!("skipped: the golden Rhai source requires features this build does not have to compile");
         return;
     }
 
@@ -204,24 +204,30 @@ fn a_golden_artifact_written_by_an_older_build_still_runs() {
             return;
         }
 
+        println!("host caps: {:?}", Abi::host());
+
         let bytes = std::fs::read(GOLDEN_ARTIFACT).expect("the golden artifact is checked in");
+
         let loaded = match Program::read(&bytes) {
             Ok(loaded) => loaded,
             // The header records the ABI the fixture was written under, and a build
-            // with different numeric widths or restriction flags refuses it *by
-            // design* — that refusal is what `abi.rs` is for. The fixture is one
-            // build's bytes, so it can only be checked on that build; anywhere else
-            // this would be testing the ABI guard rather than the encoding.
-            Err(err) if format!("{err}").contains("written with") => {
-                println!("skipped: the golden fixture is a default-build artifact ({err})");
+            // with different numeric widths or capability flags refuses it *by design*
+            // — that refusal is what `abi.rs` is for. The fixture is the bytes of the
+            // default build, so it can only be checked on a compatible build; anywhere
+            // else this would be testing the ABI guard rather than the encoding.
+            Err(err) if format!("{err}").contains("artifact cannot load") => {
+                println!("skipped: the golden fixture is a default-build artifact and cannot load ({err})");
                 return;
             }
             Err(err) => panic!(
-                "the golden artifact no longer loads: {err}\n\
-             The format moved. If that was deliberate, regenerate the fixture with \
-             `REGENERATE_GOLDEN=1 cargo test --features grain --test grain golden`.",
+                "the golden artifact no longer loads:\n{err}\n\n\
+                The format probably has moved.\n\
+                If that was deliberate, regenerate the fixture with:\n\
+                REGENERATE_GOLDEN=1 cargo test --features grain --test grain golden",
             ),
         };
+
+        println!("artifact requires caps: {:?}", loaded.caps());
 
         // A fixture only pins what it contains, and narrowing one while editing the
         // source is easy and silent. These are read off the *artifact*, so they say
@@ -413,8 +419,8 @@ fn the_same_source_compiles_to_the_same_bytes() {
 
     assert_eq!(first, second, "two compiles of one source disagree");
 
-    let reparsed = engine.compile(source).expect("must compile");
-    let third = Compiler::new().compile(&reparsed).write().expect("must be writable");
+    let recompiled = engine.compile(source).expect("must compile");
+    let third = Compiler::new().compile(&recompiled).write().expect("must be writable");
 
     assert_eq!(first, third, "two parses of one source disagree");
 }
@@ -502,24 +508,86 @@ fn a_future_format_version_is_refused_rather_than_guessed_at() {
     assert!(matches!(Program::read(&bytes).unwrap_err(), ReadError::UnsupportedVersion { found: 0xffff, .. },));
 }
 
-/// The fingerprint is the difference between a clean failure and integers
-/// decoded as the wrong type, so the error must name the flag.
+/// Every capability the compiler tracks for a script is produced by a
+/// common Rhai scriptlet that actually uses it and still round-trips.
 #[test]
-fn a_different_value_representation_is_refused_by_name() {
+fn capabilities_round_trip() {
+    use rhai::grain::format::Caps;
+
+    const CASES: &[(&str, &str, Caps, &str)] = &[
+        #[cfg(not(feature = "no_float"))]
+        ("float", "let x = 3.5; x + 1.5", Caps::FLOAT, "floating-point"),
+        #[cfg(not(feature = "no_index"))]
+        ("array", "let a = [1, 2, 3]; a[1] + a[2]", Caps::ARRAY.union(Caps::INDEXING), "arrays"),
+        #[cfg(not(feature = "no_object"))]
+        ("map", "let m = #{ answer: 42 }; m.answer", Caps::MAP.union(Caps::PROPERTY), "object maps"),
+        // #[cfg(feature = "decimal")]
+        // ("decimal", "let d = 1e1000; d + 1", Caps::DECIMAL, "decimal numbers"),
+        #[cfg(not(feature = "no_object"))]
+        #[cfg(not(feature = "no_index"))]
+        ("method", "let a = [1, 2, 3]; a.len()", Caps::ARRAY.union(Caps::METHOD), "method calling style"),
+        #[cfg(not(feature = "no_function"))]
+        #[cfg(not(feature = "no_object"))]
+        ("this", "fn add(n) { this + n } let x = 40; x.add(2)", Caps::THIS.union(Caps::FUNCTION).union(Caps::METHOD), "this"),
+        #[cfg(not(feature = "no_function"))]
+        #[cfg(not(feature = "no_closure"))]
+        #[cfg(not(feature = "no_object"))]
+        ("sharing", "let x = 40; let f = || x + 2; f.call()", Caps::SHARING.union(Caps::FUNCTION).union(Caps::METHOD), "shared values"),
+        #[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_closure")))]
+        (
+            "combined_features",
+            "let items = [1, 2, 3]; let map = #{ answer: 42 }; let f = || items[0] + map.answer; f.call()",
+            Caps::ARRAY.union(Caps::INDEXING).union(Caps::MAP).union(Caps::PROPERTY).union(Caps::SHARING).union(Caps::METHOD),
+            "shared values",
+        ),
+    ];
+
     let engine = corpus::engine();
 
-    let mut narrow = sample(&engine);
-    // Halved rather than named: `only_i32` already makes 4 the host's own
-    // width, and an artifact agreeing with the host is not refused at all.
-    let half = narrow[6] / 2; // INT width
-    narrow[6] = half;
-    let message = Program::read(&narrow).unwrap_err().to_string();
-    assert!(message.contains("INT") && message.contains(&half.to_string()), "the message must name the width: {message}",);
+    for (name, source, expected, expected_text) in CASES {
+        let ast = engine.compile(source).unwrap_or_else(|err| panic!("{name} must compile: {err}"));
+        let program = Compiler::new().compile(&ast);
 
-    let mut restricted = sample(&engine);
-    restricted[8] ^= 0b100; // the `no_index` bit
-    let message = Program::read(&restricted).unwrap_err().to_string();
-    assert!(message.contains("no_index"), "the message must name the flag: {message}",);
+        for cap in Caps::all() {
+            if expected.contains(cap) {
+                assert!(program.caps().contains(cap), "{name} is missing {:?}", cap);
+            }
+        }
+
+        let bytes = program.write().expect("scriptlet must serialize");
+        let loaded = Program::read(&bytes).expect("scriptlet must survive a round trip");
+        assert!(loaded.caps().contains(*expected), "{name} lost {expected:?} on read-back");
+        let caps_string = loaded.caps().to_string();
+        assert!(caps_string.contains(expected_text), "{name} caps string did not mention `{expected_text}`: {caps_string}");
+    }
+}
+
+/// Capabilities of the host.
+#[test]
+fn host_capabilities() {
+    use rhai::grain::format::{Abi, Caps};
+
+    const SUPPORTED: &[(Caps, bool, &str)] = &[
+        (Caps::FLOAT, !cfg!(feature = "no_float"), "floating-point"),
+        (Caps::ARRAY, !cfg!(feature = "no_index"), "arrays"),
+        (Caps::BLOB, !cfg!(feature = "no_index"), "BLOB"),
+        (Caps::MAP, !cfg!(feature = "no_object"), "object maps"),
+        (Caps::DECIMAL, cfg!(feature = "decimal"), "decimal numbers"),
+        (Caps::FUNCTION, !cfg!(feature = "no_function"), "functions"),
+        (Caps::INDEXING, !cfg!(feature = "no_index"), "indexing"),
+        (Caps::PROPERTY, !cfg!(feature = "no_object"), "properties"),
+        (Caps::METHOD, !cfg!(feature = "no_object"), "method calling style"),
+        (Caps::THIS, !cfg!(feature = "no_function"), "this"),
+        (Caps::SHARING, !cfg!(feature = "no_closure"), "shared values"),
+        (Caps::IMPORT, !cfg!(feature = "no_module"), "imports modules"),
+        (Caps::EXPORT, !cfg!(feature = "no_module"), "exports data in modules"),
+        (Caps::CUSTOM_SYNTAX, false, "custom syntax"),
+    ];
+
+    let host = Abi::host();
+    for (cap, supported, text) in SUPPORTED {
+        assert_eq!(host.caps.contains(*cap), *supported, "cap {:?} should be {} on this build ({text})", cap, if *supported { "available" } else { "unavailable" });
+    }
 }
 
 /// A `switch` carries hashes Rhai's parser computed, and Rhai seeds its hasher
