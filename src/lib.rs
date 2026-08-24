@@ -468,11 +468,6 @@ compile_error!("`only_i32` and `only_i64` cannot be used together");
 #[cfg(feature = "wasm-bindgen")]
 compile_error!("`wasm-bindgen` cannot be used with `no-std`");
 
-#[cfg(target_family = "wasm")]
-#[cfg(not(target_os = "unknown"))]
-#[cfg(feature = "no_std")]
-compile_error!("`no_std` cannot be used for WASM target that is not `wasm32-unknown-unknown`");
-
 #[cfg(not(target_family = "wasm"))]
 #[cfg(feature = "wasm-bindgen")]
 compile_error!("`wasm-bindgen` cannot be used for non-WASM target");
