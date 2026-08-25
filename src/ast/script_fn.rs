@@ -2,7 +2,7 @@
 #![cfg(not(feature = "no_function"))]
 
 use super::{FnAccess, StmtBlock};
-use crate::{types::Span, FnArgsVec, ImmutableString, Position};
+use crate::{FnArgsVec, ImmutableString, Position};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{fmt, hash::Hash};
@@ -18,7 +18,7 @@ pub enum ScriptFuncPayload {
         program: crate::grain::SharedProgram,
         params: FnArgsVec<u32>,
         chunk: crate::grain::bytecode::Chunk,
-        span: Span,
+        span: crate::types::Span,
     },
 }
 

@@ -162,13 +162,13 @@ impl Engine {
     /// let mut value = 1_i64.into();
     /// let options = CallFnOptions::new().bind_this_ptr(&mut value);
     ///
-    /// engine.call_fn_with_options(options, &mut scope, &ast, "action", ( 41_i64, ))?;
+    /// engine.call_fn_with_options::<()>(options, &mut scope, &ast, "action", ( 41_i64, ))?;
     /// assert_eq!(value.as_int().unwrap(), 42);
     ///
     /// // Do not rewind scope
     /// let options = CallFnOptions::default().rewind_scope(false);
     ///
-    /// engine.call_fn_with_options(options, &mut scope, &ast, "decl", ( 42_i64, ))?;
+    /// engine.call_fn_with_options::<()>(options, &mut scope, &ast, "decl", ( 42_i64, ))?;
     /// assert_eq!(scope.get_value::<i64>("hello").unwrap(), 42);
     /// # Ok(())
     /// # }
