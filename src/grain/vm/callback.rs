@@ -32,6 +32,7 @@ use std::prelude::v1::*;
 use crate::{
     ast::script_fn::{ScriptFuncDef, ScriptFuncPayload},
     grain::program::SharedProgram,
+    grain::vm::Vm,
     types::Span,
     FnAccess, Module,
 };
@@ -52,7 +53,7 @@ const MAX_PARAMS: usize = 16;
 /// Built once per run rather than cached on the program: the closures hold the
 /// program, so anything the program held back would be a cycle.
 #[cfg(not(feature = "no_function"))]
-pub(super) fn wrappers(program: &SharedProgram) -> Module {
+pub(super) fn wrappers(vm: &mut Vm, program: &SharedProgram) -> Module {
     let mut module = Module::new();
 
     // What Rhai reports as the source of a function it found here. Its own
@@ -74,8 +75,8 @@ pub(super) fn wrappers(program: &SharedProgram) -> Module {
         let params = function
             .params
             .iter()
-            .map(|&index| program.names().get(index).unwrap_or(""))
-            .map(Into::into)
+            .map(|&index| program.name(index).unwrap_or(""))
+            .map(|name| vm.strings_interner.get(name))
             .collect();
 
         module.set_script_fn(ScriptFuncDef {
@@ -88,10 +89,13 @@ pub(super) fn wrappers(program: &SharedProgram) -> Module {
                     program.position(function.chunk.end() as usize),
                 ),
             },
-            name: name.into(),
+            name: vm.strings_interner.get(name),
             access: FnAccess::Private,
             #[cfg(not(feature = "no_object"))]
-            this_type: None,
+            this_type: function
+                .this_type
+                .and_then(|index| program.name(index))
+                .map(|name| vm.strings_interner.get(name)),
             params,
             #[cfg(feature = "metadata")]
             comments: Default::default(),

@@ -914,7 +914,7 @@ impl<'e> Vm<'e> {
         return if program.functions().is_empty() {
             self.run_with(program, scope, None)
         } else {
-            let wrappers = callback::wrappers(program).into();
+            let wrappers = callback::wrappers(self, program).into();
             self.run_with(program, scope, Some(wrappers))
         };
         #[cfg(feature = "no_function")]
