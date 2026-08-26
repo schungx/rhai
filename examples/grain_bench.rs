@@ -91,9 +91,8 @@ const CASES: &[Case] = &[
         floor: 1.50,
     },
     // The VM scans its case hashes; Rhai probes a hash map. Two sizes,
-    // because which of those wins is a question about how many arms there
-    // are, and a `switch` nobody would write is the only place the scan can
-    // lose.
+    // because which of those wins is a question about how many arms there are,
+    // and a `switch` nobody would write is the only place the scan can lose.
     Case {
         name: "switch, 4 arms",
         source: "let s = 0; for i in 0..20000 { \
@@ -130,14 +129,6 @@ const CASES: &[Case] = &[
         callbacks: true,
         floor: 1.50,
     },
-    // The one case the VM is expected to lose. Every element is a boundary out
-    // of the VM, through Rhai's dispatch and back into a second `Vm` with an
-    // empty resolution cache — where the walker stays inside itself and reaches
-    // the closure body directly. 1000 crossings per iteration.
-    //
-    // Also the only case here that indexes: the `a.push(i)` loop is a chain
-    // rooted at a local, so it is what says the root is still being walked
-    // where it lives rather than copied out and put back.
     #[cfg(not(feature = "no_function"))]
     Case {
         name: "native callbacks",

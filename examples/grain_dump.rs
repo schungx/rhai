@@ -1,4 +1,4 @@
-//! Compile a Rhai script to grain bytecode and print the disassembly.
+//! Compile a Rhai script to Grain bytecodes and print the disassembly.
 //!
 //! `cargo run --features grain --example grain_dump -- script.rhai`
 
