@@ -180,6 +180,46 @@ fn every_compiled_chunk_verifies() {
     assert!(broken.is_empty(), "{} chunks failed verification:{}", broken.len(), broken.join(""),);
 }
 
+/// No jump may land on the instruction after itself.
+///
+/// Such a jump is a branch the lowering reserved and then had nothing to put
+/// behind — leaving a loop, or skipping an `else` that is not there. It costs
+/// five bytes and a dispatch and can never do anything, and because it is
+/// harmless it is invisible to every other check here.
+///
+/// Unconditional jumps only. A `JumpIfFalse` over nothing still has to pop its
+/// condition and still has to reject one that is not a boolean, so landing next
+/// door says nothing about it.
+///
+/// No exceptions, and that is the claim: every corpus script is checked, so a
+/// new one that reserves a jump it never needed fails here on arrival rather
+/// than joining a majority that already does it.
+#[test]
+fn no_jump_lands_on_the_following_instruction() {
+    use rhai::grain::bytecode::{disassemble, Op};
+
+    let engine = corpus::engine();
+
+    let idle: Vec<_> = corpus::CASES
+        .iter()
+        .filter_map(|case| {
+            let ast = engine.compile(case.source).ok()?;
+            let program = Compiler::new().compile(&ast);
+            let ops: Vec<_> = disassemble(program.code()).collect();
+
+            let at: Vec<_> = ops
+                .windows(2)
+                .filter(|pair| matches!(pair[0].1, Op::Jump(target) if target as usize == pair[1].0))
+                .map(|pair| pair[0].0)
+                .collect();
+
+            (!at.is_empty()).then(|| format!("\n  {}: at {at:?}", case.name))
+        })
+        .collect();
+
+    assert!(idle.is_empty(), "{} chunks jump nowhere:{}", idle.len(), idle.join(""),);
+}
+
 /// A chunk must declare the stack it uses, not the stack it might use.
 ///
 /// The lowering's own estimate is one slot per instruction, which is safe and
