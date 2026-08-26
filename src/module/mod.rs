@@ -1336,14 +1336,9 @@ impl Module {
     #[cfg(not(feature = "no_function"))]
     #[inline]
     #[must_use]
-    pub(crate) fn get_script_fn_by_hash(
-        &self,
-        hash: u64,
-    ) -> Option<&Shared<crate::ast::ScriptFuncDef>> {
+    pub(crate) fn get_script_fn_by_hash(&self, hash: u64) -> Option<&crate::func::RhaiFunc> {
         if let Some(ref functions) = self.functions {
-            functions
-                .get(&hash)
-                .and_then(|(f, _)| f.get_script_fn_def())
+            functions.get(&hash).map(|(f, _)| f)
         } else {
             None
         }
@@ -2392,13 +2387,6 @@ impl Module {
                 let (_, v, a) = scope.get_entry_by_index(i);
                 (v.clone(), a.to_vec())
             };
-
-            #[cfg(not(feature = "no_function"))]
-            _value.deep_scan(|v| {
-                if let Some(fn_ptr) = v.downcast_mut::<crate::FnPtr>() {
-                    fn_ptr.env = Some(env.clone());
-                }
-            });
 
             match aliases.len() {
                 0 => (),

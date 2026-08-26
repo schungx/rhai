@@ -470,19 +470,7 @@ impl Expr {
     #[must_use]
     pub fn get_literal_value(&self, global: Option<&GlobalRuntimeState>) -> Option<Dynamic> {
         Some(match self {
-            Self::DynamicConstant(x, ..) => {
-                let mut _value = x.as_ref().clone();
-
-                #[cfg(not(feature = "no_function"))]
-                if let Some(global) = global {
-                    if let Some(mut fn_ptr) = _value.write_lock::<FnPtr>() {
-                        // Create a new environment with the current module
-                        fn_ptr.env = Some(crate::Shared::new(global.into()));
-                    }
-                }
-
-                _value
-            }
+            Self::DynamicConstant(x, ..) => x.as_ref().clone(),
 
             Self::IntegerConstant(x, ..) => (*x).into(),
             #[cfg(not(feature = "no_float"))]

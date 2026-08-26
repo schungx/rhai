@@ -1281,8 +1281,6 @@ pub mod array_functions {
         let comparer = FnPtr {
             name: ctx.engine().get_interned_string(OP_EQUALS),
             curry: <_>::default(),
-            #[cfg(not(feature = "no_function"))]
-            env: None,
             typ: FnPtrType::Normal,
         };
         dedup_by_comparer(ctx, array, comparer);

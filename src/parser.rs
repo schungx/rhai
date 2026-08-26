@@ -3925,8 +3925,6 @@ impl Engine {
         let fn_ptr = crate::FnPtr {
             name: fn_name,
             curry: ThinVec::new(),
-            #[cfg(not(feature = "no_function"))]
-            env: None,
             typ: crate::types::fn_ptr::FnPtrType::Script {
                 num_params: fn_def.params.len(),
                 hash: calc_fn_hash(None, &fn_def.name, fn_def.params.len()),

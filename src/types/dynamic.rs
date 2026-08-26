@@ -414,10 +414,6 @@ impl Hash for Dynamic {
             Union::Blob(ref a, ..) => a.hash(state),
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => m.hash(state),
-            #[cfg(not(feature = "no_function"))]
-            Union::FnPtr(ref f, ..) if f.env.is_some() => {
-                unimplemented!("FnPtr with embedded environment cannot be hashed")
-            }
             Union::FnPtr(ref f, ..) => {
                 f.fn_name().hash(state);
                 f.curry().hash(state);
@@ -1225,8 +1221,6 @@ impl Dynamic {
             Union::Blob(..) => true,
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => m.values().all(Self::is_hashable),
-            #[cfg(not(feature = "no_function"))]
-            Union::FnPtr(ref f, ..) if f.env.is_some() => false,
             Union::FnPtr(ref f, ..) => f.curry().iter().all(Self::is_hashable),
             #[cfg(not(feature = "no_time"))]
             Union::TimeStamp(..) => false,
@@ -1302,8 +1296,7 @@ impl Dynamic {
                         #[cfg(not(feature = "no_object"))]
                         Union::Map(ref m, ..) => m.values().all(|v| checked_is_hashable(v, dict)),
                         Union::FnPtr(ref f, ..) => {
-                            f.env.is_none()
-                                && f.curry().iter().all(|v| checked_is_hashable(v, dict))
+                            f.curry().iter().all(|v| checked_is_hashable(v, dict))
                         }
                         _ => value.is_hashable(),
                     }

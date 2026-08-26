@@ -636,7 +636,7 @@ fn a_closure_pointer_is_late_bound() {
 
     let (ours, walker) = (format!("{ours:?}"), format!("{walker:?}"));
     assert!(ours.starts_with("Fn(\"anon$"), "ours is a plain named pointer: {ours}",);
-    assert!(walker.starts_with("Fn*+(\"anon$"), "rhai's carries a script body and an environment: {walker}",);
+    assert!(walker.starts_with("Fn*(\"anon$"), "rhai's carries a script body and an environment: {walker}",);
 
     // And the difference is only in the binding: calling either gives the
     // same answer, which is what the corpus covers.

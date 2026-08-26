@@ -54,14 +54,25 @@ impl FnPtrType {
     #[cfg(not(feature = "no_function"))]
     #[inline]
     #[must_use]
-    pub fn get_linked_script<'a>(
+    pub(crate) fn get_linked_script<'a>(
         &self,
         global: &'a crate::eval::GlobalRuntimeState,
         num_args: usize,
-    ) -> Option<&'a Shared<crate::ast::ScriptFuncDef>> {
+    ) -> Option<(
+        &'a Shared<crate::ast::ScriptFuncDef>,
+        Option<&'a Shared<crate::ast::EncapsulatedEnviron>>,
+    )> {
         match self {
-            Self::Script { num_params, hash } if *num_params == num_args => {
-                global.lib[0].get_script_fn_by_hash(*hash)
+            Self::Script { num_params, hash }
+                if *num_params == num_args && !global.lib.is_empty() =>
+            {
+                global.lib[0].get_script_fn_by_hash(*hash).map(|f| match f {
+                    crate::func::RhaiFunc::Script {
+                        ref fn_def,
+                        ref env,
+                    } => (fn_def, env.as_ref()),
+                    _ => unreachable!(),
+                })
             }
             _ => None,
         }
@@ -76,9 +87,6 @@ pub struct FnPtr {
     pub(crate) name: ImmutableString,
     /// Curried arguments.
     pub(crate) curry: ThinVec<Dynamic>,
-    /// Encapsulated environment.
-    #[cfg(not(feature = "no_function"))]
-    pub(crate) env: Option<Shared<crate::ast::EncapsulatedEnviron>>,
     /// Type of function pointer.
     pub(crate) typ: FnPtrType,
 }
@@ -93,12 +101,7 @@ impl fmt::Debug for FnPtr {
     #[cold]
     #[inline(never)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            #[cfg(not(feature = "no_function"))]
-            _ if self.env.is_some() => format!("{}+", self.typ),
-            _ => self.typ.to_string(),
-        };
-        let ff = &mut f.debug_tuple(&name);
+        let ff = &mut f.debug_tuple(&self.typ.to_string());
         ff.field(&self.name);
         self.curry.iter().for_each(|curry| {
             ff.field(curry);
@@ -426,42 +429,47 @@ impl FnPtr {
         let mut this_ptr = this_ptr;
         let mut arg_values = arg_values;
         let mut arg_values = arg_values.as_mut();
-        let mut args_data;
+        let mut args_data: FnArgsVec<_>;
 
         if self.is_curried() {
-            args_data = FnArgsVec::with_capacity(self.curry().len() + arg_values.len());
-            args_data.extend(self.curry().iter().cloned());
-            args_data.extend(arg_values.iter_mut().map(mem::take));
+            args_data = self
+                .curry()
+                .iter()
+                .cloned()
+                .chain(arg_values.iter_mut().map(mem::take))
+                .collect();
             arg_values = &mut *args_data;
         }
 
-        // Linked to scripted function?
         #[cfg(not(feature = "no_function"))]
-        if let Some(fn_def) = self.typ.get_linked_script(global, arg_values.len()) {
-            let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
-            args.extend(arg_values.iter_mut());
+        let linked_script = self.typ.get_linked_script(global, arg_values.len());
 
-            let global = &mut global.clone();
-            global.level += 1;
-
-            return context.engine().call_script_fn(
-                global,
-                &mut crate::eval::Caches::new(),
-                &mut crate::Scope::new(),
-                this_ptr,
-                #[cfg(not(feature = "no_function"))]
-                self.env.as_deref(),
-                #[cfg(feature = "no_function")]
-                None,
-                fn_def,
-                args,
-                true,
-                context.call_position(),
-            );
-        }
-
-        // Embedded native Rust function?
         match self.typ {
+            // Linked to scripted function
+            #[cfg(not(feature = "no_function"))]
+            _ if linked_script.is_some() => {
+                let Some((fn_def, env)) = linked_script else {
+                    unreachable!()
+                };
+
+                let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
+
+                let global = &mut global.clone();
+                global.level += 1;
+
+                return context.engine().call_script_fn(
+                    global,
+                    &mut crate::eval::Caches::new(),
+                    &mut crate::Scope::new(),
+                    this_ptr,
+                    env.map(|e| &**e),
+                    fn_def,
+                    args,
+                    true,
+                    context.call_position(),
+                );
+            }
+            // Embedded native Rust function
             FnPtrType::Native(ref func) => {
                 let mut cloned_this_ptr;
                 let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
@@ -514,10 +522,13 @@ impl FnPtr {
                 // Native Rust function, insert `this_ptr` after the curried arguments.
                 // Arguments order is: curry + this_ptr (cloned) + args
                 if is_native {
-                    let mut args_data = FnArgsVec::with_capacity(arg_values.len() + 1);
-                    args_data.extend(arg_values[..curry_len].iter_mut().map(mem::take));
-                    args_data.push(this_ptr.clone());
-                    args_data.extend(arg_values[curry_len..].iter_mut().map(mem::take));
+                    let (first, second) = arg_values.split_at_mut(curry_len);
+                    let mut args_data = first
+                        .iter_mut()
+                        .map(mem::take)
+                        .chain(std::iter::once(this_ptr.clone()))
+                        .chain(second.iter_mut().map(mem::take))
+                        .collect::<FnArgsVec<_>>();
                     let args = &mut args_data.iter_mut().collect::<FnArgsVec<_>>();
                     return context.call_native_fn_raw(self.fn_name(), false, args);
                 }
@@ -525,14 +536,15 @@ impl FnPtr {
         }
 
         // Go through normal dispatch otherwise.
-        let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
-        args.extend(arg_values.iter_mut());
-
         let is_method = this_ptr.is_some();
 
-        if let Some(this_ptr) = this_ptr {
-            args.insert(0, this_ptr);
-        }
+        let args = &mut if let Some(this_ptr) = this_ptr {
+            std::iter::once(this_ptr)
+                .chain(arg_values.iter_mut())
+                .collect::<FnArgsVec<_>>()
+        } else {
+            arg_values.iter_mut().collect::<FnArgsVec<_>>()
+        };
 
         context.call_fn_raw(self.fn_name(), is_method, is_method, args)
     }
@@ -617,9 +629,10 @@ impl FnPtr {
                         }
                     }
 
-                    let mut args2 = FnArgsVec::with_capacity(args.len() + extras.len());
-                    args2.extend(args);
-                    args2.extend(extras);
+                    let args2 = args
+                        .into_iter()
+                        .chain(extras.into_iter())
+                        .collect::<FnArgsVec<_>>();
 
                     self.call_raw(ctx, this_ptr, args2)
                 }
@@ -645,8 +658,6 @@ impl TryFrom<ImmutableString> for FnPtr {
             Ok(Self {
                 name: value,
                 curry: ThinVec::new(),
-                #[cfg(not(feature = "no_function"))]
-                env: None,
                 typ: FnPtrType::Normal,
             })
         } else if is_reserved_keyword_or_symbol(&value).0
@@ -668,8 +679,6 @@ impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> From<T> for FnPtr {
         Self {
             name: fn_def.name.clone(),
             curry: ThinVec::new(),
-            #[cfg(not(feature = "no_function"))]
-            env: None,
             typ: FnPtrType::Script {
                 num_params: fn_def.params.len(),
                 hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),

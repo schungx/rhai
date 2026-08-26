@@ -4177,8 +4177,6 @@ impl<'e> Vm<'e> {
                         FnPtr {
                             name: name.into(),
                             curry: Default::default(),
-                            #[cfg(not(feature = "no_function"))]
-                            env: None,
                             typ: FnPtrType::Normal,
                         }
                         .into(),
