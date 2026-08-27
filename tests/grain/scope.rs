@@ -367,16 +367,8 @@ fn a_name_that_is_nowhere_is_reported_the_same_way() {
     agree("nope += 1", |_| {}, true);
 }
 
-/// A bare script-function name is a function pointer with the calling
-/// environment attached (`eval/expr.rs:71-99`), not a variable read, so it
-/// must stay a fragment rather than becoming a name lookup that fails.
-///
-/// Checked on the compiled program rather than by running it, because running
-/// it currently disagrees with the walker for an unrelated reason: `execute`
-/// forces `always_search_scope` whenever a program has any fragment, and that
-/// flag makes Rhai skip the function-pointer branch entirely
-/// (`eval/expr.rs:62`). Reported separately — it predates named variables, and
-/// the fix is about residuals rather than about this.
+/// A bare script-function name lowers to a named read and resolves to a
+/// function pointer at run time.
 #[test]
 #[cfg(not(any(feature = "no_function", feature = "no_object")))]
 fn a_script_function_name_is_not_a_variable() {
@@ -384,12 +376,12 @@ fn a_script_function_name_is_not_a_variable() {
     let ast = engine.compile("fn helper() { 1 } let f = helper; f.call()").expect("must compile");
     let program = Compiler::new().compile(&ast);
 
-    assert!(program.residual_count() > 0, "a function name must not become a name lookup",);
-    assert!(
-        !rhai::grain::bytecode::disassemble(program.code()).any(|(.., op)| matches!(op, rhai::grain::bytecode::Op::LoadNamed(..))),
-        "nothing in {:?} may load `helper` by name",
-        program,
-    );
+    assert_eq!(program.residual_count(), 0, "a script-function name should lower without residual AST fragments",);
+    assert!(rhai::grain::bytecode::disassemble(program.code()).any(|(.., op)| matches!(op, rhai::grain::bytecode::Op::LoadNamed(..))), "the lowered program should read `helper` by name",);
+    let out = Vm::new(&engine)
+        .eval_with_scope(&mut Scope::new(), &program)
+        .expect("a script-function name should resolve as a function pointer");
+    assert_eq!(out.as_int().unwrap(), 1);
 }
 
 /// The last of the three places Rhai looks: a constant a host published on a

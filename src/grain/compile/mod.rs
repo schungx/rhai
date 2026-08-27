@@ -81,23 +81,7 @@ impl Compiler {
     /// Lower an `AST` into a [`Program`].
     #[must_use]
     pub fn compile(&self, ast: &AST) -> Program<'static> {
-        // A bare script-function name used as a value is not a variable read
-        // at all — Rhai turns it into a function pointer with the calling
-        // environment attached (`eval/expr.rs:71-99`) — so those names must
-        // not become `LoadNamed`. Carried across every restart below, because
-        // function bodies are lowered after one. Under `no_function` an `AST`
-        // declares none, so there is nothing to hold back.
-        #[cfg(not(feature = "no_function"))]
-        let script_fns: Vec<ImmutableString> = ast
-            .shared_lib()
-            .iter_script_fn_info()
-            .map(|(.., def)| def.name.clone())
-            .collect();
-        #[cfg(feature = "no_function")]
-        let script_fns: Vec<ImmutableString> = Vec::new();
-
         let fresh = |caps| Lowering {
-            script_fns: script_fns.clone(),
             caps,
             ..Lowering::default()
         };
@@ -323,8 +307,6 @@ struct Lowering {
     /// The same for `try` regions: a `break` out of one has to disarm it, or
     /// the next unrelated error is caught into a block already left.
     handlers: usize,
-    /// Names that are script functions rather than variables.
-    script_fns: Vec<ImmutableString>,
     /// How many statements enclose the one being lowered, for the marker
     /// [`Lowering::statement`] emits. Restored on the way out, so it is the
     /// nesting rather than a running count.
@@ -423,7 +405,7 @@ impl Lowering {
                 // function pointer rather than a variable, and turning one
                 // into a name lookup would report it missing where Rhai hands
                 // back a pointer.
-                None if self.is_variable_name(&v.1, false) => Root::Named {
+                None if self.is_variable_name(false) => Root::Named {
                     name: self.push_name(v.1.clone()),
                     pos: root.position(),
                 },
@@ -1097,7 +1079,7 @@ impl Lowering {
             // lives differs.
             Stmt::Assignment(payload)
                 if matches!(&payload.1.lhs, Expr::Variable(v, ..)
-                    if self.is_variable_name(&v.1, has_namespace!(v))) =>
+                    if self.is_variable_name(has_namespace!(v))) =>
             {
                 let (op_info, binary) = &**payload;
                 let Expr::Variable(v, ..) = &binary.lhs else {
@@ -1612,13 +1594,12 @@ impl Lowering {
                     // Not a local this compiler declared, so no slot can name
                     // it: it is the caller's, a module's, or nothing. Looked
                     // up by name at run time, at the cost of a scope scan.
-                    _ if self.is_variable_name(&payload.1, is_qualified) => {
+                    _ if self.is_variable_name(is_qualified) => {
                         let name = self.push_name(payload.1.clone());
                         self.emit_at(Op::LoadNamed(name), expr.position());
                     }
-                    // A qualified name resolves against imported modules, and
-                    // a bare function name is a function pointer. Neither is a
-                    // variable read, and both stay Rhai's job.
+                    // A qualified name resolves against imported modules, so it
+                    // stays Rhai's job.
                     _ => self.residual_expr(expr),
                 }
             }
@@ -1854,7 +1835,7 @@ impl Lowering {
             Expr::Variable(payload, ..) if !has_namespace!(payload) => {
                 match self.slots.resolve(&payload.1) {
                     Some(slot) => Some(Receiver::Local(slot)),
-                    None if self.is_variable_name(&payload.1, false) => {
+                    None if self.is_variable_name(false) => {
                         Some(Receiver::Named(self.push_name(payload.1.clone())))
                     }
                     None => None,
@@ -1893,7 +1874,7 @@ impl Lowering {
 
         match self.slots.resolve(&payload.1) {
             Some(slot) if !qualified => Some(Receiver::Local(slot)),
-            _ if self.is_variable_name(&payload.1, qualified) => {
+            _ if self.is_variable_name(qualified) => {
                 Some(Receiver::Named(self.push_name(payload.1.clone())))
             }
             _ => None,
@@ -1970,11 +1951,13 @@ impl Lowering {
     /// Whether a name read is a variable read at all.
     ///
     /// A qualified name resolves against imported modules rather than the
-    /// scope, and a bare script-function name is a function pointer with the
-    /// calling environment attached (`eval/expr.rs:71-99`). Neither is
-    /// something to look up by name, and both stay fragments.
-    fn is_variable_name(&self, name: &ImmutableString, qualified: bool) -> bool {
-        !qualified && !self.script_fns.contains(name)
+    /// scope, so it stays a fragment.
+    ///
+    /// Currently everything else is considered a valid variable name.
+    /// Keeping this a separate function for future expansion purposes.
+    #[inline(always)]
+    const fn is_variable_name(&self, qualified: bool) -> bool {
+        !qualified
     }
 
     /// Pool what `x op= y` needs, if there is an operator at all.
@@ -2011,7 +1994,7 @@ impl Lowering {
                     Some(slot) => self.emit(Op::LoadShared(slot)),
                     // The caller's. A closure can capture one of those too, and
                     // reading it flat would bind a copy.
-                    None if self.is_variable_name(&payload.1, false) => {
+                    None if self.is_variable_name(false) => {
                         let name = self.push_name(payload.1.clone());
                         self.emit_at(Op::LoadSharedNamed(name), expr.position());
                     }
@@ -2672,6 +2655,34 @@ mod tests {
             order,
             [("alpha", 1), ("alpha", 2), ("mike", 0), ("zulu", 1)],
             "functions must be lowered by name and arity, not by hash",
+        );
+    }
+
+    #[test]
+    fn a_bare_script_function_name_lowers_as_a_named_read() {
+        let engine = crate::Engine::new();
+        let ast = engine
+            .compile("fn answer() { 42 } answer")
+            .expect("must compile");
+        let program = Compiler::new().compile(&ast);
+
+        let named_reads: Vec<_> = crate::grain::bytecode::disassemble(program.code())
+            .filter_map(|(.., op)| match op {
+                Op::LoadNamed(name) => Some(name),
+                _ => None,
+            })
+            .collect();
+
+        assert!(
+            named_reads
+                .iter()
+                .any(|name| program.name(*name) == Some("answer")),
+            "a bare script-function name should lower into `LoadNamed`, got {named_reads:?}",
+        );
+        assert_eq!(
+            program.residual_count(),
+            0,
+            "lowering a bare script-function name should not leave a residual AST fragment",
         );
     }
 
