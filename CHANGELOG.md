@@ -8,6 +8,7 @@ Bug fixes
 ---------
 
 * Fixed bug in using bare function name as a variable (identified by Grain VM).
+* Support bare function names as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 
 
 Version 1.26.0
