@@ -611,19 +611,9 @@ fn a_resolved_receiver_is_not_the_scope_entry_it_shadows() {
     assert_eq!(format!("{:?}", run.get_value::<Dynamic>("shadowed").unwrap()), "[1]", "the entry the resolver shadowed must come back untouched",);
 }
 
-/// The one place a compiled closure is not the walker's closure.
-///
-/// Rhai's parser builds a pointer that embeds the closure's `ScriptFuncDef` —
-/// the AST body — and tags it with the environment it was written in. That is
-/// exactly what an artifact must not carry, so the compiler emits a
-/// name-only pointer to the chunk it compiled from that same body.
-///
-/// Everything the closure *does* is identical; what differs is that ours is
-/// late-bound, which Rhai renders. Pinned here rather than left to be
-/// discovered, because it is visible to a script that prints one.
 #[test]
 #[cfg(not(feature = "no_function"))]
-fn a_closure_pointer_is_late_bound() {
+fn a_closure_pointer_is_the_same_from_the_vm() {
     let engine = corpus::engine();
     let source = "let n = 1; let f = |x| x + n; f";
 
@@ -635,12 +625,7 @@ fn a_closure_pointer_is_late_bound() {
     let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("must run under Rhai too");
 
     let (ours, walker) = (format!("{ours:?}"), format!("{walker:?}"));
-    assert!(ours.starts_with("Fn(\"anon$"), "ours is a plain named pointer: {ours}",);
-    assert!(walker.starts_with("Fn*(\"anon$"), "rhai's carries a script body and an environment: {walker}",);
-
-    // And the difference is only in the binding: calling either gives the
-    // same answer, which is what the corpus covers.
-    assert_ne!(ours, walker, "if these ever match, delete this test");
+    assert_eq!(ours, walker);
 }
 
 /// Calling a compiled function from outside, which is what a native wrapper

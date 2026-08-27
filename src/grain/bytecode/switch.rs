@@ -277,9 +277,6 @@ mod tests {
     fn a_non_hashable_subject_falls_through_rather_than_panicking() {
         let one = int(1);
         let table = table(&[(&one, 10)], Vec::new(), 99);
-
-        // A bare function pointer *is* hashable; only one carrying an
-        // environment is not. A host type is the reliable case.
         let non_hashable = Dynamic::from(Opaque);
         assert!(
             !non_hashable.is_hashable(),

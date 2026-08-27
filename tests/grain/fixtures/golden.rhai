@@ -44,10 +44,7 @@ supplied.push(counts.len());
 push(counts, ratio.to_int());
 push(supplied, STRIDE);
 
-// A closure, which shares what it captures and curries it onto a pointer. Made
-// and spent inside a block, so the scope this is compared on does not end up
-// holding a pointer — the two sides render one differently on purpose, which
-// `a_closure_pointer_is_late_bound` in `tests/scope.rs` pins.
+// A closure, which shares what it captures and curries it onto a pointer.
 let captured = 0;
 {
     let capture = || supplied.len() + counts.len();

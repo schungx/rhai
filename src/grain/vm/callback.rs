@@ -9,21 +9,6 @@
 //! So a program that hands a pointer out registers one native wrapper per
 //! compiled function for the length of the run. Direct dispatch is untouched —
 //! this is somewhere for Rhai to look, not somewhere we look.
-//!
-//! # What being a native costs
-//!
-//! Rhai reaches its own closures through a `Fn*` pointer carrying the body, and
-//! that shortcut is what these wrappers cannot have. One consequence:
-//!
-//! * **Speed, and call budget.** Rhai resolves a wrapper by name and type on
-//!   every element, from a cache it builds fresh per crossing, where its own
-//!   pointer skips resolution entirely. `native callbacks` in
-//!   `examples/bench.rs` measures 0.34x — the one case the VM loses — and the
-//!   two extra dispatch layers cost 5 call levels per crossing against the
-//!   walker's 2.
-//!
-//! Neither touches a pointer called directly from compiled code, which is
-//! `Op::CallFnPtr` and never comes through here.
 
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -36,17 +21,6 @@ use crate::{
     types::Span,
     FnAccess, Module,
 };
-
-/// The most parameters a wrapper is registered for.
-///
-/// A wrapper takes `Dynamic` throughout, and Rhai only reaches a `Dynamic`
-/// parameter by permuting the call's own argument types towards it — a search
-/// it caps at `MAX_DYNAMIC_PARAMETERS`, 16 (`func/call.rs:235`). A wider
-/// wrapper would be registered and never found, so it is left out rather than
-/// silently dead. Direct dispatch has no such bound; this limits only what a
-/// native can call back into.
-#[cfg(not(feature = "no_function"))]
-const MAX_PARAMS: usize = 16;
 
 /// A wrapper per compiled function, for Rhai to resolve a pointer against.
 ///
@@ -64,10 +38,6 @@ pub(super) fn wrappers(vm: &mut Vm, program: &SharedProgram) -> Module {
     }
 
     for function in program.functions() {
-        let arity = function.params.len();
-        if arity > MAX_PARAMS {
-            continue;
-        }
         let Some(name) = program.name(function.name) else {
             continue;
         };

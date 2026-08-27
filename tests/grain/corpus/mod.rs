@@ -535,10 +535,7 @@ pub const CASES: &[Case] = &[
     // Neither of these can be handed out by reference, so both are passed by
     // value and the mutation is discarded (`func/call.rs:1449-1454`).
     case("call_style_constant_receiver", "const a = [1]; push(a, 2); a"),
-    // The closure is made in a block so the scope the two sides are compared on
-    // does not end up holding a pointer, which they render differently on
-    // purpose — see `a_closure_pointer_is_late_bound` in `tests/scope.rs`.
-    case("call_style_shared_receiver", "let a = [1]; { let f = || a.len(); } push(a, 2); a"),
+    case("call_style_shared_receiver", "let a = [1]; let f = || a.len(); push(a, 2); a"),
     // A script function copies its first argument whichever way it arrives, so
     // the rewrite is invisible here — which is the thing to pin.
     case("call_style_script_fn", "fn bump_it(x) { x += 1; x } let n = 3; bump_it(n); n"),
@@ -556,12 +553,6 @@ pub const CASES: &[Case] = &[
     // --- closures ---------------------------------------------------------
     // Function pointers are invoked via `.call()`; `f(5)` would look for a
     // function literally named `f`.
-    // The closure is kept inside a block in all of these. Not incidental: the
-    // pointer we build is late-bound where Rhai's is early-bound, so Rhai
-    // renders it `Fn*+("anon$..")` and we render it `Fn("anon$..")`. That
-    // difference is the price of not shipping an AST body, it is script-
-    // visible, and `a_closure_pointer_is_late_bound` is where it is pinned —
-    // so these cases test the capture rather than re-testing the rendering.
     case("closure_capture_read", "let n = 10; let r = 0; { let f = |x| x + n; r = f.call(5); } r"),
     // Capture is by shared cell, so the mutation must be visible outside.
     case("closure_capture_mutate", "let n = 0; { let f = || n += 1; f.call(); f.call(); } n"),
@@ -833,11 +824,6 @@ pub const CASES: &[Case] = &[
     // `obj.call(f)` binds `obj` as the closure's `this` by reference, so a
     // write inside the closure reaches `obj`. The operand stack only ever holds
     // a copy of it, which is why the instruction carries where it came from.
-    //
-    // The pointer is scoped to a block throughout, as the other closure cases
-    // are: a compiled closure's `FnPtr` carries a name where Rhai's carries the
-    // body and its environment, so one left in the scope compares unequal for a
-    // reason that has nothing to do with the call.
     case("closure_call_on_a_local_writes_back", "let v = 21; { let f = || { this *= 2; }; v.call(f); } v"),
     case("closure_call_on_a_local_inline", "let v = 21; v.call(|| { this *= 2; }); v"),
     case("closure_call_on_a_local_reads", "let v = 21; let r = 0; { let f = || this * 2; r = v.call(f); } r"),
