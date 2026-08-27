@@ -53,60 +53,20 @@ impl Engine {
         this_ptr: Option<&'s mut Dynamic>,
         expr: &Expr,
     ) -> RhaiResultOf<Target<'s>> {
-        // Make sure that the pointer indirection is taken only when absolutely necessary.
-
-        // A bare script-function name is a function pointer, not a variable read.
-        //
-        // Checked ahead of `always_search_scope` rather than inside the match:
-        // that flag means "do not trust the parse-time variable indices", and a
-        // name resolving to a function has no index to distrust. Gating this on
-        // it made the name stop resolving for the rest of a run as soon as
-        // anything set it — an `eval` that changes the scope, a variable
-        // resolver that does, or a program still holding an AST fragment — so
-        // `fn f(x) { x } eval("let m = 1;"); [1].map(f)` reported `f` as an
-        // unknown variable while the same script without the `eval` worked.
-        //
-        // Still only for a variable with no cached index, which is what it was
-        // before: an index means the parser resolved the name to a real
-        // variable, and that variable keeps winning over a function sharing its
-        // name.
-        #[cfg(not(feature = "no_function"))]
-        if let Expr::Variable(v, None, ..) = expr {
-            if let Some(func) = global
-                .lib
-                .iter()
-                .flat_map(|m| m.iter_fn())
-                .filter(|(f, _)| f.is_script())
-                .filter(|(_, m)| m.name == v.1.as_str())
-                .map(|(f, _)| f)
-                .next()
-            {
-                let fn_def = func.get_script_fn_def().unwrap();
-                let val: Dynamic = crate::FnPtr {
-                    name: v.1.clone(),
-                    curry: <_>::default(),
-                    typ: crate::types::fn_ptr::FnPtrType::Script {
-                        num_params: fn_def.params.len(),
-                        hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),
-                    },
-                }
-                .into();
-                return Ok(val.into());
-            }
-        }
-
-        let index = match expr {
+        let (var_name, index) = match expr {
             // Check if the variable is `this`
             Expr::ThisPtr(..) => unreachable!("Expr::ThisPtr should have been handled outside"),
 
-            _ if global.always_search_scope => 0,
+            // No index if always search scope
+            Expr::Variable(v, ..) if global.always_search_scope => (&v.1, 0),
 
-            Expr::Variable(_, Some(i), ..) => i.get() as usize,
+            // Embedded index - short (u8)
+            Expr::Variable(v, Some(i), ..) => (&v.1, i.get() as usize),
+            // Embedded index - long (usize)
             Expr::Variable(v, None, ..) => {
                 #[cfg(not(feature = "no_module"))]
                 debug_assert!(v.2.is_empty(), "variable should not be namespace-qualified");
-
-                v.0.map_or(0, NonZeroUsize::get)
+                (&v.1, v.0.map_or(0, NonZeroUsize::get))
             }
 
             _ => unreachable!("Expr::Variable expected but gets {:?}", expr),
@@ -117,7 +77,6 @@ impl Engine {
             let orig_scope_len = scope.len();
 
             let context = EvalContext::new(self, global, caches, scope, this_ptr);
-            let var_name = expr.get_variable_name(true).unwrap();
             let resolved_var = resolve_var(var_name, index, context);
 
             if orig_scope_len != scope.len() {
@@ -135,36 +94,44 @@ impl Engine {
             }
         }
 
-        let index = if index > 0 {
-            scope.len() - index
-        } else {
-            // Find the variable in the scope
-            let var_name = expr.get_variable_name(true).unwrap();
+        // Read it from the scope
+        if let Some(scope_index) = (index > 0)
+            .then_some(scope.len() - index)
+            .or_else(|| scope.search(var_name))
+        {
+            return scope.get_mut_by_index(scope_index).try_into();
+        }
 
-            match scope.search(var_name) {
-                Some(index) => index,
-                None => {
-                    return self
-                        .global_modules
-                        .iter()
-                        .find_map(|m| m.get_var(var_name))
-                        .map_or_else(
-                            || {
-                                Err(ERR::ErrorVariableNotFound(
-                                    var_name.to_string(),
-                                    expr.position(),
-                                )
-                                .into())
-                            },
-                            |val| Ok(val.into()),
-                        )
-                }
+        // Search constants in global modules
+        if let Some(val) = self.global_modules.iter().find_map(|m| m.get_var(var_name)) {
+            return Ok(val.into());
+        }
+
+        // Finally, see if it is a script function name and return a function pointer
+        #[cfg(not(feature = "no_function"))]
+        if let Some(func) = global
+            .lib
+            .iter()
+            .flat_map(|m| m.iter_fn())
+            .filter(|(f, _)| f.is_script())
+            .filter(|(_, meta)| meta.name == var_name.as_str())
+            .map(|(f, _)| f)
+            .next()
+        {
+            let fn_def = func.get_script_fn_def().unwrap();
+            let val: Dynamic = crate::FnPtr {
+                name: var_name.clone(),
+                curry: <_>::default(),
+                typ: crate::types::fn_ptr::FnPtrType::Script {
+                    num_params: fn_def.params.len(),
+                    hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),
+                },
             }
-        };
+            .into();
+            return Ok(val.into());
+        }
 
-        let val = scope.get_mut_by_index(index);
-
-        val.try_into()
+        Err(ERR::ErrorVariableNotFound(var_name.to_string(), expr.position()).into())
     }
     /// Search for a variable within the scope or within imports,
     /// depending on whether the variable name is namespace-qualified.
