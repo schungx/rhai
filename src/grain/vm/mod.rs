@@ -507,9 +507,9 @@ impl<'e> Vm<'e> {
     /// The empty `Caches` is the cost, and it is the one thing a `Vm` normally
     /// exists to avoid. It cannot be helped: the outer `Vm` is borrowed by the
     /// frame still running beneath this one. Rhai pays the same on its own
-    /// callbacks — but it also skips resolution entirely for a pointer that
-    /// carries its body, which is why a crossing measures 0.34x. See the
-    /// `callback` module.
+    /// callbacks — but, similar to `Vm`, it also skips resolution entirely
+    /// for a pointer that is known to be a scripted function and carries its
+    /// own hash.
     ///
     /// Operation counting has the same shape and the same reason: increments
     /// inside the callback land on the clone and are lost when it drops, as
@@ -897,10 +897,6 @@ impl<'e> Vm<'e> {
     /// otherwise identical and copies nothing. A program that needs this and
     /// does not get it still runs — the pointer simply fails to resolve, as
     /// `ErrorFunctionNotFound`, at the point the native tries to call it.
-    ///
-    /// Read the `callback` module before relying on it: a crossing is slower than the
-    /// walker, and a *capturing* closure handed to a native that binds `this`
-    /// arrives with its arguments rotated.
     ///
     /// Named `eval_` rather than `run_` because it yields the program's value;
     /// Rhai has no `Engine` method to mirror here, so the crate's own rule is

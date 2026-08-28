@@ -109,6 +109,11 @@ mod constant {
     pub const RANGE: u8 = 0x0a;
     pub const RANGE_INCLUSIVE: u8 = 0x0b;
     pub const DECIMAL: u8 = 0x0c;
+    pub const FN_PTR: u8 = 0x0d;
+
+    pub const FN_PTR_TYPE_NORMAL: u8 = 0x81;
+    #[cfg(not(feature = "no_function"))]
+    pub const FN_PTR_TYPE_SCRIPT: u8 = 0x82;
 }
 
 /// Everything a stripped artifact left behind.

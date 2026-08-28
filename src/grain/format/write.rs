@@ -2,11 +2,12 @@ use core::ops::{Range, RangeInclusive};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
+use crate::types::fn_ptr::FnPtrType;
 #[cfg(not(feature = "no_object"))]
-use rhai::Map;
-use rhai::{tokenizer::Token, Dynamic, INT};
+use crate::Map;
+use crate::{tokenizer::Token, Dynamic, FnPtr, INT};
 #[cfg(not(feature = "no_index"))]
-use rhai::{Array, Blob};
+use crate::{Array, Blob};
 
 use crate::grain::bytecode::{AssignOp, Chain, Root, Step, Tail};
 use crate::grain::format::abi::Abi;
@@ -467,6 +468,24 @@ fn put_constant(out: &mut Vec<u8>, value: &Dynamic) -> Result<(), String> {
     if let Some(range) = value.read_lock::<RangeInclusive<INT>>() {
         out.push(constant::RANGE_INCLUSIVE);
         put_range(out, *range.start(), *range.end());
+        return Ok(());
+    }
+    if let Some(fn_ptr) = value.read_lock::<FnPtr>() {
+        out.push(constant::FN_PTR);
+        put_str(out, fn_ptr.fn_name());
+        put_uvarint(out, fn_ptr.curry().len() as u64);
+        for item in fn_ptr.iter_curry() {
+            put_constant(out, item)?;
+        }
+        match fn_ptr.typ {
+            FnPtrType::Normal => out.push(constant::FN_PTR_TYPE_NORMAL),
+            FnPtrType::Native(..) => return Err("embedded native function pointer".to_string()),
+            #[cfg(not(feature = "no_function"))]
+            FnPtrType::Script { num_params, .. } => {
+                out.push(constant::FN_PTR_TYPE_SCRIPT);
+                put_uvarint(out, num_params as u64);
+            }
+        }
         return Ok(());
     }
 

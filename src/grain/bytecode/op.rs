@@ -213,8 +213,8 @@ pub enum Op {
     ///
     /// `op` indexes the operator pool when the call is an operator, and names
     /// the token the built-in lookup keys on. The walker short-circuits these
-    /// to a function pointer rather than dispatching, and a VM that did not
-    /// would be slower than the tree it replaced.
+    /// rather than dispatching, and a VM that did not would be slower than the
+    /// tree it replaced.
     Call {
         /// The name of the function
         name: u32,

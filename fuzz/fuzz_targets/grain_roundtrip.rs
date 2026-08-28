@@ -33,21 +33,8 @@ fn engine() -> Engine {
     engine
 }
 
-/// A value, with the one difference between the two sides that is intended.
-///
-/// Rhai renders a closure pointer `Fn*+("anon$..")` — a script function with a
-/// captured environment attached — and ours `Fn("anon$..")`, because ours is
-/// name-only and resolved at call time. That is the whole point: a `Script`
-/// pointer carries an AST, and an AST is what an artifact must not contain.
-/// The difference is deliberate, pinned by `a_closure_pointer_is_late_bound` in
-/// `tests/scope.rs`, and left in the rendering rather than papered over there.
-///
-/// Here it has to be papered over, or the first script whose value is a bare
-/// closure ends the run — which is within a few thousand executions.
 fn rendered(value: &Dynamic) -> String {
-    format!("{value:?}")
-        .replace("Fn*+(", "Fn(")
-        .replace("Fn*(", "Fn(")
+    format!("{value:?}").replace("Fn*(", "Fn(")
 }
 
 /// A run reduced to something two of them can be compared on, scope included:

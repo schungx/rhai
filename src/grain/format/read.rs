@@ -1,4 +1,5 @@
-use crate::{tokenizer::Token, types::StringsInterner, Dynamic};
+use crate::types::fn_ptr::FnPtrType;
+use crate::{tokenizer::Token, types::StringsInterner, Dynamic, FnPtr, ThinVec};
 use core::convert::{TryFrom, TryInto};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -523,6 +524,33 @@ fn get_constant(
         constant::RANGE_INCLUSIVE => {
             let start = bounded_int(cursor.ivarint()?)?;
             Dynamic::from(start..=bounded_int(cursor.ivarint()?)?)
+        }
+
+        constant::FN_PTR => {
+            let name = strings_interner.get(cursor.str()?);
+            let count = cursor.uvarint()?;
+            let mut curry = ThinVec::new();
+            for _ in 0..count {
+                curry.push(get_constant(cursor, strings_interner, depth + 1)?);
+            }
+            let typ = match cursor.byte()? {
+                constant::FN_PTR_TYPE_NORMAL => FnPtrType::Normal,
+                #[cfg(not(feature = "no_function"))]
+                constant::FN_PTR_TYPE_SCRIPT => {
+                    let num_params = cursor.uvarint()? as usize;
+                    FnPtrType::Script {
+                        num_params,
+                        hash: crate::calc_fn_hash(None, &name, num_params),
+                    }
+                }
+                tag => {
+                    return Err(ReadError::UnknownTag {
+                        section: "constant",
+                        tag,
+                    })
+                }
+            };
+            Dynamic::from(FnPtr { name, curry, typ })
         }
 
         #[cfg(not(feature = "no_index"))]

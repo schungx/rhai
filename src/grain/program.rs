@@ -445,11 +445,10 @@ impl<'a> Program<'a> {
             .find(|f| matching(f) && f.this_type.is_none())
     }
 
-    /// The compiled function a *pointer* resolves to.
+    /// The compiled function with a particular name and arity.
     ///
-    /// By name rather than by pool index, because a `FnPtr` carries a string —
-    /// it may have been built from one at run time. A linear scan, which at
-    /// these sizes beats a map and keeps the common indexed lookup untouched.
+    /// A linear scan, which at these sizes beats a map and
+    /// keeps the common indexed lookup untouched.
     pub(crate) fn function_named(&self, name: &str, argc: usize) -> Option<&Function> {
         self.functions.iter().find(|f| {
             f.params.len() == argc && f.this_type.is_none() && self.name(f.name) == Some(name)

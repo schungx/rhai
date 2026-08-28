@@ -15,13 +15,6 @@ use rust_decimal::Decimal;
 /// The artifact must be loadable in another process, which rules out anything
 /// carrying a host `TypeId`, a live `Rc`, or a clock reading: `Variant`,
 /// `Shared`, `TimeStamp`.
-///
-/// And `FnPtr` is not a value the VM may simply clone into place, even in the
-/// same process. Rhai attaches the calling environment when it reads a
-/// function pointer out of a constant (`ast/expr.rs:471-482`), so a pointer
-/// copied straight from the pool would be missing the module library it was
-/// created against. Keeping it out of the pool leaves it as a fragment, which
-/// evaluates through the path that does the attaching.
 pub(crate) fn is_poolable(value: &Dynamic) -> bool {
     // A shared cell first, because every question below sees through one:
     // `is_array` and friends unwrap `Union::Shared`, so a shared array of ints
@@ -73,8 +66,6 @@ pub(crate) fn is_poolable(value: &Dynamic) -> bool {
         return value.read_lock::<Decimal>().is_some();
     }
 
-    // Disregard the embedded environment in the FnPtr because it most likely
-    // will simply be the collection of all functions in the program.
     if value.is_fnptr() {
         return value.read_lock::<rhai::FnPtr>().is_some();
     }

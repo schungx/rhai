@@ -1578,43 +1578,6 @@ impl Lowering {
                 self.caps.insert(Caps::FLOAT);
                 self.constant(Dynamic::from(**value))
             }
-            // Folded by the optimizer, so it can hold anything a constant call
-            // returned — including a function pointer, which must not be
-            // copied out of a pool. See `poolable`.
-            // A function pointer the optimizer folded — `Fn("f")` with a
-            // constant name, or a closure literal. It cannot go in the pool:
-            // a closure's carries a `ScriptFuncDef`, which is an AST body and
-            // exactly what an artifact must not contain. Rebuilt by name
-            // instead, which reaches the chunk we compiled from that same
-            // body.
-            //
-            // A constant function pointer: a closure literal, or what the
-            // optimizer folds `Fn("f")` into. Either way it embeds a
-            // `ScriptFuncDef` — an AST body, `Fn*` in Rhai's own rendering —
-            // so it cannot go in the pool. Rebuilt by name instead, reaching
-            // the chunk compiled from that same body.
-            //
-            // There is no version of this that keeps the rendering: the thing
-            // that differs *is* the tree, and carrying it is what an artifact
-            // must not do. `a_closure_pointer_is_late_bound` pins the
-            // difference for both spellings.
-            //
-            // Curried values are arbitrary `Dynamic`s with the same problem one
-            // level down, and are left to the walker.
-            Expr::DynamicConstant(value, ..)
-                if value
-                    .read_lock::<rhai::FnPtr>()
-                    .map_or(false, |f| f.curry().is_empty()) =>
-            {
-                let name = value
-                    .read_lock::<rhai::FnPtr>()
-                    .expect("checked by the guard")
-                    .fn_name()
-                    .to_string();
-                let name = self.push_name(name.into());
-                self.emit_at(Op::MakeClosure(name), expr.position());
-                self.caps.insert(Caps::FN_PTR);
-            }
 
             Expr::DynamicConstant(value, ..) if is_poolable(value) => {
                 #[cfg(not(feature = "no_index"))]
@@ -1632,6 +1595,9 @@ impl Lowering {
                 #[cfg(feature = "decimal")]
                 if value.is_decimal() {
                     self.caps.insert(Caps::DECIMAL);
+                }
+                if value.is_fnptr() {
+                    self.caps.insert(Caps::FN_PTR);
                 }
                 self.constant((**value).clone());
             }
