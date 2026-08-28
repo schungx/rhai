@@ -333,8 +333,9 @@ impl<'a> Program<'a> {
     pub fn verify(&self) -> Result<Vec<u16>, crate::grain::bytecode::VerifyError> {
         crate::grain::bytecode::verify(
             self.caps,
+            self.consts(),
             &self.code,
-            &self.functions(),
+            self.functions(),
             &self.chunks(),
             &self.pools(),
         )
