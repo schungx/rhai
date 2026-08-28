@@ -1972,10 +1972,11 @@ impl<'e> Vm<'e> {
     /// Read a variable no slot names, the way Rhai's `search_scope_only` does
     /// (`eval/expr.rs:107-155`).
     ///
-    /// Three places in a fixed order, and the order is observable: a resolver
-    /// registered with `Engine::on_var` sees the name before the scope does,
-    /// and a name in no scope is looked for among the global modules before it
-    /// is reported missing.
+    /// Fixed order:
+    /// 1) a var resolver registered with `Engine::on_var`
+    /// 2) a var in the scope
+    /// 3) a var among global modules
+    /// 4) this program's compiled function table
     ///
     /// `flatten` is what the two reads differ by, and only for a scope entry:
     /// a value position wants what a shared cell contains, and a capture wants
@@ -1984,6 +1985,7 @@ impl<'e> Vm<'e> {
     /// Kept out of the dispatch loop for the reason [`Vm::call_compiled`] is.
     fn load_named(
         &mut self,
+        program: &Program,
         name: &str,
         scope: &mut Scope,
         flatten: bool,
@@ -1995,6 +1997,7 @@ impl<'e> Vm<'e> {
             return Ok(value);
         }
 
+        // Search in scope.
         if let Some(value) = scope.get(name) {
             return Ok(if flatten {
                 value.flatten_clone()
@@ -2011,6 +2014,17 @@ impl<'e> Vm<'e> {
             .find_map(|module| module.get_var(name))
         {
             return Ok(value);
+        }
+
+        // A compiled function.
+        if let Some(value) = program
+            .functions()
+            .iter()
+            .any(|f| program.name(f.name) == Some(name))
+            .then(|| FnPtr::new(name).ok())
+            .flatten()
+        {
+            return Ok(value.into());
         }
 
         Err(missing(name, pos))
@@ -3627,7 +3641,7 @@ impl<'e> Vm<'e> {
                         .name(index)
                         .ok_or_else(|| malformed(format!("no name {index}")))?;
                     let flatten = tag == code::tag::LOAD_NAMED;
-                    let value = self.load_named(name, scope, flatten, pos())?;
+                    let value = self.load_named(program, name, scope, flatten, pos())?;
                     self.stack.push(value);
                 }
 
@@ -4515,6 +4529,40 @@ mod tests {
         let mut options = CallFnOptions::new().eval_ast(false);
         options.this_ptr = this;
         Vm::new(&engine).call_fn_with_options(options, &mut Scope::new(), program, "f", ())
+    }
+
+    #[test]
+    fn a_named_read_falls_back_to_a_script_function_pointer_from_global_lib() {
+        let engine = Engine::new();
+        let ast = engine.compile("fn f(x) { x + 1 } f").expect("must compile");
+        let program = crate::grain::compile::Compiler::new().compile(&ast);
+
+        let value = Vm::new(&engine)
+            .eval_with_scope(&mut Scope::new(), &program)
+            .expect("reading a bare script-function name should produce a function pointer");
+        let pointer = value
+            .try_cast::<FnPtr>()
+            .expect("reading `f` should return an `FnPtr`");
+
+        assert_eq!(pointer.fn_name(), "f");
+    }
+
+    #[test]
+    fn a_scope_variable_beats_script_function_pointer_fallback() {
+        let engine = Engine::new();
+        let ast = engine.compile("fn f(x) { x + 1 } f").expect("must compile");
+        let program = crate::grain::compile::Compiler::new().compile(&ast);
+        let mut scope = Scope::new();
+        scope.push("f", 123 as INT);
+
+        let value = Vm::new(&engine)
+            .eval_with_scope(&mut scope, &program)
+            .expect("scope variable read should succeed");
+        assert_eq!(
+            value.as_int(),
+            Ok(123),
+            "scope lookup should win before script function-pointer fallback",
+        );
     }
 
     #[test]
