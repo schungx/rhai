@@ -1,11 +1,11 @@
 //! Module defining interfaces to native-Rust functions.
 
-use super::call::FnCallArgs;
-use crate::ast::FnCallHashes;
+use super::func_call::{FnCallArgs, FnCallHashes};
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::plugin::PluginFunc;
-use crate::tokenizer::{is_valid_identifier, Token, TokenizeState};
-use crate::types::dynamic::Variant;
+#[cfg(not(feature = "no_ast"))]
+use crate::tokenizer::TokenizeState;
+use crate::types::{dynamic::Variant, token::is_valid_identifier, Token};
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, EvalContext, FnArgsVec, FuncArgs,
     Position, RhaiResult, RhaiResultOf, StaticVec, VarDefInfo, ERR,
@@ -470,7 +470,7 @@ impl<'a> NativeCallContext<'a> {
         let name = fn_name.as_ref();
         let native_only = !is_valid_identifier(name);
         #[cfg(not(feature = "no_function"))]
-        let native_only = native_only && !crate::parser::is_anonymous_fn(name);
+        let native_only = native_only && !crate::func::is_anonymous_fn(name);
 
         self._call_fn_raw(fn_name, args, native_only, is_ref_mut, is_method_call)
     }
@@ -758,6 +758,7 @@ pub type OnDebugCallback = dyn Fn(&str, Option<&str>, Position) + Send + Sync;
 #[cfg(not(feature = "sync"))]
 #[cfg(not(feature = "no_index"))]
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(
     &'a mut crate::Array,
     crate::INT,
@@ -768,6 +769,7 @@ pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(
 #[cfg(feature = "sync")]
 #[cfg(not(feature = "no_index"))]
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(&'a mut crate::Array, crate::INT, EvalContext) -> RhaiResultOf<crate::Target<'a>>
     + Send
     + Sync;
@@ -777,6 +779,7 @@ pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(&'a mut crate::Array, crat
 #[cfg(not(feature = "sync"))]
 #[cfg(not(feature = "no_object"))]
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnMissingMapPropertyCallback =
     dyn for<'a> Fn(&'a mut crate::Map, &str, EvalContext) -> RhaiResultOf<crate::eval::Target<'a>>;
 /// Callback function when a property accessed is not found in a [`Map`][crate::Map].
@@ -784,6 +787,7 @@ pub type OnMissingMapPropertyCallback =
 #[cfg(feature = "sync")]
 #[cfg(not(feature = "no_object"))]
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnMissingMapPropertyCallback = dyn for<'a> Fn(&'a mut crate::Map, &str, EvalContext) -> RhaiResultOf<crate::eval::Target<'a>>
     + Send
     + Sync;
@@ -808,9 +812,11 @@ pub type OnMissingFunctionCallback = dyn Fn(&str, &mut [&mut Dynamic], bool, Eva
 
 /// Callback function for mapping tokens during parsing.
 #[cfg(not(feature = "sync"))]
+#[cfg(not(feature = "no_ast"))]
 pub type OnParseTokenCallback = dyn Fn(Token, Position, &TokenizeState) -> Token;
 /// Callback function for mapping tokens during parsing.
 #[cfg(feature = "sync")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnParseTokenCallback = dyn Fn(Token, Position, &TokenizeState) -> Token + Send + Sync;
 
 /// Callback function for variable access.

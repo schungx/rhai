@@ -10,6 +10,11 @@ Bug fixes
 * Fixed bug in using bare function name as a variable (identified by Grain VM).
 * Support bare function names as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 
+New features
+------------
+
+* New `no_ast` feature that excludes the `AST`, its interpreter, the tokenizer, parser and optimizer for a minimized build.  Under this feature flag, the Rhai Grain VM is the only venue to evaluate a script.
+
 
 Version 1.26.0
 ==============

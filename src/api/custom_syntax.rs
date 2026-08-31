@@ -4,8 +4,8 @@
 use crate::ast::Expr;
 use crate::func::SendSync;
 use crate::parser::ParseResult;
-use crate::tokenizer::{is_reserved_keyword_or_symbol, is_valid_identifier, Token};
 use crate::types::dynamic::Variant;
+use crate::types::token::{is_reserved_keyword_or_symbol, is_valid_identifier, Token};
 use crate::{
     Dynamic, Engine, EvalContext, Identifier, ImmutableString, LexError, Position, RhaiResult,
 };

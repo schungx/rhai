@@ -2,12 +2,12 @@ use core::ops::{Range, RangeInclusive};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-use crate::types::fn_ptr::FnPtrType;
+use crate::types::{fn_ptr::FnPtrType, Token};
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
-use crate::{tokenizer::Token, Dynamic, FnPtr, INT};
 #[cfg(not(feature = "no_index"))]
 use crate::{Array, Blob};
+use crate::{Dynamic, FnPtr, INT};
 
 use crate::grain::bytecode::{AssignOp, Chain, Root, Step, Tail};
 use crate::grain::format::abi::Abi;
@@ -91,6 +91,7 @@ pub(super) enum Positions {
 pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, WriteError> {
     // Refuse before encoding anything, so a rejection cannot leave a caller
     // holding a half-written buffer that happens to parse.
+    #[cfg(not(feature = "no_ast"))]
     if program.residual_count() > 0 {
         let (construct, pos) = program
             .first_unsupported()

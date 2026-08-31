@@ -102,6 +102,8 @@ no_closure = []
 no_module = []
 ## Remove support for custom syntax.
 no_custom_syntax = []
+## Remove the AST, tokenizer, parser and optimizer.
+no_ast = ["no_module", "no_custom_syntax", "no_optimize", "no_time"]
 
 #! ### Performance-Related Features
 
@@ -132,14 +134,15 @@ testing-environ = []
 
 [[bin]]
 name = "rhai-repl"
-required-features = ["rustyline"]
+required-features = ["bin-features"]
 
 [[bin]]
 name = "rhai-run"
+required-features = ["bin-features"]
 
 [[bin]]
 name = "rhai-dbg"
-required-features = ["debugging"]
+required-features = ["bin-features", "debugging"]
 
 [[example]]
 name = "serde"

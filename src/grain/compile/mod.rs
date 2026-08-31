@@ -11,9 +11,8 @@ use crate::ast::{
     ASTFlags, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock, SwitchCasesCollection,
 };
 #[cfg(not(feature = "no_function"))]
-use crate::ast::{ScriptFuncDef, ScriptFuncPayload};
-use crate::tokenizer::Token;
-use crate::types::Span;
+use crate::func::{ScriptFuncDef, ScriptFuncPayload};
+use crate::types::{Span, Token};
 use crate::{Dynamic, ImmutableString, Position, AST};
 
 use crate::grain::bytecode::{

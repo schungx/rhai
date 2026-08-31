@@ -42,12 +42,12 @@ pub fn calc_offset_len(length: usize, start: crate::INT, len: crate::INT) -> (us
 /// Values going over bounds call the provided closure to return a default value or an error.
 #[inline]
 #[allow(dead_code)]
-pub fn calc_index<E>(
+pub fn calc_index(
     length: usize,
     index: crate::INT,
     negative_count_from_end: bool,
-    err_func: impl FnOnce() -> Result<usize, E>,
-) -> Result<usize, E> {
+    err_func: impl FnOnce() -> RhaiResultOf<usize>,
+) -> RhaiResultOf<usize> {
     if length == 0 {
         // Empty array, do nothing
     } else if index < 0 {

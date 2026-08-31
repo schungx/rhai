@@ -1,10 +1,14 @@
 //! Module that defines JSON manipulation functions for [`Engine`].
 #![cfg(not(feature = "no_object"))]
 
+#[cfg(not(feature = "no_ast"))]
 use crate::parser::{ParseSettingFlags, ParseState};
-use crate::tokenizer::Token;
 use crate::types::dynamic::Union;
-use crate::{Dynamic, Engine, LexError, Map, RhaiResultOf};
+#[cfg(not(feature = "no_ast"))]
+use crate::types::Token;
+use crate::{Dynamic, Engine, Map};
+#[cfg(not(feature = "no_ast"))]
+use crate::{LexError, RhaiResultOf};
 use std::fmt::Write;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -59,6 +63,7 @@ impl Engine {
     /// # Ok(())
     /// # }
     /// ```
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub fn parse_json(&self, json: impl AsRef<str>, has_null: bool) -> RhaiResultOf<Map> {
         let scripts = [json.as_ref()];

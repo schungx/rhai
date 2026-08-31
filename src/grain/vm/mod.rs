@@ -18,6 +18,7 @@ use crate::types::fn_ptr::FnPtrType;
 use crate::types::StringsInterner;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
+#[cfg(not(feature = "no_ast"))]
 use crate::ast::Expr;
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
@@ -70,9 +71,9 @@ fn call_engine(
     is_method_call: bool,
     pos: Position,
 ) -> VmResult {
-    let native_only = !crate::tokenizer::is_valid_identifier(fn_name);
+    let native_only = !crate::types::token::is_valid_identifier(fn_name);
     #[cfg(not(feature = "no_function"))]
-    let native_only = native_only && !crate::parser::is_anonymous_fn(fn_name);
+    let native_only = native_only && !crate::func::is_anonymous_fn(fn_name);
 
     crate::eval::_call_fn_raw(
         engine,
@@ -544,7 +545,7 @@ impl<'e> Vm<'e> {
     /// Where the last run failed, innermost frame first.
     ///
     /// What a stripped program reports instead of a position;
-    /// [`restore`](crate::grain::restore::restore) turns it back into one.
+    /// the [`Sidecar`][crate::grain::Sidecar] turns it back into one.
     ///
     /// Cleared at the start of a run and whenever a `catch` handles an error,
     /// so it describes the failure actually being reported.
@@ -3514,6 +3515,7 @@ impl<'e> Vm<'e> {
         // name lookup inside them costs a reverse scan but cannot be wrong.
         // Only programs that still have residuals pay it, which is the point of
         // driving the count to zero.
+        #[cfg(not(feature = "no_ast"))]
         if program.residual_count() > 0 {
             self.global.always_search_scope = true;
         }
@@ -3844,6 +3846,7 @@ impl<'e> Vm<'e> {
                     let _ = self.pop()?;
                 }
 
+                #[cfg(not(feature = "no_ast"))]
                 code::tag::EVAL_AST | code::tag::EVAL_AST_KEEP => {
                     let index = u32::from(small(1)?);
                     let expr = program
@@ -4504,6 +4507,7 @@ mod tests {
             Parts {
                 positions: Positions::default(),
                 debug_id: None,
+                #[cfg(not(feature = "no_ast"))]
                 residuals,
                 consts,
                 names: Strings::new(NAMES),

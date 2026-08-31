@@ -1,6 +1,6 @@
 //! Module containing error definitions for the parsing process.
 
-use crate::tokenizer::is_valid_identifier;
+use crate::types::token::is_valid_identifier;
 use crate::{Position, RhaiError, ERR};
 #[cfg(feature = "no_std")]
 use core_error::Error;

@@ -23,6 +23,7 @@ pub struct Pools<'a> {
     /// How many op-assignments there are.
     pub assign_ops: usize,
     /// How many residual AST fragments there are.
+    #[cfg(not(feature = "no_ast"))]
     pub residuals: usize,
     /// The chain pool.
     pub chains: &'a [Chain],
@@ -525,6 +526,7 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
         Op::Curry(..) => Caps::FN_PTR | Caps::CURRYING,
 
         // `EvalAst` is a host-only instruction, so it is never in an artifact.
+        #[cfg(not(feature = "no_ast"))]
         Op::EvalAst { .. } => Caps::empty(),
 
         Op::Share(..) | Op::ShareNamed(..) => Caps::SHARING,
@@ -566,8 +568,10 @@ fn effect(op: &Op, pools: &Pools) -> (usize, usize, usize) {
         | Op::LoadSharedNamed(..)
         | Op::MakeClosure(..)
         | Op::LoadThis
-        | Op::LoadThisShared
-        | Op::EvalAst { .. } => (0, 0, 1),
+        | Op::LoadThisShared => (0, 0, 1),
+
+        #[cfg(not(feature = "no_ast"))]
+        Op::EvalAst { .. } => (0, 0, 1),
 
         // A binding check, which either raises or does nothing.
         Op::RequireThis => (0, 0, 0),
@@ -712,6 +716,7 @@ fn check_indices(at: usize, code: &[u8], pools: &Pools) -> Result<(), VerifyErro
         // by. A local's slot is not a pool index and is checked against the
         // scope when it runs, as every other slot is.
         tag::CALL_FN_PTR_ON_NAMED => bounded(index(2), "name", pools.names),
+        #[cfg(not(feature = "no_ast"))]
         tag::EVAL_AST | tag::EVAL_AST_KEEP => bounded(index(1), "fragment", pools.residuals),
         tag::CHAIN => {
             bounded(index(1), "chain", pools.chains.len())?;
@@ -781,6 +786,7 @@ mod tests {
             names: 0,
             tokens: 0,
             assign_ops: 0,
+            #[cfg(not(feature = "no_ast"))]
             residuals: 0,
             chains: &[],
             switches: &[],

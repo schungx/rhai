@@ -1,5 +1,5 @@
-use crate::types::fn_ptr::FnPtrType;
-use crate::{tokenizer::Token, types::StringsInterner, Dynamic, FnPtr, ThinVec};
+use crate::types::{fn_ptr::FnPtrType, StringsInterner, Token};
+use crate::{Dynamic, FnPtr, ThinVec};
 use core::convert::{TryFrom, TryInto};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -242,6 +242,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
         Parts {
             positions,
             debug_id: Some(debug_id),
+            #[cfg(not(feature = "no_ast"))]
             residuals: Vec::new(),
             consts,
             names,

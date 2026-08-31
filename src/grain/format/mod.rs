@@ -223,11 +223,15 @@ impl<'a> Program<'a> {
 
     /// Encode this program without its diagnostics, returning them separately.
     ///
-    /// This is the split the debug layer exists for. Ship the artifact to the
-    /// device and keep the [`Sidecar`]: errors then arrive carrying an
-    /// instruction address, and
-    /// [`restore`](crate::grain::restore::restore) turns a whole failed run back
-    /// into the positions Rhai would have reported. The sidecar can also be sent
+    /// This is the split the debug layer exists for.
+    ///
+    /// Ship the artifact to the device and keep the
+    /// [`Sidecar`][crate::grain::Sidecar]:
+    /// errors then arrive carrying an instruction address, and the
+    /// [`Sidecar`][crate::grain::Sidecar] turns a whole failed
+    /// run back into the positions Rhai would have reported.
+    ///
+    /// The [`Sidecar`][crate::grain::Sidecar] can also be sent
     /// back later with [`Program::attach_positions`].
     ///
     /// # Errors

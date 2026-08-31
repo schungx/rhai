@@ -139,7 +139,7 @@ impl BitRange {
     /// Create a new [`BitRange`].
     pub fn new(value: INT, from: INT, len: INT) -> RhaiResultOf<Self> {
         let from = calc_index(INT_BITS, from, true, || {
-            ERR::ErrorBitFieldBounds(INT_BITS, from, Position::NONE).into()
+            Err(ERR::ErrorBitFieldBounds(INT_BITS, from, Position::NONE).into())
         })?;
 
         let len = if len < 0 {

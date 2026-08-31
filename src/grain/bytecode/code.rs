@@ -76,8 +76,10 @@ pub mod tag {
     /// [`Op::Return`](super::Op::Return).
     pub const RETURN: u8 = 0x13;
     /// [`Op::EvalAst`](super::Op::EvalAst) that rewinds the scope.
+    #[cfg(not(feature = "no_ast"))]
     pub const EVAL_AST: u8 = 0x14;
     /// [`Op::EvalAst`](super::Op::EvalAst) that keeps what it declared.
+    #[cfg(not(feature = "no_ast"))]
     pub const EVAL_AST_KEEP: u8 = 0x15;
     /// [`Op::Chain`](super::Op::Chain).
     pub const CHAIN: u8 = 0x16;
@@ -252,8 +254,11 @@ static WIDTHS: [u8; 256] = {
     widths[tag::DECLARE_LOCAL as usize] = 3;
     widths[tag::DECLARE_CONST as usize] = 3;
     widths[tag::UNWIND_TO as usize] = 3;
-    widths[tag::EVAL_AST as usize] = 3;
-    widths[tag::EVAL_AST_KEEP as usize] = 3;
+    #[cfg(not(feature = "no_ast"))]
+    {
+        widths[tag::EVAL_AST as usize] = 3;
+        widths[tag::EVAL_AST_KEEP as usize] = 3;
+    }
     widths[tag::CHAIN as usize] = 3;
     widths[tag::MAKE_ARRAY as usize] = 3;
     widths[tag::SWITCH as usize] = 3;
@@ -697,6 +702,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
             }
             Op::Return => code.push(tag::RETURN),
 
+            #[cfg(not(feature = "no_ast"))]
             Op::EvalAst {
                 residual,
                 rewind_scope,
@@ -785,7 +791,6 @@ fn encoded_width(op: &Op) -> usize {
         | Op::DeclareLocal { .. }
         | Op::UnwindTo(..)
         | Op::Statement { .. }
-        | Op::EvalAst { .. }
         | Op::Chain(..)
         | Op::Switch(..)
         | Op::LoadNamed(..)
@@ -800,6 +805,10 @@ fn encoded_width(op: &Op) -> usize {
         | Op::MakeMap(..)
         | Op::AssignThis { op: Some(..) }
         | Op::CheckSize { .. } => 3,
+
+        #[cfg(not(feature = "no_ast"))]
+        Op::EvalAst { .. } => 3,
+
         Op::Call { op: None, .. }
         | Op::CallRef {
             receiver: Receiver::This,
@@ -1012,10 +1021,12 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         },
         tag::RETURN => Op::Return,
 
+        #[cfg(not(feature = "no_ast"))]
         tag::EVAL_AST => Op::EvalAst {
             residual: u32::from(small(1)?),
             rewind_scope: true,
         },
+        #[cfg(not(feature = "no_ast"))]
         tag::EVAL_AST_KEEP => Op::EvalAst {
             residual: u32::from(small(1)?),
             rewind_scope: false,

@@ -12,7 +12,7 @@
 //! of guards ending at the default — exactly what it already does for the arms
 //! sharing a case value.
 
-use crate::{ast::RangeCase, INT};
+use crate::{eval::RangeCase, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 

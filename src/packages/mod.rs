@@ -6,6 +6,7 @@ pub(crate) mod arithmetic;
 pub(crate) mod array_basic;
 pub(crate) mod bit_field;
 pub(crate) mod blob_basic;
+#[cfg(not(feature = "no_ast"))]
 pub(crate) mod debugging;
 pub(crate) mod fn_basic;
 pub(crate) mod iter_basic;
@@ -26,6 +27,7 @@ pub use bit_field::BitFieldPackage;
 #[cfg(not(feature = "no_index"))]
 pub use blob_basic::BasicBlobPackage;
 #[cfg(feature = "debugging")]
+#[cfg(not(feature = "no_ast"))]
 pub use debugging::DebuggingPackage;
 pub use fn_basic::BasicFnPackage;
 pub use iter_basic::BasicIteratorPackage;

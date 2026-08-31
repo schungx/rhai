@@ -14,8 +14,8 @@ pub use rhai_codegen::*;
 // https://github.com/rhaiscript/rhai/issues/1098
 pub use super::RhaiFunc;
 pub use crate::{
-    Dynamic, Engine, EvalAltResult, FnAccess, FnNamespace, FuncRegistration, ImmutableString,
-    Module, NativeCallContext, Position,
+    Dynamic, Engine, EvalAltResult, FnNamespace, FuncRegistration, ImmutableString, Module,
+    NativeCallContext, Position,
 };
 pub use std::{any::TypeId, mem};
 

@@ -141,12 +141,14 @@ assert_eq!(sites[1].unwrap().line, 2); // the call to it
 #![forbid(unsafe_code)]
 
 pub mod bytecode;
+#[cfg(not(feature = "no_ast"))]
 mod compile;
 pub mod format;
 pub mod pos;
 mod program;
 mod vm;
 
+#[cfg(not(feature = "no_ast"))]
 pub use compile::Compiler;
 pub use format::{Sidecar, Stripped};
 pub use program::{Program, SharedProgram};

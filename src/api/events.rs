@@ -1,7 +1,9 @@
 //! Module that defines public event handlers for [`Engine`].
 
 use crate::func::SendSync;
-use crate::{Dynamic, Engine, EvalContext, Position, RhaiResultOf, VarDefInfo};
+#[cfg(not(feature = "no_ast"))]
+use crate::VarDefInfo;
+use crate::{Dynamic, Engine, EvalContext, Position, RhaiResultOf};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -56,6 +58,7 @@ impl Engine {
     /// # }
     /// ```
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_var(
         &mut self,
@@ -118,6 +121,7 @@ impl Engine {
     /// # }
     /// ```
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_def_var(
         &mut self,
@@ -138,14 +142,14 @@ impl Engine {
     /// `Fn(token: Token, pos: Position, state: &TokenizeState) -> Token`
     ///
     /// where:
-    /// * [`token`][crate::tokenizer::Token]: current token parsed
+    /// * [`token`][crate::types::Token]: current token parsed
     /// * [`pos`][`Position`]: location of the token
     /// * [`state`][crate::tokenizer::TokenizeState]: current state of the tokenizer
     ///
     /// ## Raising errors
     ///
     /// It is possible to raise a parsing error by returning
-    /// [`Token::LexError`][crate::tokenizer::Token::LexError] as the mapped token.
+    /// [`Token::LexError`][crate::types::Token::LexError] as the mapped token.
     ///
     /// # Example
     ///
@@ -178,14 +182,15 @@ impl Engine {
     /// ```
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
     #[cfg(feature = "internals")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_parse_token(
         &mut self,
         callback: impl Fn(
-                crate::tokenizer::Token,
+                crate::types::Token,
                 Position,
                 &crate::tokenizer::TokenizeState,
-            ) -> crate::tokenizer::Token
+            ) -> crate::types::Token
             + SendSync
             + 'static,
     ) -> &mut Self {
@@ -390,6 +395,7 @@ impl Engine {
     /// ```
     #[cfg(not(feature = "no_index"))]
     #[cfg(feature = "internals")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_invalid_array_index(
         &mut self,
@@ -468,6 +474,7 @@ impl Engine {
     /// ```
     #[cfg(not(feature = "no_object"))]
     #[cfg(feature = "internals")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_map_missing_property(
         &mut self,
@@ -549,6 +556,7 @@ impl Engine {
     /// This API is volatile and may change in the future.
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
     #[cfg(feature = "debugging")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn register_debugger(
         &mut self,

@@ -175,6 +175,7 @@ mod core_functions {
     /// print(m);       // prints #{"a":1, "b":2, "c":3}
     /// ```
     #[cfg(not(feature = "no_object"))]
+    #[cfg(any(feature = "metadata", not(feature = "no_ast")))]
     #[rhai_fn(return_raw)]
     pub fn parse_json(_ctx: crate::NativeCallContext, json: &str) -> RhaiResultOf<Dynamic> {
         #[cfg(feature = "metadata")]

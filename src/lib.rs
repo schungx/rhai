@@ -116,6 +116,7 @@ mod reify;
 mod defer;
 
 mod api;
+#[cfg(not(feature = "no_ast"))]
 mod ast;
 pub mod config;
 mod engine;
@@ -124,12 +125,16 @@ mod func;
 #[cfg(feature = "grain")]
 pub mod grain;
 mod module;
+#[cfg(not(feature = "no_ast"))]
 mod optimizer;
 pub mod packages;
+#[cfg(not(feature = "no_ast"))]
 mod parser;
 #[cfg(feature = "serde")]
 pub mod serde;
+#[cfg(not(feature = "no_ast"))]
 mod tests;
+#[cfg(not(feature = "no_ast"))]
 mod tokenizer;
 mod types;
 
@@ -224,19 +229,24 @@ use once_cell::race::OnceBox as OnceCell;
 pub use api::build_type::{CustomType, TypeBuilder};
 #[cfg(not(feature = "no_custom_syntax"))]
 pub use api::custom_syntax::Expression;
+#[cfg(not(feature = "no_ast"))]
 #[cfg(not(feature = "no_std"))]
 #[cfg(any(not(target_family = "wasm"), not(target_os = "unknown")))]
 pub use api::files::{eval_file, run_file};
+#[cfg(not(feature = "no_ast"))]
 pub use api::{eval::eval, run::run};
-pub use ast::{FnAccess, AST};
+#[cfg(not(feature = "no_ast"))]
+pub use ast::AST;
 use defer::Deferred;
 pub use engine::{Engine, OP_CONTAINS, OP_EQUALS};
-pub use eval::{EvalContext, EvalContextFrameGuard};
+pub use eval::EvalContext;
+#[cfg(not(feature = "no_ast"))]
+pub use eval::EvalContextFrameGuard;
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_object"))]
 use func::calc_typed_method_hash;
 use func::{calc_fn_hash, calc_fn_hash_full, calc_var_hash};
-pub use func::{plugin, FuncArgs, NativeCallContext, RhaiNativeFunc};
+pub use func::{plugin, FnAccess, FuncArgs, NativeCallContext, RhaiNativeFunc};
 pub use module::{FnNamespace, FuncRegistration, Module};
 pub use packages::string_basic::{FUNC_TO_DEBUG, FUNC_TO_STRING};
 pub use rhai_codegen::*;
@@ -250,6 +260,7 @@ pub use types::{
 /// _(debugging)_ Module containing types for debugging.
 /// Exported under the `debugging` feature only.
 #[cfg(feature = "debugging")]
+#[cfg(not(feature = "no_ast"))]
 pub mod debugger {
     #[cfg(not(feature = "no_function"))]
     pub use super::eval::CallStackFrame;
@@ -276,13 +287,17 @@ pub use func::Locked;
 type SharedModule = Shared<Module>;
 
 #[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_ast"))]
 pub use func::Func;
 
-#[cfg(not(feature = "no_function"))]
-pub use ast::ScriptFnMetadata;
+#[cfg(feature = "internals")]
+pub use func::ScriptFuncDef;
 
 #[cfg(not(feature = "no_function"))]
-pub use api::call_fn::CallFnOptions;
+pub use func::{EncapsulatedEnviron, ScriptFnMetadata};
+
+#[cfg(not(feature = "no_function"))]
+pub use api::options::CallFnOptions;
 
 /// Variable-sized array of [`Dynamic`] values.
 ///
@@ -324,6 +339,9 @@ pub use optimizer::OptimizationLevel;
 pub use types::dynamic::{AccessMode, DynamicReadLock, DynamicWriteLock, Variant};
 
 #[cfg(feature = "internals")]
+pub use types::token::is_valid_identifier;
+
+#[cfg(feature = "internals")]
 pub use module::{FuncInfo, FuncMetadata};
 
 #[cfg(feature = "internals")]
@@ -331,26 +349,27 @@ pub use module::{FuncInfo, FuncMetadata};
 pub use types::FloatWrapper;
 
 #[cfg(feature = "internals")]
-pub use types::{BloomFilterU64, CustomTypeInfo, Span, StringsInterner};
+pub use types::{BloomFilterU64, CustomTypeInfo, Span, StringsInterner, Token};
 
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub use tokenizer::{
-    get_next_token, is_valid_function_name, is_valid_identifier, parse_raw_string_literal,
-    parse_string_literal, InputStream, MultiInputsStream, Token, TokenIterator, TokenizeState,
-    TokenizerControl, TokenizerControlBlock,
+    get_next_token, parse_raw_string_literal, parse_string_literal, InputStream, MultiInputsStream,
+    TokenIterator, TokenizeState, TokenizerControl, TokenizerControlBlock,
 };
 
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub use parser::ParseState;
 
 #[cfg(feature = "internals")]
 pub use api::default_limits;
 
 #[cfg(feature = "internals")]
+#[cfg(not(feature = "no_ast"))]
 pub use ast::{
-    ASTFlags, ASTNode, BinaryExpr, EncapsulatedEnviron, Expr, FlowControl, FnCallExpr,
-    FnCallHashes, Ident, OpAssignment, RangeCase, ScriptFuncDef, Stmt, StmtBlock,
-    SwitchCasesCollection,
+    ASTFlags, ASTNode, BinaryExpr, Expr, FlowControl, FnCallExpr, Ident, OpAssignment, Stmt,
+    StmtBlock, SwitchCasesCollection,
 };
 
 #[cfg(feature = "internals")]
@@ -359,14 +378,20 @@ pub use ast::CustomExpr;
 
 #[cfg(feature = "internals")]
 #[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_ast"))]
 pub use ast::Namespace;
 
 #[cfg(feature = "internals")]
-pub use eval::{Caches, FnResolutionCache, FnResolutionCacheEntry, GlobalRuntimeState, Target};
+pub use eval::{Caches, GlobalRuntimeState, RangeCase};
+#[cfg(not(feature = "no_ast"))]
+pub use eval::{FnResolutionCache, FnResolutionCacheEntry, Target};
 
 #[cfg(feature = "internals")]
 #[allow(deprecated)]
-pub use func::{locked_read, locked_write, NativeCallContextStore, RhaiFunc};
+pub use func::{
+    is_valid_function_name, locked_read, locked_write, FnCallHashes, NativeCallContextStore,
+    RhaiFunc,
+};
 
 #[cfg(feature = "internals")]
 #[cfg(feature = "metadata")]
@@ -463,6 +488,10 @@ compile_error!("`f32_float` cannot be used with `no_float`");
 #[cfg(feature = "only_i32")]
 #[cfg(feature = "only_i64")]
 compile_error!("`only_i32` and `only_i64` cannot be used together");
+
+#[cfg(feature = "no_ast")]
+#[cfg(feature = "debugging")]
+compile_error!("`debugging` cannot be used with `no_ast`");
 
 #[cfg(feature = "no_std")]
 #[cfg(feature = "wasm-bindgen")]

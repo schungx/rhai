@@ -12,7 +12,7 @@ use crate::engine::{
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::builtin::get_builtin_binary_op_fn;
 use crate::func::hashing::get_hasher;
-use crate::tokenizer::Token;
+use crate::types::Token;
 use crate::{
     calc_fn_hash, calc_fn_hash_full, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position,
     Scope, StaticVec, AST,
@@ -1491,8 +1491,8 @@ impl Engine {
         &self,
         scope: Option<&Scope>,
         statements: StmtBlockContainer,
-        #[cfg(not(feature = "no_function"))] functions: impl IntoIterator<Item = crate::Shared<crate::ast::ScriptFuncDef>>
-            + AsRef<[crate::Shared<crate::ast::ScriptFuncDef>]>,
+        #[cfg(not(feature = "no_function"))] functions: impl IntoIterator<Item = crate::Shared<crate::func::ScriptFuncDef>>
+            + AsRef<[crate::Shared<crate::func::ScriptFuncDef>]>,
         optimization_level: OptimizationLevel,
     ) -> AST {
         let mut statements = statements;
@@ -1515,7 +1515,7 @@ impl Engine {
                 // Optimize the function body
                 match fn_def.body {
                     // Payload is a statements block
-                    crate::ast::script_fn::ScriptFuncPayload::Statements(..) => {
+                    crate::func::ScriptFuncPayload::Statements(..) => {
                         // We cannot just bind to the body here because the `fn_def`
                         // is wrapped within an `Rc` (or `Arc`).
                         // It is impossible to take ownership of the body inside
@@ -1523,9 +1523,9 @@ impl Engine {
                         let mut fn_def = crate::func::shared_take_or_clone(fn_def);
                         // Use a `match` instead of `let ... else` to shut up clippy.
                         let mut body = match fn_def.body {
-                            crate::ast::script_fn::ScriptFuncPayload::Statements(body) => body,
+                            crate::func::ScriptFuncPayload::Statements(body) => body,
                             #[cfg(feature = "grain")]
-                            crate::ast::script_fn::ScriptFuncPayload::GrainVM { .. } => {
+                            crate::func::ScriptFuncPayload::GrainVM { .. } => {
                                 unreachable!()
                             }
                         };
@@ -1534,13 +1534,13 @@ impl Engine {
                         *body.statements_mut() =
                             self.optimize_top_level(statements, scope, lib2, optimization_level);
                         // Write back the optimized body
-                        fn_def.body = crate::ast::script_fn::ScriptFuncPayload::Statements(body);
+                        fn_def.body = crate::func::ScriptFuncPayload::Statements(body);
                         // Return it as a new `ScriptFuncDef`
                         fn_def.into()
                     }
                     // Payload is a Grain VM function chunk -- cannot be optimized
                     #[cfg(feature = "grain")]
-                    crate::ast::script_fn::ScriptFuncPayload::GrainVM { .. } => fn_def,
+                    crate::func::ScriptFuncPayload::GrainVM { .. } => fn_def,
                 }
             }))
             .into()

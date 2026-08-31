@@ -3,8 +3,9 @@
 use super::{ASTFlags, ASTNode, Ident, Stmt, StmtBlock};
 use crate::engine::KEYWORD_FN_PTR;
 use crate::eval::GlobalRuntimeState;
-use crate::tokenizer::Token;
+use crate::func::FnCallHashes;
 use crate::types::dynamic::Union;
+use crate::types::Token;
 use crate::{
     calc_fn_hash, Dynamic, FnArgsVec, FnPtr, Identifier, ImmutableString, Position, SmartString,
     StaticVec, ThinVec, INT,
@@ -60,123 +61,6 @@ impl CustomExpr {
     #[must_use]
     pub const fn is_self_terminated(&self) -> bool {
         self.self_terminated
-    }
-}
-
-/// _(internals)_ A set of function call hashes. Exported under the `internals` feature only.
-///
-/// Two separate hashes are pre-calculated because of the following patterns:
-///
-/// ```rhai
-/// func(a, b, c);      // Native: func(a, b, c)        - 3 parameters
-///                     // Script: func(a, b, c)        - 3 parameters
-///
-/// a.func(b, c);       // Native: func(&mut a, b, c)   - 3 parameters
-///                     // Script: func(b, c)           - 2 parameters
-/// ```
-///
-/// For normal function calls, the native hash equals the script hash.
-///
-/// For method-style calls, the script hash contains one fewer parameter.
-///
-/// Function call hashes are used in the following manner:
-///
-/// * First, the script hash (if any) is tried, which contains only the called function's name plus
-///   the number of parameters.
-///
-/// * Next, the actual types of arguments are hashed and _combined_ with the native hash, which is
-///   then used to search for a native function.
-///
-///   In other words, a complete native function call hash always contains the called function's
-///   name plus the types of the arguments.  This is due to possible function overloading for
-///   different parameter types.
-#[derive(Clone, Copy, Eq, PartialEq, Hash)]
-pub struct FnCallHashes {
-    /// Pre-calculated hash for a script-defined function ([`None`] if native functions only).
-    #[cfg(not(feature = "no_function"))]
-    script: Option<u64>,
-    /// Pre-calculated hash for a native Rust function with no parameter types.
-    native: u64,
-}
-
-impl fmt::Debug for FnCallHashes {
-    #[cold]
-    #[inline(never)]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(not(feature = "no_function"))]
-        return match self.script {
-            Some(script) if script == self.native => fmt::Debug::fmt(&self.native, f),
-            Some(script) => write!(f, "({script}, {})", self.native),
-            None => write!(f, "{} (native only)", self.native),
-        };
-
-        #[cfg(feature = "no_function")]
-        return write!(f, "{}", self.native);
-    }
-}
-
-impl FnCallHashes {
-    /// Create a [`FnCallHashes`] from a single hash.
-    #[inline]
-    #[must_use]
-    pub const fn from_hash(hash: u64) -> Self {
-        Self {
-            #[cfg(not(feature = "no_function"))]
-            script: Some(hash),
-            native: hash,
-        }
-    }
-    /// Create a [`FnCallHashes`] with only the native Rust hash.
-    #[inline]
-    #[must_use]
-    pub const fn from_native_only(hash: u64) -> Self {
-        Self {
-            #[cfg(not(feature = "no_function"))]
-            script: None,
-            native: hash,
-        }
-    }
-    /// Create a [`FnCallHashes`] with both script function and native Rust hashes.
-    ///
-    /// Not available under `no_function`.
-    #[cfg(not(feature = "no_function"))]
-    #[inline]
-    #[must_use]
-    pub const fn from_script_and_native(script: u64, native: u64) -> Self {
-        Self {
-            script: Some(script),
-            native,
-        }
-    }
-    /// Is this [`FnCallHashes`] native-only?
-    #[inline(always)]
-    #[must_use]
-    pub const fn is_native_only(&self) -> bool {
-        #[cfg(not(feature = "no_function"))]
-        return self.script.is_none();
-        #[cfg(feature = "no_function")]
-        return true;
-    }
-    /// Get the native hash.
-    ///
-    /// The hash returned is never zero.
-    #[inline(always)]
-    #[must_use]
-    pub const fn native(&self) -> u64 {
-        self.native
-    }
-    /// Get the script hash.
-    ///
-    /// The hash returned is never zero.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this [`FnCallHashes`] is native-only.
-    #[cfg(not(feature = "no_function"))]
-    #[inline(always)]
-    #[must_use]
-    pub fn script(&self) -> u64 {
-        self.script.expect("native-only hash")
     }
 }
 

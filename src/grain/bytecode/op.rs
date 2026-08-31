@@ -1,4 +1,4 @@
-use crate::tokenizer::Token;
+use crate::types::Token;
 
 /// What `x op= y` needs to reproduce Rhai's resolution order.
 ///
@@ -554,6 +554,7 @@ pub enum Op {
     /// rewind, so they cannot disturb the scope shape slots were resolved
     /// against. A whole-program fragment does not, because Rhai does not
     /// rewind top-level statements and callers can see what they declared.
+    #[cfg(not(feature = "no_ast"))]
     EvalAst {
         /// Index into the residual pool
         residual: u32,

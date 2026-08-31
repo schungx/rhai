@@ -1,10 +1,11 @@
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-use crate::ast::{ASTFlags, ASTNode};
+#[cfg(not(feature = "no_ast"))]
+use crate::ast::{ASTFlags, ASTNode, Expr, Stmt};
 #[cfg(not(feature = "no_module"))]
 use crate::module_resolvers::StaticModuleResolver;
-use crate::{ast::Expr, ast::Stmt, tokenizer::Token, Dynamic, ImmutableString, Module, Shared};
+use crate::{types::Token, Dynamic, ImmutableString, Module, Shared};
 
 use crate::grain::bytecode::{
     site_to_position, sites, AssignOp, Chain, Chunk, Code, Pools, Positions, Strings, Switch,
@@ -106,6 +107,7 @@ pub struct Program<'a> {
     /// is the one that fits. See [`Program::debug_id`].
     debug_id: u128,
 
+    #[cfg(not(feature = "no_ast"))]
     residuals: Vec<Expr>,
 
     /// Values `Op::Const` indexes. Deduplicated, so a constant repeated across
@@ -164,14 +166,18 @@ pub struct Program<'a> {
 /// wants to read.
 impl core::fmt::Debug for Program<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Program")
-            .field("source", &self.source)
+        let mut f = f.debug_struct("Program");
+
+        f.field("source", &self.source)
             .field("bytes", &self.code.len())
             .field("max_stack", &self.main.max_stack())
             .field("consts", &self.consts.len())
-            .field("names", &self.names.len())
-            .field("residuals", &self.residuals.len())
-            .field("compiled_fns", &self.functions.len())
+            .field("names", &self.names.len());
+
+        #[cfg(not(feature = "no_ast"))]
+        f.field("residuals", &self.residuals.len());
+
+        f.field("compiled_fns", &self.functions.len())
             .field(
                 "walked_fns",
                 &self.lib.as_ref().map_or(0, |lib| lib.count().1),
@@ -186,6 +192,7 @@ impl core::fmt::Debug for Program<'_> {
 ///
 /// Only the ones worth naming: an author can act on "switch at line 42", not
 /// on "Expr::Dot". Anything else falls through to the generic message.
+#[cfg(not(feature = "no_ast"))]
 fn unsupported_kind(node: &ASTNode) -> Option<&'static str> {
     Some(match node {
         ASTNode::Stmt(stmt) => match stmt {
@@ -211,6 +218,7 @@ fn unsupported_kind(node: &ASTNode) -> Option<&'static str> {
     })
 }
 
+#[cfg(not(feature = "no_ast"))]
 fn node_position(node: &ASTNode) -> rhai::Position {
     match node {
         ASTNode::Stmt(stmt) => stmt.position(),
@@ -228,6 +236,7 @@ pub(crate) struct Parts<'a> {
     /// A loaded program passes the artifact's, because a stripped one no longer
     /// has the diagnostics to derive it from.
     pub debug_id: Option<u128>,
+    #[cfg(not(feature = "no_ast"))]
     pub residuals: Vec<Expr>,
     pub consts: Vec<Dynamic>,
     pub names: Strings<'a>,
@@ -269,6 +278,7 @@ impl<'a> Program<'a> {
             has_typed_methods,
             positions: parts.positions,
             debug_id,
+            #[cfg(not(feature = "no_ast"))]
             residuals: parts.residuals,
             consts: parts.consts,
             names: parts.names,
@@ -300,6 +310,7 @@ impl<'a> Program<'a> {
             has_typed_methods: self.has_typed_methods,
             positions: self.positions,
             debug_id: self.debug_id,
+            #[cfg(not(feature = "no_ast"))]
             residuals: self.residuals,
             consts: self.consts,
             names: self.names.into_owned(),
@@ -354,6 +365,7 @@ impl<'a> Program<'a> {
             names: self.names.len(),
             tokens: self.tokens.len(),
             assign_ops: self.assign_ops.len(),
+            #[cfg(not(feature = "no_ast"))]
             residuals: self.residuals.len(),
             chains: &self.chains,
             switches: &self.switches,
@@ -367,6 +379,7 @@ impl<'a> Program<'a> {
     /// A chunk that does not verify keeps its estimate: the VM is still safe
     /// with a value that is too large, and [`Program::verify`] is where the
     /// real failure should surface.
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) fn tighten_stack(&mut self) {
         let Ok(high_water) = self.verify() else {
             return;
@@ -637,6 +650,7 @@ impl<'a> Program<'a> {
     /// of progress it is misleading on its own: lowering a statement often
     /// splits one fragment into several smaller ones, so the count rises while
     /// the work left shrinks. Use [`Program::residual_nodes`] for that.
+    #[cfg(not(feature = "no_ast"))]
     #[must_use]
     pub fn residual_count(&self) -> usize {
         self.residuals.len()
@@ -646,6 +660,7 @@ impl<'a> Program<'a> {
     ///
     /// This is the progress metric that only falls: it counts the tree that has
     /// to survive into the artifact.
+    #[cfg(not(feature = "no_ast"))]
     #[must_use]
     pub fn residual_nodes(&self) -> usize {
         let mut nodes = 0;
@@ -659,6 +674,7 @@ impl<'a> Program<'a> {
         nodes
     }
 
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) fn residual(&self, index: u32) -> Option<&Expr> {
         self.residuals.get(index as usize)
     }
@@ -669,6 +685,7 @@ impl<'a> Program<'a> {
     /// first thing the compiler could not lower, so a validator can reject an
     /// upload with the line to go and look at — which is what makes falling
     /// back to shipping source a decision rather than a mystery.
+    #[cfg(not(feature = "no_ast"))]
     #[must_use]
     pub fn first_unsupported(&self) -> Option<(&'static str, rhai::Position)> {
         let path = &mut Vec::new();
@@ -742,6 +759,7 @@ mod tests {
             Parts {
                 positions: Positions::default(),
                 debug_id: None,
+                #[cfg(not(feature = "no_ast"))]
                 residuals: Vec::new(),
                 consts: Vec::new(),
                 names: Strings::new(["f", "i64", "string"]),

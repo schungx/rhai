@@ -4,84 +4,12 @@
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::types::dynamic::Variant;
 use crate::{
-    Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope, AST, ERR,
+    CallFnOptions, Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope,
+    AST, ERR,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{any::type_name, mem};
-
-/// Options for calling a script-defined function via [`Engine::call_fn_with_options`].
-#[derive(Debug, Hash)]
-#[non_exhaustive]
-pub struct CallFnOptions<'t> {
-    /// A value for binding to the `this` pointer (if any). Default [`None`].
-    pub this_ptr: Option<&'t mut Dynamic>,
-    /// The custom state of this evaluation run (if any), overrides [`Engine::default_tag`]. Default [`None`].
-    pub tag: Option<Dynamic>,
-    /// Evaluate the [`AST`] to load necessary modules before calling the function? Default `true`.
-    pub eval_ast: bool,
-    /// Rewind the [`Scope`] after the function call? Default `true`.
-    pub rewind_scope: bool,
-    /// Call functions in all namespaces instead of only scripted functions within the [`AST`].
-    pub in_all_namespaces: bool,
-}
-
-impl Default for CallFnOptions<'_> {
-    #[inline(always)]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'a> CallFnOptions<'a> {
-    /// Create a default [`CallFnOptions`].
-    #[inline(always)]
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            this_ptr: None,
-            tag: None,
-            eval_ast: true,
-            rewind_scope: true,
-            in_all_namespaces: false,
-        }
-    }
-    /// Bind to the `this` pointer.
-    #[inline(always)]
-    #[must_use]
-    pub fn bind_this_ptr(mut self, value: &'a mut Dynamic) -> Self {
-        self.this_ptr = Some(value);
-        self
-    }
-    /// Set the custom state of this evaluation run (if any).
-    #[inline(always)]
-    #[must_use]
-    pub fn with_tag(mut self, value: impl Variant + Clone) -> Self {
-        self.tag = Some(Dynamic::from(value));
-        self
-    }
-    /// Set whether to evaluate the [`AST`] to load necessary modules before calling the function.
-    #[inline(always)]
-    #[must_use]
-    pub const fn eval_ast(mut self, value: bool) -> Self {
-        self.eval_ast = value;
-        self
-    }
-    /// Set whether to rewind the [`Scope`] after the function call.
-    #[inline(always)]
-    #[must_use]
-    pub const fn rewind_scope(mut self, value: bool) -> Self {
-        self.rewind_scope = value;
-        self
-    }
-    /// Call functions in all namespaces instead of only scripted functions within the [`AST`].
-    #[inline(always)]
-    #[must_use]
-    pub const fn in_all_namespaces(mut self, value: bool) -> Self {
-        self.in_all_namespaces = value;
-        self
-    }
-}
 
 impl Engine {
     /// Call a script function defined in an [`AST`] with multiple arguments.

@@ -1,21 +1,27 @@
 //! Module defining the public API of the Rhai engine.
 
+#[cfg(not(feature = "no_ast"))]
 pub mod eval;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod run;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod compile;
 
 pub mod json;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod files;
 
 pub mod register;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod call_fn;
 
 pub mod options;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod optimize;
 
 pub mod limits;
@@ -24,6 +30,7 @@ pub mod events;
 
 pub mod formatting;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod custom_syntax;
 
 pub mod build_type;
@@ -31,6 +38,7 @@ pub mod build_type;
 #[cfg(feature = "metadata")]
 pub mod definitions;
 
+#[cfg(not(feature = "no_ast"))]
 pub mod deprecated;
 
 use crate::func::{locked_read, locked_write, Locked};
@@ -199,7 +207,7 @@ impl Engine {
         keyword: impl AsRef<str>,
         precedence: u8,
     ) -> Result<&mut Self, String> {
-        use crate::tokenizer::Token;
+        use crate::types::Token;
 
         let precedence = crate::engine::Precedence::new(precedence)
             .ok_or_else(|| "precedence cannot be zero".to_string())?;

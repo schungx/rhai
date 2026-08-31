@@ -1,6 +1,7 @@
 //! Module defining the AST (abstract syntax tree).
 
-use super::{ASTFlags, Expr, FnAccess, Stmt};
+use super::{ASTFlags, Expr, Stmt};
+use crate::func::FnAccess;
 use crate::{expose_under_internals, Dynamic, FnNamespace, ImmutableString, Position, ThinVec};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -59,11 +60,11 @@ impl fmt::Debug for AST {
         for (.., fn_def) in self.lib.iter_script_fn() {
             let sig = fn_def.to_string();
             match fn_def.body {
-                super::script_fn::ScriptFuncPayload::Statements(ref block) => {
+                crate::func::ScriptFuncPayload::Statements(ref block) => {
                     fp.field(&sig, &block.statements())
                 }
                 #[cfg(feature = "grain")]
-                super::script_fn::ScriptFuncPayload::GrainVM { .. } => {
+                crate::func::ScriptFuncPayload::GrainVM { .. } => {
                     fp.field(&sig, &"<Grain VM function chunk>")
                 }
             };
@@ -670,7 +671,7 @@ impl AST {
     #[expose_under_internals]
     #[cfg(not(feature = "no_function"))]
     #[inline]
-    fn iter_fn_def(&self) -> impl Iterator<Item = &crate::Shared<super::ScriptFuncDef>> {
+    fn iter_fn_def(&self) -> impl Iterator<Item = &crate::Shared<crate::func::ScriptFuncDef>> {
         self.lib.iter_script_fn().map(|(.., fn_def)| fn_def)
     }
     /// Iterate through all function definitions.
@@ -678,7 +679,7 @@ impl AST {
     /// Not available under `no_function`.
     #[cfg(not(feature = "no_function"))]
     #[inline]
-    pub fn iter_functions(&self) -> impl Iterator<Item = super::ScriptFnMetadata<'_>> {
+    pub fn iter_functions(&self) -> impl Iterator<Item = crate::func::ScriptFnMetadata<'_>> {
         self.lib
             .iter_script_fn()
             .map(|(.., fn_def)| fn_def.as_ref().into())
@@ -797,7 +798,7 @@ impl AST {
         #[cfg(not(feature = "no_function"))]
         for fn_def in self.iter_fn_def() {
             match fn_def.body {
-                super::script_fn::ScriptFuncPayload::Statements(ref block) => {
+                crate::func::ScriptFuncPayload::Statements(ref block) => {
                     for stmt in block.statements() {
                         if !stmt.walk(path, on_node) {
                             return false;
@@ -805,7 +806,7 @@ impl AST {
                     }
                 }
                 #[cfg(feature = "grain")]
-                super::script_fn::ScriptFuncPayload::GrainVM { .. } => (),
+                crate::func::ScriptFuncPayload::GrainVM { .. } => (),
             }
         }
 
@@ -933,42 +934,6 @@ impl ASTNode<'_> {
         match self {
             Self::Stmt(stmt) => stmt.position(),
             Self::Expr(expr) => expr.position(),
-        }
-    }
-}
-
-/// _(internals)_ Encapsulated AST environment.
-/// Exported under the `internals` feature only.
-///
-/// 1) stack of scripted functions defined
-/// 2) the stack of imported [modules][crate::Module]
-/// 3) global constants
-#[derive(Debug, Clone)]
-pub struct EncapsulatedEnviron {
-    /// Stack of loaded [modules][crate::Module] containing script-defined functions.
-    #[cfg(not(feature = "no_function"))]
-    pub lib: crate::StaticVec<crate::SharedModule>,
-    /// Imported [modules][crate::Module].
-    #[cfg(not(feature = "no_module"))]
-    pub imports: crate::ThinVec<(ImmutableString, crate::SharedModule)>,
-    /// Globally-defined constants.
-    #[cfg(not(feature = "no_module"))]
-    #[cfg(not(feature = "no_function"))]
-    pub constants: Option<crate::eval::SharedGlobalConstants>,
-}
-
-#[cfg(not(feature = "no_function"))]
-impl From<&crate::eval::GlobalRuntimeState> for EncapsulatedEnviron {
-    fn from(value: &crate::eval::GlobalRuntimeState) -> Self {
-        Self {
-            lib: value.lib.clone(),
-            #[cfg(not(feature = "no_module"))]
-            imports: value
-                .iter_imports_raw()
-                .map(|(n, m)| (n.clone(), m.clone()))
-                .collect(),
-            #[cfg(not(feature = "no_module"))]
-            constants: value.constants.clone(),
         }
     }
 }
