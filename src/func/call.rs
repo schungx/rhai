@@ -13,9 +13,9 @@ use crate::{
     calc_fn_hash, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position, RhaiResult,
     RhaiResultOf, Scope, ERR,
 };
+use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{convert::TryFrom, mem};
 
 #[cfg(not(feature = "no_float"))]
 #[cfg(feature = "no_std")]
@@ -260,7 +260,7 @@ impl Engine {
                     .clone();
 
                 // Append the new curried arguments to the existing list.
-                fn_ptr.extend(call_args.iter_mut().map(mem::take));
+                fn_ptr.extend(call_args.iter_mut().map(std::mem::take));
 
                 Ok((fn_ptr.into(), false))
             }
@@ -292,7 +292,7 @@ impl Engine {
                                     .curry()
                                     .iter()
                                     .cloned()
-                                    .chain(call_args.iter_mut().map(mem::take))
+                                    .chain(call_args.iter_mut().map(std::mem::take))
                                     .collect::<FnArgsVec<_>>();
                                 call_args = &mut _arg_values;
                             }
@@ -909,7 +909,7 @@ impl Engine {
                 let env = env.as_deref();
                 let scope = &mut Scope::new();
 
-                let orig_source = mem::replace(&mut global.source, module.id_raw().cloned());
+                let orig_source = std::mem::replace(&mut global.source, module.id_raw().cloned());
                 defer! { global => move |g| g.source = orig_source }
 
                 self.call_script_fn(global, caches, scope, None, env, fn_def, args, true, pos)

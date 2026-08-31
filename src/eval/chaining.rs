@@ -3,7 +3,7 @@
 
 use super::{Caches, GlobalRuntimeState, Target};
 use crate::ast::{ASTFlags, BinaryExpr, Expr, OpAssignment};
-use crate::{Dynamic, Engine, FnArgsVec, Position, RhaiResult, RhaiResultOf, Scope, ERR};
+use crate::{Dynamic, Engine, FnArgsVec, RhaiResult, RhaiResultOf, Scope, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{convert::TryInto, hash::Hash};
@@ -454,7 +454,7 @@ impl Engine {
                         defer! { idx_values => truncate; let offset = idx_values.len() - args.len(); }
 
                         let call_args = &mut idx_values[offset..];
-                        let arg1_pos = args.first().map_or(Position::NONE, Expr::position);
+                        let arg1_pos = args.first().map_or(crate::Position::NONE, Expr::position);
 
                         self.make_method_call(
                             global, caches, name, *hashes, target, call_args, arg1_pos, *pos,
@@ -664,7 +664,8 @@ impl Engine {
                                 defer! { idx_values => truncate; let offset = idx_values.len() - args.len(); }
 
                                 let call_args = &mut idx_values[offset..];
-                                let arg1_pos = args.first().map_or(Position::NONE, Expr::position);
+                                let arg1_pos =
+                                    args.first().map_or(crate::Position::NONE, Expr::position);
 
                                 self.make_method_call(
                                     global, caches, name, *hashes, target, call_args, arg1_pos, pos,
@@ -787,7 +788,8 @@ impl Engine {
                                     defer! { idx_values => truncate; let offset = idx_values.len() - args.len(); }
 
                                     let call_args = &mut idx_values[offset..];
-                                    let pos1 = args.first().map_or(Position::NONE, Expr::position);
+                                    let pos1 =
+                                        args.first().map_or(crate::Position::NONE, Expr::position);
 
                                     self.make_method_call(
                                         global, caches, name, *hashes, target, call_args, pos1, pos,

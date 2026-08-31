@@ -47,9 +47,6 @@ impl Engine {
         _add_if_not_found: bool,
         use_indexers: bool,
     ) -> RhaiResultOf<Target<'t>> {
-        #[cfg(not(feature = "no_index"))]
-        use std::convert::TryFrom;
-
         self.track_operation(global, Position::NONE)?;
 
         match target {

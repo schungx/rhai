@@ -304,8 +304,6 @@ impl Engine {
 
                     #[cfg(not(feature = "no_function"))]
                     {
-                        use std::convert::TryInto;
-
                         let rhs_val = self
                             .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), rhs)?
                             .flatten();

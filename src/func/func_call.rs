@@ -307,8 +307,6 @@ impl Engine {
             #[cfg(not(feature = "no_function"))]
             #[cfg(not(feature = "no_object"))]
             crate::engine::KEYWORD_IS_DEF_FN if args.len() == 3 => {
-                use std::convert::TryFrom;
-
                 let this_type = args[0]
                     .as_immutable_string_ref()
                     .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, pos))?;

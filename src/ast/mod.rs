@@ -20,9 +20,3 @@ pub use stmt::{
     CaseBlocksList, FlowControl, OpAssignment, Stmt, StmtBlock, StmtBlockContainer,
     SwitchCasesCollection,
 };
-
-/// _(internals)_ Empty placeholder for a script-defined function.
-/// Exported under the `internals` feature only.
-#[cfg(feature = "no_function")]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
-pub struct ScriptFuncDef;

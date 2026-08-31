@@ -1839,8 +1839,6 @@ impl Iterator for TokenIterator<'_> {
 
             if token != Token::EOF {
                 if let Some(ref mut compressed) = control.compressed {
-                    use std::fmt::Write;
-
                     let last_token = self.state.last_token.as_ref().unwrap();
                     let mut buf = SmartString::new_const();
 
