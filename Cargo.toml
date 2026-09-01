@@ -157,8 +157,13 @@ required-features = ["metadata", "internals"]
 name = "grain_bench"
 required-features = ["grain"]
 
+# A Rhai script to Grain bytecodes transpiler.
+[[bin]]
+name = "grain_compile"
+required-features = ["grain"]
+
 # A disassembler, for reading what a script lowered to.
-[[example]]
+[[bin]]
 name = "grain_dump"
 required-features = ["grain"]
 
