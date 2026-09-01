@@ -2,11 +2,9 @@
 
 use crate::api::default_limits::MAX_STRINGS_INTERNED;
 use crate::api::options::LangOptions;
+use crate::func::native::{locked_write, OnDebugCallback, OnPrintCallback, OnVarCallback};
 #[cfg(not(feature = "no_ast"))]
-use crate::func::native::OnParseTokenCallback;
-use crate::func::native::{
-    locked_write, OnDebugCallback, OnDefVarCallback, OnPrintCallback, OnVarCallback,
-};
+use crate::func::native::{OnDefVarCallback, OnParseTokenCallback};
 use crate::packages::{Package, StandardPackage};
 use crate::types::StringsInterner;
 use crate::types::Token;
@@ -37,6 +35,7 @@ pub const KEYWORD_IS_DEF_FN: &str = "is_def_fn";
 pub const KEYWORD_THIS: &str = "this";
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_ast"))]
 pub const KEYWORD_GLOBAL: &str = "global";
 #[cfg(not(feature = "no_object"))]
 pub const FN_GET: &str = "get$";
@@ -116,6 +115,7 @@ pub struct Engine {
         std::collections::BTreeMap<Identifier, Box<crate::api::custom_syntax::CustomSyntax>>,
 
     /// Callback closure for filtering variable definition.
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) def_var_filter: Option<Box<OnDefVarCallback>>,
     /// Callback closure for resolving variable access.
     pub(crate) resolve_var: Option<Box<OnVarCallback>>,
@@ -126,12 +126,10 @@ pub struct Engine {
     /// Callback closure when a [`Array`][crate::Array] property accessed does not exist.
     #[cfg(not(feature = "no_index"))]
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_ast"))]
     pub(crate) invalid_array_index: Option<Box<crate::func::native::OnInvalidArrayIndexCallback>>,
     /// Callback closure when a [`Map`][crate::Map] property accessed does not exist.
     #[cfg(not(feature = "no_object"))]
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_ast"))]
     pub(crate) missing_map_property: Option<Box<crate::func::native::OnMissingMapPropertyCallback>>,
     /// Callback closure when a function call is not found.
     #[cfg(feature = "internals")]
@@ -191,11 +189,11 @@ impl fmt::Debug for Engine {
                 .collect::<String>(),
         );
 
-        f.field("def_var_filter", &self.def_var_filter.is_some())
-            .field("resolve_var", &self.resolve_var.is_some());
+        f.field("resolve_var", &self.resolve_var.is_some());
 
         #[cfg(not(feature = "no_ast"))]
-        f.field("token_mapper", &self.token_mapper.is_some());
+        f.field("def_var_filter", &self.def_var_filter.is_some())
+            .field("token_mapper", &self.token_mapper.is_some());
 
         #[cfg(not(feature = "unchecked"))]
         f.field("progress", &self.progress.is_some());
@@ -263,6 +261,7 @@ impl Engine {
         #[cfg(not(feature = "no_custom_syntax"))]
         custom_syntax: std::collections::BTreeMap::new(),
 
+        #[cfg(not(feature = "no_ast"))]
         def_var_filter: None,
         resolve_var: None,
         #[cfg(not(feature = "no_ast"))]
@@ -270,11 +269,9 @@ impl Engine {
 
         #[cfg(not(feature = "no_index"))]
         #[cfg(feature = "internals")]
-        #[cfg(not(feature = "no_ast"))]
         invalid_array_index: None,
         #[cfg(not(feature = "no_object"))]
         #[cfg(feature = "internals")]
-        #[cfg(not(feature = "no_ast"))]
         missing_map_property: None,
         #[cfg(feature = "internals")]
         missing_function: None,

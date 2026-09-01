@@ -452,9 +452,7 @@ pub mod blob_functions {
     /// print(x);               // prints "[010305]"
     /// ```
     pub fn remove(blob: &mut Blob, index: INT) -> INT {
-        let Ok(index) = calc_index(blob.len(), index, true, || {
-            Err(EvalAltResult::ErrorRuntime(Dynamic::UNIT, Position::NONE).into())
-        }) else {
+        let Some(index) = calc_index(blob.len(), index, true) else {
             return 0;
         };
 

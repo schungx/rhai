@@ -1,6 +1,8 @@
 use crate::eval::GlobalRuntimeState;
+#[cfg(not(feature = "no_ast"))]
+use crate::AST;
 use crate::{
-    Engine, ModuleResolver, Position, RhaiResultOf, Scope, SharedModule, StaticVec, AST, ERR,
+    Engine, ModuleResolver, Position, RhaiResultOf, Scope, SharedModule, StaticVec, ERR,
     STATIC_VEC_INLINE_SIZE,
 };
 #[cfg(feature = "no_std")]
@@ -189,6 +191,7 @@ impl ModuleResolver for ModuleResolversCollection {
         Err(ERR::ErrorModuleNotFound(path.into(), pos).into())
     }
 
+    #[cfg(not(feature = "no_ast"))]
     fn resolve_ast(
         &self,
         engine: &Engine,

@@ -236,24 +236,23 @@ impl<'a> From<&'a ScriptFuncDef> for ScriptFnMetadata<'a> {
 /// _(internals)_ Encapsulated environment.
 /// Exported under the `internals` feature only.
 ///
+/// Not available under `no_function`.
+///
 /// 1) stack of scripted functions defined
 /// 2) the stack of imported [modules][crate::Module]
 /// 3) global constants
 #[derive(Debug, Clone)]
 pub struct EncapsulatedEnviron {
     /// Stack of loaded [modules][crate::Module] containing script-defined functions.
-    #[cfg(not(feature = "no_function"))]
     pub lib: crate::StaticVec<crate::SharedModule>,
     /// Imported [modules][crate::Module].
     #[cfg(not(feature = "no_module"))]
     pub imports: crate::ThinVec<(ImmutableString, crate::SharedModule)>,
     /// Globally-defined constants.
     #[cfg(not(feature = "no_module"))]
-    #[cfg(not(feature = "no_function"))]
     pub constants: Option<crate::eval::SharedGlobalConstants>,
 }
 
-#[cfg(not(feature = "no_function"))]
 impl From<&crate::eval::GlobalRuntimeState> for EncapsulatedEnviron {
     fn from(value: &crate::eval::GlobalRuntimeState) -> Self {
         Self {

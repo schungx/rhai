@@ -1,17 +1,21 @@
 use crate::eval::GlobalRuntimeState;
 use crate::func::SendSync;
-use crate::{Engine, Position, RhaiResultOf, Scope, SharedModule, AST};
+#[cfg(not(feature = "no_ast"))]
+use crate::AST;
+use crate::{Engine, Position, RhaiResultOf, Scope, SharedModule};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
 mod collection;
 mod dummy;
+#[cfg(not(feature = "no_ast"))]
 mod file;
 mod stat;
 
 pub use collection::ModuleResolversCollection;
 pub use dummy::DummyModuleResolver;
 #[cfg(not(feature = "no_std"))]
+#[cfg(not(feature = "no_ast"))]
 #[cfg(any(not(target_family = "wasm"), not(target_os = "unknown")))]
 pub use file::FileModuleResolver;
 pub use stat::StaticModuleResolver;
@@ -53,6 +57,7 @@ pub trait ModuleResolver: SendSync {
     ///
     /// Override the default implementation of this method if the module resolver
     /// serves modules based on compiled Rhai scripts.
+    #[cfg(not(feature = "no_ast"))]
     #[allow(unused_variables)]
     #[must_use]
     fn resolve_ast(

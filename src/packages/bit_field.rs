@@ -36,9 +36,8 @@ mod bit_field_functions {
     /// ```
     #[rhai_fn(return_raw)]
     pub fn get_bit(value: INT, bit: INT) -> RhaiResultOf<bool> {
-        let bit = calc_index(INT_BITS, bit, true, || {
-            Err(ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE).into())
-        })?;
+        let bit = calc_index(INT_BITS, bit, true)
+            .ok_or_else(|| ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE))?;
 
         Ok((value & (1 << bit)) != 0)
     }
@@ -66,9 +65,8 @@ mod bit_field_functions {
     /// ```
     #[rhai_fn(return_raw)]
     pub fn set_bit(value: &mut INT, bit: INT, new_value: bool) -> RhaiResultOf<()> {
-        let bit = calc_index(INT_BITS, bit, true, || {
-            Err(ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE).into())
-        })?;
+        let bit = calc_index(INT_BITS, bit, true)
+            .ok_or_else(|| ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE))?;
 
         let mask = 1 << bit;
         if new_value {
@@ -133,9 +131,8 @@ mod bit_field_functions {
             return Ok(0);
         }
 
-        let bit = calc_index(INT_BITS, start, true, || {
-            Err(ERR::ErrorBitFieldBounds(INT_BITS, start, Position::NONE).into())
-        })?;
+        let bit = calc_index(INT_BITS, start, true)
+            .ok_or_else(|| ERR::ErrorBitFieldBounds(INT_BITS, start, Position::NONE))?;
 
         let bits = usize::try_from(bits).map_or_else(
             |_| INT_BITS - bit,
@@ -230,9 +227,8 @@ mod bit_field_functions {
             return Ok(());
         }
 
-        let bit = calc_index(INT_BITS, bit, true, || {
-            Err(ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE).into())
-        })?;
+        let bit = calc_index(INT_BITS, bit, true)
+            .ok_or_else(|| ERR::ErrorBitFieldBounds(INT_BITS, bit, Position::NONE))?;
 
         let bits = usize::try_from(bits).map_or_else(
             |_| INT_BITS - bit,

@@ -511,7 +511,7 @@ pub(crate) fn _call_fn_raw(
 
     // Native or script
 
-    let hash = match is_method_call {
+    let hashes = match is_method_call {
         #[cfg(not(feature = "no_function"))]
         true => FnCallHashes::from_script_and_native(
             calc_fn_hash(None, fn_name, args_len - 1),
@@ -529,7 +529,7 @@ pub(crate) fn _call_fn_raw(
             Some(scope),
             fn_name,
             op_token,
-            hash,
+            hashes,
             args,
             is_ref_mut,
             is_method_call,

@@ -58,7 +58,6 @@ impl Engine {
     /// # }
     /// ```
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
-    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_var(
         &mut self,
@@ -395,7 +394,6 @@ impl Engine {
     /// ```
     #[cfg(not(feature = "no_index"))]
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_invalid_array_index(
         &mut self,
@@ -474,7 +472,6 @@ impl Engine {
     /// ```
     #[cfg(not(feature = "no_object"))]
     #[cfg(feature = "internals")]
-    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_map_missing_property(
         &mut self,

@@ -254,7 +254,7 @@ pub use rhai_codegen::*;
 pub use types::Instant;
 pub use types::{
     Dynamic, EvalAltResult, FnPtr, ImmutableString, LexError, ParseError, ParseErrorType, Position,
-    Scope, VarDefInfo,
+    Scope,
 };
 
 /// _(debugging)_ Module containing types for debugging.
@@ -293,8 +293,12 @@ pub use func::Func;
 #[cfg(feature = "internals")]
 pub use func::ScriptFuncDef;
 
+#[cfg(feature = "internals")]
 #[cfg(not(feature = "no_function"))]
-pub use func::{EncapsulatedEnviron, ScriptFnMetadata};
+pub use func::EncapsulatedEnviron;
+
+#[cfg(not(feature = "no_function"))]
+pub use func::ScriptFnMetadata;
 
 #[cfg(not(feature = "no_function"))]
 pub use api::options::CallFnOptions;
@@ -351,6 +355,9 @@ pub use types::FloatWrapper;
 #[cfg(feature = "internals")]
 pub use types::{BloomFilterU64, CustomTypeInfo, Span, StringsInterner, Token};
 
+#[cfg(not(feature = "no_ast"))]
+pub use types::VarDefInfo;
+
 #[cfg(feature = "internals")]
 #[cfg(not(feature = "no_ast"))]
 pub use tokenizer::{
@@ -382,9 +389,9 @@ pub use ast::CustomExpr;
 pub use ast::Namespace;
 
 #[cfg(feature = "internals")]
-pub use eval::{Caches, GlobalRuntimeState, RangeCase};
+pub use eval::{Caches, GlobalRuntimeState, RangeCase, Target};
 #[cfg(not(feature = "no_ast"))]
-pub use eval::{FnResolutionCache, FnResolutionCacheEntry, Target};
+pub use eval::{FnResolutionCache, FnResolutionCacheEntry};
 
 #[cfg(feature = "internals")]
 #[allow(deprecated)]

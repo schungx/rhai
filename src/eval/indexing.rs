@@ -58,9 +58,9 @@ impl Engine {
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, idx_pos))?;
                 let len = arr.len();
 
-                let arr_idx = match super::calc_index(len, index, true, || {
-                    Err(ERR::ErrorArrayBounds(len, index, idx_pos).into())
-                }) {
+                let arr_idx = match super::calc_index(len, index, true)
+                    .ok_or_else(|| ERR::ErrorArrayBounds(len, index, idx_pos))
+                {
                     Ok(idx) => idx,
                     Err(err) => {
                         #[cfg(not(feature = "no_index"))]
@@ -72,7 +72,7 @@ impl Engine {
                             return cb(arr, index, context)
                                 .map_err(|err| err.fill_position(idx_pos));
                         }
-                        return Err(err);
+                        return Err(err.into());
                     }
                 };
 
@@ -86,9 +86,8 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, idx_pos))?;
                 let len = arr.len();
-                let arr_idx = super::calc_index(len, index, true, || {
-                    Err(ERR::ErrorArrayBounds(len, index, idx_pos).into())
-                })?;
+                let arr_idx = super::calc_index(len, index, true)
+                    .ok_or_else(|| ERR::ErrorArrayBounds(len, index, idx_pos))?;
 
                 let value = arr.get(arr_idx).map(|&v| (v as crate::INT).into()).unwrap();
 
@@ -144,17 +143,15 @@ impl Engine {
                         range.end
                     };
 
-                    let start = super::calc_index(crate::INT_BITS, start, false, || {
-                        Err(ERR::ErrorBitFieldBounds(crate::INT_BITS, start, idx_pos).into())
-                    })?;
-                    let end = super::calc_index(crate::INT_BITS, end, false, || {
-                        usize::try_from(end)
-                            .ok()
-                            .and_then(|x| (x <= crate::INT_BITS).then_some(x))
-                            .ok_or_else(|| {
-                                ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos).into()
-                            })
-                    })?;
+                    let start = super::calc_index(crate::INT_BITS, start, false)
+                        .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, start, idx_pos))?;
+                    let end = super::calc_index(crate::INT_BITS, end, false)
+                        .or_else(|| {
+                            usize::try_from(end)
+                                .ok()
+                                .and_then(|x| (x <= crate::INT_BITS).then_some(x))
+                        })
+                        .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos))?;
 
                     if end <= start {
                         (0, 0)
@@ -178,12 +175,10 @@ impl Engine {
                         *range.end()
                     };
 
-                    let start = super::calc_index(crate::INT_BITS, start, false, || {
-                        Err(ERR::ErrorBitFieldBounds(crate::INT_BITS, start, idx_pos).into())
-                    })?;
-                    let end = super::calc_index(crate::INT_BITS, end, false, || {
-                        Err(ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos).into())
-                    })?;
+                    let start = super::calc_index(crate::INT_BITS, start, false)
+                        .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, start, idx_pos))?;
+                    let end = super::calc_index(crate::INT_BITS, end, false)
+                        .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, end, idx_pos))?;
 
                     if end < start {
                         (0, 0)
@@ -221,9 +216,8 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, idx_pos))?;
 
-                let bit = super::calc_index(crate::INT_BITS, index, true, || {
-                    Err(ERR::ErrorBitFieldBounds(crate::INT_BITS, index, idx_pos).into())
-                })?;
+                let bit = super::calc_index(crate::INT_BITS, index, true)
+                    .ok_or_else(|| ERR::ErrorBitFieldBounds(crate::INT_BITS, index, idx_pos))?;
 
                 let bit_value = (*value & (1 << bit)) != 0;
                 let bit = u8::try_from(bit).unwrap();
@@ -307,17 +301,16 @@ impl Engine {
                         let start = if range.start >= 0 {
                             range.start as usize
                         } else {
-                            super::calc_index(count, range.start, true, || {
-                                Err(ERR::ErrorStringBounds(count, range.start, idx_pos).into())
+                            super::calc_index(count, range.start, true).ok_or_else(|| {
+                                ERR::ErrorStringBounds(count, range.start, idx_pos)
                             })?
                         };
                         let end = if range.end >= 0 {
                             range.end as usize
                         } else {
-                            super::calc_index(count, range.end, true, || {
-                                Err(ERR::ErrorStringBounds(count, range.end, idx_pos).into())
-                            })
-                            .unwrap_or(0)
+                            super::calc_index(count, range.end, true)
+                                .ok_or_else(|| ERR::ErrorStringBounds(count, range.end, idx_pos))
+                                .unwrap_or(0)
                         };
 
                         let value = if start == 0 && end >= count {
@@ -345,17 +338,15 @@ impl Engine {
                         let start = if start >= 0 {
                             start as usize
                         } else {
-                            super::calc_index(count, start, true, || {
-                                Err(ERR::ErrorStringBounds(count, start, idx_pos).into())
-                            })?
+                            super::calc_index(count, start, true)
+                                .ok_or_else(|| ERR::ErrorStringBounds(count, start, idx_pos))?
                         };
                         let end = if end >= 0 {
                             end as usize
                         } else {
-                            super::calc_index(count, end, true, || {
-                                Err(ERR::ErrorStringBounds(count, end, idx_pos).into())
-                            })
-                            .unwrap_or(0)
+                            super::calc_index(count, end, true)
+                                .ok_or_else(|| ERR::ErrorStringBounds(count, end, idx_pos))
+                                .unwrap_or(0)
                         };
 
                         let value = if start == 0 && end >= count - 1 {

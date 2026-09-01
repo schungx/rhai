@@ -6,9 +6,11 @@ use crate::plugin::PluginFunc;
 #[cfg(not(feature = "no_ast"))]
 use crate::tokenizer::TokenizeState;
 use crate::types::{dynamic::Variant, token::is_valid_identifier, Token};
+#[cfg(not(feature = "no_ast"))]
+use crate::VarDefInfo;
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, EvalContext, FnArgsVec, FuncArgs,
-    Position, RhaiResult, RhaiResultOf, StaticVec, VarDefInfo, ERR,
+    Position, RhaiResult, RhaiResultOf, StaticVec, ERR,
 };
 use std::any::type_name;
 #[cfg(feature = "no_std")]
@@ -758,7 +760,6 @@ pub type OnDebugCallback = dyn Fn(&str, Option<&str>, Position) + Send + Sync;
 #[cfg(not(feature = "sync"))]
 #[cfg(not(feature = "no_index"))]
 #[cfg(feature = "internals")]
-#[cfg(not(feature = "no_ast"))]
 pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(
     &'a mut crate::Array,
     crate::INT,
@@ -769,7 +770,6 @@ pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(
 #[cfg(feature = "sync")]
 #[cfg(not(feature = "no_index"))]
 #[cfg(feature = "internals")]
-#[cfg(not(feature = "no_ast"))]
 pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(&'a mut crate::Array, crate::INT, EvalContext) -> RhaiResultOf<crate::Target<'a>>
     + Send
     + Sync;
@@ -779,7 +779,6 @@ pub type OnInvalidArrayIndexCallback = dyn for<'a> Fn(&'a mut crate::Array, crat
 #[cfg(not(feature = "sync"))]
 #[cfg(not(feature = "no_object"))]
 #[cfg(feature = "internals")]
-#[cfg(not(feature = "no_ast"))]
 pub type OnMissingMapPropertyCallback =
     dyn for<'a> Fn(&'a mut crate::Map, &str, EvalContext) -> RhaiResultOf<crate::eval::Target<'a>>;
 /// Callback function when a property accessed is not found in a [`Map`][crate::Map].
@@ -787,7 +786,6 @@ pub type OnMissingMapPropertyCallback =
 #[cfg(feature = "sync")]
 #[cfg(not(feature = "no_object"))]
 #[cfg(feature = "internals")]
-#[cfg(not(feature = "no_ast"))]
 pub type OnMissingMapPropertyCallback = dyn for<'a> Fn(&'a mut crate::Map, &str, EvalContext) -> RhaiResultOf<crate::eval::Target<'a>>
     + Send
     + Sync;
@@ -829,8 +827,10 @@ pub type OnVarCallback =
 
 /// Callback function for variable definition.
 #[cfg(not(feature = "sync"))]
+#[cfg(not(feature = "no_ast"))]
 pub type OnDefVarCallback = dyn Fn(bool, VarDefInfo, EvalContext) -> RhaiResultOf<bool>;
 /// Callback function for variable definition.
 #[cfg(feature = "sync")]
+#[cfg(not(feature = "no_ast"))]
 pub type OnDefVarCallback =
     dyn Fn(bool, VarDefInfo, EvalContext) -> RhaiResultOf<bool> + Send + Sync;

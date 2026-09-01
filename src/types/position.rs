@@ -73,6 +73,7 @@ impl Position {
         }
     }
     /// Advance by one character position.
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn advance(&mut self) {
         assert!(!self.is_none(), "cannot advance Position::NONE");
@@ -83,6 +84,7 @@ impl Position {
     /// # Panics
     ///
     /// Panics if already at beginning of a line - cannot rewind to a previous line.
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn rewind(&mut self) {
         assert!(!self.is_none(), "cannot rewind Position::NONE");
@@ -90,6 +92,7 @@ impl Position {
         self.pos = self.pos.saturating_sub(1);
     }
     /// Advance to the next line.
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn new_line(&mut self) {
         assert!(!self.is_none(), "cannot advance Position::NONE");

@@ -339,9 +339,7 @@ pub mod array_functions {
     /// print(x);               // prints "[3]"
     /// ```
     pub fn remove(array: &mut Array, index: INT) -> Dynamic {
-        let Ok(index) = calc_index(array.len(), index, true, || {
-            Err(EvalAltResult::ErrorRuntime(Dynamic::UNIT, Position::NONE).into())
-        }) else {
+        let Some(index) = calc_index(array.len(), index, true) else {
             return Dynamic::UNIT;
         };
 

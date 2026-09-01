@@ -1265,6 +1265,7 @@ impl Module {
 
     /// Get a namespace-qualified [`Module`] variable as a [`Dynamic`].
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn get_qualified_var(&self, hash_var: u64) -> Option<Dynamic> {
         self.all_variables
@@ -2132,6 +2133,7 @@ impl Module {
 
     /// Filter out the functions, retaining only some script-defined functions based on a filter predicate.
     #[cfg(not(feature = "no_function"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn retain_script_functions(
         &mut self,
@@ -2288,6 +2290,7 @@ impl Module {
     /// # }
     /// ```
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn eval_ast_as_new(
         scope: crate::Scope,
@@ -2311,6 +2314,7 @@ impl Module {
     /// In particular, the [`global`][crate::GlobalRuntimeState] parameter allows the entire
     /// calling environment to be encapsulated, including automatic global constants.
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     pub fn eval_ast_as_new_raw(
         engine: &crate::Engine,
         scope: &mut crate::Scope,

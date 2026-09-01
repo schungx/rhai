@@ -46,25 +46,23 @@ pub fn calc_index(
     length: usize,
     index: crate::INT,
     negative_count_from_end: bool,
-    err_func: impl FnOnce() -> RhaiResultOf<usize>,
-) -> RhaiResultOf<usize> {
+) -> Option<usize> {
     if length == 0 {
         // Empty array, do nothing
     } else if index < 0 {
         if negative_count_from_end {
             if let Ok(abs_index) = usize::try_from(index.unsigned_abs()) {
                 if abs_index <= length {
-                    return Ok(length - abs_index);
+                    return Some(length - abs_index);
                 }
             }
         }
     } else if let Ok(index) = usize::try_from(index) {
         if index < length {
-            return Ok(index);
+            return Some(index);
         }
     }
-
-    err_func()
+    None
 }
 
 /// _(internals)_ A type that encapsulates a mutation target for an expression with side effects.

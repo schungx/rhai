@@ -138,9 +138,8 @@ pub struct BitRange(INT, usize);
 impl BitRange {
     /// Create a new [`BitRange`].
     pub fn new(value: INT, from: INT, len: INT) -> RhaiResultOf<Self> {
-        let from = calc_index(INT_BITS, from, true, || {
-            Err(ERR::ErrorBitFieldBounds(INT_BITS, from, Position::NONE).into())
-        })?;
+        let from = calc_index(INT_BITS, from, true)
+            .ok_or_else(|| ERR::ErrorBitFieldBounds(INT_BITS, from, Position::NONE))?;
 
         let len = if len < 0 {
             0

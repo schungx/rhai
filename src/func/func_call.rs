@@ -92,6 +92,7 @@ impl FnCallHashes {
         }
     }
     /// Create a [`FnCallHashes`] with only the native Rust hash.
+    #[cfg(any(feature = "no_function", not(feature = "no_ast")))]
     #[inline]
     #[must_use]
     pub const fn from_native_only(hash: u64) -> Self {

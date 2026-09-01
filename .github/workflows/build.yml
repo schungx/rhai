@@ -162,7 +162,9 @@ jobs:
     strategy:
       matrix:
         flags:
+          - "--features no_ast"
           - "--features no_ast,decimal,metadata,grain"
+          - "--features no_ast,decimal,metadata,sync,internals,grain"
       fail-fast: false
     steps:
       - name: Checkout
