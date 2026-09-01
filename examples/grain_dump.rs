@@ -1,9 +1,8 @@
-//! Compile a Rhai script to Grain bytecodes and print the disassembly.
+//! Print the disassembly of a Grain bytecode program.
 //!
-//! `cargo run --features grain --example grain_dump -- script.rhai`
+//! `cargo run --features grain --example grain_dump -- script.rgrn`
 
-use rhai::grain::{Compiler, Program};
-use rhai::Engine;
+use rhai::grain::Program;
 
 fn dump(program: &Program, code: &[u8], name: &str, chunk: &rhai::grain::bytecode::Chunk) {
     println!(
@@ -26,18 +25,11 @@ fn dump(program: &Program, code: &[u8], name: &str, chunk: &rhai::grain::bytecod
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args()
         .nth(1)
-        .ok_or("usage: grain_dump <script.rhai>")?;
-    let source = std::fs::read_to_string(&path)?;
-
-    let engine = Engine::new();
-    let ast = engine.compile(&source)?;
-    let program = Compiler::new().compile(&ast);
+        .ok_or("usage: grain_dump <script.rgrn>")?;
+    let source = std::fs::read(&path)?;
+    let program = Program::read(&source).map_err(|e| format!("failed to read program: {e}"))?;
 
     println!("{program:?}");
-    println!(
-        "\nresiduals (AST fragments left over): {}",
-        program.residual_count()
-    );
 
     let code = program.code();
     dump(&program, code, "main", program.main());
