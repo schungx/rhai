@@ -15,6 +15,11 @@ New features
 
 * New `no_ast` feature that excludes the `AST`, its interpreter, the tokenizer, parser and optimizer for a minimized build.  Under this feature flag, the Rhai Grain VM is the only venue to evaluate a script.
 
+Enhancements
+------------
+
+* `rhai-run` now supports loading and executing Rhai Grain bytecodes (if the `grain` feature is enabled).
+
 
 Version 1.26.0
 ==============

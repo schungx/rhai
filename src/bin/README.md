@@ -3,11 +3,11 @@ Rhai Tools
 
 Tools for working with Rhai scripts.
 
-| Tool                                                                             | Required feature(s) | Description                                           |
-| -------------------------------------------------------------------------------- | :-----------------: | ----------------------------------------------------- |
-| [`rhai-run`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-run.rs)   |                     | runs each filename passed to it as a Rhai script      |
-| [`rhai-repl`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-repl.rs) |     `rustyline`     | a simple REPL that interactively evaluates statements |
-| [`rhai-dbg`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-dbg.rs)   |     `debugging`     | the _Rhai Debugger_                                   |
+| Tool                                                                             | Required feature(s) | Description                                                                                                   |
+| -------------------------------------------------------------------------------- | :-----------------: | ------------------------------------------------------------------------------------------------------------- |
+| [`rhai-run`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-run.rs)   |                     | runs each filename passed to it as a Rhai script, or as [Rhai Grain] bytecodes (requires the `grain` feature) |
+| [`rhai-repl`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-repl.rs) |     `rustyline`     | a simple REPL that interactively evaluates statements                                                         |
+| [`rhai-dbg`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-dbg.rs)   |     `debugging`     | the _Rhai Debugger_                                                                                           |
 
 For convenience, a feature named `bin-features` is available which is a combination of the following:
 
