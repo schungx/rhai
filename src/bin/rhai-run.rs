@@ -5,9 +5,6 @@ use rhai::Engine;
 use rhai::{EvalAltResult, Position};
 use std::{env, fs::File, io::Read, path::Path, process::exit};
 
-#[cfg(all(feature = "no_ast", not(feature = "grain")))]
-compile_error!("`rhai-run` requires the `grain` feature when `no_ast` is enabled");
-
 #[cfg(not(feature = "no_ast"))]
 fn eprint_error(input: &str, mut err: EvalAltResult) {
     fn eprint_line(lines: &[&str], pos: Position, err_msg: &str) {
@@ -138,15 +135,14 @@ fn walk_ast(contents: &mut String, filename: std::path::PathBuf) {
         &contents[..]
     };
 
-    if let Err(err) = {
-        engine
-            .compile(contents)
-            .map_err(|err| err.into())
-            .and_then(|mut ast| {
-                ast.set_source(filename.to_string_lossy().to_string());
-                engine.run_ast(&ast)
-            })
-    } {
+    if let Err(err) = engine
+        .compile(contents)
+        .map_err(|err| err.into())
+        .and_then(|mut ast| {
+            ast.set_source(filename.to_string_lossy().to_string());
+            engine.run_ast(&ast)
+        })
+    {
         let filename = filename.to_string_lossy();
 
         eprintln!("{:=<1$}", "", filename.len());
