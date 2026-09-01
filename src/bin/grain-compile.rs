@@ -1,6 +1,6 @@
-//! Compile a Rhai script to Grain bytecodes and print the disassembly.
+//! Compile a Rhai script to Grain bytecodes.
 //!
-//! `cargo run --features grain --example grain_dump -- script.rhai`
+//! `grain-compile script.rhai script.rgrn`
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(feature = "no_ast"))]
@@ -10,12 +10,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let path = std::env::args()
             .nth(1)
-            .ok_or("usage: grain_dump <script.rhai>")?;
+            .ok_or("usage: grain-compile <script.rhai> <output.rgrn>")?;
         let source = std::fs::read_to_string(&path)?;
 
         let path = std::env::args()
             .nth(2)
-            .ok_or("usage: grain_dump <script.rhai>")?;
+            .ok_or("usage: grain-compile <script.rhai> <output.rgrn>")?;
 
         let engine = Engine::new();
         let ast = engine.compile(&source)?;

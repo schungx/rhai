@@ -21,7 +21,7 @@ Enhancements
 * Rhai Grain bytecodes transpilation is optimized (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1156`](https://github.com/rhaiscript/rhai/pull/1156)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts with callbacks ([`#1159`](https://github.com/rhaiscript/rhai/pull/1159)).
 * `rhai-run` now supports loading and executing Rhai Grain bytecodes (if the `grain` feature is enabled).
-* `grain_dump` is now split into `grain_compile`, which compiles a Rhai script into Rhai Grain bytecodes, and `grain_dump` which dissembles a Rhai Grain bytecodes files.
+* The example `grain_dump` is now split into two CLI tools in `bin`: `grain-compile`, which compiles a Rhai script into Rhai Grain bytecodes, and `grain-dump` which dissembles a Rhai Grain bytecodes files.
 
 
 Version 1.26.0

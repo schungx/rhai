@@ -1,6 +1,6 @@
 //! Print the disassembly of a Grain bytecode program.
 //!
-//! `cargo run --features grain --example grain_dump -- script.rgrn`
+//! `grain-dump script.rgrn`
 
 use rhai::grain::Program;
 
@@ -25,7 +25,7 @@ fn dump(program: &Program, code: &[u8], name: &str, chunk: &rhai::grain::bytecod
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args()
         .nth(1)
-        .ok_or("usage: grain_dump <script.rgrn>")?;
+        .ok_or("usage: grain-dump <script.rgrn>")?;
     let source = std::fs::read(&path)?;
     let program = Program::read(&source).map_err(|e| format!("failed to read program: {e}"))?;
 

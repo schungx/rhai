@@ -8,8 +8,8 @@ Tools for working with Rhai scripts.
 | [`rhai-run`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-run.rs)           |                     | runs each filename passed to it as a Rhai script, or as Rhai Grain bytecodes (requires the `grain` feature) |
 | [`rhai-repl`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-repl.rs)         |     `rustyline`     | a simple REPL that interactively evaluates statements                                                       |
 | [`rhai-dbg`](https://github.com/rhaiscript/rhai/blob/main/src/bin/rhai-dbg.rs)           |     `debugging`     | the _Rhai Debugger_                                                                                         |
-| [`grain_compile`](https://github.com/rhaiscript/rhai/blob/main/src/bin/grain_compile.rs) |       `grain`       | compile a Rhai script to Rhai Grain bytecodes                                                               |
-| [`grain_dump`](https://github.com/rhaiscript/rhai/blob/main/src/bin/grain_dump.rs)       |       `grain`       | print the disassembly of a Rhai Grain bytecodes program                                                     |
+| [`grain-compile`](https://github.com/rhaiscript/rhai/blob/main/src/bin/grain-compile.rs) |       `grain`       | compile a Rhai script to Rhai Grain bytecodes                                                               |
+| [`grain-dump`](https://github.com/rhaiscript/rhai/blob/main/src/bin/grain-dump.rs)       |       `grain`       | print the disassembly of a Rhai Grain bytecodes program                                                     |
 
 For convenience, a feature named `bin-features` is available which is a combination of the following:
 

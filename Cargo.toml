@@ -159,12 +159,12 @@ required-features = ["grain"]
 
 # A Rhai script to Grain bytecodes transpiler.
 [[bin]]
-name = "grain_compile"
+name = "grain-compile"
 required-features = ["grain"]
 
 # A disassembler, for reading what a script lowered to.
 [[bin]]
-name = "grain_dump"
+name = "grain-dump"
 required-features = ["grain"]
 
 # The grain harnesses, as one binary. `tests/mod.rs` wraps them in an inline
