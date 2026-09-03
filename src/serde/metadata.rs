@@ -10,7 +10,9 @@ use crate::api::formatting::format_param_type_for_display;
 use crate::func::RhaiFunc;
 use crate::module::{calc_native_fn_hash, FuncMetadata};
 use crate::types::custom_types::CustomTypeInfo;
-use crate::{calc_fn_hash, Engine, FnAccess, AST};
+#[cfg(not(feature = "no_ast"))]
+use crate::AST;
+use crate::{calc_fn_hash, Engine, FnAccess};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -141,7 +143,7 @@ impl<'a> From<(&'a RhaiFunc, &'a FuncMetadata)> for FnMetadata<'a> {
             access: m.access,
             name: &m.name,
             #[cfg(not(feature = "no_function"))]
-            is_anonymous: crate::parser::is_anonymous_fn(&m.name),
+            is_anonymous: crate::func::is_anonymous_fn(&m.name),
             typ,
             #[cfg(not(feature = "no_object"))]
             this_type: _this_type,
@@ -245,8 +247,11 @@ impl crate::api::definitions::Definitions<'_> {
     /// 5) Functions in standard packages (optional)
     #[inline(always)]
     pub fn json(&self) -> serde_json::Result<String> {
-        self.engine()
-            .gen_metadata_to_json_raw(None, self.config().include_standard_packages)
+        self.engine().gen_metadata_to_json_raw(
+            #[cfg(not(feature = "no_ast"))]
+            None,
+            self.config().include_standard_packages,
+        )
     }
 }
 
@@ -254,9 +259,10 @@ impl Engine {
     /// Generate a list of all functions in JSON format.
     fn gen_metadata_to_json_raw(
         &self,
-        ast: Option<&AST>,
+        #[cfg(not(feature = "no_ast"))] ast: Option<&AST>,
         include_standard_packages: bool,
     ) -> serde_json::Result<String> {
+        #[cfg(not(feature = "no_ast"))]
         let _ast = ast;
         let mut global_doc = String::new();
         let mut global = ModuleMetadata::new();
@@ -292,6 +298,7 @@ impl Engine {
             });
 
         #[cfg(not(feature = "no_function"))]
+        #[cfg(not(feature = "no_ast"))]
         if let Some(ast) = _ast {
             ast.shared_lib()
                 .iter_custom_types()
@@ -311,6 +318,7 @@ impl Engine {
         global.custom_types.sort();
         global.functions.sort();
 
+        #[cfg(not(feature = "no_ast"))]
         if let Some(ast) = _ast {
             if !ast.doc().is_empty() {
                 if !global_doc.is_empty() {
@@ -334,6 +342,7 @@ impl Engine {
     /// 3) Functions in static modules
     /// 4) Functions in registered global packages
     /// 5) Functions in standard packages (optional)
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn gen_fn_metadata_with_ast_to_json(
         &self,
@@ -356,6 +365,10 @@ impl Engine {
         &self,
         include_standard_packages: bool,
     ) -> serde_json::Result<String> {
-        self.gen_metadata_to_json_raw(None, include_standard_packages)
+        self.gen_metadata_to_json_raw(
+            #[cfg(not(feature = "no_ast"))]
+            None,
+            include_standard_packages,
+        )
     }
 }

@@ -1,9 +1,9 @@
 //! Evaluation context.
 
 use super::{Caches, GlobalRuntimeState};
-use crate::ast::FnCallHashes;
-use crate::tokenizer::{is_valid_identifier, Token};
-use crate::types::dynamic::Variant;
+use crate::func::FnCallHashes;
+use crate::types::token::is_valid_identifier;
+use crate::types::{dynamic::Variant, Token};
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, FnArgsVec, FuncArgs, ImmutableString,
     Position, RhaiResult, RhaiResultOf, Scope, StaticVec, ERR,
@@ -167,6 +167,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     /// Exported under the `debugging` and `internals` features only.
     #[cfg(feature = "debugging")]
     #[cfg(feature = "internals")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     #[must_use]
     pub fn debugger(&self) -> Option<&crate::debugger::Debugger> {
@@ -176,6 +177,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
     /// Exported under the `debugging` and `internals` features only.
     #[cfg(feature = "debugging")]
     #[cfg(feature = "internals")]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     #[must_use]
     pub fn debugger_mut(&mut self) -> Option<&mut crate::debugger::Debugger> {
@@ -353,7 +355,7 @@ impl<'a, 's, 'ps, 'g, 'c, 't> EvalContext<'a, 's, 'ps, 'g, 'c, 't> {
         let name = fn_name.as_ref();
         let native_only = !is_valid_identifier(name);
         #[cfg(not(feature = "no_function"))]
-        let native_only = native_only && !crate::parser::is_anonymous_fn(name);
+        let native_only = native_only && !crate::func::is_anonymous_fn(name);
 
         _call_fn_raw(
             self.engine(),
@@ -509,7 +511,7 @@ pub(crate) fn _call_fn_raw(
 
     // Native or script
 
-    let hash = match is_method_call {
+    let hashes = match is_method_call {
         #[cfg(not(feature = "no_function"))]
         true => FnCallHashes::from_script_and_native(
             calc_fn_hash(None, fn_name, args_len - 1),
@@ -527,7 +529,7 @@ pub(crate) fn _call_fn_raw(
             Some(scope),
             fn_name,
             op_token,
-            hash,
+            hashes,
             args,
             is_ref_mut,
             is_method_call,

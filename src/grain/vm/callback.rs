@@ -15,7 +15,7 @@ use std::prelude::v1::*;
 
 #[cfg(not(feature = "no_function"))]
 use crate::{
-    ast::script_fn::{ScriptFuncDef, ScriptFuncPayload},
+    func::{ScriptFuncDef, ScriptFuncPayload},
     grain::program::SharedProgram,
     grain::vm::Vm,
     types::Span,

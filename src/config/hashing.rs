@@ -23,6 +23,7 @@ use crate::OnceCell;
 
 static HASHING_SEED: OnceCell<Option<[u64; 4]>> = OnceCell::new();
 
+#[cfg(not(feature = "no_ast"))]
 #[allow(deprecated)]
 pub use crate::api::deprecated::config::hashing::{get_ahash_seed, set_ahash_seed};
 

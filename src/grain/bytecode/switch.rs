@@ -1,4 +1,4 @@
-use crate::{ast::RangeCase, Dynamic, INT};
+use crate::{eval::RangeCase, Dynamic, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 

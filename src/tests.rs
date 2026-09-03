@@ -40,7 +40,7 @@ fn check_struct_sizes() {
         if cfg!(feature = "no_position") { 0 } else { 4 }
     );
     assert_eq!(
-        size_of::<tokenizer::Token>(),
+        size_of::<types::Token>(),
         if IS_32_BIT {
             if cfg!(feature = "only_i32") {
                 2 * WORD_SIZE

@@ -4,42 +4,6 @@ use bitflags::bitflags;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-/// A type representing the access mode of a function.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(rename_all = "camelCase")
-)]
-#[non_exhaustive]
-pub enum FnAccess {
-    /// Private function.
-    Private,
-    /// Public function.
-    Public,
-}
-
-impl FnAccess {
-    /// Is this function private?
-    #[inline(always)]
-    #[must_use]
-    pub const fn is_private(self) -> bool {
-        match self {
-            Self::Private => true,
-            Self::Public => false,
-        }
-    }
-    /// Is this function public?
-    #[inline(always)]
-    #[must_use]
-    pub const fn is_public(self) -> bool {
-        match self {
-            Self::Private => false,
-            Self::Public => true,
-        }
-    }
-}
-
 bitflags! {
     /// _(internals)_ Bit-flags containing [`AST`][crate::AST] node configuration options.
     /// Exported under the `internals` feature only.

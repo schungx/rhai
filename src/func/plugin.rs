@@ -9,8 +9,7 @@ pub type RhaiResult = crate::RhaiResult;
 
 pub use rhai_codegen::*;
 
-// Removing these re-exports would be a breaking change,
-// despite there are other import paths that can be used.
+// Removing these re-exports would be a breaking change, despite there are alternate import paths.
 // https://github.com/rhaiscript/rhai/issues/1098
 pub use super::RhaiFunc;
 pub use crate::{

@@ -1,9 +1,11 @@
 //! Module that provide formatting services to the [`Engine`].
 use crate::packages::iter_basic::{BitRange, CharsStream, StepRange};
+#[cfg(not(feature = "no_ast"))]
 use crate::parser::{ParseResult, ParseState};
+#[cfg(not(feature = "no_ast"))]
+use crate::SmartString;
 use crate::{
-    Engine, ExclusiveRange, FnPtr, ImmutableString, InclusiveRange, Position, RhaiError,
-    SmartString, ERR,
+    Engine, ExclusiveRange, FnPtr, ImmutableString, InclusiveRange, Position, RhaiError, ERR,
 };
 use std::any::type_name;
 #[cfg(feature = "no_std")]
@@ -256,6 +258,7 @@ impl Engine {
     ///
     /// Unlike other uglifiers and minifiers, this method does not rename variables nor perform any
     /// optimization on the input script.
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub fn compact_script(&self, script: impl AsRef<str>) -> ParseResult<String> {
         let scripts = [script];

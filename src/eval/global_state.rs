@@ -75,6 +75,7 @@ pub struct GlobalRuntimeState {
     pub tag: Dynamic,
     /// Debugging interface.
     #[cfg(feature = "debugging")]
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) debugger: Option<Box<super::Debugger>>,
 }
 
@@ -111,6 +112,7 @@ impl Engine {
             tag: self.default_tag().clone(),
 
             #[cfg(feature = "debugging")]
+            #[cfg(not(feature = "no_ast"))]
             debugger: self.debugger_interface.as_ref().map(|x| {
                 let dbg = crate::eval::Debugger::new(crate::eval::DebuggerStatus::Init);
                 (x.0)(self, dbg).into()
@@ -294,6 +296,7 @@ impl GlobalRuntimeState {
     ///
     /// Panics if the debugging interface is not set.
     #[cfg(feature = "debugging")]
+    #[cfg(not(feature = "no_ast"))]
     #[must_use]
     pub fn debugger(&self) -> &super::Debugger {
         self.debugger.as_ref().unwrap()
@@ -304,6 +307,7 @@ impl GlobalRuntimeState {
     ///
     /// Panics if the debugging interface is not set.
     #[cfg(feature = "debugging")]
+    #[cfg(not(feature = "no_ast"))]
     #[must_use]
     pub fn debugger_mut(&mut self) -> &mut super::Debugger {
         self.debugger.as_deref_mut().unwrap()

@@ -5,8 +5,8 @@ use crate::ast::{
     ASTFlags, BinaryExpr, Expr, FlowControl, OpAssignment, Stmt, SwitchCasesCollection,
 };
 use crate::func::{get_builtin_op_assignment_fn, get_hasher};
-use crate::tokenizer::Token;
 use crate::types::dynamic::{AccessMode, Union};
+use crate::types::Token;
 use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, VarDefInfo, ERR, INT};
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "no_std")]
@@ -304,8 +304,6 @@ impl Engine {
 
                     #[cfg(not(feature = "no_function"))]
                     {
-                        use std::convert::TryInto;
-
                         let rhs_val = self
                             .eval_expr(global, caches, scope, this_ptr.as_deref_mut(), rhs)?
                             .flatten();

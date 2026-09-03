@@ -1,12 +1,272 @@
 //! Implement script function-calling mechanism for [`Engine`].
 #![cfg(not(feature = "no_function"))]
 
-use super::call::FnCallArgs;
-use crate::ast::{EncapsulatedEnviron, ScriptFuncDef, ScriptFuncPayload};
+use super::func_call::FnCallArgs;
+use super::FnAccess;
 use crate::eval::{Caches, GlobalRuntimeState};
-use crate::{Dynamic, Engine, FnArgsVec, Position, RhaiResult, Scope, ERR};
+use crate::{Dynamic, Engine, FnArgsVec, ImmutableString, Position, RhaiResult, Scope, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
+use std::{fmt, hash::Hash};
+
+/// A type containing the body of a script-defined function.
+#[derive(Debug, Clone)]
+pub enum ScriptFuncPayload {
+    /// Normal statements block.
+    #[cfg(not(feature = "no_ast"))]
+    Statements(crate::ast::StmtBlock),
+    /// _(grain)_ A Rhai Grain VM to run the function body.
+    #[cfg(feature = "grain")]
+    GrainVM {
+        program: crate::grain::SharedProgram,
+        params: FnArgsVec<u32>,
+        chunk: crate::grain::bytecode::Chunk,
+        span: crate::types::Span,
+    },
+}
+
+impl ScriptFuncPayload {
+    /// Get the start position.
+    #[inline(always)]
+    #[must_use]
+    pub const fn start_position(&self) -> Position {
+        match self {
+            #[cfg(not(feature = "no_ast"))]
+            Self::Statements(block) => block.position(),
+            #[cfg(feature = "grain")]
+            ScriptFuncPayload::GrainVM { span, .. } => span.start(),
+            // `no_ast` and no `grain` -- no payload whatsoever
+            #[cfg(feature = "no_ast")]
+            #[cfg(not(feature = "grain"))]
+            _ => Position::NONE,
+        }
+    }
+    /// Get the end position.
+    #[inline(always)]
+    #[must_use]
+    pub const fn end_position(&self) -> Position {
+        match self {
+            #[cfg(not(feature = "no_ast"))]
+            Self::Statements(block) => block.end_position(),
+            #[cfg(feature = "grain")]
+            ScriptFuncPayload::GrainVM { span, .. } => span.end(),
+            #[cfg(feature = "no_ast")]
+            #[cfg(not(feature = "grain"))]
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// _(internals)_ A type containing information on a script-defined function.
+/// Exported under the `internals` feature only.
+#[derive(Debug, Clone)]
+pub struct ScriptFuncDef {
+    /// Function body.
+    pub body: ScriptFuncPayload,
+    /// Function name.
+    pub name: ImmutableString,
+    /// Function access mode.
+    pub access: FnAccess,
+    /// Type of `this` pointer, if any.
+    /// Not available under `no_object`.
+    #[cfg(not(feature = "no_object"))]
+    pub this_type: Option<ImmutableString>,
+    /// Names of function parameters.
+    pub params: FnArgsVec<ImmutableString>,
+    /// _(metadata)_ Function doc-comments (if any). Exported under the `metadata` feature only.
+    ///
+    /// Doc-comments are comment lines beginning with `///` or comment blocks beginning with `/**`,
+    /// placed immediately before a function definition.
+    ///
+    /// Block doc-comments are kept in a single string with line-breaks within.
+    ///
+    /// Line doc-comments are merged, with line-breaks, into a single string without a termination line-break.
+    ///
+    /// Leading white-spaces are stripped, and each string always starts with the corresponding
+    /// doc-comment leader: `///` or `/**`.
+    ///
+    /// Each line in non-block doc-comments starts with `///`.
+    #[cfg(feature = "metadata")]
+    pub comments: crate::StaticVec<crate::SmartString>,
+}
+
+impl ScriptFuncDef {
+    /// Clone this [`ScriptFuncDef`] but with only signature-related info.
+    ///
+    /// The body of the function is removed, as well as comments (if any).
+    #[cfg(not(feature = "no_ast"))]
+    #[allow(dead_code)]
+    pub(crate) fn clone_function_signatures(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            access: self.access,
+            body: ScriptFuncPayload::Statements(Default::default()),
+            #[cfg(not(feature = "no_object"))]
+            this_type: self.this_type.clone(),
+            params: self.params.clone(),
+            #[cfg(feature = "metadata")]
+            comments: <_>::default(),
+        }
+    }
+}
+
+impl fmt::Display for ScriptFuncDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[cfg(not(feature = "no_object"))]
+        let this_type = self
+            .this_type
+            .as_ref()
+            .map_or(String::new(), |s| format!("{s:?}."));
+
+        #[cfg(feature = "no_object")]
+        let this_type = "";
+
+        write!(
+            f,
+            "{}{}{}({})",
+            match self.access {
+                FnAccess::Public => "",
+                FnAccess::Private => "private ",
+            },
+            this_type,
+            self.name,
+            self.params
+                .iter()
+                .map(ImmutableString::as_str)
+                .collect::<FnArgsVec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+/// A type containing the metadata of a script-defined function.
+///
+/// Not available under `no_function`.
+///
+/// Created by [`AST::iter_functions`][crate::AST::iter_functions].
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "camelCase")
+)]
+#[non_exhaustive]
+pub struct ScriptFnMetadata<'a> {
+    /// Function name.
+    pub name: &'a str,
+    /// Function parameters (if any).
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub params: Vec<&'a str>,
+    /// Function access mode.
+    pub access: FnAccess,
+    /// Type of `this` pointer, if any.
+    /// Not available under `no_object`.
+    #[cfg(not(feature = "no_object"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub this_type: Option<&'a str>,
+    /// _(metadata)_ Function doc-comments (if any).
+    /// Exported under the `metadata` feature only.
+    ///
+    /// Doc-comments are comment lines beginning with `///` or comment blocks beginning with `/**`,
+    /// placed immediately before a function definition.
+    ///
+    /// Block doc-comments are kept in a single string slice with line-breaks within.
+    ///
+    /// Line doc-comments are merged, with line-breaks, into a single string slice without a termination line-break.
+    ///
+    /// Leading white-spaces are stripped, and each string slice always starts with the
+    /// corresponding doc-comment leader: `///` or `/**`.
+    ///
+    /// Each line in non-block doc-comments starts with `///`.
+    #[cfg(feature = "metadata")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub comments: Vec<&'a str>,
+}
+
+impl fmt::Display for ScriptFnMetadata<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[cfg(not(feature = "no_object"))]
+        let this_type = self
+            .this_type
+            .as_ref()
+            .map_or(String::new(), |s| format!("{s:?}."));
+
+        #[cfg(feature = "no_object")]
+        let this_type = "";
+
+        write!(
+            f,
+            "{}{}{}({})",
+            match self.access {
+                FnAccess::Public => "",
+                FnAccess::Private => "private ",
+            },
+            this_type,
+            self.name,
+            self.params
+                .iter()
+                .copied()
+                .collect::<FnArgsVec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<'a> From<&'a ScriptFuncDef> for ScriptFnMetadata<'a> {
+    #[inline]
+    fn from(value: &'a ScriptFuncDef) -> Self {
+        Self {
+            name: &value.name,
+            params: value.params.iter().map(ImmutableString::as_str).collect(),
+            access: value.access,
+            #[cfg(not(feature = "no_object"))]
+            this_type: value.this_type.as_deref(),
+            #[cfg(feature = "metadata")]
+            comments: value.comments.iter().map(<_>::as_ref).collect(),
+        }
+    }
+}
+
+/// _(internals)_ Encapsulated environment.
+/// Exported under the `internals` feature only.
+///
+/// Not available under `no_function`.
+///
+/// 1) stack of scripted functions defined
+/// 2) the stack of imported [modules][crate::Module]
+/// 3) global constants
+#[derive(Debug, Clone)]
+pub struct EncapsulatedEnviron {
+    /// Stack of loaded [modules][crate::Module] containing script-defined functions.
+    pub lib: crate::StaticVec<crate::SharedModule>,
+    /// Imported [modules][crate::Module].
+    #[cfg(not(feature = "no_module"))]
+    pub imports: crate::ThinVec<(ImmutableString, crate::SharedModule)>,
+    /// Globally-defined constants.
+    #[cfg(not(feature = "no_module"))]
+    pub constants: Option<crate::eval::SharedGlobalConstants>,
+}
+
+impl From<&crate::eval::GlobalRuntimeState> for EncapsulatedEnviron {
+    fn from(value: &crate::eval::GlobalRuntimeState) -> Self {
+        Self {
+            lib: value.lib.clone(),
+            #[cfg(not(feature = "no_module"))]
+            imports: value
+                .iter_imports_raw()
+                .map(|(n, m)| (n.clone(), m.clone()))
+                .collect(),
+            #[cfg(not(feature = "no_module"))]
+            constants: value.constants.clone(),
+        }
+    }
+}
 
 impl Engine {
     /// # Main Entry-Point
@@ -51,6 +311,7 @@ impl Engine {
 
         // Short-circuit empty function body
         match fn_def.body {
+            #[cfg(not(feature = "no_ast"))]
             ScriptFuncPayload::Statements(ref block) => {
                 let is_empty = block.is_empty();
                 #[cfg(feature = "debugging")]
@@ -122,6 +383,7 @@ impl Engine {
         // Evaluate the function
         let mut _result: RhaiResult = match fn_def.body {
             // Normal statements block
+            #[cfg(not(feature = "no_ast"))]
             ScriptFuncPayload::Statements(ref body) => {
                 // Put arguments into scope as variables
                 scope.extend(fn_def.params.iter().cloned().zip(arg_values));

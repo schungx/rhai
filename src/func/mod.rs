@@ -1,9 +1,12 @@
 //! Module defining mechanisms to handle function calls in Rhai.
 
 pub mod builtin;
+#[cfg(not(feature = "no_ast"))]
 pub mod call;
 pub mod func_args;
+pub mod func_call;
 #[allow(clippy::module_inception)]
+#[cfg(not(feature = "no_ast"))]
 pub mod func_trait;
 pub mod function;
 pub mod hashing;
@@ -13,15 +16,17 @@ pub mod register;
 pub mod script;
 
 pub use builtin::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
-#[cfg(not(feature = "no_closure"))]
-pub use call::ensure_no_data_race;
-#[cfg(not(feature = "no_function"))]
-pub use call::is_anonymous_fn;
-pub use call::FnCallArgs;
 pub use func_args::FuncArgs;
+#[cfg(not(feature = "no_closure"))]
+#[cfg(not(feature = "no_ast"))]
+pub use func_call::ensure_no_data_race;
+pub use func_call::{FnCallArgs, FnCallHashes};
 #[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_ast"))]
 pub use func_trait::Func;
-pub use function::RhaiFunc;
+#[cfg(not(feature = "no_function"))]
+pub use function::is_anonymous_fn;
+pub use function::{is_valid_function_name, FnAccess, RhaiFunc};
 #[cfg(not(feature = "no_object"))]
 #[cfg(not(feature = "no_function"))]
 pub use hashing::calc_typed_method_hash;
@@ -35,3 +40,12 @@ pub use native::{
     FnIterator, Locked, NativeCallContext, SendSync, Shared,
 };
 pub use register::RhaiNativeFunc;
+
+#[cfg(not(feature = "no_function"))]
+pub use script::{EncapsulatedEnviron, ScriptFnMetadata, ScriptFuncDef, ScriptFuncPayload};
+
+/// _(internals)_ Empty placeholder for a script-defined function.
+/// Exported under the `internals` feature only.
+#[cfg(feature = "no_function")]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub struct ScriptFuncDef;

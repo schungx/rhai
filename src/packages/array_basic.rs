@@ -1,5 +1,6 @@
 #![cfg(not(feature = "no_index"))]
 
+#[cfg(not(feature = "no_ast"))]
 use crate::api::deprecated::deprecated_array_functions;
 use crate::engine::OP_EQUALS;
 use crate::eval::{calc_index, calc_offset_len};
@@ -19,6 +20,7 @@ def_package! {
         lib.set_standard_lib(true);
 
         combine_with_exported_module!(lib, "array", array_functions);
+        #[cfg(not(feature = "no_ast"))]
         combine_with_exported_module!(lib, "deprecated_array", deprecated_array_functions);
 
         // Register array iterator
@@ -337,7 +339,7 @@ pub mod array_functions {
     /// print(x);               // prints "[3]"
     /// ```
     pub fn remove(array: &mut Array, index: INT) -> Dynamic {
-        let Ok(index) = calc_index(array.len(), index, true, || Err(())) else {
+        let Some(index) = calc_index(array.len(), index, true) else {
             return Dynamic::UNIT;
         };
 

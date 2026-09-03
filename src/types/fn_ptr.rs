@@ -1,13 +1,14 @@
 //! The `FnPtr` type.
 
-use crate::func::FnCallArgs;
-use crate::tokenizer::{is_reserved_keyword_or_symbol, is_valid_function_name, Token};
-use crate::types::dynamic::Variant;
+use crate::func::{is_valid_function_name, FnCallArgs};
+use crate::types::Token;
+use crate::types::{dynamic::Variant, token::is_reserved_keyword_or_symbol};
 use crate::{
-    expose_under_internals, Dynamic, Engine, FnArgsVec, FuncArgs, ImmutableString,
-    NativeCallContext, Position, RhaiError, RhaiResult, RhaiResultOf, Shared, StaticVec, ThinVec,
-    AST, ERR, PERR,
+    expose_under_internals, Dynamic, FnArgsVec, FuncArgs, ImmutableString, NativeCallContext,
+    Position, RhaiError, RhaiResult, RhaiResultOf, Shared, StaticVec, ThinVec, ERR, PERR,
 };
+#[cfg(not(feature = "no_ast"))]
+use crate::{Engine, AST};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -59,8 +60,8 @@ impl FnPtrType {
         global: &'a crate::eval::GlobalRuntimeState,
         num_args: usize,
     ) -> Option<(
-        &'a Shared<crate::ast::ScriptFuncDef>,
-        Option<&'a Shared<crate::ast::EncapsulatedEnviron>>,
+        &'a Shared<crate::func::ScriptFuncDef>,
+        Option<&'a Shared<crate::func::EncapsulatedEnviron>>,
     )> {
         match self {
             Self::Script { num_params, hash }
@@ -263,6 +264,7 @@ impl FnPtr {
     /// # Ok(())
     /// # }
     /// ```
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub fn call<T: Variant + Clone>(
         &self,
@@ -301,6 +303,7 @@ impl FnPtr {
     /// This method is intended for calling a function pointer directly, possibly on another [`Engine`].
     /// Therefore, the [`AST`] is _NOT_ evaluated before calling the function.
     #[cfg(not(feature = "no_object"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub fn call_as_method<T: Variant + Clone>(
         &self,
@@ -671,7 +674,7 @@ impl TryFrom<ImmutableString> for FnPtr {
 }
 
 #[cfg(not(feature = "no_function"))]
-impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> From<T> for FnPtr {
+impl<T: Into<Shared<crate::func::ScriptFuncDef>>> From<T> for FnPtr {
     #[inline(always)]
     fn from(value: T) -> Self {
         let fn_def = value.into();

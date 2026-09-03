@@ -2,11 +2,11 @@
 
 #![allow(clippy::float_cmp)]
 
-use super::call::FnCallArgs;
 use super::native::FnBuiltin;
-#[allow(clippy::enum_glob_use)]
-use crate::tokenizer::{Token, Token::*};
+use super::FnCallArgs;
 use crate::types::dynamic::Union;
+#[allow(clippy::enum_glob_use)]
+use crate::types::{Token, Token::*};
 use crate::{
     Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, NativeCallContext, RhaiResult,
     SmartString, INT,

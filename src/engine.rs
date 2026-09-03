@@ -2,18 +2,20 @@
 
 use crate::api::default_limits::MAX_STRINGS_INTERNED;
 use crate::api::options::LangOptions;
-use crate::func::native::{
-    locked_write, OnDebugCallback, OnDefVarCallback, OnParseTokenCallback, OnPrintCallback,
-    OnVarCallback,
-};
+use crate::func::native::{locked_write, OnDebugCallback, OnPrintCallback, OnVarCallback};
+#[cfg(not(feature = "no_ast"))]
+use crate::func::native::{OnDefVarCallback, OnParseTokenCallback};
 use crate::packages::{Package, StandardPackage};
-use crate::tokenizer::Token;
 use crate::types::StringsInterner;
+use crate::types::Token;
 use crate::{Dynamic, Identifier, ImmutableString, Locked, SharedModule};
+#[cfg(not(feature = "no_ast"))]
+use std::num::NonZeroU8;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{collections::BTreeSet, fmt, num::NonZeroU8};
+use std::{collections::BTreeSet, fmt};
 
+#[cfg(not(feature = "no_ast"))]
 pub type Precedence = NonZeroU8;
 
 pub const KEYWORD_PRINT: &str = "print";
@@ -29,9 +31,11 @@ pub const KEYWORD_IS_DEF_VAR: &str = "is_def_var";
 #[cfg(not(feature = "no_function"))]
 pub const KEYWORD_IS_DEF_FN: &str = "is_def_fn";
 #[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_ast"))]
 pub const KEYWORD_THIS: &str = "this";
 #[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_ast"))]
 pub const KEYWORD_GLOBAL: &str = "global";
 #[cfg(not(feature = "no_object"))]
 pub const FN_GET: &str = "get$";
@@ -56,6 +60,7 @@ pub const OP_EQUALS: &str = Token::EqualsTo.literal_syntax();
 pub const OP_CONTAINS: &str = "contains";
 
 /// Standard not operator.
+#[cfg(not(feature = "no_ast"))]
 pub const OP_NOT: &str = Token::Bang.literal_syntax();
 
 /// Separator for namespaces.
@@ -110,10 +115,12 @@ pub struct Engine {
         std::collections::BTreeMap<Identifier, Box<crate::api::custom_syntax::CustomSyntax>>,
 
     /// Callback closure for filtering variable definition.
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) def_var_filter: Option<Box<OnDefVarCallback>>,
     /// Callback closure for resolving variable access.
     pub(crate) resolve_var: Option<Box<OnVarCallback>>,
     /// Callback closure to remap tokens during parsing.
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) token_mapper: Option<Box<OnParseTokenCallback>>,
 
     /// Callback closure when a [`Array`][crate::Array] property accessed does not exist.
@@ -152,6 +159,7 @@ pub struct Engine {
 
     /// Callback closure for debugging.
     #[cfg(feature = "debugging")]
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) debugger_interface: Option<(
         Box<crate::eval::OnDebuggingInit>,
         Box<crate::eval::OnDebuggerCallback>,
@@ -181,8 +189,10 @@ impl fmt::Debug for Engine {
                 .collect::<String>(),
         );
 
+        f.field("resolve_var", &self.resolve_var.is_some());
+
+        #[cfg(not(feature = "no_ast"))]
         f.field("def_var_filter", &self.def_var_filter.is_some())
-            .field("resolve_var", &self.resolve_var.is_some())
             .field("token_mapper", &self.token_mapper.is_some());
 
         #[cfg(not(feature = "unchecked"))]
@@ -251,8 +261,10 @@ impl Engine {
         #[cfg(not(feature = "no_custom_syntax"))]
         custom_syntax: std::collections::BTreeMap::new(),
 
+        #[cfg(not(feature = "no_ast"))]
         def_var_filter: None,
         resolve_var: None,
+        #[cfg(not(feature = "no_ast"))]
         token_mapper: None,
 
         #[cfg(not(feature = "no_index"))]
@@ -281,6 +293,7 @@ impl Engine {
         limits: crate::api::limits::Limits::new(),
 
         #[cfg(feature = "debugging")]
+        #[cfg(not(feature = "no_ast"))]
         debugger_interface: None,
     };
 
@@ -293,6 +306,7 @@ impl Engine {
 
         #[cfg(not(feature = "no_module"))]
         #[cfg(not(feature = "no_std"))]
+        #[cfg(not(feature = "no_ast"))]
         #[cfg(any(not(target_family = "wasm"), not(target_os = "unknown")))]
         {
             engine.module_resolver =
@@ -357,6 +371,7 @@ impl Engine {
     }
     /// Get an interned property getter, creating one if it is not yet interned.
     #[cfg(not(feature = "no_object"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     #[must_use]
     pub(crate) fn get_interned_getter(
@@ -376,6 +391,7 @@ impl Engine {
 
     /// Get an interned property setter, creating one if it is not yet interned.
     #[cfg(not(feature = "no_object"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     #[must_use]
     pub(crate) fn get_interned_setter(

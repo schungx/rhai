@@ -47,6 +47,7 @@ impl Chunk {
         self.max_stack
     }
 
+    #[cfg(not(feature = "no_ast"))]
     pub(crate) fn set_max_stack(&mut self, max_stack: u16) {
         self.max_stack = max_stack;
     }

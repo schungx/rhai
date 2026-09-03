@@ -1,22 +1,20 @@
 //! Main module defining the lexer and parser.
 
 use crate::api::options::LangOptions;
-#[cfg(not(feature = "no_function"))]
-use crate::ast::script_fn::ScriptFuncPayload;
 use crate::ast::{
-    ASTFlags, BinaryExpr, CaseBlocksList, Expr, FlowControl, FnCallExpr, FnCallHashes, Ident,
-    OpAssignment, RangeCase, ScriptFuncDef, Stmt, StmtBlock, StmtBlockContainer,
-    SwitchCasesCollection,
+    ASTFlags, BinaryExpr, CaseBlocksList, Expr, FlowControl, FnCallExpr, Ident, OpAssignment, Stmt,
+    StmtBlock, StmtBlockContainer, SwitchCasesCollection,
 };
 use crate::engine::{Precedence, OP_CONTAINS, OP_NOT};
-use crate::eval::{Caches, GlobalRuntimeState};
-use crate::func::{hashing::get_hasher, StraightHashMap};
+use crate::eval::{Caches, GlobalRuntimeState, RangeCase};
 #[cfg(not(feature = "no_function"))]
-use crate::tokenizer::is_valid_function_name;
-use crate::tokenizer::{
-    is_reserved_keyword_or_symbol, is_valid_identifier, Token, TokenStream, TokenizerControl,
-};
+use crate::func::is_valid_function_name;
+#[cfg(not(feature = "no_function"))]
+use crate::func::ScriptFuncPayload;
+use crate::func::{hashing::get_hasher, FnCallHashes, ScriptFuncDef, StraightHashMap};
+use crate::tokenizer::{TokenStream, TokenizerControl};
 use crate::types::dynamic::{AccessMode, Union};
+use crate::types::token::{is_reserved_keyword_or_symbol, is_valid_identifier, Token};
 use crate::{
     calc_fn_hash, Dynamic, Engine, EvalAltResult, EvalContext, ExclusiveRange, FnArgsVec,
     ImmutableString, InclusiveRange, LexError, ParseError, Position, Scope, Shared, SmartString,
@@ -290,14 +288,6 @@ pub fn make_anonymous_fn(hash: u64) -> crate::Identifier {
     let mut buf = crate::Identifier::new_const();
     write!(&mut buf, "{}{hash:016x}", crate::engine::FN_ANONYMOUS).unwrap();
     buf
-}
-
-/// Is this function an anonymous function?
-#[cfg(not(feature = "no_function"))]
-#[inline(always)]
-#[must_use]
-pub fn is_anonymous_fn(fn_name: &str) -> bool {
-    fn_name.starts_with(crate::engine::FN_ANONYMOUS)
 }
 
 impl Expr {

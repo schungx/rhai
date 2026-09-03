@@ -1,12 +1,68 @@
 //! Module defining the standard Rhai function type.
 
 use super::native::{FnAny, FnIterator, FnPlugin, SendSync};
-use crate::ast::{EncapsulatedEnviron, FnAccess};
+#[cfg(not(feature = "no_function"))]
+use super::EncapsulatedEnviron;
 use crate::plugin::PluginFunc;
+use crate::types::token::{is_reserved_keyword_or_symbol, is_valid_identifier, Token};
 use crate::Shared;
 use std::fmt;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
+
+/// A type representing the access mode of a function.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(rename_all = "camelCase")
+)]
+#[non_exhaustive]
+pub enum FnAccess {
+    /// Private function.
+    Private,
+    /// Public function.
+    Public,
+}
+
+impl FnAccess {
+    /// Is this function private?
+    #[inline(always)]
+    #[must_use]
+    pub const fn is_private(self) -> bool {
+        match self {
+            Self::Private => true,
+            Self::Public => false,
+        }
+    }
+    /// Is this function public?
+    #[inline(always)]
+    #[must_use]
+    pub const fn is_public(self) -> bool {
+        match self {
+            Self::Private => false,
+            Self::Public => true,
+        }
+    }
+}
+
+/// _(internals)_ Is a text string a valid script-defined function name?
+/// Exported under the `internals` feature only.
+#[inline(always)]
+#[must_use]
+pub fn is_valid_function_name(name: &str) -> bool {
+    is_valid_identifier(name)
+        && !is_reserved_keyword_or_symbol(name).0
+        && Token::lookup_symbol_from_syntax(name).is_none()
+}
+
+/// Is this function an anonymous function?
+#[cfg(not(feature = "no_function"))]
+#[inline(always)]
+#[must_use]
+pub fn is_anonymous_fn(fn_name: &str) -> bool {
+    fn_name.starts_with(crate::engine::FN_ANONYMOUS)
+}
 
 /// _(internals)_ A type encapsulating a function callable by Rhai.
 /// Exported under the `internals` feature only.
@@ -53,8 +109,8 @@ pub enum RhaiFunc {
     /// A script-defined function.
     #[cfg(not(feature = "no_function"))]
     Script {
-        /// Shared reference to the [`ScriptFuncDef`][crate::ast::ScriptFuncDef] function definition.
-        fn_def: Shared<crate::ast::ScriptFuncDef>,
+        /// Shared reference to the [`ScriptFuncDef`][crate::func::ScriptFuncDef] function definition.
+        fn_def: Shared<crate::func::ScriptFuncDef>,
         /// Encapsulated environment, if any.
         env: Option<Shared<EncapsulatedEnviron>>,
     },
@@ -240,33 +296,13 @@ impl RhaiFunc {
     #[cfg(not(feature = "no_function"))]
     #[inline]
     #[must_use]
-    pub const fn get_script_fn_def(&self) -> Option<&Shared<crate::ast::ScriptFuncDef>> {
+    pub const fn get_script_fn_def(&self) -> Option<&Shared<crate::func::ScriptFuncDef>> {
         match self {
             Self::Pure { .. }
             | Self::Method { .. }
             | Self::Iterator { .. }
             | Self::Plugin { .. } => None,
             Self::Script { fn_def, .. } => Some(fn_def),
-        }
-    }
-    /// Get a reference to the encapsulated environment of the function definition (if any).
-    #[inline(always)]
-    #[must_use]
-    pub fn get_encapsulated_environ(&self) -> Option<&EncapsulatedEnviron> {
-        self.get_shared_encapsulated_environ().map(AsRef::as_ref)
-    }
-    /// Get a reference to the shared encapsulated environment of the function definition (if any).
-    #[inline]
-    #[must_use]
-    pub(crate) fn get_shared_encapsulated_environ(&self) -> Option<&Shared<EncapsulatedEnviron>> {
-        match self {
-            Self::Pure { .. }
-            | Self::Method { .. }
-            | Self::Iterator { .. }
-            | Self::Plugin { .. } => None,
-
-            #[cfg(not(feature = "no_function"))]
-            Self::Script { env, .. } => env.as_ref(),
         }
     }
     /// Get a reference to an iterator function.
@@ -296,9 +332,9 @@ impl RhaiFunc {
 }
 
 #[cfg(not(feature = "no_function"))]
-impl From<crate::ast::ScriptFuncDef> for RhaiFunc {
+impl From<crate::func::ScriptFuncDef> for RhaiFunc {
     #[inline(always)]
-    fn from(fn_def: crate::ast::ScriptFuncDef) -> Self {
+    fn from(fn_def: crate::func::ScriptFuncDef) -> Self {
         Self::Script {
             fn_def: fn_def.into(),
             env: None,
@@ -307,9 +343,9 @@ impl From<crate::ast::ScriptFuncDef> for RhaiFunc {
 }
 
 #[cfg(not(feature = "no_function"))]
-impl From<Shared<crate::ast::ScriptFuncDef>> for RhaiFunc {
+impl From<Shared<crate::func::ScriptFuncDef>> for RhaiFunc {
     #[inline(always)]
-    fn from(fn_def: Shared<crate::ast::ScriptFuncDef>) -> Self {
+    fn from(fn_def: Shared<crate::func::ScriptFuncDef>) -> Self {
         Self::Script { fn_def, env: None }
     }
 }

@@ -139,7 +139,7 @@ impl EvalAltResult {
             Self::ErrorParsing(p, ..) => write!(f, "Syntax error: {p}")?,
 
             #[cfg(not(feature = "no_function"))]
-            Self::ErrorInFunctionCall(s, src, err, ..) if crate::parser::is_anonymous_fn(s) => {
+            Self::ErrorInFunctionCall(s, src, err, ..) if crate::func::is_anonymous_fn(s) => {
                 err.display(f, src)?;
                 write!(f, "\nin closure call")?;
                 if !src.is_empty() {

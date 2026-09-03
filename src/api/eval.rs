@@ -1,10 +1,11 @@
 //! Module that defines the public evaluation API of [`Engine`].
 
-use crate::ast::{Expr, FnCallHashes};
+use crate::ast::Expr;
 use crate::eval::{Caches, GlobalRuntimeState};
+use crate::func::FnCallHashes;
 use crate::parser::ParseState;
-use crate::tokenizer::Token;
 use crate::types::dynamic::Variant;
+use crate::types::Token;
 use crate::{
     calc_fn_hash, Dynamic, Engine, FnArgsVec, FuncArgs, Position, RhaiResult, RhaiResultOf, Scope,
     AST, ERR,

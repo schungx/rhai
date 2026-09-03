@@ -71,7 +71,7 @@ debugging = ["internals"]
 bin-features = ["decimal", "metadata", "serde", "debugging", "rustyline"]
 ## Enable fuzzing via the [`arbitrary`](https://crates.io/crates/arbitrary) crate.
 fuzz = ["arbitrary", "rust_decimal?/rust-fuzz", "serde", "grain"]
-## Enable the experimental [`grain`](grain/index.html) bytecode VM
+## Enable the experimental [Rhai Grain](grain/index.html) bytecode VM
 grain = []
 
 #! ### System Configuration Features
@@ -102,6 +102,8 @@ no_closure = []
 no_module = []
 ## Remove support for custom syntax.
 no_custom_syntax = []
+## Remove the AST, tokenizer, parser and optimizer for a minimal build (implies [`no_optimize`](#feature-no_optimize) and [`no_custom_syntax`](#feature-no_custom_syntax)). Use with [`grain`](#feature-grain) to run bytecodes exclusively.
+no_ast = ["no_optimize", "no_custom_syntax"]
 
 #! ### Performance-Related Features
 
@@ -132,14 +134,14 @@ testing-environ = []
 
 [[bin]]
 name = "rhai-repl"
-required-features = ["rustyline"]
+required-features = ["bin-features"]
 
 [[bin]]
 name = "rhai-run"
 
 [[bin]]
 name = "rhai-dbg"
-required-features = ["debugging"]
+required-features = ["bin-features", "debugging"]
 
 [[example]]
 name = "serde"
@@ -155,9 +157,14 @@ required-features = ["metadata", "internals"]
 name = "grain_bench"
 required-features = ["grain"]
 
+# A Rhai script to Grain bytecodes transpiler.
+[[bin]]
+name = "grain-compile"
+required-features = ["grain"]
+
 # A disassembler, for reading what a script lowered to.
-[[example]]
-name = "grain_dump"
+[[bin]]
+name = "grain-dump"
 required-features = ["grain"]
 
 # The grain harnesses, as one binary. `tests/mod.rs` wraps them in an inline

@@ -5,7 +5,7 @@
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 
-use super::call::FnCallArgs;
+use super::func_call::FnCallArgs;
 use super::function::RhaiFunc;
 use super::native::{SendSync, Shared};
 use crate::types::dynamic::{DynamicWriteLock, Union, Variant};

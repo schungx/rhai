@@ -2,9 +2,8 @@
 
 #[cfg(feature = "metadata")]
 use crate::api::formatting::format_param_type_for_display;
-use crate::ast::FnAccess;
 use crate::func::{
-    shared_take_or_clone, FnIterator, RhaiFunc, RhaiNativeFunc, SendSync, StraightHashMap,
+    shared_take_or_clone, FnAccess, FnIterator, RhaiFunc, RhaiNativeFunc, SendSync, StraightHashMap,
 };
 use crate::types::{dynamic::Variant, BloomFilterU64, CustomTypeInfo, CustomTypesCollection};
 use crate::{
@@ -705,7 +704,7 @@ impl fmt::Debug for Module {
 }
 
 #[cfg(not(feature = "no_function"))]
-impl<T: IntoIterator<Item = Shared<crate::ast::ScriptFuncDef>>> From<T> for Module {
+impl<T: IntoIterator<Item = Shared<crate::func::ScriptFuncDef>>> From<T> for Module {
     fn from(iter: T) -> Self {
         let mut module = Self::new();
         iter.into_iter().for_each(|fn_def| {
@@ -716,7 +715,7 @@ impl<T: IntoIterator<Item = Shared<crate::ast::ScriptFuncDef>>> From<T> for Modu
 }
 
 #[cfg(not(feature = "no_function"))]
-impl<T: Into<Shared<crate::ast::ScriptFuncDef>>> Extend<T> for Module {
+impl<T: Into<Shared<crate::func::ScriptFuncDef>>> Extend<T> for Module {
     fn extend<ITER: IntoIterator<Item = T>>(&mut self, iter: ITER) {
         iter.into_iter().for_each(|fn_def| {
             self.set_script_fn(fn_def);
@@ -1266,6 +1265,7 @@ impl Module {
 
     /// Get a namespace-qualified [`Module`] variable as a [`Dynamic`].
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn get_qualified_var(&self, hash_var: u64) -> Option<Dynamic> {
         self.all_variables
@@ -1278,7 +1278,7 @@ impl Module {
     /// If there is an existing function of the same name and number of arguments, it is replaced.
     #[cfg(not(feature = "no_function"))]
     #[inline]
-    pub fn set_script_fn(&mut self, fn_def: impl Into<Shared<crate::ast::ScriptFuncDef>>) -> u64 {
+    pub fn set_script_fn(&mut self, fn_def: impl Into<Shared<crate::func::ScriptFuncDef>>) -> u64 {
         let fn_def = fn_def.into();
 
         // None + function name + number of arguments.
@@ -1353,7 +1353,7 @@ impl Module {
         &self,
         name: impl AsRef<str>,
         num_params: usize,
-    ) -> Option<&Shared<crate::ast::ScriptFuncDef>> {
+    ) -> Option<&Shared<crate::func::ScriptFuncDef>> {
         self.functions.as_ref().and_then(|lib| {
             let name = name.as_ref();
 
@@ -2133,6 +2133,7 @@ impl Module {
 
     /// Filter out the functions, retaining only some script-defined functions based on a filter predicate.
     #[cfg(not(feature = "no_function"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline]
     pub(crate) fn retain_script_functions(
         &mut self,
@@ -2218,7 +2219,7 @@ impl Module {
     /// 2) Access mode ([`FnAccess::Public`] or [`FnAccess::Private`]).
     /// 3) Function name (as string slice).
     /// 4) Number of parameters.
-    /// 5) Shared reference to function definition [`ScriptFuncDef`][crate::ast::ScriptFuncDef].
+    /// 5) Shared reference to function definition [`ScriptFuncDef`][crate::func::ScriptFuncDef].
     #[cfg(not(feature = "no_function"))]
     #[inline]
     pub(crate) fn iter_script_fn(
@@ -2229,7 +2230,7 @@ impl Module {
             FnAccess,
             &str,
             usize,
-            &Shared<crate::ast::ScriptFuncDef>,
+            &Shared<crate::func::ScriptFuncDef>,
         ),
     > + '_ {
         self.iter_fn().filter(|(f, _)| f.is_script()).map(|(f, m)| {
@@ -2251,7 +2252,7 @@ impl Module {
     /// 2) Access mode ([`FnAccess::Public`] or [`FnAccess::Private`]).
     /// 3) Function name (as string slice).
     /// 4) Number of parameters.
-    /// 5) _(internals)_ Shared reference to function definition [`ScriptFuncDef`][crate::ast::ScriptFuncDef].
+    /// 5) _(internals)_ Shared reference to function definition [`ScriptFuncDef`][crate::func::ScriptFuncDef].
     #[expose_under_internals]
     #[cfg(not(feature = "no_function"))]
     #[inline(always)]
@@ -2263,7 +2264,7 @@ impl Module {
             FnAccess,
             &str,
             usize,
-            &Shared<crate::ast::ScriptFuncDef>,
+            &Shared<crate::func::ScriptFuncDef>,
         ),
     > {
         self.iter_script_fn()
@@ -2289,6 +2290,7 @@ impl Module {
     /// # }
     /// ```
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn eval_ast_as_new(
         scope: crate::Scope,
@@ -2312,6 +2314,7 @@ impl Module {
     /// In particular, the [`global`][crate::GlobalRuntimeState] parameter allows the entire
     /// calling environment to be encapsulated, including automatic global constants.
     #[cfg(not(feature = "no_module"))]
+    #[cfg(not(feature = "no_ast"))]
     pub fn eval_ast_as_new_raw(
         engine: &crate::Engine,
         scope: &mut crate::Scope,
@@ -2367,7 +2370,7 @@ impl Module {
 
         // Encapsulated environment
         #[cfg(not(feature = "no_function"))]
-        let env = Shared::new(crate::ast::EncapsulatedEnviron {
+        let env = Shared::new(crate::func::EncapsulatedEnviron {
             #[cfg(not(feature = "no_function"))]
             lib: std::iter::once(ast.shared_lib().clone()).collect(),
             imports,

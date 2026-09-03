@@ -1,8 +1,9 @@
 //! Module that defines functions to output definition files for [`Engine`].
 #![cfg(feature = "internals")]
 
+use crate::func::is_valid_function_name;
 use crate::module::FuncMetadata;
-use crate::tokenizer::{is_valid_function_name, Token};
+use crate::types::Token;
 use crate::{Engine, FnAccess, FnPtr, Module, Scope, INT};
 
 #[cfg(feature = "no_std")]
