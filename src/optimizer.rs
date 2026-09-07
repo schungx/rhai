@@ -11,7 +11,7 @@ use crate::engine::{
 };
 use crate::eval::{Caches, GlobalRuntimeState};
 use crate::func::builtin::get_builtin_binary_op_fn;
-use crate::func::hashing::get_hasher;
+use crate::func::calc_switch_value_hash;
 use crate::types::Token;
 use crate::{
     calc_fn_hash, calc_fn_hash_full, Dynamic, Engine, FnArgsVec, FnPtr, ImmutableString, Position,
@@ -19,13 +19,7 @@ use crate::{
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
-use std::{
-    any::TypeId,
-    borrow::Cow,
-    convert::TryFrom,
-    hash::{Hash, Hasher},
-    mem,
-};
+use std::{any::TypeId, borrow::Cow, convert::TryFrom, hash::Hash, mem};
 
 /// Level of optimization performed.
 ///
@@ -559,13 +553,11 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
             ) = &mut **x;
 
             let value = match_expr.get_literal_value(None).unwrap();
-            let hasher = &mut get_hasher();
-            value.hash(hasher);
-            let hash = hasher.finish();
+            let hash = calc_switch_value_hash(&value);
 
             // First check hashes
-            if let Some(case_blocks_list) = cases.get(&hash) {
-                match &case_blocks_list[..] {
+            if let Some(case) = cases.get(&hash) {
+                match case.blocks.as_slice() {
                     [] => (),
                     [index] => {
                         let mut b = mem::take(&mut expressions[*index]);
@@ -598,7 +590,7 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
                         return;
                     }
                     _ => {
-                        for &index in case_blocks_list {
+                        for &index in &case.blocks {
                             let mut b = mem::take(&mut expressions[index]);
 
                             if matches!(b.lhs, Expr::BoolConstant(true, ..)) {
@@ -717,9 +709,9 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
             }
 
             // Remove false cases
-            cases.retain(|_, list| {
+            cases.retain(|_, case| {
                 // Remove all entries that have false conditions
-                list.retain(|index| {
+                case.blocks.retain(|index| {
                     if matches!(expressions[*index].lhs, Expr::BoolConstant(false, ..)) {
                         state.set_dirty();
                         false
@@ -728,16 +720,16 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
                     }
                 });
                 // Remove all entries after a `true` condition
-                if let Some(n) = list.iter().position(|&index| {
+                if let Some(n) = case.blocks.iter().position(|&index| {
                     matches!(expressions[index].lhs, Expr::BoolConstant(true, ..))
                 }) {
-                    if n + 1 < list.len() {
+                    if n + 1 < case.blocks.len() {
                         state.set_dirty();
-                        list.truncate(n + 1);
+                        case.blocks.truncate(n + 1);
                     }
                 }
                 // Remove if no entry left
-                if list.is_empty() {
+                if case.blocks.is_empty() {
                     state.set_dirty();
                     false
                 } else {
@@ -762,7 +754,10 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
             // Remove unused block statements
             expressions.iter_mut().enumerate().for_each(|(index, b)| {
                 if *def_case != Some(index)
-                    && cases.values().flat_map(|c| c.iter()).all(|&n| n != index)
+                    && cases
+                        .values()
+                        .flat_map(|case| case.blocks.iter())
+                        .all(|&n| n != index)
                     && ranges.iter().all(|r| r.index() != index)
                     && !b.rhs.is_unit()
                 {

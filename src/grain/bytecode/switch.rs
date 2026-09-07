@@ -1,3 +1,4 @@
+use crate::func::{calc_switch_value_hash, StraightHashMap};
 use crate::{eval::RangeCase, Dynamic, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -7,29 +8,12 @@ use std::prelude::v1::*;
 /// Matching a case is *hash* equality, not `==`. That distinction is Rhai's
 /// and it is visible: `switch 1 { 1.0 => .. }` does not match, because an
 /// integer and a float hash differently, while `1 == 1.0` is true.
-///
-/// ## Why the hashes travel, and what that costs
-///
-/// Rhai's parser keeps only the hash of each case — the value itself is not in
-/// the AST (`ast/stmt.rs:336`), so there is nothing to re-hash later. The
-/// hashes have to be written out as they are.
-///
-/// And by default they do not survive the trip: `get_hasher` falls back to
-/// `ahash::AHasher::default()`, and Rhai's default features include
-/// `ahash/runtime-rng`, so the seed is drawn per process. Rhai gets away with
-/// baking hashes into its AST only because it parses and evaluates in one.
-///
-/// So an artifact containing a `switch` requires
-/// [`rhai::config::hashing::set_hashing_seed`] to have been called with the
-/// same seed on both sides. That is not something the format can enforce, but
-/// it is something it can *check*: [`probe`] hashes a fixed value, the
-/// artifact carries the result, and a loader that computes a different one
-/// refuses rather than dispatching every case to the default.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Switch {
-    /// One entry per distinct case value, in source order. The target is the
-    /// head of that value's chain of guarded arms.
-    pub cases: Vec<SwitchCase>,
+    /// One entry per distinct case value.
+    /// The tuple is the head of that value's chain of guarded arms, and the
+    /// value itself.
+    pub cases: Option<StraightHashMap<(u32, u32)>>,
     /// Checked only when no case matched in this table.
     ///
     /// Disjoint and in ascending order, which Rhai's are not: the compiler
@@ -39,15 +23,6 @@ pub struct Switch {
     /// Where to go when nothing matched. Always present: an absent `_` arm
     /// compiles to a jump past the statement.
     pub default: u32,
-}
-
-/// One `value => ...` arm, keyed by Rhai's hash of the value.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SwitchCase {
-    /// Rhai's hash of the case value.
-    pub hash: u64,
-    /// Where to jump to.
-    pub target: u32,
 }
 
 /// One `a..b => ...` arm.
@@ -96,9 +71,11 @@ impl Switch {
             return self.default;
         }
 
-        let hash = hash_of(subject);
-        if let Some(case) = self.cases.iter().find(|case| case.hash == hash) {
-            return case.target;
+        let hash = calc_switch_value_hash(subject);
+        if let Some(cases) = &self.cases {
+            if let Some(&(target, _)) = cases.get(&hash) {
+                return target;
+            }
         }
 
         // Disjoint, so the first containing entry is the only one.
@@ -110,31 +87,10 @@ impl Switch {
     }
 }
 
-/// A fixed value hashed with the engine's hasher, so two processes can find
-/// out whether their case hashes mean the same thing.
-///
-/// Not a checksum of the seed — the seed is not readable as a number the
-/// format could compare. This is the observable consequence of it.
-#[must_use]
-pub fn probe() -> u64 {
-    hash_of(&Dynamic::from("rhaigrain switch probe"))
-}
-
-fn hash_of(value: &Dynamic) -> u64 {
-    use core::hash::{Hash, Hasher};
-
-    let mut hasher = crate::func::get_hasher();
-    value.hash(&mut hasher);
-    hasher.finish()
-}
-
 /// The hash Rhai's `switch` would key `value` under.
-///
-/// Test-only. The compiler never hashes anything: Rhai's parser has already
-/// grouped the arms by hash, and the hashes are all it kept.
 #[cfg(test)]
 fn case_hash(value: &Dynamic) -> Option<u64> {
-    value.is_hashable().then(|| hash_of(value))
+    value.is_hashable().then(|| calc_switch_value_hash(value))
 }
 
 #[cfg(test)]
@@ -156,15 +112,12 @@ mod tests {
 
     fn table(cases: &[(&Dynamic, u32)], ranges: Vec<SwitchRange>, default: u32) -> Switch {
         Switch {
-            cases: cases
-                .iter()
-                .filter_map(|(value, target)| {
-                    Some(SwitchCase {
-                        hash: case_hash(value)?,
-                        target: *target,
-                    })
-                })
-                .collect(),
+            cases: Some(
+                cases
+                    .iter()
+                    .filter_map(|(value, target)| Some((case_hash(value)?, (*target, 42))))
+                    .collect(),
+            ),
             ranges,
             default,
         }
@@ -289,12 +242,5 @@ mod tests {
     fn a_non_hashable_case_has_no_hash_to_key_on() {
         assert_eq!(case_hash(&Dynamic::from(Opaque)), None);
         assert!(case_hash(&int(1)).is_some());
-    }
-
-    /// The probe is only worth carrying if it actually depends on the seed.
-    #[test]
-    fn the_probe_is_stable_within_a_process() {
-        assert_eq!(probe(), probe());
-        assert_ne!(probe(), 0, "a probe of zero could not be told from absent");
     }
 }

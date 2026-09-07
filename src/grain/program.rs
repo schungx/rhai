@@ -136,11 +136,6 @@ pub struct Program<'a> {
     chains: Vec<Chain>,
 
     /// One dispatch table per `switch`, for the same reason.
-    ///
-    /// Case hashes are Rhai's, and Rhai's hasher is seeded per process unless
-    /// the host says otherwise — so an artifact carrying any of these carries
-    /// a [`probe`](crate::bytecode::probe) too, and refuses to load against a
-    /// hasher that would disagree with it.
     switches: Vec<Switch>,
 
     /// Script functions the compiler did not lower, as Rhai's own library, so

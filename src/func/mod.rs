@@ -28,10 +28,15 @@ pub use func_trait::Func;
 #[cfg(not(feature = "no_function"))]
 pub use function::is_anonymous_fn;
 pub use function::{is_valid_function_name, FnAccess, RhaiFunc};
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_ast"))]
+pub use hashing::calc_closure_hash;
 #[cfg(not(feature = "no_object"))]
 #[cfg(not(feature = "no_function"))]
 pub use hashing::calc_typed_method_hash;
-pub use hashing::{calc_fn_hash, calc_fn_hash_full, calc_var_hash, get_hasher, StraightHashMap};
+pub use hashing::{
+    calc_fn_hash, calc_fn_hash_full, calc_switch_value_hash, calc_var_hash, StraightHashMap,
+};
 #[cfg(feature = "internals")]
 #[allow(deprecated)]
 pub use native::NativeCallContextStore;

@@ -1,5 +1,3 @@
-use core::ops::{Range, RangeInclusive};
-
 #[cfg(not(feature = "no_object"))]
 use rhai::Map;
 #[cfg(not(feature = "no_index"))]
@@ -7,6 +5,10 @@ use rhai::{Array, Blob};
 use rhai::{Dynamic, INT};
 #[cfg(feature = "decimal")]
 use rust_decimal::Decimal;
+
+use std::ops::{Range, RangeInclusive};
+#[cfg(feature = "no_std")]
+use std::prelude::v1::*;
 
 /// Whether a constant can live in the artifact's constant pool.
 ///

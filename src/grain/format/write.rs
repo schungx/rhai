@@ -1,7 +1,3 @@
-use core::ops::{Range, RangeInclusive};
-#[cfg(feature = "no_std")]
-use std::prelude::v1::*;
-
 use crate::types::{fn_ptr::FnPtrType, Token};
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
@@ -15,6 +11,10 @@ use crate::grain::format::{
     constant, put_ivarint, put_str, put_uvarint, root_tag, step_tag, tail_tag, MAGIC, VERSION,
 };
 use crate::grain::program::Program;
+
+use std::ops::{Range, RangeInclusive};
+#[cfg(feature = "no_std")]
+use std::prelude::v1::*;
 
 /// Why a program cannot be written out.
 ///
@@ -282,35 +282,19 @@ fn put_chain_spec(out: &mut Vec<u8>, chain: &Chain, positions: Positions) {
     }
 }
 
-/// Write the switch tables, behind a probe that says whether their hashes will
-/// still mean anything on the other side.
-///
-/// Rhai's parser keeps only the *hash* of a case value (`ast/stmt.rs:336`), so
-/// there is nothing here to re-hash at load — and by default those hashes do
-/// not survive the trip, because Rhai's default features include
-/// `ahash/runtime-rng` and the seed is drawn per process. An artifact with a
-/// `switch` in it therefore requires `config::hashing::set_hashing_seed` with
-/// the same seed on both sides.
-///
-/// The probe is what turns that from a silent wrong answer — every subject
-/// dispatched to the default — into a refusal to load. It goes here rather
-/// than in the ABI fingerprint because it only constrains artifacts that
-/// actually contain a `switch`; making every program agree about a hashing
-/// seed would be a restriction bought for nothing.
+/// Write the switch tables.
 fn put_switches(out: &mut Vec<u8>, switches: &[crate::grain::bytecode::Switch]) {
     put_uvarint(out, switches.len() as u64);
-    if switches.is_empty() {
-        return;
-    }
-    out.extend_from_slice(&crate::grain::bytecode::probe().to_le_bytes());
 
     for switch in switches {
-        put_uvarint(out, switch.cases.len() as u64);
-        for case in &switch.cases {
-            // Fixed width: a hash is eight bytes of noise, which a varint
-            // would spend ten on.
-            out.extend_from_slice(&case.hash.to_le_bytes());
-            put_uvarint(out, u64::from(case.target));
+        if let Some(cases) = &switch.cases {
+            put_uvarint(out, cases.len() as u64);
+            for (blocks, value) in cases.values() {
+                put_uvarint(out, u64::from(*blocks));
+                put_uvarint(out, u64::from(*value));
+            }
+        } else {
+            put_uvarint(out, 0);
         }
 
         put_uvarint(out, switch.ranges.len() as u64);

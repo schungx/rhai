@@ -11,7 +11,7 @@ use crate::eval::{Caches, GlobalRuntimeState, RangeCase};
 use crate::func::is_valid_function_name;
 #[cfg(not(feature = "no_function"))]
 use crate::func::ScriptFuncPayload;
-use crate::func::{hashing::get_hasher, FnCallHashes, ScriptFuncDef, StraightHashMap};
+use crate::func::{calc_switch_value_hash, FnCallHashes, ScriptFuncDef, StraightHashMap};
 use crate::tokenizer::{TokenStream, TokenizerControl};
 use crate::types::dynamic::{AccessMode, Union};
 use crate::types::token::{is_reserved_keyword_or_symbol, is_valid_identifier, Token};
@@ -26,7 +26,7 @@ use std::prelude::v1::*;
 use std::{
     convert::TryFrom,
     fmt,
-    hash::{Hash, Hasher},
+    hash::Hash,
     num::{NonZeroU8, NonZeroUsize},
 };
 
@@ -1252,13 +1252,16 @@ impl Engine {
                         }
                     }
 
-                    let hasher = &mut get_hasher();
-                    value.hash(hasher);
-                    let hash = hasher.finish();
+                    let hash = calc_switch_value_hash(&value);
 
                     cases
                         .entry(hash)
-                        .or_insert(CaseBlocksList::new_const())
+                        .or_insert_with(|| CaseBlocksList {
+                            #[cfg(feature = "grain")]
+                            value,
+                            blocks: Default::default(),
+                        })
+                        .blocks
                         .push(index);
                 }
             }
@@ -3892,10 +3895,7 @@ impl Engine {
         params.append(&mut params_list);
 
         // Create unique function name by hashing the script body plus the parameters.
-        let hasher = &mut get_hasher();
-        params.iter().for_each(|p| p.hash(hasher));
-        body.hash(hasher);
-        let hash = hasher.finish();
+        let hash = crate::func::calc_closure_hash(params.iter().map(|s| s.as_str()), &body);
         let fn_name = self.get_interned_string(make_anonymous_fn(hash));
 
         // Define the function

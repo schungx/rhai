@@ -1,6 +1,6 @@
 //! Module containing utilities to hash functions and function calls.
 
-use crate::config;
+use crate::{config, Dynamic};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{
@@ -13,6 +13,7 @@ pub type StraightHashMap<V> = hashbrown::HashMap<u64, V, StraightHasherBuilder>;
 
 #[cfg(not(feature = "no_std"))]
 pub type StraightHashMap<V> = std::collections::HashMap<u64, V, StraightHasherBuilder>;
+
 /// A hasher that only takes one single [`u64`] and returns it as a hash key.
 ///
 /// # Panics
@@ -60,6 +61,29 @@ pub fn get_hasher() -> ahash::AHasher {
         }
         _ => <_>::default(),
     }
+}
+
+/// Calculate a [`u64`] hash key from a [`Dynamic`] value.
+#[inline]
+#[must_use]
+pub fn calc_switch_value_hash(value: &Dynamic) -> u64 {
+    let hasher = &mut get_hasher();
+    value.hash(hasher);
+    hasher.finish()
+}
+
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_ast"))]
+#[inline]
+#[must_use]
+pub fn calc_closure_hash<'a>(
+    params: impl IntoIterator<Item = &'a str>,
+    body: &crate::ast::Stmt,
+) -> u64 {
+    let hasher = &mut get_hasher();
+    params.into_iter().for_each(|p| p.hash(hasher));
+    body.hash(hasher);
+    hasher.finish()
 }
 
 /// Calculate a [`u64`] hash key from a namespace-qualified variable name.

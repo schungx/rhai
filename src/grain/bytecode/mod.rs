@@ -19,5 +19,5 @@ pub use op::{AssignOp, Op, Receiver};
 pub(crate) use positions::site_to_position;
 pub use positions::{Positions, TableError};
 pub use strings::{BadTable, Strings};
-pub use switch::{probe, Switch, SwitchCase, SwitchRange};
+pub use switch::{Switch, SwitchRange};
 pub use verify::{verify, Pools, VerifyError};

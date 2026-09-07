@@ -747,8 +747,10 @@ pub fn resolve_switch_targets(
             Ok(())
         };
 
-        for case in &mut switch.cases {
-            resolve(&mut case.target)?;
+        if let Some(cases) = &mut switch.cases {
+            for (target, _) in cases.values_mut() {
+                resolve(target)?;
+            }
         }
         for range in &mut switch.ranges {
             resolve(&mut range.target)?;

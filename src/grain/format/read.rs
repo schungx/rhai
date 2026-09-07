@@ -1,12 +1,13 @@
+use crate::func::{calc_switch_value_hash, StraightHashMap};
 use crate::types::{fn_ptr::FnPtrType, StringsInterner, Token};
 use crate::{Dynamic, FnPtr, ThinVec};
-use core::convert::{TryFrom, TryInto};
+use std::convert::{TryFrom, TryInto};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
 use crate::grain::bytecode::{
     AssignOp, BadTable, Chain, Chunk, Positions, Root, Step, StepFlags, Strings, Switch,
-    SwitchCase, SwitchRange, TableError, Tail, VerifyError,
+    SwitchRange, TableError, Tail, VerifyError,
 };
 use crate::grain::format::abi::{Abi, AbiMismatch, Caps};
 use crate::grain::format::{constant, root_tag, step_tag, tail_tag, Cursor, MAGIC, VERSION};
@@ -55,6 +56,7 @@ pub enum ReadError {
     },
     /// The artifact's `switch` case hashes were computed by a differently
     /// seeded hasher, so none of them would ever match.
+    #[deprecated(since = "1.27.0", note = "this error is no longer used")]
     HashSeedMismatch {
         /// The seed the writer used
         artifact: u64,
@@ -93,13 +95,8 @@ impl core::fmt::Display for ReadError {
                 write!(f, "unknown {section} tag {tag:#04x}")
             }
             Self::UnknownToken { syntax } => write!(f, "`{syntax}` is not an operator"),
-            Self::HashSeedMismatch { artifact, host } => write!(
-                f,
-                "this artifact's `switch` cases were hashed with a different seed \
-                 ({artifact:#018x} against {host:#018x}), so none of them could match — \
-                 call `rhai::config::hashing::set_hashing_seed` with the same seed \
-                 wherever this was compiled and wherever it is loaded"
-            ),
+            #[allow(deprecated)]
+            Self::HashSeedMismatch { .. } => write!(f, "this error is no longer used"),
             Self::ConstantTooDeep => write!(
                 f,
                 "a constant nests deeper than {MAX_CONSTANT_DEPTH} levels"
@@ -190,7 +187,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Program<'_>, ReadError> {
         chains.push(get_chain(&mut cursor)?);
     }
 
-    let switches = get_switches(&mut cursor)?;
+    let switches = get_switches(&mut cursor, &consts)?;
 
     let main = get_chunk(&mut cursor)?;
 
@@ -367,32 +364,31 @@ fn get_chain(cursor: &mut Cursor) -> Result<Chain, ReadError> {
     })
 }
 
-/// Read the switch tables, refusing them if their case hashes were made by a
-/// hasher this process cannot reproduce.
-///
-/// The check is not belt and braces: without it a seed mismatch loads cleanly
-/// and every `switch` silently takes its default, which is a wrong answer
-/// rather than a failure. See `write::put_switches`.
-fn get_switches(cursor: &mut Cursor) -> Result<Vec<Switch>, ReadError> {
+/// Read the switch tables.
+fn get_switches(cursor: &mut Cursor, consts: &[Dynamic]) -> Result<Vec<Switch>, ReadError> {
     let count = cursor.uvarint()?;
     if count == 0 {
         return Ok(Vec::new());
     }
 
-    let artifact = u64::from_le_bytes(cursor.take(8)?.try_into().expect("eight bytes"));
-    let host = crate::grain::bytecode::probe();
-    if artifact != host {
-        return Err(ReadError::HashSeedMismatch { artifact, host });
-    }
-
     let mut switches = Vec::new();
     for _ in 0..count {
-        let mut cases = Vec::new();
+        let mut cases = StraightHashMap::default();
         for _ in 0..cursor.uvarint()? {
-            cases.push(SwitchCase {
-                hash: u64::from_le_bytes(cursor.take(8)?.try_into().expect("eight bytes")),
-                target: cursor.index()?,
-            });
+            let blocks = cursor.index()?;
+            let at = cursor.pos;
+            let index = cursor.index()?;
+
+            let value = consts.get(index as usize).ok_or(ReadError::Unverifiable(
+                VerifyError::BadIndex {
+                    what: "constant",
+                    at,
+                    index,
+                },
+            ))?;
+            let hash = calc_switch_value_hash(&value);
+
+            cases.insert(hash, (blocks, index));
         }
 
         let mut ranges = Vec::new();
@@ -406,7 +402,7 @@ fn get_switches(cursor: &mut Cursor) -> Result<Vec<Switch>, ReadError> {
         }
 
         switches.push(Switch {
-            cases,
+            cases: (!cases.is_empty()).then_some(cases),
             ranges,
             default: cursor.index()?,
         });

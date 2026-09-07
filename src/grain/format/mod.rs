@@ -19,7 +19,7 @@
 //! section         operator tokens
 //! section         op-assignments
 //! section         chains
-//! section         switch tables, prefixed with a hasher probe
+//! section         switch tables
 //! varint          declared max stack
 //! section         code, verbatim
 //! section         position table, empty when stripped
@@ -39,7 +39,7 @@
 //! name what blocked them, because "cannot serialize" without the construct is
 //! not something a script author can act on.
 
-use core::convert::TryFrom;
+use std::convert::TryFrom;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -63,7 +63,7 @@ const MAGIC: [u8; 4] = *b"RGRN";
 /// Bumped when an encoding changes in a way an older reader would misread.
 /// Additive changes that an older reader would reject anyway — a new op tag,
 /// a new constant tag — do not need it.
-const VERSION: u16 = 10;
+const VERSION: u16 = 11;
 
 /// Where a chain starts. Append only.
 mod root_tag {
