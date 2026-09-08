@@ -177,7 +177,16 @@ impl fmt::Debug for OpAssignment {
     }
 }
 
-pub type CaseBlocksList = smallvec::SmallVec<[usize; 2]>;
+/// _(internals)_ A `switch` case, with a list of blocks that share the same condition.
+/// Exported under the `internals` feature only.
+#[derive(Debug, Clone, Hash, Default)]
+pub struct CaseBlocksList {
+    /// Condition value (must be constant).
+    #[cfg(feature = "grain")]
+    pub value: crate::Dynamic,
+    /// List of blocks that share the same condition.
+    pub blocks: smallvec::SmallVec<[usize; 2]>,
+}
 
 /// _(internals)_ A type containing all cases for a `switch` statement.
 /// Exported under the `internals` feature only.
@@ -700,10 +709,14 @@ impl Stmt {
             Self::Switch(x, ..) => {
                 let (expr, sw) = &**x;
                 expr.is_pure()
-                    && sw.cases.values().flat_map(|cases| cases.iter()).all(|&c| {
-                        let block = &sw.expressions[c];
-                        block.lhs.is_pure() && block.rhs.is_pure()
-                    })
+                    && sw
+                        .cases
+                        .values()
+                        .flat_map(|cases| cases.blocks.iter())
+                        .all(|&c| {
+                            let block = &sw.expressions[c];
+                            block.lhs.is_pure() && block.rhs.is_pure()
+                        })
                     && sw.ranges.iter().all(|r| {
                         let block = &sw.expressions[r.index()];
                         block.lhs.is_pure() && block.rhs.is_pure()
@@ -860,8 +873,8 @@ impl Stmt {
                 if !expr.walk(path, on_node) {
                     return false;
                 }
-                for (.., blocks) in &sw.cases {
-                    for &b in blocks {
+                for (.., case) in &sw.cases {
+                    for &b in &case.blocks {
                         let block = &sw.expressions[b];
 
                         if !block.lhs.walk(path, on_node) {

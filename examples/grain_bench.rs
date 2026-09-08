@@ -90,9 +90,6 @@ const CASES: &[Case] = &[
         callbacks: false,
         floor: 1.50,
     },
-    // The VM scans its case hashes; Rhai probes a hash map. Two sizes,
-    // because which of those wins is a question about how many arms there are,
-    // and a `switch` nobody would write is the only place the scan can lose.
     Case {
         name: "switch, 4 arms",
         source: "let s = 0; for i in 0..20000 { \

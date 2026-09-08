@@ -201,6 +201,7 @@ impl<'a> Target<'a> {
         }
     }
     /// Is the [`Target`] a shared value?
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline]
     #[must_use]
     pub fn is_shared(&self) -> bool {
@@ -236,6 +237,7 @@ impl<'a> Target<'a> {
         }
     }
     /// Take a `&mut Dynamic` reference from the `Target`.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline(always)]
     #[must_use]
     pub fn take_ref(self) -> Option<&'a mut Dynamic> {
@@ -245,6 +247,7 @@ impl<'a> Target<'a> {
         }
     }
     /// Convert a shared or reference [`Target`] into a target with an owned value.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline(always)]
     pub fn into_owned(self) -> Self {
         match self {

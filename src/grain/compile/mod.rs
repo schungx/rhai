@@ -3,7 +3,7 @@ mod poolable;
 mod slots;
 
 #[cfg(not(feature = "no_function"))]
-use core::mem;
+use std::mem;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -17,7 +17,7 @@ use crate::{Dynamic, ImmutableString, Position, AST};
 
 use crate::grain::bytecode::{
     assemble, resolve_switch_targets, AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step,
-    StepFlags, Switch, SwitchCase, SwitchRange, Tail,
+    StepFlags, Switch, SwitchRange, Tail,
 };
 use crate::grain::compile::poolable::is_poolable;
 use crate::grain::compile::slots::Slots;
@@ -566,15 +566,6 @@ impl Lowering {
         let value_name_index = self.push_name(value_name.clone());
         let value_slot = self.slots.declare(value_name);
 
-        // Sorted because Rhai's map iterates in whatever order its hasher put
-        // the entries in, and an artifact should not depend on that.
-        let mut groups: Vec<(u64, Vec<usize>)> = sw
-            .cases
-            .iter()
-            .map(|(hash, blocks)| (*hash, blocks.to_vec()))
-            .collect();
-        groups.sort_unstable_by_key(|(hash, ..)| *hash);
-
         // Overlapping range arms have no single answer at runtime, so they are
         // cut into disjoint pieces here instead. See [`cases::split`].
         let ranges = cases::split(&sw.ranges);
@@ -600,7 +591,7 @@ impl Lowering {
         let mut to_ranges: Vec<usize> = Vec::new();
         let mut to_default: Vec<usize> = Vec::new();
 
-        for blocks in groups.iter().map(|(.., blocks)| blocks.as_slice()) {
+        for blocks in sw.cases.values().map(|case| case.blocks.as_slice()) {
             if case_chains.iter().any(|(ex, ..)| *ex == blocks) {
                 continue;
             }
@@ -729,18 +720,25 @@ impl Lowering {
         };
 
         self.switches[cases_table as usize] = Switch {
-            cases: groups
-                .iter()
-                .map(|(hash, blocks)| SwitchCase {
-                    hash: *hash,
-                    target: case_target(blocks),
-                })
-                .collect(),
+            cases: Some(
+                sw.cases
+                    .iter()
+                    .map(|(hash, case)| {
+                        (
+                            *hash,
+                            (
+                                case_target(&case.blocks),
+                                self.push_const(case.value.clone()),
+                            ),
+                        )
+                    })
+                    .collect(),
+            ),
             ranges: Vec::new(),
             default: ranges_dispatch,
         };
         self.switches[ranges_table as usize] = Switch {
-            cases: Vec::new(),
+            cases: None,
             ranges: ranges
                 .iter()
                 .map(|(range, blocks)| SwitchRange {
@@ -809,7 +807,7 @@ impl Lowering {
     /// Reserve a table, to be filled in once its arms have addresses.
     fn push_switch(&mut self) -> u32 {
         self.switches.push(Switch {
-            cases: Vec::new(),
+            cases: None,
             ranges: Vec::new(),
             default: 0,
         });
@@ -2396,11 +2394,15 @@ impl Lowering {
         // Programs at this scale make a linear scan cheaper than a hash map,
         // and it keeps the pool in emission order for readable disassembly.
         let rendered = format!("{value:?}");
-        if let Some(index) = self
-            .consts
-            .iter()
-            .position(|existing| format!("{existing:?}") == rendered)
-        {
+        // Use a buffer to avoid allocating a new string for every comparison.
+        let mut buf = String::new();
+        if let Some(index) = self.consts.iter().position(|existing| {
+            use std::fmt::Write;
+
+            buf.clear();
+            write!(&mut buf, "{existing:?}").expect("writing to a string cannot fail");
+            buf == rendered
+        }) {
             return index as u32;
         }
         self.consts.push(value);

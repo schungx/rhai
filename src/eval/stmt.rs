@@ -4,11 +4,10 @@ use super::{Caches, EvalContext, GlobalRuntimeState, Target};
 use crate::ast::{
     ASTFlags, BinaryExpr, Expr, FlowControl, OpAssignment, Stmt, SwitchCasesCollection,
 };
-use crate::func::{get_builtin_op_assignment_fn, get_hasher};
+use crate::func::{calc_switch_value_hash, get_builtin_op_assignment_fn};
 use crate::types::dynamic::{AccessMode, Union};
 use crate::types::Token;
 use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, VarDefInfo, ERR, INT};
-use std::hash::{Hash, Hasher};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -513,15 +512,13 @@ impl Engine {
                 let value = self.eval_expr(global, caches, scope, this_ptr.as_deref_mut(), expr)?;
 
                 if value.is_hashable() {
-                    let hasher = &mut get_hasher();
-                    value.hash(hasher);
-                    let hash = hasher.finish();
+                    let hash = calc_switch_value_hash(&value);
 
                     // First check hashes
-                    if let Some(case_blocks_list) = cases.get(&hash) {
-                        debug_assert!(!case_blocks_list.is_empty());
+                    if let Some(case) = cases.get(&hash) {
+                        debug_assert!(!case.blocks.is_empty());
 
-                        for &index in case_blocks_list {
+                        for &index in &case.blocks {
                             let block = &expressions[index];
 
                             let cond_result = match block.lhs {

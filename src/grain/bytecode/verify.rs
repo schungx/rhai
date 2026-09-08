@@ -426,14 +426,15 @@ fn verify_chunk(
             // already run over every instruction.
             Op::Switch(index) => {
                 if let Some(table) = pools.switches.get(index as usize) {
-                    for target in table
-                        .cases
-                        .iter()
-                        .map(|case| case.target)
-                        .chain(table.ranges.iter().map(|range| range.target))
-                        .chain(core::iter::once(table.default))
-                    {
-                        go(target, next_state)?;
+                    if let Some(cases) = &table.cases {
+                        for target in cases
+                            .values()
+                            .map(|&(target, _)| target)
+                            .chain(table.ranges.iter().map(|range| range.target))
+                            .chain(core::iter::once(table.default))
+                        {
+                            go(target, next_state)?;
+                        }
                     }
                 }
             }
@@ -1057,13 +1058,15 @@ mod tests {
         let (code, offsets) = assemble(&ops).expect("must assemble");
         let chunk = Chunk::new(0, code.len() as u32, 8);
 
-        let table = |case: u32, default: u32| Switch {
-            cases: vec![crate::grain::bytecode::SwitchCase {
-                hash: 7,
-                target: case,
-            }],
-            ranges: Vec::new(),
-            default,
+        let table = |case: u32, default: u32| {
+            let mut cases = crate::func::StraightHashMap::default();
+            cases.insert(7, (case, 42));
+
+            Switch {
+                cases: Some(cases),
+                ranges: Vec::new(),
+                default,
+            }
         };
 
         let good = [table(offsets[2], offsets[4])];

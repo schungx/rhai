@@ -120,7 +120,7 @@ fn the_round_trip_covers_something_worth_covering() {
         // rests on into a panic in Rhai, so the case is not run at all there.
         #[cfg(not(feature = "unchecked"))]
         "error_divide_by_zero",
-        "switch_range", // a switch table, and the hasher probe with it
+        "switch_range", // a switch table
         "switch_guard", // and one whose arms are a chain rather than a target
         // A range constant is a host type in `Dynamic`, and both tags are
         // reached by slicing — which is `[..]`, and so `no_index` syntax, as is
@@ -245,7 +245,6 @@ fn a_golden_artifact_written_by_an_older_build_still_runs() {
             "Rotate",            // which only a named receiver needs
             "LoadNamed",         // the caller's variable, flat
             "LoadSharedNamed",   // and as the cell a capture binds
-            "MakeClosure",       // a function pointer to a compiled chunk
             "Curry",             // with what it captured bound onto it
             "MakeArray",         // a literal the optimizer could not fold
             "MakeMap",           // and its template-plus-pairs cousin
@@ -591,35 +590,6 @@ fn host_capabilities() {
     for (cap, supported, text) in SUPPORTED {
         assert_eq!(host.caps.contains(*cap), *supported, "cap {:?} should be {} on this build ({text})", cap, if *supported { "available" } else { "unavailable" });
     }
-}
-
-/// A `switch` carries hashes Rhai's parser computed, and Rhai seeds its hasher
-/// per process unless the host says otherwise. Two processes that disagree
-/// would load each other's artifacts perfectly and then send every subject to
-/// the default — a wrong answer rather than a failure, which is the worst kind.
-///
-/// The probe is what turns it into a failure, so this checks the failure
-/// happens and that the message says what to do about it.
-#[test]
-fn a_switch_hashed_by_a_different_seed_is_refused() {
-    let engine = corpus::engine();
-    let bytes = sample(&engine);
-
-    // The probe is the only place the artifact repeats this value, and finding
-    // it that way means the test does not have to know the layout.
-    let probe = rhai::grain::bytecode::probe().to_le_bytes();
-    let at = bytes.windows(probe.len()).position(|window| window == probe).expect("an artifact with a switch in it carries a probe");
-
-    let mut corrupt = bytes.clone();
-    corrupt[at] ^= 1;
-
-    let err = Program::read(&corrupt).expect_err("a foreign hasher must be refused");
-    assert!(matches!(err, ReadError::HashSeedMismatch { .. }), "got {err:?}",);
-    assert!(err.to_string().contains("set_hashing_seed"), "the message must say how to fix it: {err}",);
-
-    // And the uncorrupted one still loads, so the check is not simply always
-    // failing.
-    assert!(Program::read(&bytes).is_ok());
 }
 
 /// An artifact arrives over a link, so every prefix of one is a thing that can

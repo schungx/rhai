@@ -1,4 +1,4 @@
-use core::mem;
+use std::mem;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -2370,7 +2370,7 @@ impl<'e> Vm<'e> {
         segment: Dynamic,
         pos: Position,
     ) -> Result<(), Box<EvalAltResult>> {
-        use core::fmt::Write;
+        use std::fmt::Write;
 
         let mut item = segment.flatten();
         let mut rendered = None;

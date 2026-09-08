@@ -60,6 +60,7 @@ impl IntoIterator for RangeCase {
 
 impl RangeCase {
     /// Returns `true` if the range contains no items.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline]
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -69,6 +70,7 @@ impl RangeCase {
         }
     }
     /// Size of the range.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline]
     #[must_use]
     pub fn len(&self) -> INT {
@@ -130,6 +132,7 @@ impl RangeCase {
         }
     }
     /// Is the specified range inclusive?
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline(always)]
     #[must_use]
     pub const fn is_inclusive(&self) -> bool {
@@ -139,6 +142,7 @@ impl RangeCase {
         }
     }
     /// Get the index to the list of expressions.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline(always)]
     #[must_use]
     pub const fn index(&self) -> usize {
@@ -147,6 +151,7 @@ impl RangeCase {
         }
     }
     /// Set the index to the list of expressions.
+    #[cfg_attr(feature = "no_ast", allow(dead_code))]
     #[inline(always)]
     pub fn set_index(&mut self, index: usize) {
         match self {

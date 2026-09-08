@@ -266,10 +266,7 @@ pub enum Op {
     ///
     /// Always jumps — the table's default is where a subject that matches
     /// nothing goes, and an absent `_` arm compiles to a jump past the
-    /// statement. Arms with guards are not table entries: the table sends a
-    /// subject to the head of a chain that tries each guard in source order
-    /// and falls through to the default, which is what keeps dispatch a
-    /// lookup.
+    /// statement.
     ///
     /// The table is in the program's switch pool rather than in the
     /// instruction because it is unbounded, and because two arms of one
