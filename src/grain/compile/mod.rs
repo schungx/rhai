@@ -235,6 +235,8 @@ struct Loop {
     handlers: usize,
     /// `Jump` sites awaiting the address after the loop.
     breaks: Vec<usize>,
+    /// Whether any `break` statement in this loop yields an expression value.
+    has_break_value: bool,
 }
 
 /// Where a `switch` table entry sends control, before the arms have
@@ -1244,7 +1246,8 @@ impl Lowering {
                 }
                 self.emit_at(Op::Tick, flow.body.position());
 
-                self.begin_for(top, outside);
+                let has_break_val = flow.body.statements().iter().any(has_break_value);
+                self.begin_for(top, outside, has_break_val);
                 if !self.block_discarding(flow.body.statements()) {
                     return Lowered::Defeated;
                 }
@@ -1257,8 +1260,7 @@ impl Lowering {
                 self.emit(Op::UnwindTo(outside));
                 self.slots.unwind_to(outside as usize);
 
-                self.finish_loop(breaks);
-                Lowered::Value
+                self.exit_loop(breaks, has_break_val)
             }
 
             // Every arm is an expression and the default is a `Unit`, so a
@@ -1352,7 +1354,8 @@ impl Lowering {
                     Some(self.emit_jump_if_false(expr.position()))
                 };
 
-                self.begin_loop(top);
+                let has_break_val = body.statements().iter().any(has_break_value);
+                self.begin_loop(top, has_break_val);
                 if !self.block_discarding(body.statements()) {
                     return Lowered::Defeated;
                 }
@@ -1362,8 +1365,7 @@ impl Lowering {
                 if let Some(exit) = exit {
                     self.patch_here(exit);
                 }
-                self.finish_loop(breaks);
-                Lowered::Value
+                self.exit_loop(breaks, has_break_val)
             }
 
             Stmt::Do(payload, flags, ..) => {
@@ -1373,7 +1375,8 @@ impl Lowering {
                 let top = self.here();
                 self.emit_at(Op::Tick, body.position());
 
-                self.begin_loop(top);
+                let has_break_val = body.statements().iter().any(has_break_value);
+                self.begin_loop(top, has_break_val);
                 if !self.block_discarding(body.statements()) {
                     return Lowered::Defeated;
                 }
@@ -1390,8 +1393,7 @@ impl Lowering {
                     self.patch_here(exit);
                 }
 
-                self.finish_loop(breaks);
-                Lowered::Value
+                self.exit_loop(breaks, has_break_val)
             }
 
             Stmt::BreakLoop(value, flags, ..) => {
@@ -1416,7 +1418,8 @@ impl Lowering {
                 if is_break {
                     match value {
                         Some(expr) => self.expression(expr),
-                        None => self.emit(Op::Unit),
+                        None if active.has_break_value => self.emit(Op::Unit),
+                        None => {}
                     }
                     // Out of the loop entirely, so its own iterator goes too —
                     // `loop_iters` counts from inside the loop and therefore
@@ -2303,7 +2306,7 @@ impl Lowering {
 
     /// Open a loop whose `break` and `continue` unwind to the same place —
     /// `while`, `loop` and `do`, which declare nothing of their own.
-    fn begin_loop(&mut self, continue_target: u32) {
+    fn begin_loop(&mut self, continue_target: u32, has_break_value: bool) {
         let depth = u16::try_from(self.slots.depth()).expect("slot count is bounded");
         self.loops.push(Loop {
             continue_target,
@@ -2313,13 +2316,14 @@ impl Lowering {
             handlers: self.handlers,
             owns_iterator: false,
             breaks: Vec::new(),
+            has_break_value,
         });
     }
 
     /// Open a `for`, which does declare: the loop variable and any counter
     /// live between the two depths, so leaving drops them and going round
     /// again does not.
-    fn begin_for(&mut self, continue_target: u32, break_depth: u16) {
+    fn begin_for(&mut self, continue_target: u32, break_depth: u16, has_break_value: bool) {
         self.loops.push(Loop {
             continue_target,
             break_depth,
@@ -2328,6 +2332,7 @@ impl Lowering {
             handlers: self.handlers,
             owns_iterator: true,
             breaks: Vec::new(),
+            has_break_value,
         });
     }
 
@@ -2335,16 +2340,20 @@ impl Lowering {
         self.loops.pop().expect("loop stack is balanced").breaks
     }
 
-    /// Push the value a loop has when it runs to completion — unit — and land
-    /// every `break` in it just past that.
+    /// Push the value a loop has when it runs to completion — unit
+    /// — and land every `break` in it just past that, when a `break`
+    /// value expression is present.
     ///
-    /// A `break value` supplied its own and unwound before jumping, so the two
-    /// paths meet one instruction later at the same depth. That is why the
-    /// straight-line path has nothing to jump over.
-    fn finish_loop(&mut self, breaks: Vec<usize>) {
-        self.emit(Op::Unit);
+    /// Otherwise, leave nothing on the stack and return [`Lowered::Empty`].
+    fn exit_loop(&mut self, breaks: Vec<usize>, has_break_value: bool) -> Lowered {
         for site in breaks {
             self.patch_here(site);
+        }
+        if has_break_value {
+            self.emit(Op::Unit);
+            Lowered::Value
+        } else {
+            Lowered::Empty
         }
     }
 
@@ -2585,6 +2594,42 @@ fn declaration_order(def: &ScriptFuncDef) -> (&str, usize, Option<&str>) {
     let this_type = None;
 
     (&def.name, def.params.len(), this_type)
+}
+
+/// Check whether a statement block or statement contains a `break` with an
+/// expression value targeting this loop level (stopping at nested loops).
+fn has_break_value(stmt: &Stmt) -> bool {
+    match stmt {
+        Stmt::BreakLoop(Some(..), flags, ..) if flags.contains(ASTFlags::BREAK) => true,
+        Stmt::Block(block, ..) => block.statements().iter().any(has_break_value),
+        Stmt::If(payload, ..) => {
+            let FlowControl { body, branch, .. } = &**payload;
+            body.statements().iter().any(has_break_value)
+                || branch.statements().iter().any(has_break_value)
+        }
+        Stmt::TryCatch(payload, ..) => {
+            let FlowControl { body, branch, .. } = &**payload;
+            body.statements().iter().any(has_break_value)
+                || branch.statements().iter().any(has_break_value)
+        }
+        Stmt::Switch(payload, ..) => {
+            let (expr, sw) = &**payload;
+            has_break_value_expr(expr)
+                || sw.expressions.iter().any(|e| has_break_value_expr(&e.rhs))
+        }
+        Stmt::Expr(expr) => has_break_value_expr(expr),
+        Stmt::Var(payload, ..) => has_break_value_expr(&payload.1),
+        Stmt::Assignment(payload) => has_break_value_expr(&payload.1.rhs),
+        Stmt::For(..) | Stmt::While(..) | Stmt::Do(..) => false,
+        _ => false,
+    }
+}
+
+fn has_break_value_expr(expr: &Expr) -> bool {
+    match expr {
+        Expr::Stmt(block) => block.statements().iter().any(has_break_value),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
