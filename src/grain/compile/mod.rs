@@ -8,7 +8,8 @@ use std::mem;
 use std::prelude::v1::*;
 
 use crate::ast::{
-    ASTFlags, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock, SwitchCasesCollection,
+    ASTFlags, ASTNode, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock,
+    SwitchCasesCollection,
 };
 #[cfg(not(feature = "no_function"))]
 use crate::func::{ScriptFuncDef, ScriptFuncPayload};
@@ -2603,40 +2604,21 @@ fn declaration_order(def: &ScriptFuncDef) -> (&str, usize, Option<&str>) {
 /// Check whether a statement block or statement contains a `break` with an
 /// expression value targeting this loop level (stopping at nested loops).
 fn has_break_value(stmt: &Stmt) -> bool {
-    match stmt {
-        Stmt::BreakLoop(Some(..), flags, ..) if flags.contains(ASTFlags::BREAK) => true,
-        Stmt::Block(block, ..) => block.statements().iter().any(has_break_value),
-        Stmt::If(payload, ..) => {
-            let FlowControl { body, branch, .. } = &**payload;
-            body.statements().iter().any(has_break_value)
-                || branch.statements().iter().any(has_break_value)
-        }
-        Stmt::TryCatch(payload, ..) => {
-            let FlowControl { body, branch, .. } = &**payload;
-            body.statements().iter().any(has_break_value)
-                || branch.statements().iter().any(has_break_value)
-        }
-        Stmt::Switch(payload, ..) => {
-            let (expr, sw) = &**payload;
-            has_break_value_expr(expr)
-                || sw.expressions.iter().any(|e| has_break_value_expr(&e.rhs))
-        }
-        Stmt::Expr(expr) => has_break_value_expr(expr),
-        Stmt::Var(payload, ..) => has_break_value_expr(&payload.1),
-        Stmt::Assignment(payload) => has_break_value_expr(&payload.1.rhs),
-        Stmt::For(..) | Stmt::While(..) | Stmt::Do(..) => false,
-        _ => false,
-    }
-}
+    let mut has_value = false;
+    let mut path = Vec::new();
 
-fn has_break_value_expr(expr: &Expr) -> bool {
-    match expr {
-        Expr::Stmt(block) => block.statements().iter().any(has_break_value),
-        Expr::And(expressions, ..)
-        | Expr::Or(expressions, ..)
-        | Expr::Coalesce(expressions, ..) => expressions.iter().any(has_break_value_expr),
-        _ => false,
-    }
+    stmt.walk(&mut path, &mut |path| match path.last() {
+        Some(ASTNode::Stmt(Stmt::BreakLoop(Some(..), flags, ..)))
+            if flags.contains(ASTFlags::BREAK) =>
+        {
+            has_value = true;
+            false
+        }
+        Some(ASTNode::Stmt(Stmt::For(..) | Stmt::While(..) | Stmt::Do(..))) => false,
+        _ => true,
+    });
+
+    has_value
 }
 
 #[cfg(test)]
