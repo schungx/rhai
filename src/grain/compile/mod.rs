@@ -2632,6 +2632,9 @@ fn has_break_value(stmt: &Stmt) -> bool {
 fn has_break_value_expr(expr: &Expr) -> bool {
     match expr {
         Expr::Stmt(block) => block.statements().iter().any(has_break_value),
+        Expr::And(expressions, ..)
+        | Expr::Or(expressions, ..)
+        | Expr::Coalesce(expressions, ..) => expressions.iter().any(has_break_value_expr),
         _ => false,
     }
 }

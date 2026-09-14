@@ -414,6 +414,11 @@ pub const CASES: &[Case] = &[
     case("do_while", "let i = 0; do { i += 1; } while i < 3; i"),
     case("do_until", "let i = 0; do { i += 1; } until i >= 3; i"),
     case("loop_break_value", "let i = 0; loop { i += 1; if i > 4 { break i * 10; } }"),
+    // A `break` value reached through `??` rather than a bare statement: the
+    // compiler has to notice the loop's value comes from a `break` nested
+    // inside a coalescing expression, not just a direct statement, or it
+    // pushes nothing for the loop's exhausted-normally path to skip past.
+    case("for_loop_break_value_through_coalesce", "for n in 0..10 { let x = if n <= 5 { n }; x ?? break 42; }"),
     // A top-level loop is the script's implicit return value, so an omitted
     // discarded-loop value has to be materialized as unit before `Return`.
     case("loop_implicit_unit", "loop { break; }"),
