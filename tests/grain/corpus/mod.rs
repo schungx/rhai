@@ -414,6 +414,12 @@ pub const CASES: &[Case] = &[
     case("do_while", "let i = 0; do { i += 1; } while i < 3; i"),
     case("do_until", "let i = 0; do { i += 1; } until i >= 3; i"),
     case("loop_break_value", "let i = 0; loop { i += 1; if i > 4 { break i * 10; } }"),
+    // A top-level loop is the script's implicit return value, so an omitted
+    // discarded-loop value has to be materialized as unit before `Return`.
+    case("loop_implicit_unit", "loop { break; }"),
+    // The last statement of a script function is its implicit return value,
+    // even if the loop could omit a unit while its result is discarded.
+    case("fn_loop_implicit_unit", "fn f() { loop { break; } } f()"),
     case("continue_skips", "let s = 0; for i in 0..10 { if i % 2 == 0 { continue; } s += i; } s"),
     case("for_range", "let s = 0; for i in 0..5 { s += i; } s"),
     case("for_array", "let s = 0; for x in [10, 20, 30] { s += x; } s"),

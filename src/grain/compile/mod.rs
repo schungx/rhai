@@ -2346,11 +2346,15 @@ impl Lowering {
     ///
     /// Otherwise, leave nothing on the stack and return [`Lowered::Empty`].
     fn exit_loop(&mut self, breaks: Vec<usize>, has_break_value: bool) -> Lowered {
+        if has_break_value {
+            self.emit(Op::Unit);
+        }
+        // A valued `break` has already pushed the loop's result, so it must
+        // bypass the unit supplied when the loop ends normally.
         for site in breaks {
             self.patch_here(site);
         }
         if has_break_value {
-            self.emit(Op::Unit);
             Lowered::Value
         } else {
             Lowered::Empty
