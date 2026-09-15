@@ -3,7 +3,13 @@ use rhai::grain::{Program, Vm};
 use rhai::Engine;
 #[cfg(not(feature = "no_ast"))]
 use rhai::{EvalAltResult, Position};
-use std::{env, fs::File, io::Read, path::Path, process::exit};
+use std::{
+    env,
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+    process::exit,
+};
 
 #[cfg(not(feature = "no_ast"))]
 fn eprint_error(input: &str, mut err: EvalAltResult) {
@@ -48,56 +54,108 @@ fn is_grain_bytecode(filename: &Path) -> bool {
 }
 
 #[cfg(feature = "grain")]
-fn run_grain_bytecode(filename: &Path) -> Result<(), String> {
+fn run_grain_bytecode(filename: &Path) {
     #[allow(unused_mut)]
     let mut engine = Engine::new();
 
     #[cfg(not(feature = "no_optimize"))]
     engine.set_optimization_level(rhai::OptimizationLevel::Simple);
 
-    let mut file = File::open(filename).map_err(|err| {
-        format!(
-            "Error reading Grain bytecode file: {}\n{err}",
-            filename.to_string_lossy()
-        )
-    })?;
+    let mut file = match File::open(filename) {
+        Ok(file) => file,
+        Err(err) => {
+            eprintln!(
+                "Error reading Grain bytecode file: {}\n{err}",
+                filename.to_string_lossy()
+            );
+            exit(1);
+        }
+    };
 
     let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).map_err(|err| {
-        format!(
-            "Error reading Grain bytecode file: {}\n{err}",
-            filename.to_string_lossy()
-        )
-    })?;
 
-    let program = Program::read(&bytes).map_err(|err| {
-        format!(
-            "Error loading Rhai Grain bytecode: {}\n{err}",
-            filename.to_string_lossy()
-        )
-    })?;
+    match file.read_to_end(&mut bytes) {
+        Ok(_) => {}
+        Err(err) => {
+            eprintln!(
+                "Error reading Grain bytecode file: {}\n{err}",
+                filename.to_string_lossy()
+            );
+            exit(1);
+        }
+    };
+
+    let mut program = match Program::read(&bytes) {
+        Ok(program) => program,
+        Err(err) => {
+            eprintln!(
+                "Error loading Rhai Grain bytecode: {}\n{err}",
+                filename.to_string_lossy()
+            );
+            exit(1);
+        }
+    };
 
     let mut scope = rhai::Scope::new();
     let mut vm = Vm::new(&engine);
 
-    let result = if program.makes_fn_pointers() {
-        let program = program.into_shared();
-        vm.eval_with_callbacks(&mut scope, &program)
-    } else {
-        vm.eval_with_scope(&mut scope, &program)
-    };
+    let program = program.into_shared();
+    let result = vm.eval_with_callbacks(&mut scope, &program);
 
-    match result {
-        Err(err) => Err(format!(
-            "Error executing Rhai Grain bytecode: {}\n{err}",
-            filename.to_string_lossy()
-        )),
-        Ok(_) => Ok(()),
+    if let Err(err) = result {
+        let mut path = PathBuf::from(filename);
+        path.set_extension("rhai");
+
+        if path.is_file() {
+            let mut f = match File::open(&path) {
+                Err(err) => {
+                    eprintln!(
+                        "Error opening script source file: {}\n{}",
+                        filename.to_string_lossy(),
+                        err
+                    );
+                    exit(1);
+                }
+                Ok(f) => f,
+            };
+
+            let mut contents = String::new();
+
+            match f.read_to_string(&mut contents) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!(
+                        "Error reading script source file: {}\n{}",
+                        filename.to_string_lossy(),
+                        err
+                    );
+                    exit(1);
+                }
+            }
+
+            let file = format!(
+                "{} (source {})",
+                filename.to_string_lossy(),
+                path.to_string_lossy()
+            );
+
+            eprintln!("{:=<1$}", "", file.len());
+            eprintln!("{file}");
+            eprintln!("{:=<1$}", "", file.len());
+            eprintln!();
+
+            eprint_error(&contents, *err);
+        } else {
+            eprintln!(
+                "Error executing Rhai Grain bytecodes file '{}':\n{err}",
+                filename.to_string_lossy()
+            );
+        }
     }
 }
 
 #[cfg(not(feature = "no_ast"))]
-fn walk_ast(contents: &mut String, filename: std::path::PathBuf) {
+fn walk_ast(contents: &mut String, filename: &Path) {
     // Initialize scripting engine
     #[allow(unused_mut)]
     let mut engine = Engine::new();
@@ -108,7 +166,7 @@ fn walk_ast(contents: &mut String, filename: std::path::PathBuf) {
     let mut f = match File::open(&filename) {
         Err(err) => {
             eprintln!(
-                "Error reading script file: {}\n{}",
+                "Error opening script file: {}\n{}",
                 filename.to_string_lossy(),
                 err
             );
@@ -173,15 +231,12 @@ fn main() {
 
         #[cfg(feature = "grain")]
         if is_grain_bytecode(&filename) {
-            if let Err(err) = run_grain_bytecode(&filename) {
-                eprintln!("{err}");
-                exit(1);
-            }
+            run_grain_bytecode(&filename);
             continue;
         }
 
         #[cfg(not(feature = "no_ast"))]
-        walk_ast(&mut contents, filename);
+        walk_ast(&mut contents, &filename);
 
         #[cfg(feature = "no_ast")]
         {
