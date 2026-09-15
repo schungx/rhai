@@ -1,8 +1,6 @@
 #[cfg(feature = "grain")]
 use rhai::grain::{Program, Vm};
-use rhai::Engine;
-#[cfg(not(feature = "no_ast"))]
-use rhai::{EvalAltResult, Position};
+use rhai::{Engine, EvalAltResult, Position};
 use std::{
     env,
     fs::File,
@@ -11,7 +9,6 @@ use std::{
     process::exit,
 };
 
-#[cfg(not(feature = "no_ast"))]
 fn eprint_error(input: &str, mut err: EvalAltResult) {
     fn eprint_line(lines: &[&str], pos: Position, err_msg: &str) {
         let line = pos.line().unwrap();
