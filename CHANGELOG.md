@@ -22,8 +22,10 @@ Enhancements
 
 * Rhai Grain is no longer _experimental_.
 * Rhai Grain bytecodes transpilation is optimized (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1156`](https://github.com/rhaiscript/rhai/pull/1156)).
+* Rhai Grain VM is now at par or faster than the AST interpreter for scripts index assignments ([`#1163`](https://github.com/rhaiscript/rhai/pull/1163)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts with callbacks ([`#1159`](https://github.com/rhaiscript/rhai/pull/1159)).
-* `rhai-run` now supports loading and executing Rhai Grain bytecodes if the `grain` feature is enabled ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).
+* Rhai Grain VM is now 1.8-2x faster than the AST interpreter when running `switch` statements ([`#1162`](https://github.com/rhaiscript/rhai/pull/1162), [`#1165`](https://github.com/rhaiscript/rhai/pull/1165)).
+* `rhai-run` now supports loading and executing Rhai Grain bytecode files if the `grain` feature is enabled ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).
 * The example `grain_dump` is now split into two CLI tools in `bin`: `grain-compile`, which compiles a Rhai script into Rhai Grain bytecodes, and `grain-dump` which dissembles a Rhai Grain bytecodes files ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).
 * `grain-dump` now disassembles Rhai Grain bytecodes files with more complete information ([`#1168`](https://github.com/rhaiscript/rhai/pull/1168)).
 
