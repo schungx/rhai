@@ -254,7 +254,7 @@ pub use rhai_codegen::*;
 pub use types::Instant;
 pub use types::{
     Dynamic, EvalAltResult, FnPtr, ImmutableString, LexError, ParseError, ParseErrorType, Position,
-    Scope,
+    Scope, VarDefInfo,
 };
 
 /// _(debugging)_ Module containing types for debugging.
@@ -358,9 +358,6 @@ pub use types::FloatWrapper;
 
 #[cfg(feature = "internals")]
 pub use types::{BloomFilterU64, CustomTypeInfo, Ident, Span, StringsInterner, Token};
-
-#[cfg(not(feature = "no_ast"))]
-pub use types::VarDefInfo;
 
 #[cfg(feature = "internals")]
 #[cfg(not(feature = "no_ast"))]

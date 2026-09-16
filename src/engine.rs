@@ -2,9 +2,11 @@
 
 use crate::api::default_limits::MAX_STRINGS_INTERNED;
 use crate::api::options::LangOptions;
-use crate::func::native::{locked_write, OnDebugCallback, OnPrintCallback, OnVarCallback};
 #[cfg(not(feature = "no_ast"))]
-use crate::func::native::{OnDefVarCallback, OnParseTokenCallback};
+use crate::func::native::OnParseTokenCallback;
+use crate::func::native::{
+    locked_write, OnDebugCallback, OnDefVarCallback, OnPrintCallback, OnVarCallback,
+};
 use crate::packages::{Package, StandardPackage};
 use crate::types::StringsInterner;
 use crate::types::Token;
@@ -115,7 +117,6 @@ pub struct Engine {
         std::collections::BTreeMap<Identifier, Box<crate::api::custom_syntax::CustomSyntax>>,
 
     /// Callback closure for filtering variable definition.
-    #[cfg(not(feature = "no_ast"))]
     pub(crate) def_var_filter: Option<Box<OnDefVarCallback>>,
     /// Callback closure for resolving variable access.
     pub(crate) resolve_var: Option<Box<OnVarCallback>>,
@@ -189,11 +190,11 @@ impl fmt::Debug for Engine {
                 .collect::<String>(),
         );
 
-        f.field("resolve_var", &self.resolve_var.is_some());
+        f.field("resolve_var", &self.resolve_var.is_some())
+            .field("def_var_filter", &self.def_var_filter.is_some());
 
         #[cfg(not(feature = "no_ast"))]
-        f.field("def_var_filter", &self.def_var_filter.is_some())
-            .field("token_mapper", &self.token_mapper.is_some());
+        f.field("token_mapper", &self.token_mapper.is_some());
 
         #[cfg(not(feature = "unchecked"))]
         f.field("progress", &self.progress.is_some());
@@ -261,7 +262,6 @@ impl Engine {
         #[cfg(not(feature = "no_custom_syntax"))]
         custom_syntax: std::collections::BTreeMap::new(),
 
-        #[cfg(not(feature = "no_ast"))]
         def_var_filter: None,
         resolve_var: None,
         #[cfg(not(feature = "no_ast"))]

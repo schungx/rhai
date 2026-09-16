@@ -24,6 +24,7 @@ use crate::ast::Expr;
 use crate::Array;
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
+use crate::VarDefInfo;
 #[cfg(not(feature = "no_function"))]
 use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
@@ -3684,7 +3685,47 @@ impl<'e> Vm<'e> {
                             EvalAltResult::ErrorVariableExists(name.to_string(), pos()).into()
                         );
                     }
-                    // Flattened, as Rhai flattens a declaration's initializer
+
+                    // Check variables definition filter.
+                    if let Some(filter) = &self.engine.def_var_filter {
+                        // The nesting level is lost once a program is lowered
+                        // to bytecodes, so it is always reported as level zero here
+                        // — partial functionality is better than none.
+                        let nesting_level = 0;
+
+                        let info = VarDefInfo::new(
+                            name,
+                            tag != code::tag::DECLARE_LOCAL,
+                            nesting_level,
+                            scope.contains(name),
+                        );
+
+                        let orig_scope_len = scope.len();
+
+                        let context = EvalContext::new(
+                            self.engine,
+                            &mut self.global,
+                            &mut self.caches,
+                            scope,
+                            None,
+                        );
+
+                        let result = filter(true, info, context);
+
+                        if orig_scope_len != scope.len() {
+                            self.global.always_search_scope = true;
+                        }
+
+                        if !result? {
+                            return Err(EvalAltResult::ErrorForbiddenVariable(
+                                name.to_string(),
+                                pos(),
+                            )
+                            .into());
+                        }
+                    }
+
+                    // Flatten value, as Rhai flattens a declaration's initializer
                     // (`eval/stmt.rs:438`). A native can hand back a cell that is
                     // already shared, and sharing must stop at the `let` rather
                     // than becoming a property of the new local.

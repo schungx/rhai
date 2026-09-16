@@ -6,7 +6,6 @@ use crate::plugin::PluginFunc;
 #[cfg(not(feature = "no_ast"))]
 use crate::tokenizer::TokenizeState;
 use crate::types::{dynamic::Variant, token::is_valid_identifier, Token};
-#[cfg(not(feature = "no_ast"))]
 use crate::VarDefInfo;
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, EvalContext, FnArgsVec, FuncArgs,
@@ -827,10 +826,8 @@ pub type OnVarCallback =
 
 /// Callback function for variable definition.
 #[cfg(not(feature = "sync"))]
-#[cfg(not(feature = "no_ast"))]
 pub type OnDefVarCallback = dyn Fn(bool, VarDefInfo, EvalContext) -> RhaiResultOf<bool>;
 /// Callback function for variable definition.
 #[cfg(feature = "sync")]
-#[cfg(not(feature = "no_ast"))]
 pub type OnDefVarCallback =
     dyn Fn(bool, VarDefInfo, EvalContext) -> RhaiResultOf<bool> + Send + Sync;

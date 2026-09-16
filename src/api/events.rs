@@ -1,7 +1,6 @@
 //! Module that defines public event handlers for [`Engine`].
 
 use crate::func::SendSync;
-#[cfg(not(feature = "no_ast"))]
 use crate::VarDefInfo;
 use crate::{Dynamic, Engine, EvalContext, Position, RhaiResultOf};
 #[cfg(feature = "no_std")]
@@ -120,7 +119,6 @@ impl Engine {
     /// # }
     /// ```
     #[deprecated = "This API is NOT deprecated, but it is considered volatile and may change in the future."]
-    #[cfg(not(feature = "no_ast"))]
     #[inline(always)]
     pub fn on_def_var(
         &mut self,
