@@ -20,7 +20,7 @@
 use super::corpus;
 
 use rhai::grain::{Compiler, Vm};
-use rhai::{Dynamic, Engine, Module, Scope, INT};
+use rhai::{Dynamic, Engine, EvalAltResult, Module, Scope, INT};
 
 /// What a run produced, in a form two runs can be compared on.
 #[derive(Debug, PartialEq, Eq)]
@@ -748,4 +748,51 @@ fn a_program_reading_caller_state_can_be_written() {
     let value = Vm::new(&engine).eval_with_scope(&mut scope, &reloaded).expect("must run");
 
     assert_eq!(value.as_int().unwrap(), 15);
+}
+
+#[test]
+fn declarations_honour_the_runtime_definition_filter() {
+    let mut engine = corpus::engine();
+    let source = "let accepted = 1; const blocked = accepted + 1";
+    let ast = engine.compile(source).expect("must compile before filtering");
+    let program = Compiler::new().compile(&ast);
+
+    assert_eq!(program.residual_count(), 0, "{source:?} must be fully lowered");
+
+    let definitions = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = definitions.clone();
+    engine.on_def_var(move |is_runtime, info, _| {
+        seen.lock().unwrap().push((is_runtime, info.name().to_string(), info.is_const(), info.will_shadow_other_variables()));
+        Ok(info.name() != "blocked")
+    });
+
+    let mut scope = Scope::new();
+    let err = Vm::new(&engine).eval_with_scope(&mut scope, &program).expect_err("the filter must reject the compiled declaration");
+
+    assert!(matches!(*err, EvalAltResult::ErrorForbiddenVariable(ref name, _) if name == "blocked"), "got {err:?}");
+    assert_eq!(*definitions.lock().unwrap(), vec![(true, "accepted".to_string(), false, false), (true, "blocked".to_string(), true, false),],);
+    assert_eq!(scope.get_value::<INT>("accepted"), Some(1));
+    assert!(!scope.contains("blocked"), "a denied declaration must not alter the scope");
+}
+
+#[test]
+fn definition_filter_sees_shadowing_in_compiled_declarations() {
+    let mut engine = corpus::engine();
+    let source = "let value = 1";
+    let ast = engine.compile(source).expect("must compile before filtering");
+    let program = Compiler::new().compile(&ast);
+
+    assert_eq!(program.residual_count(), 0, "{source:?} must be fully lowered");
+
+    engine.on_def_var(|is_runtime, info, _| {
+        assert!(is_runtime, "the VM must invoke the runtime filter");
+        Ok(!info.will_shadow_other_variables())
+    });
+
+    let mut scope = Scope::new();
+    scope.push("value", 0 as INT);
+    let err = Vm::new(&engine).eval_with_scope(&mut scope, &program).expect_err("the filter must reject the shadowing declaration");
+
+    assert!(matches!(*err, EvalAltResult::ErrorForbiddenVariable(ref name, _) if name == "value"), "got {err:?}");
+    assert_eq!(scope.get_value::<INT>("value"), Some(0));
 }

@@ -11,6 +11,7 @@ Bug fixes
 * Support bare function names as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 * (Fuzzing) Fixed missing data-race condition in native function callbacks ([`#1161`](https://github.com/rhaiscript/rhai/pull/1161)).
 * The `Engine::on_map_missing_property` callback now works properly with Rhai Grain ([`#1164`](https://github.com/rhaiscript/rhai/pull/1164)).
+* The `Engine::on_def_var` callback now works properly with Rhai Grain ([`#1170`](https://github.com/rhaiscript/rhai/pull/1170)). However, the _nesting level_ reported by `VarDefInfo` is always zero, since all nesting information is lost once the `AST` is lowered to bytecodes.
 
 New features
 ------------
