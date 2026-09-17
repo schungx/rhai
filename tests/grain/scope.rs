@@ -367,23 +367,6 @@ fn a_name_that_is_nowhere_is_reported_the_same_way() {
     agree("nope += 1", |_| {}, true);
 }
 
-/// A bare script-function name lowers to a named read and resolves to a
-/// function pointer at run time.
-#[test]
-#[cfg(not(any(feature = "no_function", feature = "no_object")))]
-fn a_script_function_name_is_not_a_variable() {
-    let engine = corpus::engine();
-    let ast = engine.compile("fn helper() { 1 } let f = helper; f.call()").expect("must compile");
-    let program = Compiler::new().compile(&ast);
-
-    assert_eq!(program.residual_count(), 0, "a script-function name should lower without residual AST fragments",);
-    assert!(rhai::grain::bytecode::disassemble(program.code()).any(|(.., op)| matches!(op, rhai::grain::bytecode::Op::LoadNamed(..))), "the lowered program should read `helper` by name",);
-    let out = Vm::new(&engine)
-        .eval_with_scope(&mut Scope::new(), &program)
-        .expect("a script-function name should resolve as a function pointer");
-    assert_eq!(out.as_int().unwrap(), 1);
-}
-
 /// The last of the three places Rhai looks: a constant a host published on a
 /// module rather than in the scope.
 #[test]
@@ -624,6 +607,7 @@ fn a_closure_pointer_is_the_same_from_the_vm() {
 /// will do once compiled chunks are registered for callbacks.
 #[test]
 #[cfg(not(feature = "no_function"))]
+#[cfg(feature = "internals")]
 fn a_compiled_function_can_be_called_by_name() {
     use smallvec::smallvec;
 

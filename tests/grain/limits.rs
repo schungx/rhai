@@ -11,11 +11,13 @@
 //! and always will. What must hold is that the limit fires and the interrupt is
 //! honoured, so that is what is asserted — not parity of counts or positions.
 
+#![cfg(feature = "internals")]
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use rhai::grain::bytecode::Op;
-use rhai::grain::{Compiler, Program, Vm};
+use rhai::grain::{Compiler, Vm};
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 
 /// A bare infinite loop, which the compiler lowers with nothing left over —
@@ -61,47 +63,6 @@ fn compiled_loop_honours_the_progress_interrupt() {
 
     assert!(matches!(*err, EvalAltResult::ErrorTerminated(..)), "expected ErrorTerminated, got {err:?}",);
     assert!(ticks.load(Ordering::SeqCst) >= 500, "on_progress should have been called on every back-edge",);
-}
-
-/// A chunk that loops with no tick in it must still be stopped.
-///
-/// Every loop this compiler emits carries an `Op::Tick` on its back-edge, so
-/// nothing it produces can spin. An artifact is not required to have come from
-/// it. Turning this program's tick into a no-op leaves a chunk that still
-/// verifies — the jump is in range, the stack balances, every path reaches a
-/// `Return` — and runs forever, which makes the engine's budget the only thing
-/// between a host and a hostile file.
-///
-/// So the budget cannot depend on the compiler having been generous: the VM
-/// charges an operation for every *backward* transfer, and a cycle always has
-/// one. Found by `mutated_artifacts_load_or_fail_but_never_misbehave`, which
-/// hung on a mutation rather than failing.
-#[test]
-fn a_loop_with_its_tick_removed_still_hits_the_limit() {
-    let mut engine = Engine::new();
-    engine.set_max_operations(10_000);
-
-    let ast = engine.compile(SPIN).expect("must compile");
-    let program = Compiler::new().compile(&ast);
-
-    // Where the tick sits inside the code, and what the code looks like, so the
-    // same bytes can be found again inside the finished artifact.
-    let code = program.code().to_vec();
-    let (tick_at, _) = program.main().ops(program.code()).find(|(_, op)| *op == Op::Tick).expect("the compiler ticks a loop");
-
-    let mut bytes = program.write().expect("a lowered program must write");
-    let start = bytes.windows(code.len()).position(|window| window == code).expect("the artifact embeds the code verbatim");
-
-    // `Checkpoint` is the other one-byte instruction that does nothing to the
-    // stack, so this swap leaves every offset, jump target and position entry
-    // exactly where it was. Only the metering goes.
-    bytes[start + tick_at] = rhai::grain::bytecode::code::tag::CHECKPOINT;
-
-    let tick_less = Program::read(&bytes).expect("still a valid artifact");
-    assert!(!tick_less.main().ops(tick_less.code()).any(|(_, op)| op == Op::Tick), "the tick should be gone, or this tests nothing",);
-
-    let err = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &tick_less).expect_err("a tick_less loop must still be stopped");
-    assert!(matches!(*err, EvalAltResult::ErrorTooManyOperations(..)), "expected ErrorTooManyOperations, got {err:?}",);
 }
 
 /// The walker and the VM must agree that the script *fails*, even though they

@@ -1073,7 +1073,9 @@ impl Engine {
 
                     let context =
                         need_context.then(|| (self, name.as_str(), None, &*global, pos).into());
-                    return func(context, &mut [&mut lhs, &mut rhs]);
+
+                    return func(context, &mut [&mut lhs, &mut rhs])
+                        .map_err(|err| err.fill_position(pos));
                 }
             }
 

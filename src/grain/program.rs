@@ -5,7 +5,7 @@ use std::prelude::v1::*;
 use crate::ast::{ASTFlags, ASTNode, Expr, Stmt};
 #[cfg(not(feature = "no_module"))]
 use crate::module_resolvers::StaticModuleResolver;
-use crate::{types::Token, Dynamic, ImmutableString, Module, Shared};
+use crate::{expose_under_internals, types::Token, Dynamic, ImmutableString, Shared, SharedModule};
 
 use crate::grain::bytecode::{
     site_to_position, sites, AssignOp, Chain, Chunk, Code, Pools, Positions, Strings, Switch,
@@ -13,23 +13,13 @@ use crate::grain::bytecode::{
 };
 use crate::grain::format::{Caps, Sidecar};
 
-/// Rhai's own `SharedModule`, which it does not re-export.
-pub(crate) type SharedModule = Shared<Module>;
-
-/// A program a native function can be handed a way back into.
-///
-/// [`Vm::eval_with_callbacks`](crate::grain::Vm::eval_with_callbacks) registers one
-/// wrapper per compiled function, and Rhai requires a registered function to be
-/// `'static` — so the program cannot still be borrowing an artifact, and the
-/// wrappers have to share ownership of it rather than borrow it.
-pub type SharedProgram = Shared<Program<'static>>;
-
-/// One compiled script function.
-///
-/// Called by [`Op::Call`](crate::bytecode::Op::Call) directly, without going
-/// through Rhai's dispatch: the name is already an index into the same pool the
-/// call site used, so matching one is two integer comparisons rather than a
-/// hash and a module walk.
+/// _(internals)_ One compiled script function.
+/// Exported under the `internals` feature only.
+//
+// Called by [`Op::Call`](crate::bytecode::Op::Call) directly, without going
+// through Rhai's dispatch: the name is already an index into the same pool the
+// call site used, so matching one is two integer comparisons rather than a
+// hash and a module walk.
 #[derive(Debug, Clone)]
 pub struct Function {
     /// Index into the name pool.
@@ -39,20 +29,15 @@ pub struct Function {
     pub params: Vec<u32>,
     /// The receiver type this function was declared for, as a name-pool index.
     ///
-    /// `fn <Type>.name()`. Rhai folds it into the function's hash rather than
-    /// checking it (`func/hashing.rs:159`), and tries the typed hash before the
-    /// plain one on a method call (`func/call.rs:614-629`) — so a typed function
-    /// and an untyped one of the same name and arity can both exist, and which
-    /// runs depends on the receiver's runtime type name. The string is what the
-    /// parser interned, which is already `Engine::map_type_name`'s answer.
-    ///
     /// `None` for an ordinary function, which is nearly all of them.
     pub this_type: Option<u32>,
-    /// The function's chunk.
+    /// The function's [`Chunk`].
     pub chunk: Chunk,
 }
 
 impl Function {
+    /// Disassemble the function into a human-readable string.
+    #[cfg(feature = "internals")]
     pub fn disassemble(&self, program: &Program) -> String {
         format!(
             "{}{}{}({})",
@@ -68,27 +53,30 @@ impl Function {
     }
 }
 
-/// A compiled script, ready to run against an `Engine`.
+/// A shared [`Program`].
+pub type SharedProgram = Shared<Program<'static>>;
+
+/// A script [`AST`] compiled into bytecodes, ready to run against an [`Engine`].
 ///
-/// Owns everything execution needs that is not the `Engine` itself, so the
-/// original `AST` can be dropped after compiling. On a small target that is the
-/// whole point: the tree is the part whose cost scales with the program.
+/// Owns everything execution needs that is not the [`Engine`] itself, so the
+/// original [`AST`] can be dropped after compiling. On a small target that is the
+/// whole point: the [`AST`] is the part whose cost scales with the script's size.
 ///
-/// The lifetime is the artifact's. A program read from bytes borrows its
-/// instructions from them and allocates only its pools, which are bounded by
-/// the distinct constants and names a script actually mentions rather than by
-/// how long it is. [`Program::into_owned`] cuts the tie when that is wanted.
+/// # Residual Fragments
 ///
-/// `residuals` is the exception, and the reason a `Program` is not always
-/// serializable. Fragments Rhai's walker still has to evaluate are held as real
-/// `Expr` trees, which is precisely the allocation we are trying to remove. The
-/// artifact format refuses to write a `Program` that has any, so nothing
-/// reaching a device can depend on them.
+/// _Residuals_ is the exception, and the reason a [`Program`] is not always
+/// serializable: fragments Rhai's [`AST`] interpreter still has to evaluate
+/// are held as real [`AST`] nodes, which is precisely what Rhai Grain is trying
+/// to remove. The artifact format refuses to write out a [`Program`] that has any,
+/// so nothing reaching a device can depend on them.
+///
+/// [`AST`]: crate::AST
+/// [`Engine`]: crate::Engine
 pub struct Program<'a> {
     /// The capabilities required by this program's instructions.
     caps: Caps,
 
-    /// Every chunk's instructions, concatenated: main first, then each
+    /// Every [Chunk]'s instructions, concatenated: main first, then each
     /// function. One buffer means one position table and one instruction
     /// address, so a device that fails reports a single number.
     code: Code<'a>,
@@ -99,7 +87,7 @@ pub struct Program<'a> {
     /// which is when Rhai's own versions are carried in `lib` instead.
     functions: Vec<Function>,
 
-    /// The deepest chunk's operand-stack need, cached.
+    /// The deepest [Chunk]'s operand-stack need, cached.
     max_stack: u16,
 
     /// Whether any function was declared for a receiver type.
@@ -262,6 +250,7 @@ pub(crate) struct Parts<'a> {
 }
 
 impl<'a> Program<'a> {
+    /// Create a new [`Program`].
     pub(crate) fn new(
         caps: Caps,
         code: Code<'a>,
@@ -306,10 +295,8 @@ impl<'a> Program<'a> {
         program
     }
 
-    /// Copy the borrowed instructions, so this program outlives the artifact it
-    /// was read from.
-    ///
-    /// The opposite of the point, and only worth it when the buffer has to go.
+    /// Copy the borrowed instructions, so this [`Program`] is self-contained and
+    /// outlives the artifact it was read from.
     #[must_use]
     pub fn into_owned(self) -> Program<'static> {
         Program {
@@ -336,22 +323,18 @@ impl<'a> Program<'a> {
         }
     }
 
-    /// Give up the artifact and share the program, so a native can be handed a
-    /// way back into it.
-    ///
-    /// What [`Vm::eval_with_callbacks`](crate::grain::Vm::eval_with_callbacks) takes.
-    /// Worth the copy only when [`makes_fn_pointers`](Self::makes_fn_pointers)
-    /// says a pointer can escape.
+    /// Convert the [`Program`] into a shared, read-only version.
+    #[inline(always)]
     #[must_use]
     pub fn into_shared(self) -> SharedProgram {
         Shared::new(self.into_owned())
     }
 
-    /// Check the chunk is internally consistent, returning the stack high water
-    /// it measured.
+    /// Check that the [`Program`] is internally consistent, returning the stack
+    /// high water measured.
     ///
-    /// Cheap enough to run on every compile, and the gate an artifact loaded
-    /// from a wire has to pass before the VM will touch it.
+    /// Cheap enough to run after each compile and on each load. This is the gate
+    /// an artifact loaded from a wire has to pass before the VM will touch it.
     pub fn verify(&self) -> Result<Vec<u16>, crate::grain::bytecode::VerifyError> {
         crate::grain::bytecode::verify(
             self.caps,
@@ -405,34 +388,50 @@ impl<'a> Program<'a> {
         self.recompute_max_stack();
     }
 
-    /// Every chunk's instructions, concatenated.
+    /// _(internals)_ Every [Chunk]'s instructions, concatenated.
+    /// Exported under the `internals` feature only.
+    #[expose_under_internals]
+    #[inline(always)]
     #[must_use]
-    pub fn code(&self) -> &[u8] {
+    fn code(&self) -> &[u8] {
         &self.code
     }
 
-    /// The capabilities required by every chunk's instructions.
+    /// The capabilities required by every [Chunk]'s instructions.
+    #[inline(always)]
     #[must_use]
     pub fn caps(&self) -> Caps {
         self.caps
     }
 
-    /// The compiled script functions.
+    /// _(internals)_ The compiled script functions.
+    /// Exported under the `internals` feature only.
+    #[expose_under_internals]
+    #[inline(always)]
     #[must_use]
-    pub fn functions(&self) -> &[Function] {
+    fn functions(&self) -> &[Function] {
         &self.functions
     }
 
-    /// The compiled function a call site resolves to, if there is one.
+    /// Number of compiled script functions in this[`Program`].
+    #[inline(always)]
+    #[must_use]
+    pub fn num_functions(&self) -> usize {
+        self.functions.len()
+    }
+
+    /// _(internals)_ The compiled function a call site resolves to, if there is one.
+    /// Exported under the `internals` feature only.
     ///
     /// Name and arity only, matching how Rhai keys script functions. The name
     /// is an index into the pool the call site also indexes, so equal names
     /// have equal indices and this is two integer comparisons.
     ///
     /// Typed methods are invisible here. Rhai only ever tries a typed hash on a
-    /// *method* call (`func/call.rs:614`), so `fn <int>.foo()` cannot be reached
-    /// as `foo()` — see [`Program::method`], which is the other door.
-    pub(crate) fn function(&self, name: u32, argc: usize) -> Option<&Function> {
+    /// *method* call, so `fn int.foo()` cannot be reached as `foo()`.
+    #[expose_under_internals]
+    #[inline(always)]
+    fn function(&self, name: u32, argc: usize) -> Option<&Function> {
         self.functions
             .iter()
             .find(|f| f.name == name && f.params.len() == argc && f.this_type.is_none())
@@ -442,13 +441,13 @@ impl<'a> Program<'a> {
     ///
     /// `argc` excludes the receiver: `x.foo(1)` looks for the script function
     /// `foo` of arity **one** and binds `this` to `x`, which is what the parser
-    /// hashes (`parser.rs:2128-2145`). That is the whole difference from
-    /// [`Program::function`], whose `argc` counts the receiver because the
-    /// rewrite it serves is function-call style.
+    /// hashes. That is the whole difference from [`Program::function`], whose
+    /// `argc` counts the receiver because the rewrite it serves is function-call
+    /// style.
     ///
     /// `typed` is the receiver's mapped type name. A function declared for it
     /// wins, and an untyped one of the same name and arity is the fallback —
-    /// Rhai's order, minus the hashing (`func/call.rs:614-629`).
+    /// Rhai's order, minus the hashing.
     pub(crate) fn method(&self, name: u32, argc: usize, typed: &str) -> Option<&Function> {
         let matching = |f: &&Function| f.name == name && f.params.len() == argc;
 
@@ -492,6 +491,7 @@ impl<'a> Program<'a> {
     ///
     /// This is how a host decides whether to pay that, without having to read
     /// the script. False is the common answer and costs nothing.
+    #[inline(always)]
     #[must_use]
     pub fn makes_fn_pointers(&self) -> bool {
         self.caps().contains(Caps::FN_PTR)
@@ -500,9 +500,11 @@ impl<'a> Program<'a> {
     /// How much operand stack the deepest chunk needs.
     ///
     /// One reservation serves every frame, because a call pushes its operands
-    /// above the caller's rather than starting a stack of its own. Cached
-    /// rather than recomputed, since entering a frame reads it and entering a
-    /// frame is what a call does.
+    /// above the caller's rather than starting a stack of its own.
+    ///
+    /// Cached rather than recomputed, since entering a frame reads it and
+    /// entering a frame is what a call does.
+    #[inline(always)]
     #[must_use]
     pub fn max_stack(&self) -> u16 {
         self.max_stack
@@ -553,32 +555,40 @@ impl<'a> Program<'a> {
     /// switch's arms are reached only from its table, so without it they read
     /// as unreachable code.
     #[must_use]
-    pub fn switches(&self) -> &[Switch] {
+    pub(crate) fn switches(&self) -> &[Switch] {
         &self.switches
     }
 
-    /// Where instruction `pc` came from, or `Position::NONE` if the table was
-    /// stripped or has nothing for it.
+    /// _(internals)_ Where instruction `pc` came from, or [`Position::NONE`][rhai::Position::NONE]
+    /// if the table was stripped or has nothing for it.
+    /// Exported under the `internals` feature only.
+    #[expose_under_internals]
+    #[inline(always)]
     #[must_use]
-    pub fn position(&self, pc: usize) -> rhai::Position {
+    fn position(&self, pc: usize) -> rhai::Position {
         self.positions.get(pc)
     }
 
-    /// The whole position table, keyed on instruction address.
+    /// _(internals)_ The whole position table, keyed on instruction address.
+    /// Exported under the `internals` feature only.
+    #[expose_under_internals]
+    #[inline(always)]
     #[must_use]
-    pub fn positions(&self) -> &Positions {
+    fn positions(&self) -> &Positions {
         &self.positions
     }
 
-    /// Names the diagnostics this program was compiled with.
+    /// Names the diagnostics this [`Program`] was compiled with.
+    #[inline(always)]
     #[must_use]
     pub fn debug_id(&self) -> u128 {
         self.debug_id
     }
 
-    /// Drop this program's diagnostics, returning them.
+    /// Drop this [`Program`]'s diagnostics, returning them.
     ///
     /// See [`Program::attach_positions`] for the inverse.
+    #[inline]
     pub fn strip_positions(&mut self) -> Sidecar {
         let sidecar = self.sidecar();
 
@@ -592,12 +602,12 @@ impl<'a> Program<'a> {
         sidecar
     }
 
-    /// Put a sidecar back, so this program reports positions again.
+    /// Put a [`Sidecar`] back, so this [`Program`] reports positions again.
     ///
     /// # Errors
     ///
-    /// Refuses a malformed sidecar, or one from another program. Attaching the
-    /// wrong one would misreport every error rather than reporting none.
+    /// Refuses a malformed [`Sidecar`], or one from another [`Program`].
+    /// Attaching the wrong one would misreport every error rather than reporting none.
     pub fn attach_positions(&mut self, sidecar: &Sidecar) -> Result<(), TableError> {
         if sidecar.debug_id != self.debug_id {
             return Err(TableError::WrongProgram {
@@ -649,29 +659,30 @@ impl<'a> Program<'a> {
         &self.assign_ops
     }
 
-    /// The top-level chunk, where execution starts.
+    /// _(internals)_ The top-level chunk, where execution starts.
+    /// Exported under the `internals` feature only.
+    #[crate::expose_under_internals]
+    #[inline(always)]
     #[must_use]
-    pub fn main(&self) -> &Chunk {
+    fn main(&self) -> &Chunk {
         &self.main
     }
 
-    /// How many fragments Rhai's walker still evaluates.
+    /// How many fragments Rhai's [`AST`][crate::AST] walker still evaluates.
     ///
-    /// Non-zero is the reason a program cannot yet be serialized. As a measure
-    /// of progress it is misleading on its own: lowering a statement often
-    /// splits one fragment into several smaller ones, so the count rises while
-    /// the work left shrinks. Use [`Program::residual_nodes`] for that.
+    /// Non-zero is the reason a [`Program`] cannot yet be serialized.
+    ///
+    /// See also [`Program::residual_nodes`].
     #[cfg(not(feature = "no_ast"))]
+    #[inline(always)]
     #[must_use]
     pub fn residual_count(&self) -> usize {
         self.residuals.len()
     }
 
-    /// How many AST nodes are still inside fragments.
-    ///
-    /// This is the progress metric that only falls: it counts the tree that has
-    /// to survive into the artifact.
+    /// How many [`AST`][crate::AST] nodes are still inside fragments.
     #[cfg(not(feature = "no_ast"))]
+    #[inline(always)]
     #[must_use]
     pub fn residual_nodes(&self) -> usize {
         let mut nodes = 0;
@@ -736,6 +747,7 @@ impl<'a> Program<'a> {
         self.resolver.as_ref()
     }
 
+    #[inline(always)]
     pub(crate) fn source(&self) -> Option<&ImmutableString> {
         self.source.as_ref()
     }
@@ -744,7 +756,8 @@ impl<'a> Program<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grain::bytecode::{assemble, Op, Positions, Strings};
+    use crate::grain::bytecode::code::assemble;
+    use crate::grain::bytecode::{Op, Positions, Strings};
 
     /// Names: 0 `f`, 1 `i64`, 2 `string`.
     fn program_of(functions: &[(u32, Option<u32>, usize)]) -> Program<'static> {
@@ -787,7 +800,7 @@ mod tests {
     }
 
     /// Rhai tries the receiver's type first and falls back to the untyped
-    /// function of the same name and arity (`func/call.rs:614-629`).
+    /// function of the same name and arity.
     #[test]
     fn a_typed_method_wins_over_an_untyped_one_of_the_same_arity() {
         let program = program_of(&[(0, Some(1), 0), (0, None, 0)]);

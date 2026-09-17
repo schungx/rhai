@@ -119,47 +119,60 @@ mod constant {
 /// Everything a stripped artifact left behind.
 ///
 /// Diagnostics are read only after something has already failed, which is what
-/// makes them worth leaving on the host. A device reports a [`Fault`] per
-/// frame; [`Sidecar::resolve`] turns those back into places in the source.
+/// makes them worth leaving on the host.
+///
+/// A device reports a [`Fault`] per frame; [`Sidecar::resolve`] turns those back
+/// into places in the source (i.e. [`Position`][crate::Position]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Sidecar {
     /// The position table, keyed on instruction address. Read with
     /// [`pos::resolve`](crate::grain::pos::resolve).
-    pub positions: Vec<u8>,
+    pub(crate) positions: Vec<u8>,
     /// Chain-step sites, keyed on slot. Read with
     /// [`sites::resolve`](crate::grain::bytecode::sites::resolve).
-    pub chains: Vec<u8>,
+    pub(crate) chains: Vec<u8>,
     /// Names these diagnostics, and the artifact they were taken out of.
     ///
     /// Derived from the two tables above rather than from the code, which is
     /// the half every build of a script has in common: two versions differing
     /// only in whitespace compile to identical instructions and would otherwise
     /// be indistinguishable, while their positions are exactly what changed.
-    ///
-    /// The same idea as a PDB's GUID or an ELF build-id. Attaching a mismatched
-    /// sidecar would misreport every error rather than reporting none.
-    pub debug_id: u128,
+    pub(crate) debug_id: u128,
 }
 
-/// An artifact and the diagnostics taken out of it.
+/// A Rhai Grain [`Program`] and the diagnostics taken out of it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stripped {
-    /// What the device loads.
+    /// What the device loads - the [`Program`].
     pub artifact: Vec<u8>,
-    /// What the host keeps.
+    /// What the host keeps - diagnostics.
     pub sidecar: Sidecar,
 }
 
 impl Sidecar {
-    /// Where each frame of a fault trace was in the source, innermost first.
+    /// Names these diagnostics, and the [`Program`] they were taken out of.
     ///
-    /// The whole host side of a failure that happened elsewhere. `None` for a
-    /// frame with no recorded site, which is most instructions.
+    /// The same idea as a PDB's GUID or an ELF build-id.
     ///
-    /// Check [`Sidecar::debug_id`] against the artifact's
-    /// [`Program::debug_id`](crate::grain::Program::debug_id) first — a trace
-    /// from another program resolves to plausible nonsense.
+    /// ## Note
+    ///
+    /// Attaching a mismatched [`Sidecar`] to a [`Program`] would misreport
+    /// every error rather than reporting none.
+    #[inline(always)]
+    #[must_use]
+    pub fn debug_id(&self) -> u128 {
+        self.debug_id
+    }
+    /// Where each frame of a fault trace was in the source, inner-most first.
+    ///
+    /// The whole host side of a failure that happened elsewhere.
+    ///
+    /// `None` for a frame with no recorded site, which is most instructions.
+    ///
+    /// Check [`debug_id`][Sidecar::debug_id] against the [`Program`]'s
+    /// [`debug_id`](Program::debug_id) first — a trace from another [`Program`]
+    /// resolves to plausible nonsense.
     #[must_use]
     pub fn resolve(&self, trace: &[Fault]) -> Vec<Option<Site>> {
         trace.iter().map(|fault| self.site(*fault)).collect()
@@ -168,6 +181,7 @@ impl Sidecar {
     /// Where one frame was.
     ///
     /// The slot first, since a chain's address names every step of it equally.
+    ///
     /// The address is the fallback — coarse, but real.
     #[must_use]
     pub fn site(&self, fault: Fault) -> Option<Site> {
@@ -180,9 +194,25 @@ impl Sidecar {
                     .and_then(|address| crate::grain::pos::resolve(&self.positions, address))
             })
     }
+
+    /// Number of source positions recorded in this [`Sidecar`].
+    #[inline(always)]
+    #[must_use]
+    pub fn num_positions(&self) -> usize {
+        self.positions.len()
+    }
+
+    /// Number of chain-step sites recorded in this [`Sidecar`].
+    #[inline(always)]
+    #[must_use]
+    pub fn num_chains(&self) -> usize {
+        self.chains.len()
+    }
 }
 
 /// Name a set of diagnostics by their content.
+///
+/// ## Algorithm
 ///
 /// FNV-1a, not the engine's hasher, so ID doesn't change across invocations
 ///
@@ -201,6 +231,7 @@ impl<'a> Program<'a> {
     ///
     /// [`Program::strip_positions`] is the same thing and removes them. Called
     /// on a program already stripped, the tables come back empty.
+    #[inline]
     #[must_use]
     pub fn sidecar(&self) -> Sidecar {
         Sidecar {
@@ -210,33 +241,35 @@ impl<'a> Program<'a> {
         }
     }
 
-    /// Encode this program, diagnostics included.
+    /// Encode this [`Program`], diagnostics included.
     ///
     /// # Errors
     ///
     /// Fails if the program still holds anything that cannot cross a process
     /// boundary: an un-lowered fragment, a script function, or a constant
     /// carrying a host type.
+    #[inline(always)]
     pub fn write(&self) -> Result<Vec<u8>, WriteError> {
         write::write(self, write::Positions::Keep)
     }
 
-    /// Encode this program without its diagnostics, returning them separately.
+    /// Encode this [`Program`] without its diagnostics, returning them separately.
     ///
     /// This is the split the debug layer exists for.
     ///
-    /// Ship the artifact to the device and keep the
-    /// [`Sidecar`][crate::grain::Sidecar]:
+    /// Ship the artifact to the device and keep the [`Sidecar`]:
     /// errors then arrive carrying an instruction address, and the
-    /// [`Sidecar`][crate::grain::Sidecar] turns a whole failed
-    /// run back into the positions Rhai would have reported.
+    /// [`Sidecar`] turns a whole failed run back into the positions
+    /// Rhai would have reported.
     ///
-    /// The [`Sidecar`][crate::grain::Sidecar] can also be sent
-    /// back later with [`Program::attach_positions`].
+    /// The [`Sidecar`] can also be sent back later with [`Program::attach_positions`].
     ///
     /// # Errors
     ///
     /// As [`Program::write`].
+    ///
+    /// [`Sidecar`]: crate::grain::Sidecar
+    #[inline]
     pub fn write_stripped(&self) -> Result<Stripped, WriteError> {
         let artifact = write::write(self, write::Positions::Strip)?;
         Ok(Stripped {
@@ -245,14 +278,15 @@ impl<'a> Program<'a> {
         })
     }
 
-    /// Decode a program written by [`Program::write`], borrowing its
+    /// Decode a [`Program`] written by [`Program::write`], borrowing its
     /// instructions from `bytes`.
     ///
-    /// Nothing is allocated for the code — the returned program points into the
-    /// buffer and the VM dispatches on it where it lies. What is allocated is
+    /// Nothing is allocated for the code — the returned [`Program`] points into
+    /// the buffer and the VM dispatches on it where it lies. What is allocated is
     /// bounded by the distinct constants, names and operators the script
-    /// mentions, not by how long it is. Call [`Program::into_owned`] if the
-    /// buffer has to go.
+    /// mentions, not by how long it is.
+    ///
+    /// Call [`Program::into_owned`] if the buffer has to go.
     ///
     /// The chunk is verified before this returns, so a program that loads
     /// cannot underflow the operand stack, jump outside itself, jump into the
@@ -264,6 +298,7 @@ impl<'a> Program<'a> {
     ///
     /// Fails on a bad header, an ABI the running build cannot represent,
     /// truncated or malformed input, or a chunk that does not verify.
+    #[inline(always)]
     pub fn read(bytes: &'a [u8]) -> Result<Self, ReadError> {
         read::read(bytes)
     }
@@ -452,5 +487,61 @@ mod tests {
     fn reading_past_the_end_is_an_error_not_a_panic() {
         assert_eq!(Cursor::new(&[]).byte(), Err(ReadError::Truncated));
         assert_eq!(Cursor::new(&[1, 2]).take(9), Err(ReadError::Truncated));
+    }
+
+    #[test]
+    fn something_that_is_not_an_artifact_is_refused_at_the_first_bytes() {
+        assert_eq!(Program::read(b"").unwrap_err(), ReadError::Truncated);
+        assert_eq!(
+            Program::read(b"not an artifact at all").unwrap_err(),
+            ReadError::BadMagic,
+        );
+    }
+
+    /// The case a check on the code alone cannot catch.
+    ///
+    /// Two scripts differing only in whitespace compile to the same instructions,
+    /// so nothing about the code separates them — while their positions, the half
+    /// that was left behind, are exactly what changed. Swapping their sidecars
+    /// would report every error a line or two out, which reads as an answer.
+    ///
+    /// So the id is taken from the diagnostics rather than from the code, and the
+    /// artifact carries it: the two artifacts differ here in that one field alone.
+    #[test]
+    #[cfg(not(feature = "no_position"))]
+    fn a_sidecar_from_another_build_of_the_same_code_is_refused() {
+        let engine = crate::Engine::new();
+
+        let one = crate::grain::Compiler::new()
+            .compile(&engine.compile("let a = 1;\nlet b = 2;\na + b").unwrap());
+        let two = crate::grain::Compiler::new()
+            .compile(&engine.compile("let a = 1;\n\n\nlet b = 2;\na + b").unwrap());
+
+        let one_stripped = one.write_stripped().expect("must be writable");
+        let two_stripped = two.write_stripped().expect("must be writable");
+
+        assert_eq!(
+            one.code(),
+            two.code(),
+            "the case needs two programs the code cannot tell apart",
+        );
+        assert_ne!(
+            one_stripped.sidecar.positions, two_stripped.sidecar.positions,
+            "their positions are what differs",
+        );
+        assert_ne!(
+            one_stripped.sidecar.debug_id(),
+            two_stripped.sidecar.debug_id(),
+            "so their ids must differ too",
+        );
+
+        let mut program = Program::read(&one_stripped.artifact).unwrap();
+        assert!(
+            program.attach_positions(&two_stripped.sidecar).is_err(),
+            "another build's sidecar must be refused",
+        );
+        program
+            .attach_positions(&one_stripped.sidecar)
+            .expect("its own sidecar must attach");
     }
 }

@@ -132,6 +132,10 @@ pub mod tag {
     /// [`Op::LoadShared`](super::Op::LoadShared).
     pub const LOAD_SHARED: u8 = 0x2e;
     /// [`Op::MakeClosure`](super::Op::MakeClosure).
+    ///
+    /// # Deprecated
+    ///
+    /// This tag is deprecated and no longer used.
     pub const MAKE_CLOSURE: u8 = 0x2f;
     /// [`Op::IsShared`](super::Op::IsShared).
     pub const IS_SHARED: u8 = 0x30;
@@ -211,7 +215,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::STORE_SHARED as usize] = 3;
 
     widths[tag::ITER_NEXT as usize] = 5;
-    widths[tag::ITER_NEXT_INDEXED as usize] = 5;
+    widths[tag::ITER_NEXT_INDEXED as usize] = 7;
     widths[tag::POP_HANDLER as usize] = 1;
     widths[tag::INTERPOLATE_START as usize] = 1;
     widths[tag::INTERPOLATE_APPEND as usize] = 1;
@@ -585,7 +589,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 code.extend_from_slice(&len.to_le_bytes());
             }
 
-            Op::CheckSize { index, map } => {
+            Op::CheckSize { index, is_map: map } => {
                 code.push(if *map {
                     tag::CHECK_MAP_SIZE
                 } else {
@@ -623,7 +627,7 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
             }
             Op::CallFnPtr {
                 argc,
-                method,
+                is_method: method,
                 receiver,
             } => {
                 // The receiver's value is on the stack whichever of these it
@@ -687,13 +691,15 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                 }
             }
 
-            Op::IterNext { exit, indexed } => {
-                code.push(if *indexed {
-                    tag::ITER_NEXT_INDEXED
+            Op::IterNext { exit, counter_slot } => {
+                if let Some(slot) = *counter_slot {
+                    code.push(tag::ITER_NEXT_INDEXED);
+                    code.extend_from_slice(&target(*exit)?.to_le_bytes());
+                    code.extend_from_slice(&slot.to_le_bytes());
                 } else {
-                    tag::ITER_NEXT
-                });
-                code.extend_from_slice(&target(*exit)?.to_le_bytes());
+                    code.push(tag::ITER_NEXT);
+                    code.extend_from_slice(&target(*exit)?.to_le_bytes());
+                }
             }
 
             Op::StoreShared(slot) => {
@@ -822,11 +828,17 @@ fn encoded_width(op: &Op) -> usize {
         | Op::JumpIfTrue { .. }
         | Op::JumpIfFalse { .. }
         | Op::SkipIfNotUnit { .. }
-        | Op::IterNext { .. }
+        | Op::IterNext {
+            counter_slot: None, ..
+        }
         | Op::PushHandler {
             catch_var: None, ..
         } => 5,
-        Op::PushHandler {
+        Op::IterNext {
+            counter_slot: Some(_),
+            ..
+        }
+        | Op::PushHandler {
             catch_var: Some(..),
             ..
         } => 7,
@@ -954,11 +966,11 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::MAKE_MAP => Op::MakeMap(small(1)?),
         tag::CHECK_ARRAY_SIZE => Op::CheckSize {
             index: small(1)?,
-            map: false,
+            is_map: false,
         },
         tag::CHECK_MAP_SIZE => Op::CheckSize {
             index: small(1)?,
-            map: true,
+            is_map: true,
         },
         tag::SHARE => Op::Share(small(1)?),
         tag::SHARE_NAMED => Op::ShareNamed(u32::from(small(1)?)),
@@ -970,27 +982,27 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::CURRY => Op::Curry(code[at + 1]),
         tag::CALL_FN_PTR => Op::CallFnPtr {
             argc: code[at + 1],
-            method: false,
+            is_method: false,
             receiver: None,
         },
         tag::CALL_FN_PTR_METHOD => Op::CallFnPtr {
             argc: code[at + 1],
-            method: true,
+            is_method: true,
             receiver: None,
         },
         tag::CALL_FN_PTR_ON_LOCAL => Op::CallFnPtr {
             argc: code[at + 1],
-            method: true,
+            is_method: true,
             receiver: Some(Receiver::Local(small(2)?)),
         },
         tag::CALL_FN_PTR_ON_NAMED => Op::CallFnPtr {
             argc: code[at + 1],
-            method: true,
+            is_method: true,
             receiver: Some(Receiver::Named(u32::from(small(2)?))),
         },
         tag::CALL_FN_PTR_ON_THIS => Op::CallFnPtr {
             argc: code[at + 1],
-            method: true,
+            is_method: true,
             receiver: Some(Receiver::This),
         },
         tag::INTERPOLATE_START => Op::InterpolateStart,
@@ -1005,11 +1017,11 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::ITER_DROP => Op::IterDrop,
         tag::ITER_NEXT => Op::IterNext {
             exit: u32_at(code, at + 1)?,
-            indexed: false,
+            counter_slot: None,
         },
         tag::ITER_NEXT_INDEXED => Op::IterNext {
             exit: u32_at(code, at + 1)?,
-            indexed: true,
+            counter_slot: Some(small(5)?),
         },
         tag::STORE_SHARED => Op::StoreShared(small(1)?),
         tag::POP_HANDLER => Op::PopHandler,
@@ -1042,7 +1054,8 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
 ///
 /// Stops at the first thing it cannot decode, so it is safe to point at
 /// anything. For a chunk that verified, it reaches the end.
-pub fn disassemble(code: &[u8]) -> impl Iterator<Item = (usize, Op)> + '_ {
+#[crate::expose_under_internals]
+fn disassemble(code: &[u8]) -> impl Iterator<Item = (usize, Op)> + '_ {
     let mut at = 0usize;
     core::iter::from_fn(move || {
         let op = decode(code, at)?;
@@ -1157,27 +1170,27 @@ mod tests {
             },
             Op::CallFnPtr {
                 argc: 1,
-                method: false,
+                is_method: false,
                 receiver: None,
             },
             Op::CallFnPtr {
                 argc: 1,
-                method: true,
+                is_method: true,
                 receiver: None,
             },
             Op::CallFnPtr {
                 argc: 1,
-                method: true,
+                is_method: true,
                 receiver: Some(Receiver::Local(4)),
             },
             Op::CallFnPtr {
                 argc: 1,
-                method: true,
+                is_method: true,
                 receiver: Some(Receiver::Named(5)),
             },
             Op::CallFnPtr {
                 argc: 1,
-                method: true,
+                is_method: true,
                 receiver: Some(Receiver::This),
             },
             Op::LoadThis,
@@ -1279,5 +1292,65 @@ mod tests {
 
         let partly_good = [tag::UNIT, tag::POP, 0xff, tag::UNIT];
         assert_eq!(disassemble(&partly_good).count(), 2);
+    }
+
+    /// A chunk that loops with no tick in it must still be stopped.
+    ///
+    /// Every loop this compiler emits carries an `Op::Tick` on its back-edge, so
+    /// nothing it produces can spin. An artifact is not required to have come from
+    /// it. Turning this program's tick into a no-op leaves a chunk that still
+    /// verifies — the jump is in range, the stack balances, every path reaches a
+    /// `Return` — and runs forever, which makes the engine's budget the only thing
+    /// between a host and a hostile file.
+    ///
+    /// So the budget cannot depend on the compiler having been generous: the VM
+    /// charges an operation for every *backward* transfer, and a cycle always has
+    /// one. Found by `mutated_artifacts_load_or_fail_but_never_misbehave`, which
+    /// hung on a mutation rather than failing.
+    #[test]
+    #[cfg(not(feature = "unchecked"))]
+    fn a_loop_with_its_tick_removed_still_hits_the_limit() {
+        let mut engine = crate::Engine::new();
+        engine.set_max_operations(10_000);
+
+        let ast = engine.compile("loop { }").expect("must compile");
+        let program = crate::grain::Compiler::new().compile(&ast);
+
+        // Where the tick sits inside the code, and what the code looks like, so the
+        // same bytes can be found again inside the finished artifact.
+        let code = program.code().to_vec();
+        let (tick_at, _) = program
+            .main()
+            .ops(program.code())
+            .find(|(_, op)| *op == Op::Tick)
+            .expect("the compiler ticks a loop");
+
+        let mut bytes = program.write().expect("a lowered program must write");
+        let start = bytes
+            .windows(code.len())
+            .position(|window| window == code)
+            .expect("the artifact embeds the code verbatim");
+
+        // `Checkpoint` is the other one-byte instruction that does nothing to the
+        // stack, so this swap leaves every offset, jump target and position entry
+        // exactly where it was. Only the metering goes.
+        bytes[start + tick_at] = crate::grain::bytecode::code::tag::CHECKPOINT;
+
+        let tick_less = crate::grain::Program::read(&bytes).expect("still a valid artifact");
+        assert!(
+            !tick_less
+                .main()
+                .ops(tick_less.code())
+                .any(|(_, op)| op == Op::Tick),
+            "the tick should be gone, or this tests nothing",
+        );
+
+        let err = crate::grain::Vm::new(&engine)
+            .eval_with_scope(&mut crate::Scope::new(), &tick_less)
+            .expect_err("a tick_less loop must still be stopped");
+        assert!(
+            matches!(*err, crate::EvalAltResult::ErrorTooManyOperations(..)),
+            "expected ErrorTooManyOperations, got {err:?}",
+        );
     }
 }

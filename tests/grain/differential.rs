@@ -10,6 +10,8 @@
 //! is observable by the caller. A VM that manages its own frames could return
 //! the right value and still get that wrong.
 
+#![cfg(feature = "internals")]
+
 use super::corpus;
 
 use rhai::grain::{Compiler, Vm};

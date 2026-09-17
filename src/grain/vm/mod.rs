@@ -2,11 +2,8 @@ use std::mem;
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-// Indexing survives either feature alone — a map is indexed by string, an
-// array by number — and only goes when both do. `eval/chaining.rs` is gated on
-// exactly this, and takes the getter and setter names with it.
-// Measuring a value is measuring what an array, a map or a string holds, so
-// the same pair of features takes it away — see the note above.
+use rhai_codegen::expose_under_internals;
+
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
@@ -15,7 +12,6 @@ use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
 use crate::types::dynamic::{AccessMode, DynamicWriteLock};
 use crate::types::fn_ptr::FnPtrType;
-use crate::types::StringsInterner;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
 #[cfg(not(feature = "no_ast"))]
@@ -29,16 +25,14 @@ use crate::VarDefInfo;
 use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
     Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString,
-    NativeCallContext, Position, Scope, FUNC_TO_STRING, INT,
+    NativeCallContext, Position, RhaiResult, RhaiResultOf, Scope, SharedModule, StaticVec,
+    FUNC_TO_STRING, INT,
 };
 
 mod callback;
 
 use crate::grain::bytecode::{code, AssignOp, Chain, Chunk, Receiver, Root, Step, StepFlags, Tail};
-use crate::grain::program::{Program, SharedModule, SharedProgram};
-
-/// Rhai's own `RhaiResult`, which it does not re-export.
-pub type VmResult = Result<Dynamic, Box<EvalAltResult>>;
+use crate::grain::program::{Program, SharedProgram};
 
 /// Whether a value is a shared cell.
 ///
@@ -69,9 +63,9 @@ fn call_engine(
     fn_name: &str,
     args: &mut [&mut Dynamic],
     is_ref_mut: bool,
-    is_method_call: bool,
+    is_method: bool,
     pos: Position,
-) -> VmResult {
+) -> RhaiResult {
     let native_only = !crate::types::token::is_valid_identifier(fn_name);
     #[cfg(not(feature = "no_function"))]
     let native_only = native_only && !crate::func::is_anonymous_fn(fn_name);
@@ -85,13 +79,12 @@ fn call_engine(
         args,
         native_only,
         is_ref_mut,
-        is_method_call,
+        is_method,
         pos,
     )
 }
 
-/// Stamp the call site on an error that passes through a function boundary unwrapped,
-/// as Rhai does for exits and system exceptions (`func/script.rs:134`).
+/// Stamp the call site on an error that passes through a function boundary unwrapped.
 fn reposition(mut err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
     err.set_position(pos);
     err
@@ -102,41 +95,16 @@ fn reposition(mut err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> 
 /// Slots are positions. An entry a callback declares sits underneath every
 /// declaration the chunk has yet to make, so the next `let` would land above it
 /// and every slot from there on would name the variable before the one it meant
-/// — silently, and in a program that has nothing to do with the debugger. Rhai
-/// answers this by searching by name from then on (`eval/debugger.rs:436`); a
-/// chunk has no names to search, so the scope goes back to the shape it was
-/// compiled against instead, and what a callback declares does not outlive the
-/// stop it declared it at.
+/// — silently, and in a program that has nothing to do with the debugger.
+///
+/// Rhai answers this by searching by name from then on; a chunk has no names to
+/// search, so the scope goes back to the shape it was compiled against instead,
+/// and what a callback declares does not outlive the stop it declared it at.
 #[cfg(feature = "debugging")]
 fn rewind_after_stop(scope: &mut Scope, before: usize) {
     if scope.len() > before {
         scope.rewind(before);
     }
-}
-
-/// Stamp the site on an error that arrived without one.
-///
-/// Unlike [`reposition`] this never overwrites a position the callee already set.
-fn positioned(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
-    if err.position().is_none() {
-        reposition(err, pos)
-    } else {
-        err
-    }
-}
-
-/// Stamp the call site on anything a dispatched call came back with.
-///
-/// This is `fill_position`, which Rhai applies to the whole of
-/// `exec_native_fn_call` — the callee not being found, the call being refused,
-/// and the error a native *returned* alike (`func/call.rs:365`, `:406`, `:413`).
-///
-/// What looks like a counter-example is not one: `1 / 0` reports
-/// `ErrorArithmetic` with no position at all, because under `fast_operators` a
-/// binary operator returns the built-in's error without going through here
-/// (`func/call.rs:1798`). The VM's own fast path skips it for the same reason.
-fn dispatch_failure(err: Box<EvalAltResult>, pos: Position) -> Box<EvalAltResult> {
-    positioned(err, pos)
 }
 
 /// A scope entry, addressed the way whatever wants it was written.
@@ -152,21 +120,21 @@ enum Site<'a> {
 
 /// What a chain turned out to be rooted at, and the value to walk.
 ///
-/// Rhai draws this line in `search_namespace`, which hands back a `Target`: a
-/// scope entry becomes a reference to write through, and a resolver's answer or
-/// a module's constant becomes a read-only temporary (`eval/expr.rs:120-155`).
-/// Which one a [`Root::Named`] is cannot be known until it is looked up.
+/// Rhai draws this line in `search_namespace`, which hands back a `Target`:
+/// a scope entry becomes a reference to write through, and a resolver's answer
+/// or a module's constant becomes a read-only temporary. Which one a
+/// [`Root::Named`] is cannot be known until it is looked up.
 ///
 /// Whichever it is, the value keeps the access mode it was found with, and that
 /// is not decoration: it is the only thing standing between a `const` and a
-/// method that mutates it — `exec_native_fn_call` refuses a non-pure function
-/// whose first argument is read-only (`func/call.rs:405`).
+/// method that mutates it — refusing a non-pure function whose first argument
+/// is read-only.
 enum RootValue<'s> {
     /// A scope entry, walked where it lives.
     ///
-    /// Nothing is written back afterwards because nothing was copied: a
-    /// mutation partway down the chain landed in the entry itself, which is
-    /// what Rhai's `Target::RefMut` does (`eval/chaining.rs:517-563`).
+    /// Nothing is written back afterwards because nothing was copied:
+    /// a mutation partway down the chain landed in the entry itself,
+    /// which is what Rhai's `Target::RefMut` does.
     Entry(&'s mut Dynamic),
 
     /// A value with a name but no entry behind it — a resolver's answer, or a
@@ -221,11 +189,10 @@ enum Indexed {
 /// reach one: nothing assigns through a temporary, and flattening it on the way
 /// in means there is no cell left to contend for.
 ///
+/// `None` here means a malformed chunk.
+///
 /// `this` *can* reach both and has no name either, so it answers with the empty
-/// one rather than with nothing. That is Rhai's own answer: `Expr::ThisPtr`
-/// carries no name, so assigning through a read-only receiver is
-/// `ErrorAssignmentToConstant("")` (`eval/stmt.rs:118-122`). Answering `None`
-/// here would report a malformed chunk instead.
+/// string rather than with `None`, similar to Rhai.
 fn root_name<'p>(program: &'p Program, chain: &Chain) -> Option<&'p str> {
     match chain.root {
         Root::Local { name, .. } | Root::Named { name, .. } => program.name(name),
@@ -247,10 +214,7 @@ fn chain_slot_base(program: &Program, index: u32) -> u32 {
 }
 
 /// The op-assignment a chain ends with, resolved out of the pool.
-fn chain_op<'p>(
-    program: &'p Program,
-    chain: &Chain,
-) -> Result<Option<&'p AssignOp>, Box<EvalAltResult>> {
+fn chain_op<'p>(program: &'p Program, chain: &Chain) -> RhaiResultOf<Option<&'p AssignOp>> {
     let Tail::Assign { op: Some(op) } = &chain.tail else {
         return Ok(None);
     };
@@ -264,31 +228,31 @@ fn chain_op<'p>(
 ///
 /// The count is here rather than in a local because Rhai keeps it outside the
 /// scope too, and checks it for overflow before writing it — a loop long
-/// enough to wrap the counter is an error rather than a wrap
-/// (`eval/stmt.rs:729`).
+/// enough to wrap the counter is an error rather than a wrap.s
 struct Iteration {
-    items: Box<dyn Iterator<Item = VmResult>>,
+    items: Box<dyn Iterator<Item = RhaiResult>>,
     /// The index of the item last handed out, starting one below the first.
     count: INT,
 }
 
 /// A scope entry as a place to write, seeing through a shared cell.
 ///
-/// Rhai reaches a variable through a `Target`, whose shared arm hands over the
-/// cell's guard rather than the cell (`eval/target.rs:409-422`), so an
-/// assignment lands where every closure holding that cell can see it. Writing
-/// the slot itself would replace the cell and quietly sever them — the value
-/// would be right and the aliasing dead.
+/// Rhai reaches a variable through a [`Target`][crate::Target], whose shared
+/// arm hands over the cell's guard rather than the cell, so an assignment lands
+/// where every closure holding that cell can see it.
+///
+/// Writing the slot itself would replace the cell and quietly sever them —
+/// the value would be right and the aliasing dead.
 ///
 /// For an ordinary value `write_lock` is a downcast to itself, so the common
-/// case pays nothing. Rhai's own for-loop does this with `.unwrap()` and
-/// panics on a contended cell; a VM that promises errors instead of panics
-/// reports `ErrorDataRace`, as `Target` does.
+/// case pays nothing. Rhai's own `for` loop does this with `.unwrap()` and
+/// panics on a contended cell; the VM reports [`EvalAltResult::ErrorDataRace`],
+/// as [`Target`][crate::Target] does.
 fn place<'a>(
     entry: &'a mut Dynamic,
     name: &str,
     pos: Position,
-) -> Result<DynamicWriteLock<'a, Dynamic>, Box<EvalAltResult>> {
+) -> RhaiResultOf<DynamicWriteLock<'a, Dynamic>> {
     entry.write_lock::<Dynamic>().ok_or_else(|| {
         Box::new(EvalAltResult::ErrorDataRace(
             format!("variable '{name}'"),
@@ -297,12 +261,9 @@ fn place<'a>(
     })
 }
 
-/// Turn the two control-flow errors back into the value they carry.
-///
-/// Rhai unwinds `return` and `exit` as errors rather than returning them;
-/// `eval_global_statements` is where they turn back into values, and anything
-/// entering a program from outside has to do the same.
-fn unwind_exit(result: VmResult) -> VmResult {
+/// Turn the two control-flow errors (`return` and `exit`) back into the value
+/// they carry.
+fn unwind_exit(result: RhaiResult) -> RhaiResult {
     result.or_else(|err| match *err {
         EvalAltResult::Return(out, ..) | EvalAltResult::Exit(out, ..) => Ok(out),
         _ => Err(err),
@@ -322,18 +283,19 @@ fn malformed(detail: String) -> Box<EvalAltResult> {
 
 /// One frame of a failed run, as an address rather than a position.
 ///
-/// What a stripped program reports instead. Chunks share one instruction
-/// buffer, so an address names an instruction whichever chunk it is in.
+/// What a stripped [`Program`] reports instead.
 ///
 /// Travels from the device that failed to the host holding the
-/// [`Sidecar`](crate::grain::Sidecar), by whatever the link uses.
+/// [`Sidecar`](crate::grain::Sidecar).
+//
+// Chunks share one instruction buffer, so an address names an instruction
+// whichever chunk it is in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Fault {
     /// Byte offset of the instruction this frame stopped at.
     pub address: usize,
-    /// Which chain slot raised, for an
-    /// [`Op::Chain`](crate::grain::bytecode::Op::Chain).
+    /// Which chain slot raised, for an `Op::Chain`.
     ///
     /// One instruction walks every step of `a.b[i].c` and gets one address
     /// between them, so the slot is what separates them.
@@ -341,38 +303,32 @@ pub struct Fault {
 }
 
 /// Executes a [`Program`] against an `Engine`.
-///
-/// Holds one `GlobalRuntimeState` and one `Caches` for its whole lifetime, so
-/// the function-resolution cache survives across calls. That matters: the
-/// reentrant helpers Rhai exposes to native functions build a fresh
-/// `Caches::new()` per call (`func/native.rs:519`), which would throw away
-/// resolution work on every dispatch.
 pub struct Vm<'e> {
     engine: &'e Engine,
     global: GlobalRuntimeState,
     caches: Caches,
     stack: Vec<Dynamic>,
-    #[cfg_attr(any(feature = "no_index", feature = "no_object"), allow(unused))]
-    strings_interner: StringsInterner,
     /// One entry per `for` loop currently running.
     ///
     /// Not on the operand stack, because an iterator is not a `Dynamic`. A
     /// frame truncates this to what it found on entry, so a `return` or an
     /// escaping error drops whatever its loops were holding without the
     /// compiler emitting anything.
-    iterators: Vec<Iteration>,
+    iterators: FnArgsVec<Iteration>,
     /// One entry per `try` region currently armed or catching. Frame-floored
     /// the same way the iterators are, so an error in a called function can
     /// never find its caller's handler and jump into another chunk.
-    handlers: Vec<Handler>,
+    handlers: StaticVec<Handler>,
     /// The running data-size total of each literal currently being built,
-    /// innermost last.
+    /// inner-most last.
     ///
     /// One entry per array or map literal under construction, so
     /// `[a, [b, c], d]` keeps the inner total separate from the outer.
     /// Truncated per frame, as the iterators are, so an error part way through
     /// a literal leaves nothing behind.
-    sizes: Vec<(usize, usize, usize)>,
+    #[cfg(not(feature = "unchecked"))]
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+    sizes: StaticVec<(usize, usize, usize)>,
     /// Where the scope goes back to if an error escapes the running frame.
     ///
     /// Set by [`Op::Checkpoint`](crate::bytecode::Op::Checkpoint) at each
@@ -389,15 +345,14 @@ pub struct Vm<'e> {
     ///
     /// Saved and restored per *call* rather than per frame, which is what makes
     /// `this` never inherited: a plain nested call passes `None` and gets the
-    /// caller's back on the way out, reproducing `func/call.rs:669` without a
-    /// conditional anywhere.
+    /// caller's back on the way out without a conditional anywhere.
     this: Option<Dynamic>,
     /// Whether this `Vm` started the run, and so may clear its trace.
     ///
     /// False for a [`Vm::reentrant`]: a callback clearing the trace would
     /// discard frames the run around it already recorded.
     owns_trace: bool,
-    /// Which step the innermost chain walk has reached.
+    /// Which step the inner-most chain walk has reached.
     ///
     /// Saved and restored per chain, because a method step can run a body
     /// holding another chain. See [`Vm::run_chain`].
@@ -408,12 +363,13 @@ pub struct Vm<'e> {
     pending_slot: Option<u32>,
     /// Steps waiting for the statement that asked for them to end.
     ///
-    /// Rhai keeps this in a `defer` per AST node (`eval/stmt.rs:271`): a `next`
-    /// runs the statement it was asked at with the debugger quiet, and re-arms
-    /// once that statement is over. A marker is a point rather than a scope, so
-    /// the call level and statement depth it was asked at are recorded here
-    /// instead, and the next marker at or outside them is where the statement
-    /// has ended. Innermost last.
+    /// Rhai keeps this in a `defer` per AST node: a `next` runs the statement
+    /// it was asked at with the debugger quiet, and re-arms once that statement
+    /// is over.
+    ///
+    /// A marker is a point rather than a scope, so the call level and statement
+    /// depth it was asked at are recorded here instead, and the next marker at
+    /// or outside them is where the statement has ended. Inner-most last.
     #[cfg(feature = "debugging")]
     pending_steps: Vec<(usize, u16, crate::eval::DebuggerStatus)>,
 }
@@ -470,7 +426,7 @@ struct Handler {
 }
 
 impl<'e> Vm<'e> {
-    /// A VM that dispatches through `engine`.
+    /// A [VM][Vm] that dispatches through [`Engine`].
     #[must_use]
     pub fn new(engine: &'e Engine) -> Self {
         let mut global = engine.new_global_runtime_state();
@@ -484,11 +440,12 @@ impl<'e> Vm<'e> {
             engine,
             global,
             caches: Caches::new(),
-            strings_interner: StringsInterner::new(64),
             stack: Vec::new(),
-            iterators: Vec::new(),
-            handlers: Vec::new(),
-            sizes: Vec::new(),
+            iterators: FnArgsVec::new_const(),
+            handlers: StaticVec::new_const(),
+            #[cfg(not(feature = "unchecked"))]
+            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+            sizes: StaticVec::new_const(),
             unwind_floor: 0,
             this: None,
             owns_trace: true,
@@ -499,15 +456,19 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// A `Vm` for a call arriving from inside a native function.
+    /// A [VM][`Vm`] for a call arriving from inside a native function.
     ///
-    /// Reproduces what Rhai does at every reentrant boundary
-    /// (`func/native.rs:516-519`, `types/fn_ptr.rs:451-454`): the caller's
-    /// runtime state is *cloned* rather than shared, and the resolution cache
-    /// starts empty. The clone is what carries the imported modules, the source
-    /// name and — the part that matters here — the function library holding the
+    /// ### Global runtime state
+    ///
+    /// The caller's runtime state is *cloned* rather than shared, and the
+    /// resolution cache starts empty.
+    ///
+    /// The clone is what carries the imported modules, the source name and —
+    /// the part that matters here — the function library holding the
     /// wrappers, so a closure reached from a native can hand out a pointer of
     /// its own.
+    ///
+    /// ### Functions resolution cache
     ///
     /// The empty `Caches` is the cost, and it is the one thing a `Vm` normally
     /// exists to avoid. It cannot be helped: the outer `Vm` is borrowed by the
@@ -516,20 +477,23 @@ impl<'e> Vm<'e> {
     /// for a pointer that is known to be a scripted function and carries its
     /// own hash.
     ///
+    /// ### Operation counting
+    ///
     /// Operation counting has the same shape and the same reason: increments
     /// inside the callback land on the clone and are lost when it drops, as
-    /// they are for any reentrant call Rhai makes.
+    /// they are for any re-entrant call Rhai makes.
     #[must_use]
     pub fn reentrant(context: &'e NativeCallContext<'_>) -> Self {
         Self {
             engine: context.engine(),
             global: context.global_runtime_state().clone(),
             caches: Caches::new(),
-            strings_interner: StringsInterner::new(64),
             stack: Vec::new(),
-            iterators: Vec::new(),
-            handlers: Vec::new(),
-            sizes: Vec::new(),
+            iterators: FnArgsVec::new_const(),
+            handlers: StaticVec::new_const(),
+            #[cfg(not(feature = "unchecked"))]
+            #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+            sizes: StaticVec::new_const(),
             unwind_floor: 0,
             // A crossing carries no receiver: Rhai binds one only where it
             // dispatches a method, and this arrives through `call_fn_raw`.
@@ -546,9 +510,9 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Where the last run failed, innermost frame first.
+    /// Where the last run failed, inner-most frame first.
     ///
-    /// What a stripped program reports instead of a position;
+    /// What a stripped [`Program`] reports instead of a position;
     /// the [`Sidecar`][crate::grain::Sidecar] turns it back into one.
     ///
     /// Cleared at the start of a run and whenever a `catch` handles an error,
@@ -563,11 +527,13 @@ impl<'e> Vm<'e> {
             .unwrap_or_default()
     }
 
-    /// Which instruction the last run failed at, if it failed.
+    /// _(internals)_ Which instruction the last run failed at, if it failed.
+    /// Exported under the `internals` feature only.
     ///
-    /// The innermost frame of [`Vm::fault_trace`].
+    /// The inner-most frame of [`Vm::fault_trace`].
+    #[crate::expose_under_internals]
     #[must_use]
-    pub fn fault_pc(&self) -> Option<usize> {
+    fn fault_pc(&self) -> Option<usize> {
         self.fault_trace().first().map(|fault| fault.address)
     }
 
@@ -578,7 +544,7 @@ impl<'e> Vm<'e> {
             slot: self.pending_slot.take(),
         };
 
-        // Normally already there, from `Vm::new` or from a reentrant call's
+        // Normally already there, from `Vm::new` or from a re-entrant call's
         // clone. The fallback covers a `Vm` reached some other way.
         let faults = self
             .global
@@ -592,7 +558,7 @@ impl<'e> Vm<'e> {
 
     /// Forget where a run failed, because it did not or has not yet.
     ///
-    /// A no-op on a reentrant `Vm`: the trace belongs to the run that called it.
+    /// A no-op on a re-entrant `Vm`: the trace belongs to the run that called it.
     fn clear_faults(&mut self) {
         if !self.owns_trace {
             return;
@@ -606,36 +572,32 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Run a program, returning its value.
+    /// _(internals)_ Call a function inside a [`Program`] by name, returning its value.
+    /// Exported under the `internals` feature only.
     ///
-    /// Mirrors `Engine::eval_ast_with_scope_raw`: the program's function
+    /// Mirrors `Engine::eval_ast_with_scope_raw`: the [`Program`]'s functions
     /// library, module resolver and source name are installed for the duration
-    /// and restored afterwards, so a `Vm` reused across programs does not leak
-    /// one program's definitions into the next.
-    /// Call one compiled function by name, with arguments already evaluated.
+    /// and restored afterwards, so a [VM][Vm] reused across different [`Program`]s
+    /// does not leak one [`Program`]'s definitions into the next.
     ///
-    /// The entry point a native needs. `Op::Call` reaches a chunk through the
-    /// name *index* it shares with the call site, which a caller from outside
-    /// does not have — a `FnPtr` carries a string, and so does Rhai when it
-    /// dispatches. This is the same call by the other key.
-    ///
+    // The entry point a native needs. `Op::Call` reaches a chunk through the
+    // name *index* it shares with the call site, which a caller from outside
+    // does not have — a `FnPtr` carries a string, and so does Rhai when it
+    // dispatches. This is the same call by the other key.
+    //
     /// `level` is the caller's call depth, so `max_call_levels` still counts
     /// across a boundary that leaves this VM and comes back. Left unthreaded,
     /// a closure calling itself through `map` would recurse until the stack
     /// went rather than until the limit did.
-    ///
-    /// # Errors
-    ///
-    /// `ErrorFunctionNotFound` if no compiled function has that name and
-    /// arity, and whatever the function itself raises otherwise.
-    pub fn call_function(
+    #[expose_under_internals]
+    fn call_function(
         &mut self,
         program: &Program,
         name: &str,
         args: FnArgsVec<Dynamic>,
         level: usize,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         let Some(function) = program.function_named(name, args.len()) else {
             return Err(Box::new(EvalAltResult::ErrorFunctionNotFound(
                 format!("{name} ({} args)", args.len()),
@@ -666,10 +628,10 @@ impl<'e> Vm<'e> {
         args: FnArgsVec<Dynamic>,
         level: usize,
         scope: &mut Scope,
-        rewind_scope: bool,
+        rewind: bool,
         pos: Position,
         this: Option<Dynamic>,
-    ) -> (VmResult, Option<Dynamic>) {
+    ) -> (RhaiResult, Option<Dynamic>) {
         // An entry point in its own right so the trace starts here rather than at `run_main`.
         self.clear_faults();
         // A step a previous run left waiting is not this one's to honour.
@@ -683,15 +645,7 @@ impl<'e> Vm<'e> {
 
         let restore = mem::replace(&mut self.global.level, level);
         let (result, this) = self.call_compiled_with_this(
-            program,
-            name,
-            params,
-            chunk,
-            first,
-            scope,
-            rewind_scope,
-            pos,
-            this,
+            program, name, params, chunk, first, scope, rewind, pos, this,
         );
         self.global.level = restore;
 
@@ -699,54 +653,32 @@ impl<'e> Vm<'e> {
         (result, this)
     }
 
-    /// Call one compiled function by name, instead of running the whole
-    /// program.
-    ///
-    /// Mirrors [`Engine::call_fn`](crate::Engine::call_fn), including that the
-    /// program's body runs first — a function usually needs what the top level
-    /// declared. [`call_fn_with_options`](Self::call_fn_with_options) turns
-    /// that off.
+    /// Call a function inside a [`Program`] by name, returning its value.
     ///
     /// Not available under `no_function`.
     ///
-    /// # Errors
-    ///
-    /// `ErrorFunctionNotFound` if no compiled function has that name and
-    /// arity, `ErrorMismatchOutputType` if the result is not a `T`, and
-    /// whatever the function itself raises.
+    /// Mirroring [`Engine::call_fn`], the [`Program`]'s body runs first
+    /// — a function usually needs what the top level declared.
+    /// Use [`call_fn_with_options`](Self::call_fn_with_options) to turn
+    /// that off.
     #[cfg(not(feature = "no_function"))]
+    #[inline(always)]
     pub fn call_fn<T: Variant + Clone>(
         &mut self,
         scope: &mut Scope,
         program: &Program,
         name: impl AsRef<str>,
         args: impl crate::FuncArgs,
-    ) -> Result<T, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<T> {
         self.call_fn_with_options(CallFnOptions::new(), scope, program, name, args)
     }
 
-    /// The same, with Rhai's [`CallFnOptions`](crate::CallFnOptions).
-    ///
-    /// Three of the five options mean something here:
-    ///
-    /// * `eval_ast` runs the program's main chunk before the call, so what the
-    ///   top level declares is in scope for it. On by default, as in Rhai.
-    /// * `rewind_scope` truncates the scope back afterwards. On by default.
-    /// * `tag` sets the evaluation's custom state.
-    ///
-    /// `this_ptr` binds the callee's receiver, as it does in Rhai. A write
-    /// through `this` lands in the pointer's own `Dynamic` — including when the
-    /// call goes on to fail, because Rhai reaches `this` through the caller's
-    /// storage and a body that mutates and then raises has already written.
-    ///
-    /// `in_all_namespaces` is ignored: this looks only in the program's own
-    /// compiled functions.
+    /// Similar to [`Engine::call_fn_with_options`].
     ///
     /// Not available under `no_function`.
     ///
-    /// # Errors
-    ///
-    /// As [`call_fn`](Self::call_fn).
+    /// [`CallFnOptions::in_all_namespaces`] is ignored: this looks only in the
+    /// [`Program`]'s own compiled functions.
     #[cfg(not(feature = "no_function"))]
     pub fn call_fn_with_options<T: Variant + Clone>(
         &mut self,
@@ -755,7 +687,7 @@ impl<'e> Vm<'e> {
         program: &Program,
         name: impl AsRef<str>,
         args: impl crate::FuncArgs,
-    ) -> Result<T, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<T> {
         let name = name.as_ref();
 
         let mut arg_values = FnArgsVec::new();
@@ -772,7 +704,7 @@ impl<'e> Vm<'e> {
         let bound = this_ptr.as_deref_mut().map(bind_this);
         let (this, write_back) = bound.map_or((None, false), |(v, w)| (Some(v), w));
 
-        // The program's environment stays installed for the *call*, not only for
+        // The [`Program`]'s environment stays installed for the *call*, not only for
         // the main chunk that may precede it: the function being called can
         // reach whatever the compiler left Rhai to interpret, and Rhai looks for
         // it in `global.lib`.
@@ -804,8 +736,7 @@ impl<'e> Vm<'e> {
                 };
 
                 // However it went, and whether the call happened at all: Rhai
-                // reports the end of a `call_fn` unconditionally
-                // (`api/call_fn.rs:302-308`).
+                // reports the end of a `call_fn` unconditionally.
                 #[cfg(feature = "debugging")]
                 let result = vm.at_end(scope).and(result);
 
@@ -844,73 +775,63 @@ impl<'e> Vm<'e> {
         })
     }
 
-    /// Evaluate a program's main chunk against `scope`, yielding its value.
-    ///
-    /// The scope is the caller's, as it is for
-    /// [`Engine::eval_ast_with_scope`](crate::Engine::eval_ast_with_scope):
-    /// what the program declares at the top level is left in it, and what the
-    /// caller put there beforehand is visible to the program.
-    ///
-    /// # Errors
-    ///
-    /// Whatever the program raises, and `ErrorRuntime` for a malformed one.
-    pub fn eval_with_scope(&mut self, scope: &mut Scope, program: &Program) -> VmResult {
+    /// Evaluate a [`Program`]'s with own scope, yielding its value.
+    #[inline(always)]
+    pub fn eval_with_scope(&mut self, scope: &mut Scope, program: &Program) -> RhaiResult {
         self.run_with(program, scope, None)
     }
 
-    /// The same against a scope of its own, for a program that needs none.
-    ///
-    /// # Errors
-    ///
-    /// As [`eval_with_scope`](Self::eval_with_scope).
-    pub fn eval(&mut self, program: &Program) -> VmResult {
+    /// Evaluate a [`Program`], yielding its value.
+    #[inline(always)]
+    pub fn eval(&mut self, program: &Program) -> RhaiResult {
         self.eval_with_scope(&mut Scope::new(), program)
     }
 
-    /// Evaluate a program against `scope` for its effects, discarding its value.
-    ///
-    /// # Errors
-    ///
-    /// As [`eval_with_scope`](Self::eval_with_scope).
-    pub fn run_with_scope(
-        &mut self,
-        scope: &mut Scope,
-        program: &Program,
-    ) -> Result<(), Box<EvalAltResult>> {
+    /// Execute a [`Program`] with own scope.
+    #[inline(always)]
+    pub fn run_with_scope(&mut self, scope: &mut Scope, program: &Program) -> RhaiResultOf<()> {
         self.eval_with_scope(scope, program).map(|_| ())
     }
 
-    /// The same against a scope of its own.
-    ///
-    /// # Errors
-    ///
-    /// As [`eval_with_scope`](Self::eval_with_scope).
-    pub fn run(&mut self, program: &Program) -> Result<(), Box<EvalAltResult>> {
+    /// Execute a [`Program`].
+    #[inline(always)]
+    pub fn run(&mut self, program: &Program) -> RhaiResultOf<()> {
         self.run_with_scope(&mut Scope::new(), program)
     }
 
-    /// Evaluate a program that hands function pointers to native functions.
+    /// Evaluate a [`Program`] that hands [function pointers][crate::FnPtr]
+    /// to native functions.
     ///
-    /// The same run, plus one native wrapper per compiled function registered
-    /// for its duration, so a pointer this program creates resolves when Rhai
-    /// dispatches it — `let a = [1, 2]; a.map(|x| x * 2)` is `map` calling us
-    /// back, and `map` looks the pointer up its own way. See the `callback`
-    /// module.
+    /// Same as [`run_with_scope`][Self::run_with_scope], plus one native wrapper
+    /// per compiled function registered for its duration, so a
+    /// [function pointer][crate::FnPtr] this [`Program`] creates resolves when
+    /// the [`Engine`] dispatches it.
     ///
-    /// Only worth the owned program when [`Program::makes_fn_pointers`] says a
-    /// pointer can escape; [`eval_with_scope`](Self::eval_with_scope) is
-    /// otherwise identical and copies nothing. A program that needs this and
-    /// does not get it still runs — the pointer simply fails to resolve, as
-    /// `ErrorFunctionNotFound`, at the point the native tries to call it.
+    /// ### Illustration
     ///
-    /// Named `eval_` rather than `run_` because it yields the program's value;
-    /// Rhai has no `Engine` method to mirror here, so the crate's own rule is
-    /// the one that applies.
+    /// `array.map(|x| x * 2)` is `map` calling back to Rhai Grain,
+    /// and `map` looks the [function pointer][crate::FnPtr] up its own way.
     ///
-    /// # Errors
+    /// ### Cost
     ///
-    /// As [`eval_with_scope`](Self::eval_with_scope).
-    pub fn eval_with_callbacks(&mut self, scope: &mut Scope, program: &SharedProgram) -> VmResult {
+    /// Usually, this call is only worth the shared [`Program`] when
+    /// [`Program::makes_fn_pointers`] says a [function pointer][crate::FnPtr]
+    /// can escape; [`eval_with_scope`](Self::eval_with_scope) is otherwise
+    /// identical and copies nothing.
+    ///
+    /// A [`Program`] that needs this and does not get it still runs —
+    /// the [function pointer][crate::FnPtr] simply fails to resolve, as
+    /// [`EvalAltResult::ErrorFunctionNotFound`], at the point the native tries
+    /// to call it.
+    //
+    // Named `eval_` rather than `run_` because it yields the [`Program`]'s value;
+    // Rhai has no `Engine` method to mirror here, so the crate's own rule is
+    // the one that applies.
+    pub fn eval_with_callbacks(
+        &mut self,
+        scope: &mut Scope,
+        program: &SharedProgram,
+    ) -> RhaiResult {
         #[cfg(not(feature = "no_function"))]
         return if program.functions().is_empty() {
             self.run_with(program, scope, None)
@@ -927,12 +848,11 @@ impl<'e> Vm<'e> {
         program: &Program,
         scope: &mut Scope,
         wrappers: Option<SharedModule>,
-    ) -> VmResult {
+    ) -> RhaiResult {
         self.with_environment(program, wrappers, |vm| {
             // `exit` and a top-level `return` become the run's value before the
             // debugger hears that it is over, because Rhai maps them inside
-            // `eval_global_statements` (`eval/stmt.rs:1046-1048`) and reports
-            // the end after it.
+            // `eval_global_statements` and reports the end after it.
             let value = unwind_exit(vm.run_main(program, scope))?;
             #[cfg(feature = "debugging")]
             vm.at_end(scope)?;
@@ -990,7 +910,7 @@ impl<'e> Vm<'e> {
     }
 
     /// The main chunk, against an environment the caller has already installed.
-    fn run_main(&mut self, program: &Program, scope: &mut Scope) -> VmResult {
+    fn run_main(&mut self, program: &Program, scope: &mut Scope) -> RhaiResult {
         self.clear_faults();
         // A step a previous run left waiting is not this one's to honour.
         #[cfg(feature = "debugging")]
@@ -1008,36 +928,27 @@ impl<'e> Vm<'e> {
         result
     }
 
-    fn pop(&mut self) -> Result<Dynamic, Box<EvalAltResult>> {
+    fn pop(&mut self) -> RhaiResult {
         self.stack
             .pop()
             .ok_or_else(|| malformed("operand stack underflow".to_string()))
     }
 
-    fn inspect(&mut self) -> Result<&Dynamic, Box<EvalAltResult>> {
+    fn inspect(&mut self) -> RhaiResultOf<&Dynamic> {
         self.stack
             .last()
             .ok_or_else(|| malformed("operand stack underflow".to_string()))
     }
 
-    /// `reached` tracks the instruction being executed, so a failure can be
-    /// attributed to one. It is what a stripped program reports in place of a
-    /// position.
-    /// Call a chunk this compiler produced, reproducing `call_script_fn`
-    /// (`func/script.rs:24`) step for step.
-    ///
-    /// The parts that are not obvious, and that the differential corpus is
-    /// what proves: arguments are *taken* out of the caller's stack slots
-    /// rather than cloned, the depth check happens after the level is
-    /// incremented, and only errors that are neither a `return` nor a system
-    /// exception get wrapped in `ErrorInFunctionCall`.
     /// Walk `a.b[i].c`, reading it or assigning to it.
     ///
     /// The reason this is one instruction and a recursion rather than a
     /// sequence: every level holds a `&mut` into the level above, exactly as
-    /// Rhai does (`eval/chaining.rs:659`). For a map or an array that borrow is
-    /// the whole story — the mutation lands in the container and no write-back
-    /// is needed. Doing it on the operand stack instead would mutate a copy.
+    /// Rhai does.
+    ///
+    /// For a map or an array that borrow is the whole story — the mutation
+    /// lands in the container and no write-back is needed. Doing it on the
+    /// operand stack instead would mutate a copy.
     ///
     /// That starts at the root: a scope entry is walked where it lives, not
     /// copied out and put back. Copying it would make a chain cost the size of
@@ -1063,7 +974,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         base: usize,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // A method step can run a body holding a chain of its own, which writes
         // the same field. Saved so the step reported is this chain's.
         let outer_step = mem::replace(&mut self.chain_step, 0);
@@ -1072,7 +983,7 @@ impl<'e> Vm<'e> {
 
         if result.is_err() {
             // Not if something deeper already claimed it: the slot belongs to
-            // the innermost frame's address.
+            // the inner-most frame's address.
             if self.pending_slot.is_none() {
                 self.pending_slot = chain
                     .step_slot(reached)
@@ -1091,7 +1002,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         base: usize,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // Step operands were pushed first, then the root if it is one that has
         // to be evaluated, then the value being assigned.
         let frame_pointer = self
@@ -1146,17 +1057,15 @@ impl<'e> Vm<'e> {
 
             // A shared cell cannot be walked directly. `get_indexed_mut`
             // refuses one outright — `unreachable!("cannot handle shared
-            // values")`, `eval/chaining.rs:461` — because Rhai always reaches a
-            // root through a `Target`, whose shared arm hands over the guard
-            // rather than the cell. Walking the cell would take the host down,
-            // so this is a panic-safety fix and not only a correctness one.
+            // values")` — because Rhai always reaches a root through a `Target`,
+            // whose shared arm hands over the guard rather than the cell.
+            // Walking the cell would take the host down, so this is a panic-safety
+            // fix and not only a correctness one.
             if is_shared!(*root.as_mut()) {
                 let mut guard = root.as_mut().write_lock::<Dynamic>().ok_or_else(|| {
                     let name = root_name(program, chain).unwrap_or_default();
-                    Box::new(EvalAltResult::ErrorDataRace(
-                        format!("variable '{name}'"),
-                        pos,
-                    ))
+                    let msg = format!("variable '{name}'");
+                    Box::new(EvalAltResult::ErrorDataRace(msg, pos))
                 })?;
                 self.walk_chain(
                     program,
@@ -1202,8 +1111,8 @@ impl<'e> Vm<'e> {
     /// is reported missing. It runs exactly once — a chain is one instruction,
     /// so unlike [`Op::CallRef`] there is nothing to resolve twice.
     ///
-    /// `ErrorVariableNotFound` is reported against the *variable*, which is why
-    /// [`Root::Named`] carries a position of its own.
+    /// [`EvalAltResult::ErrorVariableNotFound`] is reported against the *variable*,
+    /// which is why [`Root::Named`] carries a position of its own.
     fn chain_root<'s>(
         &mut self,
         program: &Program,
@@ -1212,7 +1121,7 @@ impl<'e> Vm<'e> {
         base: usize,
         operands_at: usize,
         pos: Position,
-    ) -> Result<ChainRoot<'s>, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<ChainRoot<'s>> {
         match chain.root {
             Root::Local { slot, .. } => {
                 let index = base + slot as usize;
@@ -1229,7 +1138,7 @@ impl<'e> Vm<'e> {
 
             // The `this` position wins over the chain's for the same reason a
             // name's does: this lookup can fail, and Rhai blames the `this`
-            // rather than the `.` after it (`eval/chaining.rs:519-527`).
+            // rather than the `.` after it.
             Root::This { pos: this_pos } => {
                 let value = self
                     .this
@@ -1268,10 +1177,9 @@ impl<'e> Vm<'e> {
                     });
                 }
                 // A constant a host published with `Module::set_var`. Not
-                // marked read-only, because Rhai does not mark it either
-                // (`eval/expr.rs:151` against `:122`) — so a chain assigns
-                // into the copy and discards it, where writing to the name
-                // directly is refused.
+                // marked read-only, because the value of the read is a clone
+                // of the constant and considered mutable. Only the constant
+                // variable itself is read-only.
                 self.engine
                     .global_modules
                     .iter()
@@ -1296,8 +1204,9 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// One level of the walk. Returns the value and whether anything below may
-    /// have written.
+    /// One level of the walk.
+    ///
+    /// Returns the value and whether anything below may have written.
     #[allow(clippy::too_many_arguments)]
     fn walk_chain(
         &mut self,
@@ -1308,7 +1217,7 @@ impl<'e> Vm<'e> {
         operands: &mut [Dynamic],
         value: Option<Dynamic>,
         pos: Position,
-    ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<(Dynamic, bool)> {
         let Some((step, rest)) = steps.split_first() else {
             // The end of the chain, reached with nothing to do: a bare `a` is
             // not a chain, so this only happens for an empty step list.
@@ -1427,14 +1336,13 @@ impl<'e> Vm<'e> {
                 }
 
                 // A method call is where Rhai tries the receiver's type before
-                // the plain name (`func/call.rs:614-629`), and the only place it
-                // does. `argc` already excludes the receiver, which is the arity
-                // the script side is keyed on (`parser.rs:2128-2145`).
+                // the plain name, and the only place it does. `argc` already
+                // excludes the receiver, which is the arity the script side is
+                // keyed on.
                 //
                 // Consulting our own table first is safe because nothing can get
-                // between: `import` pushes onto `global.modules`, not
-                // `global.lib` (`eval/stmt.rs:947`), and `global.lib` is only
-                // ever pushed where an AST is being run.
+                // between: `import` pushes onto `global.modules`, not `global.lib`,
+                // and `global.lib` is only ever pushed where an AST is being run.
                 let type_name = target.type_name();
                 let compiled = {
                     let typed = self.engine.map_type_name(type_name);
@@ -1525,15 +1433,16 @@ impl<'e> Vm<'e> {
         last: bool,
         bracket: Position,
         pos: Position,
-    ) -> Result<Indexed, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<Indexed> {
         let assigning = last && value.is_some();
         let mut detached = Scope::new();
 
-        // Cloned *before* the call, as Rhai clones it (`eval/chaining.rs:706`).
+        // Cloned *before* the call, as Rhai does.
+        //
         // `get_indexed_mut` may reach a custom indexer, and a native's by-value
-        // parameter is bound by `take` (`func/register.rs:69`) — so afterwards
-        // there is nothing left to address the setter with. Only the paths that
-        // can write need it; a read returns below without ever looking.
+        // parameter is bound by `take` — so afterwards there is nothing left
+        // to address the setter with. Only the paths that can write need it;
+        // a read returns below without ever looking.
         let index_for_setter = (!last || value.is_some()).then(|| idx.clone());
 
         let mut item = match self.engine.get_indexed_mut(
@@ -1546,7 +1455,7 @@ impl<'e> Vm<'e> {
             idx_pos,
             bracket,
             // Auto-vivify a missing map key only when writing, as Rhai does
-            // for the assignment case (`eval/chaining.rs:791`).
+            // for the assignment case.
             assigning,
             // And do not reach for a custom indexer when writing: a value it
             // handed back could not be assigned through. Rhai asks the same
@@ -1584,14 +1493,13 @@ impl<'e> Vm<'e> {
             self.walk_chain(program, chain, rest, item.as_mut(), operands, value, pos)?
         };
 
-        // Bit-fields, string characters and blob bytes cannot be pointed at
-        // directly, so `Target` carries a copy and this is what puts it back
-        // (`eval/target.rs:282`).
+        // Bit-fields, string characters and BLOB bytes cannot be pointed at
+        // directly, so `Target` carries a copy and this is what puts it back.
         item.propagate_changed_value(pos)?;
 
         if temp && changed {
             // The element was a temporary — a custom indexer's — so the setter
-            // is the only way back (`eval/chaining.rs:744`).
+            // is the only way back.
             let mut updated = item.take_or_clone();
             let mut index = index_for_setter.expect("a read returns before here");
             self.call_indexer_set(target, &mut index, &mut updated, bracket)?;
@@ -1604,7 +1512,7 @@ impl<'e> Vm<'e> {
     ///
     /// An op-assignment has to read the current value back through the getter
     /// first, and Rhai *ignores* a getter that fails here — a write-only
-    /// indexer takes the new value as-is (`eval/chaining.rs:812`).
+    /// indexer takes the new value as-is.
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     fn assign_through_indexer(
         &mut self,
@@ -1614,7 +1522,7 @@ impl<'e> Vm<'e> {
         index: &mut Dynamic,
         value: Dynamic,
         pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<()> {
         let mut new_val = value;
 
         if matches!(chain.tail, Tail::Assign { op: Some(_) }) {
@@ -1643,8 +1551,8 @@ impl<'e> Vm<'e> {
     /// Put an element back into a container that had no reference to give.
     ///
     /// A custom indexer returns a value, so a mutation below it landed in a
-    /// temporary; this is the replay Rhai does at `eval/chaining.rs:744`,
-    /// including swallowing "this type cannot be indexed" the way it does.
+    /// temporary; this is the replay Rhai does, including swallowing
+    /// "this type cannot be indexed" the way it does.
     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
     #[inline(always)]
     fn call_indexer_set(
@@ -1653,7 +1561,7 @@ impl<'e> Vm<'e> {
         index: &mut Dynamic,
         value: &mut Dynamic,
         pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<()> {
         let result = self.engine.call_indexer_set(
             &mut self.global,
             &mut self.caches,
@@ -1666,12 +1574,7 @@ impl<'e> Vm<'e> {
         match result.map(|_| ()) {
             Ok(()) => Ok(()),
             Err(err) if matches!(*err, EvalAltResult::ErrorIndexingType(..)) => Ok(()),
-            Err(mut err) => {
-                if err.position().is_none() {
-                    err.set_position(pos);
-                }
-                Err(err)
-            }
+            Err(err) => Err(err.fill_position(pos)),
         }
     }
 
@@ -1685,16 +1588,16 @@ impl<'e> Vm<'e> {
         key: &str,
         err: Box<EvalAltResult>,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         #[cfg(not(any(feature = "no_index", feature = "no_object")))]
         return match *err {
             EvalAltResult::ErrorDotExpr(..) => {
-                let mut index = self.strings_interner.get(key).into();
+                let mut index = self.engine.get_interned_string(key).into();
                 self.engine
                     .call_indexer_get(&mut self.global, &mut self.caches, target, &mut index, pos)
                     .map_err(|err2| match *err2 {
                         EvalAltResult::ErrorIndexingType(..) => err,
-                        _ => positioned(err2, pos),
+                        _ => err2.fill_position(pos),
                     })
             }
             _ => Err(err),
@@ -1718,11 +1621,11 @@ impl<'e> Vm<'e> {
         fail_silently: bool,
         err: Box<EvalAltResult>,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         #[cfg(not(any(feature = "no_index", feature = "no_object")))]
         return match *err {
             EvalAltResult::ErrorDotExpr(..) => {
-                let mut index = self.strings_interner.get(key).into();
+                let mut index = self.engine.get_interned_string(key).into();
                 match self
                     .engine
                     .call_indexer_set(
@@ -1744,7 +1647,7 @@ impl<'e> Vm<'e> {
                             Err(err)
                         }
                     }
-                    Err(err2) => Err(positioned(err2, pos)),
+                    Err(err2) => Err(err2.fill_position(pos)),
                 }
             }
             _ => Err(err),
@@ -1757,11 +1660,6 @@ impl<'e> Vm<'e> {
     }
 
     /// `.name`, which is a key on a map and a getter call on anything else.
-    ///
-    /// The distinction is Rhai's and it is made at runtime, not at parse time
-    /// (`eval/chaining.rs:898`). It matters for more than speed: a map hands
-    /// back a reference, so a mutation below lands in the map, while a getter
-    /// hands back a value that has to be given to the setter afterwards.
     #[allow(clippy::too_many_arguments)]
     fn walk_property(
         &mut self,
@@ -1773,13 +1671,13 @@ impl<'e> Vm<'e> {
         value: Option<Dynamic>,
         pos: Position,
         // The property's own position, which is where Rhai blames a getter or
-        // setter that does not exist (`eval/chaining.rs:1039`). `pos` is the
-        // chain's, and stays that for everything else.
+        // setter that does not exist. `pos` is the chain's, and stays that for
+        // everything else.
         step_pos: Position,
         name: u32,
         getter: u32,
         setter: u32,
-    ) -> Result<(Dynamic, bool), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<(Dynamic, bool)> {
         let last = rest.is_empty();
 
         // The name is a map key for maps, and the same string is what a host
@@ -1794,7 +1692,7 @@ impl<'e> Vm<'e> {
         #[cfg(not(feature = "no_object"))]
         if target.is_map() {
             let mut detached = Scope::new();
-            let mut index = self.strings_interner.get(key).into();
+            let mut index = self.engine.get_interned_string(key).into();
             let assigning = last && value.is_some();
 
             let mut item = self.engine.get_indexed_mut(
@@ -1828,7 +1726,7 @@ impl<'e> Vm<'e> {
         }
 
         // A host type: getter in, setter out.
-        let call = |vm: &mut Self, fn_name: u32, args: &mut [&mut Dynamic]| -> VmResult {
+        let call = |vm: &mut Self, fn_name: u32, args: &mut [&mut Dynamic]| -> RhaiResult {
             let fn_name = program
                 .name(fn_name)
                 .ok_or_else(|| malformed(format!("no name {fn_name}")))?;
@@ -1901,7 +1799,7 @@ impl<'e> Vm<'e> {
         target: &mut Dynamic,
         rhs: &mut Dynamic,
         pos: impl Fn() -> Position,
-    ) -> Option<Result<(), Box<EvalAltResult>>> {
+    ) -> Option<RhaiResultOf<()>> {
         if !self.engine.fast_operators() {
             return None;
         }
@@ -1910,12 +1808,7 @@ impl<'e> Vm<'e> {
         Some(
             func(context, &mut [target, rhs])
                 .map(|_| ())
-                .map_err(|mut err| {
-                    if err.position().is_none() {
-                        err.set_position(pos());
-                    }
-                    err
-                }),
+                .map_err(|err| err.fill_position(pos())),
         )
     }
 
@@ -1926,7 +1819,7 @@ impl<'e> Vm<'e> {
         target: &mut Dynamic,
         mut rhs: Dynamic,
         pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<()> {
         let Some(op) = op else {
             *target = rhs;
             return Ok(());
@@ -1977,22 +1870,21 @@ impl<'e> Vm<'e> {
                 *target = value;
                 Ok(())
             }
-            Err(err) => Err(dispatch_failure(err, pos)),
+            Err(err) => Err(err.fill_position(pos)),
         }
     }
 
-    /// Read a variable no slot names, the way Rhai's `search_scope_only` does
-    /// (`eval/expr.rs:107-155`).
+    /// Read a variable no slot names, the way Rhai's `search_scope_only` does.
     ///
-    /// Fixed order:
+    /// Search order:
     /// 1) a var resolver registered with `Engine::on_var`
     /// 2) a var in the scope
-    /// 3) a var among global modules
-    /// 4) this program's compiled function table
+    /// 3) a constant var among global modules
+    /// 4) this [`Program`]'s compiled function table (as a [function pointer][crate::FnPtr])
     ///
     /// `flatten` is what the two reads differ by, and only for a scope entry:
     /// a value position wants what a shared cell contains, and a capture wants
-    /// the cell. The other two places can only ever produce a value.
+    /// the shared cell itself. All other places can only ever produce a value.
     ///
     /// Kept out of the dispatch loop for the reason [`Vm::call_compiled`] is.
     fn load_named(
@@ -2002,7 +1894,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         flatten: bool,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // A resolver hands back a value, not a place, so it is read-only —
         // which is what makes assigning to one an error.
         if let Some(value) = self.resolve_var(name, scope, pos)? {
@@ -2042,8 +1934,7 @@ impl<'e> Vm<'e> {
         Err(missing(name, pos))
     }
 
-    /// Ask the resolver a host registered with `Engine::on_var`, if there is
-    /// one.
+    /// Ask the resolver a host registered with `Engine::on_var`, if there is one.
     ///
     /// `Ok(None)` covers both "no resolver" and "the resolver declined", which
     /// are the same thing to every caller.
@@ -2052,7 +1943,7 @@ impl<'e> Vm<'e> {
         name: &str,
         scope: &mut Scope,
         pos: Position,
-    ) -> Result<Option<Dynamic>, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<Option<Dynamic>> {
         // Copied out so the borrow is of the engine rather than of `self`,
         // which the context below needs mutably.
         let engine = self.engine;
@@ -2077,7 +1968,7 @@ impl<'e> Vm<'e> {
         match resolved {
             Ok(Some(value)) => Ok(Some(value.into_read_only())),
             Ok(None) => Ok(None),
-            Err(err) => Err(dispatch_failure(err, pos)),
+            Err(err) => Err(err.fill_position(pos)),
         }
     }
 
@@ -2085,9 +1976,9 @@ impl<'e> Vm<'e> {
     ///
     /// Rhai reaches the target through the same search and then refuses
     /// anything that is not a reference it can write through: a value the
-    /// resolver produced, a module's constant, a `const` entry
-    /// (`eval/stmt.rs:330-344` and `eval/stmt.rs:118-122`). All three are
-    /// `ErrorAssignmentToConstant`, so the distinction never reaches a script.
+    /// resolver produced, a module's constant, a `const` entry. All three are
+    /// [`EvalAltResult::ErrorAssignmentToConstant`], so the distinction never
+    /// reaches a script.
     fn assign_named(
         &mut self,
         program: &Program,
@@ -2096,7 +1987,7 @@ impl<'e> Vm<'e> {
         rhs: Dynamic,
         scope: &mut Scope,
         pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<()> {
         let constant = || {
             Box::new(EvalAltResult::ErrorAssignmentToConstant(
                 name.to_string(),
@@ -2138,13 +2029,14 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Call a function pointer, preferring a chunk we compiled.
+    /// Call a [function pointer][crate::FnPtr].
     ///
-    /// The pointer sits under its arguments. Rhai's own dispatch would work
-    /// for all of this, but it cannot reach our chunks — the compiled function
-    /// table is keyed on names from the pool, and a pointer carries a string —
-    /// so the name is matched against it first and only the miss goes to
-    /// `call_raw`.
+    /// The [function pointer][crate::FnPtr] sits under its arguments.
+    ///
+    /// Rhai's own dispatch would work for all of this, but it cannot reach our
+    /// chunks — the compiled function table is keyed on names from the pool,
+    /// and a pointer carries a string — so the name is matched against it first
+    /// and only the miss goes to `call_raw`.
     #[allow(clippy::too_many_arguments)]
     fn call_fn_ptr(
         &mut self,
@@ -2155,7 +2047,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         frame_base: usize,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         let base = self
             .stack
             .len()
@@ -2169,25 +2061,30 @@ impl<'e> Vm<'e> {
         // mismatch against that argument, not against the target, which is why
         // the position moves with it.
         let mut receiver_at = None;
-        if method && !self.stack[at].is::<FnPtr>() {
+        let value = &self.stack[at];
+
+        if method && !value.is::<FnPtr>() {
             receiver_at = Some(at);
-            at += 1;
-            if at >= self.stack.len() {
-                return Err(self.mismatch::<FnPtr>(self.stack[at - 1].type_name(), pos));
+            if at + 1 >= self.stack.len() {
+                return Err(self
+                    .engine
+                    .make_type_mismatch_err::<FnPtr>(value.type_name(), pos));
             }
+            at += 1;
         }
 
-        let pointer = self.stack[at]
-            .clone()
-            .try_cast::<FnPtr>()
-            .ok_or_else(|| self.mismatch::<FnPtr>(self.stack[at].type_name(), pos))?;
+        let pointer = &self.stack[at];
+        let pointer = pointer.clone().try_cast::<FnPtr>().ok_or_else(|| {
+            self.engine
+                .make_type_mismatch_err::<FnPtr>(pointer.type_name(), pos)
+        })?;
 
         let taken = self.stack.len() - at - 1;
         let curried = pointer.curry().len();
+
         // A receiver does not change which function a pointer names, only what
         // the callee's `this` is: Rhai keys its own script pointers on the
-        // declared parameter count alone (`types/fn_ptr.rs:422`), and binds the
-        // receiver alongside them.
+        // declared parameter count alone, and binds the receiver alongside them.
         let function = program
             .function_named(pointer.fn_name(), curried + taken)
             .map(|f| (f.params.clone(), f.chunk));
@@ -2232,7 +2129,7 @@ impl<'e> Vm<'e> {
             let context = (self.engine, pointer.fn_name(), None, &self.global, pos).into();
             pointer
                 .call_raw(&context, bound.as_mut(), &mut args)
-                .map_err(|err| positioned(err, pos))
+                .map_err(|err| err.fill_position(pos))
         };
 
         // Before `?`, as everywhere else: Rhai binds the receiver by reference,
@@ -2260,7 +2157,7 @@ impl<'e> Vm<'e> {
         fn_ptr: FnPtr,
         args: &mut [Dynamic],
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         let name = fn_ptr.fn_name();
         let argc = args.len() + fn_ptr.curry().len();
         let function = program.function_named(name, argc);
@@ -2311,9 +2208,9 @@ impl<'e> Vm<'e> {
 
     /// Carry a write through `obj.call(f)`'s `this` back to `obj` itself.
     ///
-    /// Rhai binds the receiver by reference (`func/call.rs:862`), so the write
-    /// lands in the variable. The operand stack only ever held a copy of it,
-    /// and this is what puts the copy back where it came from.
+    /// Rhai binds the receiver by reference, so the write lands in the variable.
+    /// The operand stack only ever held a copy of it, and this is what puts the
+    /// copy back where it came from.
     ///
     /// Nothing to do for a shared receiver: it arrived *as* the cell, so the
     /// write already landed where every holder can see it — `run_chain`'s rule
@@ -2325,7 +2222,7 @@ impl<'e> Vm<'e> {
         value: Dynamic,
         scope: &mut Scope,
         frame_base: usize,
-    ) -> Result<(), Box<EvalAltResult>> {
+    ) -> RhaiResultOf<()> {
         if is_shared!(value) || value.is_read_only() {
             return Ok(());
         }
@@ -2359,22 +2256,19 @@ impl<'e> Vm<'e> {
         Ok(())
     }
 
-    /// Concatenate the segments of an interpolated string, reproducing
-    /// `eval/expr.rs:280-304`.
+    /// Concatenate the segments of an interpolated string.
     ///
     /// Every step of it is load-bearing. A **string** segment is written
     /// straight out and never reaches dispatch, so a host's `to_string` for
     /// strings is not consulted here even though `+` would consult it.
+    ///
     /// Anything else goes through Rhai's own rendering, which calls **native**
     /// functions only — a script `fn to_string` is invisible to it — and
     /// substitutes the mapped type name when the call returns a non-string.
+    ///
     /// The size limit is checked after every segment against the running
     /// total, not once at the end.
-    fn append_segment(
-        &mut self,
-        segment: Dynamic,
-        pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    fn append_segment(&mut self, segment: Dynamic, pos: Position) -> RhaiResultOf<()> {
         use std::fmt::Write;
 
         let mut item = segment.flatten();
@@ -2410,12 +2304,9 @@ impl<'e> Vm<'e> {
         // whole.
         #[cfg(not(feature = "unchecked"))]
         {
-            self.engine.throw_on_size((0, 0, len)).map_err(|mut err| {
-                if err.position().is_none() {
-                    err.set_position(pos);
-                }
-                err
-            })
+            self.engine
+                .throw_on_size((0, 0, len))
+                .map_err(|err| err.fill_position(pos))
         }
         // `unchecked` removes the limits, and with them the only reason to have
         // measured.
@@ -2426,17 +2317,20 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Start iterating a value, the way Rhai's `for` does
-    /// (`eval/stmt.rs:680-703`).
+    /// Start iterating a value, the way Rhai's `for` does.
     ///
-    /// Three places are searched by `TypeId`, in order, and the order is
-    /// Rhai's: the modules in the global namespace, then the imports, then the
-    /// statically registered sub-modules. Nothing matching is `ErrorFor`.
+    /// Three places are searched by [`TypeId`], in order:
+    ///
+    /// 1) the modules in the global namespace,
+    /// 2) the imports,
+    /// 3) the statically registered sub-modules.
+    ///
+    /// Nothing matching is [`EvalAltResult::ErrorFor`].
     ///
     /// The iterable is flattened first — so iterating a captured array walks a
     /// snapshot rather than the shared cell — and is consumed by value, which
     /// is why the iterator is built once and held for the life of the loop.
-    fn iter_init(&mut self, iterable: Dynamic, pos: Position) -> Result<(), Box<EvalAltResult>> {
+    fn iter_init(&mut self, iterable: Dynamic, pos: Position) -> RhaiResultOf<()> {
         let iterable = iterable.flatten();
         let type_id = iterable.type_id();
 
@@ -2477,7 +2371,7 @@ impl<'e> Vm<'e> {
         first: usize,
         scope: &mut Scope,
         pos: Position,
-    ) -> Result<Option<Dynamic>, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<Option<Dynamic>> {
         match name {
             crate::engine::KEYWORD_IS_DEF_VAR => {
                 if argc != 1 {
@@ -2571,7 +2465,7 @@ impl<'e> Vm<'e> {
                         &mut args,
                         pos,
                     )
-                    .map_err(|err| dispatch_failure(err, pos))?
+                    .map_err(|err| err.fill_position(pos))?
                     .ok_or_else(|| {
                         EvalAltResult::ErrorFunctionNotFound(name.to_string(), pos).into()
                     })
@@ -2601,13 +2495,12 @@ impl<'e> Vm<'e> {
         first: usize,
         scope: &mut Scope,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // Run compiled function if available.
         if let Some(function) = program.function(name_index, argc) {
-            let name = program.name(function.name).unwrap_or("<unknown>");
             return self.call_compiled(
                 program,
-                name,
+                program.name(function.name).unwrap_or("<unknown>"),
                 &function.params,
                 function.chunk,
                 first,
@@ -2617,9 +2510,9 @@ impl<'e> Vm<'e> {
         }
 
         // Arguments are already contiguous at the top of the operand stack,
-        // which is exactly the shape Rhai's ABI wants (`func/call.rs:36`). It
-        // consumes them, replacing each with unit, so the caller truncates
-        // afterwards rather than reusing them.
+        // which is exactly the shape Rhai's ABI wants. It consumes them,
+        // replacing each with (), so the caller truncates afterwards rather
+        // than reusing them.
         let mut args: FnArgsVec<&mut Dynamic> = self.stack[first..].iter_mut().collect();
 
         call_engine(
@@ -2653,7 +2546,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         capture: bool,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // Check if it is a built-in syntactic function.
         match self.call_syntactic(program, name, argc, first, scope, pos)? {
             Some(value) => Ok(value),
@@ -2672,7 +2565,7 @@ impl<'e> Vm<'e> {
     }
 
     /// The same call, with a variable as its first argument and Rhai's
-    /// method-call rewrite applied to it (`func/call.rs:1434-1460`).
+    /// method-call rewrite applied to it.
     ///
     /// The other arguments are already on the operand stack and were evaluated
     /// before the receiver was reached, which is the order Rhai uses and is
@@ -2689,7 +2582,7 @@ impl<'e> Vm<'e> {
         base: usize,
         capture: bool,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // Every argument count here includes the receiver, so zero of them
         // names no receiver at all and the instruction is nonsense. Only an
         // artifact can say it; the compiler emits one of these for a call that
@@ -2741,10 +2634,9 @@ impl<'e> Vm<'e> {
         };
 
         // Three things rule out a reference, and Rhai rules out the same three:
-        // it hands one out for neither a shared cell nor a constant
-        // (`func/call.rs:1449-1454`), and a function this compiler lowered
-        // copies its first argument whatever it is handed, exactly as Rhai
-        // copies it before running a script function (`func/call.rs:661`).
+        // it hands one out for neither a shared cell nor a constant, and a function
+        // this compiler lowered copies its first argument whatever it is handed,
+        // exactly as Rhai copies it before running a script function.
         let by_reference = place.map_or(false, |value| !is_shared!(value) && !value.is_read_only())
             && program.function(name_index, argc).is_none();
 
@@ -2806,10 +2698,9 @@ impl<'e> Vm<'e> {
     /// [`Op::LoadThis`] has already pushed a flattened snapshot as argument
     /// zero — *before* the other arguments, unlike either of the other two
     /// receivers, because the path a shared or unbound receiver takes reads
-    /// `this` first (`func/call.rs:1462`) where the by-reference path takes a
-    /// pointer to it afterwards (`:1417`). Reading first is what makes an
-    /// unbound `f(this, no_such)` report `ErrorUnboundThis` rather than the
-    /// argument's failure.
+    /// `this` first where the by-reference path takes a pointer to it afterwards.
+    /// Reading first is what makes an unbound `f(this, no_such)` report
+    /// [`EvalAltResult::ErrorUnboundThis`] rather than the argument's failure.
     ///
     /// The snapshot is what gets passed when the register cannot be lent out,
     /// and dead weight when it can — the trade [`Receiver::Named`] makes too.
@@ -2822,7 +2713,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         capture: bool,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         let first = self
             .stack
             .len()
@@ -2831,10 +2722,11 @@ impl<'e> Vm<'e> {
 
         // Rhai turns `f(this, ..)` into `this.f(..)` for a receiver that is not
         // shared, and read-only is *not* part of that test — unlike the variable
-        // arm, which copies a constant before deciding (`func/call.rs:1449`).
+        // arm, which copies a constant before deciding.
+        //
         // A function this compiler lowered copies its first argument whatever it
-        // is handed, exactly as Rhai copies one before running a script function
-        // (`func/call.rs:661`), so a compiled callee rules a reference out too.
+        // is handed, exactly as Rhai copies one before running a script function,
+        // so a compiled callee rules a reference out too.
         let by_reference = self.this.as_ref().map_or(false, |value| !is_shared!(value))
             && program.function(name_index, argc).is_none();
 
@@ -2882,7 +2774,7 @@ impl<'e> Vm<'e> {
         first: usize,
         scope: &mut Scope,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         self.call_compiled_with_this(program, name, params, chunk, first, scope, true, pos, None)
             .0
     }
@@ -2897,7 +2789,7 @@ impl<'e> Vm<'e> {
     /// with no receiver. That is what makes `this` per-call rather than
     /// inherited: an ordinary call installs `None` and gives the caller's back
     /// on the way out, so a callee can never read the receiver of the frame that
-    /// called it (`func/call.rs:669`).
+    /// called it.
     ///
     /// Kept out of the dispatch loop. Inlined, it is enough extra code to change
     /// register allocation across every other instruction — measured as a
@@ -2910,30 +2802,20 @@ impl<'e> Vm<'e> {
         chunk: Chunk,
         first: usize,
         scope: &mut Scope,
-        rewind_scope: bool,
+        rewind: bool,
         pos: Position,
         this: Option<Dynamic>,
-    ) -> (VmResult, Option<Dynamic>) {
+    ) -> (RhaiResult, Option<Dynamic>) {
+        if let Err(err) = self.engine.track_operation(&mut self.global, pos) {
+            return (Err(err), this);
+        }
+
         let saved = mem::replace(&mut self.this, this);
 
-        let result = match self.engine.track_operation(&mut self.global, pos) {
-            Ok(()) => {
-                self.global.level += 1;
-                let result = self.call_compiled_body(
-                    program,
-                    name,
-                    params,
-                    chunk,
-                    first,
-                    scope,
-                    rewind_scope,
-                    pos,
-                );
-                self.global.level -= 1;
-                result
-            }
-            Err(err) => Err(err),
-        };
+        self.global.level += 1;
+        let result =
+            self.call_compiled_body(program, name, params, chunk, first, scope, rewind, pos);
+        self.global.level -= 1;
 
         (result, mem::replace(&mut self.this, saved))
     }
@@ -2948,7 +2830,7 @@ impl<'e> Vm<'e> {
         scope: &mut Scope,
         rewind_scope: bool,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         #[cfg(not(feature = "unchecked"))]
         {
             // The limit exists only where recursion does — `no_function` leaves
@@ -2975,15 +2857,15 @@ impl<'e> Vm<'e> {
             let name = program
                 .name(*param)
                 .ok_or_else(|| malformed(format!("no name {param}")))?;
-            // Taken, not cloned — Rhai consumes the caller's argument slots
-            // (`func/script.rs:75`), and the caller truncates them away after.
+            // Taken, not cloned — Rhai consumes the caller's argument slots,
+            // and the caller truncates them away after.
             let value = self
                 .stack
                 .get_mut(slot)
                 .ok_or_else(|| malformed("call with too few arguments".to_string()))?
                 .take();
             scope.push_entry(
-                self.strings_interner.get(name),
+                self.engine.get_interned_string(name),
                 AccessMode::ReadWrite,
                 value,
             );
@@ -2992,7 +2874,7 @@ impl<'e> Vm<'e> {
 
         // A frame for `back_trace` to see, pushed once the arguments are in the
         // scope so it reports the values the body will run with — the moment
-        // Rhai picks (`func/script.rs:78`).
+        // Rhai picks.
         #[cfg(feature = "debugging")]
         if self.engine.is_debugger_registered() {
             let args = scope
@@ -3001,9 +2883,10 @@ impl<'e> Vm<'e> {
                 .map(|(.., v)| v.flatten_clone());
             let source = self.global.source.clone();
 
+            let fn_name = self.engine.get_interned_string(name);
             self.global
                 .debugger_mut()
-                .push_call_stack_frame(name.into(), args, source, pos);
+                .push_call_stack_frame(fn_name, args, source, pos);
         }
 
         // A function's parameters are its first locals, sitting at 0 upwards in
@@ -3031,8 +2914,7 @@ impl<'e> Vm<'e> {
         });
 
         // Mapped first, then reported: Rhai tells the debugger what the *caller*
-        // will see (`func/script.rs:157-186`), with the body's locals still in
-        // scope for the callback to read.
+        // will see, with the body's locals still in scope for the callback to read.
         #[cfg(feature = "debugging")]
         let result = self.at_function_exit(scope, result, orig_call_stack_len, pos);
 
@@ -3059,17 +2941,17 @@ impl<'e> Vm<'e> {
     fn at_function_exit(
         &mut self,
         scope: &mut Scope,
-        result: VmResult,
+        result: RhaiResult,
         orig_call_stack_len: usize,
         pos: Position,
-    ) -> VmResult {
+    ) -> RhaiResult {
         if !self.engine.is_debugger_registered() {
             return result;
         }
 
         // Only where something is waiting for it: a `FunctionExit` asked for at
         // this level or outside it, or a step that has to stop somewhere and
-        // this is where the body ran out (`func/script.rs:159-163`).
+        // this is where the body ran out.
         let trigger = match self.global.debugger().status {
             crate::eval::DebuggerStatus::FunctionExit(n) => n >= self.global.level,
             crate::eval::DebuggerStatus::Next(.., true) => true,
@@ -3112,18 +2994,12 @@ impl<'e> Vm<'e> {
         result
     }
 
-    /// Stop at a statement boundary, as Rhai stops at a statement node
-    /// (`eval/stmt.rs:269`).
+    /// Stop at a statement boundary, as Rhai stops at a statement node.
     ///
     /// `depth` is the marker's, and says which of the steps waiting in
     /// [`Vm::pending_steps`] belong to statements that have now ended.
     #[cfg(feature = "debugging")]
-    fn at_statement(
-        &mut self,
-        scope: &mut Scope,
-        depth: u16,
-        pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    fn at_statement(&mut self, scope: &mut Scope, depth: u16, pos: Position) -> RhaiResultOf<()> {
         if !self.engine.is_debugger_registered() {
             return Ok(());
         }
@@ -3160,13 +3036,12 @@ impl<'e> Vm<'e> {
         Ok(())
     }
 
-    /// Tell the debugger the run is over, as Rhai does at the end of an `eval`
-    /// (`api/eval.rs:255-260`).
+    /// Tell the debugger the run is over, as Rhai does at the end of an `eval`.
     ///
     /// Only where the run got there: the walker's `?` on the statements means a
     /// failed script never reaches this.
     #[cfg(feature = "debugging")]
-    fn at_end(&mut self, scope: &mut Scope) -> Result<(), Box<EvalAltResult>> {
+    fn at_end(&mut self, scope: &mut Scope) -> RhaiResultOf<()> {
         if !self.engine.is_debugger_registered() {
             return Ok(());
         }
@@ -3191,10 +3066,14 @@ impl<'e> Vm<'e> {
         chunk: Chunk,
         base: usize,
         reached: &mut usize,
-    ) -> VmResult {
+    ) -> RhaiResult {
         let iter_base = self.iterators.len();
         let handler_base = self.handlers.len();
+
+        #[cfg(not(feature = "unchecked"))]
+        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         let size_base = self.sizes.len();
+
         // Each frame's floor is its own. A checkpoint inside a function this
         // one calls must not become what this one unwinds to.
         let outer_floor = mem::replace(&mut self.unwind_floor, base);
@@ -3231,6 +3110,9 @@ impl<'e> Vm<'e> {
 
         self.iterators.truncate(iter_base);
         self.handlers.truncate(handler_base);
+
+        #[cfg(not(feature = "unchecked"))]
+        #[cfg(not(all(feature = "no_index", feature = "no_object")))]
         self.sizes.truncate(size_base);
 
         if result.is_err() {
@@ -3240,28 +3122,11 @@ impl<'e> Vm<'e> {
         result
     }
 
-    /// Rhai's `Engine::make_type_mismatch_err` (`api/formatting.rs:246`).
-    ///
-    /// The asymmetry is Rhai's and is easy to get wrong in either direction:
-    /// the *expected* type goes through the engine's registered names and the
-    /// *actual* one does not. So `if 0..1 {}` reports
-    /// `core::ops::range::Range<i64>` rather than the `range` the same engine
-    /// would print anywhere else. Mapping both — which reads like the obvious
-    /// thing — makes every one of these differ from the walker.
-    fn mismatch<T>(&self, actual: &str, pos: Position) -> Box<EvalAltResult> {
-        Box::new(EvalAltResult::ErrorMismatchDataType(
-            self.engine
-                .map_type_name(core::any::type_name::<T>())
-                .into(),
-            actual.into(),
-            pos,
-        ))
-    }
-
     /// Fold the element on top of the stack into the literal's running total,
     /// and refuse it if that puts the literal over a configured limit.
     ///
-    /// Reproduces `eval/expr.rs:318-329` for an array and `:349-359` for a map.
+    /// Reproduces Rhai's behavior for an array and for a map.
+    ///
     /// The two differ in one place — an array element adds one to the array
     /// count, a map entry adds one to the map count — and in nothing else, so
     /// they share this.
@@ -3275,12 +3140,9 @@ impl<'e> Vm<'e> {
     /// Out of line: it is a handful of instructions in the common case and a
     /// call to Rhai in the rare one, and the dispatch loop is measurably
     /// sensitive to what shares its registers.
-    fn check_size(
-        &mut self,
-        index: u16,
-        map: bool,
-        pos: Position,
-    ) -> Result<(), Box<EvalAltResult>> {
+    #[cfg(not(feature = "unchecked"))]
+    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+    fn check_size(&mut self, index: u16, map: bool, pos: Position) -> RhaiResultOf<()> {
         if index == 0 {
             self.sizes.push((0, 0, 0));
         }
@@ -3321,12 +3183,14 @@ impl<'e> Vm<'e> {
                 .stack
                 .last()
                 .ok_or_else(|| malformed("size check with no element".to_string()))?;
+
             let delta = calc_data_sizes(value, true);
 
             let total = self
                 .sizes
                 .last_mut()
                 .ok_or_else(|| malformed("size check outside a literal".to_string()))?;
+
             *total = (
                 total.0 + delta.0 + usize::from(!map),
                 total.1 + delta.1 + usize::from(map),
@@ -3335,7 +3199,7 @@ impl<'e> Vm<'e> {
 
             self.engine
                 .throw_on_size(*total)
-                .map_err(|err| dispatch_failure(err, pos))
+                .map_err(|err| err.fill_position(pos))
         }
     }
 
@@ -3361,7 +3225,7 @@ impl<'e> Vm<'e> {
         }
     }
 
-    /// Hand an error to the innermost handler this frame armed, if any.
+    /// Hand an error to the inner-most handler this frame armed, if any.
     ///
     /// `Ok` is the address the catch block starts at. `Err` means nothing here
     /// wanted it and it should keep going up.
@@ -3376,7 +3240,7 @@ impl<'e> Vm<'e> {
         err: Box<EvalAltResult>,
         handler_base: usize,
         scope: &mut Scope,
-    ) -> Result<usize, Box<EvalAltResult>> {
+    ) -> RhaiResultOf<usize> {
         // Only handlers this frame armed. A callee must never resume into its
         // caller's catch block — that is a jump into another chunk, which the
         // verifier forbids and nothing would catch at run time. The callee's
@@ -3395,7 +3259,7 @@ impl<'e> Vm<'e> {
 
             // Leaving a catch block rather than entering one. A bare `throw;`
             // there — an `ErrorRuntime` carrying unit — means "re-raise what
-            // was caught, from here" (`eval/stmt.rs:866`).
+            // was caught, from here".
             let Some(original) = handler.caught.take() else {
                 break handler;
             };
@@ -3437,7 +3301,7 @@ impl<'e> Vm<'e> {
                 )));
             }
             scope.push_entry(
-                self.strings_interner.get(name),
+                self.engine.get_interned_string(name),
                 AccessMode::ReadWrite,
                 value,
             );
@@ -3447,15 +3311,16 @@ impl<'e> Vm<'e> {
         Ok(target)
     }
 
-    /// What the catch variable is bound to (`eval/stmt.rs:809-845`).
+    /// What the `catch`` variable is bound to.
     ///
     /// Three shapes: nothing at all without a variable, the raw thrown value
     /// for a `throw`, and a map of the error's parts for anything else. The
     /// unwrapping matters — a `throw` inside a called function arrives wrapped
-    /// in `ErrorInFunctionCall`, and Rhai still binds the bare value.
+    /// in [`EvalAltResult::ErrorInFunctionCall`], and Rhai still binds the
+    /// bare value.
     ///
     /// Under `no_object` there is no map to build one in, and Rhai binds the
-    /// message alone (`eval/stmt.rs:815`).
+    /// message alone.
     fn catch_value(&self, err: &mut Box<EvalAltResult>, wanted: bool) -> Dynamic {
         if !wanted {
             return Dynamic::UNIT;
@@ -3506,7 +3371,7 @@ impl<'e> Vm<'e> {
         base: usize,
         reached: &mut usize,
         start: usize,
-    ) -> VmResult {
+    ) -> RhaiResult {
         // A called function pushes its operands above the caller's rather than
         // starting a stack of its own, so this records where its own begin.
         let stack_base = self.stack.len();
@@ -3617,8 +3482,8 @@ impl<'e> Vm<'e> {
                         return Err(malformed(format!("local slot {slot} is out of scope")));
                     }
                     // Reads clone out, matching how Rhai's own variable reads
-                    // leave the scope entry alone (`eval/expr.rs:276-278`), and
-                    // flattening any shared cell the way a read should.
+                    // leave the scope entry alone, and flattening any shared cell
+                    // the way a read should.
                     self.stack
                         .push(scope.get_mut_by_index(index).flatten_clone());
                 }
@@ -3655,12 +3520,11 @@ impl<'e> Vm<'e> {
                         .name(index)
                         .ok_or_else(|| malformed(format!("no name {index}")))?;
                     let op = if tag == code::tag::ASSIGN_NAMED_OP {
-                        let index = u32::from(small(3)?);
-                        Some(
-                            program
-                                .assign_op(index)
-                                .ok_or_else(|| malformed(format!("no op-assignment {index}")))?,
-                        )
+                        let assign_op_index = u32::from(small(3)?);
+                        let assign_op = program.assign_op(assign_op_index).ok_or_else(|| {
+                            malformed(format!("no op-assignment {assign_op_index}"))
+                        })?;
+                        Some(assign_op)
                     } else {
                         None
                     };
@@ -3725,10 +3589,10 @@ impl<'e> Vm<'e> {
                         }
                     }
 
-                    // Flatten value, as Rhai flattens a declaration's initializer
-                    // (`eval/stmt.rs:438`). A native can hand back a cell that is
-                    // already shared, and sharing must stop at the `let` rather
-                    // than becoming a property of the new local.
+                    // Flatten value, as Rhai flattens a declaration's initializer.
+                    // A native can hand back a cell that is already shared, and
+                    // sharing must stop at the `let` rather than becoming a property
+                    // of the new local.
                     let value = self.pop()?.flatten();
 
                     // Guard against too many variables
@@ -3738,7 +3602,7 @@ impl<'e> Vm<'e> {
                     }
 
                     scope.push_entry(
-                        self.strings_interner.get(name),
+                        self.engine.get_interned_string(name),
                         if tag == code::tag::DECLARE_CONST {
                             AccessMode::ReadOnly
                         } else {
@@ -3767,9 +3631,8 @@ impl<'e> Vm<'e> {
                         return Err(malformed(format!("local slot {slot} is out of scope")));
                     }
 
-                    // Rhai flattens the right-hand side before assigning
-                    // (`eval/stmt.rs:324`), so a shared cell is copied out
-                    // rather than aliased into the target.
+                    // Rhai flattens the right-hand side before assigning,
+                    // so a shared cell is copied out rather than aliased into the target.
                     let rhs = self.pop()?.flatten();
 
                     if scope.get_mut_by_index(index).is_read_only() {
@@ -3826,9 +3689,8 @@ impl<'e> Vm<'e> {
                         .this
                         .as_ref()
                         .ok_or_else(|| Box::new(EvalAltResult::ErrorUnboundThis(pos())))?;
-                    // Rhai's read is `this_ptr.cloned()` and does not flatten
-                    // (`eval/expr.rs:272`); its consumers do. Which tag this is
-                    // is which consumer asked.
+                    // Rhai's read is `this_ptr.cloned()` and does not flatten;
+                    // its consumers do. Which tag this is is which consumer asked.
                     self.stack.push(if tag == code::tag::LOAD_THIS {
                         value.flatten_clone()
                     } else {
@@ -3870,7 +3732,7 @@ impl<'e> Vm<'e> {
 
                     let outcome = if this.is_read_only() {
                         // Named for an expression that has no name, which is
-                        // what Rhai reports too (`eval/stmt.rs:118-122`).
+                        // what Rhai reports too.
                         Err(Box::new(EvalAltResult::ErrorAssignmentToConstant(
                             String::new(),
                             pos(),
@@ -3943,10 +3805,10 @@ impl<'e> Vm<'e> {
                     let target = wide(1)? as usize;
                     let condition = self.pop()?;
                     // Rhai requires a boolean guard and reports the mismatch at
-                    // the guard's own position (`eval/stmt.rs:487-490`).
-                    let holds = condition
-                        .as_bool()
-                        .map_err(|actual| self.mismatch::<bool>(actual, pos()))?;
+                    // the guard's own position.
+                    let holds = condition.as_bool().map_err(|actual| {
+                        self.engine.make_type_mismatch_err::<bool>(actual, pos())
+                    })?;
                     if holds == (tag == code::tag::JUMP_IF_TRUE) {
                         transfer!(target);
                         continue;
@@ -3986,13 +3848,13 @@ impl<'e> Vm<'e> {
                         .checked_sub(argc)
                         .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
 
-                    // Reach the same built-in the walker reaches. Gated on
-                    // Rhai's own `fast_operators()` rather than a guard of our
-                    // own, so an engine that turns it off gets the dispatch
-                    // path on both sides, and one that leaves it on gets the
-                    // same answer — including for a user-registered operator
-                    // on a primitive, which Rhai's fast path also bypasses
-                    // (`func/call.rs:1775-1799`).
+                    // Reach the same built-in the walker reaches.
+                    //
+                    // Gated on Rhai's own `fast_operators()` so an `Engine`
+                    // that turns it off gets the dispatch path on both sides,
+                    // and one that leaves it on gets the same answer —
+                    // including by-passing a user-registered operator on a
+                    // primitive, which Rhai's fast path also by-passes.
                     if let (Some(token), 2, true) = (op, argc, self.engine.fast_operators()) {
                         let (lhs, rhs) = self.stack.split_at_mut(first + 1);
                         let lhs = &mut lhs[first];
@@ -4006,7 +3868,8 @@ impl<'e> Vm<'e> {
                         if let Some((func, need_context)) = builtin {
                             let context = need_context
                                 .then(|| (self.engine, name, None, &self.global, pos()).into());
-                            let value = func(context, &mut [lhs, rhs])?;
+                            let value = func(context, &mut [lhs, rhs])
+                                .map_err(|err| err.fill_position(pos()))?;
                             self.stack.truncate(first);
                             self.stack.push(value);
                             pc += width;
@@ -4102,11 +3965,13 @@ impl<'e> Vm<'e> {
                     // The running total belongs to this literal and goes with
                     // it. `Op::CheckSize` is what filled it in, one element at
                     // a time, and what raised `ErrorDataTooLarge` against the
-                    // element that tipped it over (`eval/expr.rs:307-330`).
+                    // element that tipped it over.
                     //
                     // Only if there was one: an empty literal emits no
                     // `CheckSize` and pushed nothing, so popping here would
                     // take the *enclosing* literal's total — `[a, [], b]`.
+                    #[cfg(not(feature = "unchecked"))]
+                    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
                     if len > 0 {
                         self.sizes.pop();
                     }
@@ -4127,6 +3992,8 @@ impl<'e> Vm<'e> {
                         .ok_or_else(|| malformed("map with too few operands".to_string()))?;
                     // As for `MakeArray`: nothing was pushed for a literal
                     // with no computed entries, so nothing may be popped.
+                    #[cfg(not(feature = "unchecked"))]
+                    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
                     if len > 0 {
                         self.sizes.pop();
                     }
@@ -4150,9 +4017,13 @@ impl<'e> Vm<'e> {
                 }
 
                 code::tag::CHECK_ARRAY_SIZE | code::tag::CHECK_MAP_SIZE => {
-                    let index = small(1)?;
-                    let map = tag == code::tag::CHECK_MAP_SIZE;
-                    self.check_size(index, map, pos())?;
+                    #[cfg(not(feature = "unchecked"))]
+                    #[cfg(not(all(feature = "no_index", feature = "no_object")))]
+                    {
+                        let index = small(1)?;
+                        let map = tag == code::tag::CHECK_MAP_SIZE;
+                        self.check_size(index, map, pos())?;
+                    }
                 }
 
                 code::tag::SWITCH => {
@@ -4197,24 +4068,12 @@ impl<'e> Vm<'e> {
                             .name(name_index)
                             .ok_or_else(|| malformed(format!("no name {name_index}")))?;
                         // The resolver gets first refusal, and a name it
-                        // answers is not shared at all (`eval/stmt.rs:998`).
+                        // answers is not shared at all.
                         if self.resolve_var(name, scope, pos())?.is_some() {
                             pc += width;
                             continue;
                         }
-                        // `iter_raw` walks the scope from the top down, which is
-                        // the order shadowing wants — the first match is the
-                        // live one — but it counts from the other end than
-                        // `get_mut_by_index` does, so the position has to be
-                        // turned back round. Rhai reaches the same entry
-                        // through `Scope::search`, which is not public
-                        // (`eval/stmt.rs:1009`).
-                        let depth = scope.len();
-                        let found = scope
-                            .iter_raw()
-                            .position(|(entry, ..)| entry == name)
-                            .map(|from_top| depth - 1 - from_top);
-                        Some(found.ok_or_else(|| missing(name, pos()))?)
+                        Some(scope.search(name).ok_or_else(|| missing(name, pos()))?)
                     };
 
                     if let Some(index) = entry {
@@ -4236,7 +4095,7 @@ impl<'e> Vm<'e> {
                     // not resolve simply fails when the pointer is called.
                     self.stack.push(
                         FnPtr {
-                            name: name.into(),
+                            name: self.engine.get_interned_string(name),
                             curry: Default::default(),
                             typ: FnPtrType::Normal,
                         }
@@ -4252,17 +4111,11 @@ impl<'e> Vm<'e> {
 
                 code::tag::MAKE_FN_PTR => {
                     let name = self.pop()?;
-                    let name = name
-                        .into_immutable_string()
-                        .map_err(|actual| self.mismatch::<ImmutableString>(actual, pos()))?;
-                    // Validates that the name is an identifier, as Rhai's own
-                    // `Fn(..)` does (`func/call.rs:1215`).
-                    let pointer = FnPtr::new(name).map_err(|mut err| {
-                        if err.position().is_none() {
-                            err.set_position(pos());
-                        }
-                        err
+                    let name = name.into_immutable_string().map_err(|actual| {
+                        self.engine
+                            .make_type_mismatch_err::<ImmutableString>(actual, pos())
                     })?;
+                    let pointer = FnPtr::new(name).map_err(|err| err.fill_position(pos()))?;
                     self.stack.push(pointer.into());
                 }
 
@@ -4273,10 +4126,11 @@ impl<'e> Vm<'e> {
                         .len()
                         .checked_sub(argc + 1)
                         .ok_or_else(|| malformed("curry is missing its target".into()))?;
-                    let mut pointer = self.stack[at]
-                        .clone()
-                        .try_cast::<FnPtr>()
-                        .ok_or_else(|| self.mismatch::<FnPtr>(self.stack[at].type_name(), pos()))?;
+                    let mut pointer =
+                        self.stack[at].clone().try_cast::<FnPtr>().ok_or_else(|| {
+                            self.engine
+                                .make_type_mismatch_err::<FnPtr>(self.stack[at].type_name(), pos())
+                        })?;
                     for value in self.stack.drain(at + 1..) {
                         pointer.add_curry(value);
                     }
@@ -4393,6 +4247,11 @@ impl<'e> Vm<'e> {
 
                 code::tag::ITER_NEXT | code::tag::ITER_NEXT_INDEXED => {
                     let exit = wide(1)? as usize;
+                    let counter_slot = if tag == code::tag::ITER_NEXT_INDEXED {
+                        Some(small(5)?)
+                    } else {
+                        None
+                    };
                     let iteration = self
                         .iterators
                         .last_mut()
@@ -4413,21 +4272,14 @@ impl<'e> Vm<'e> {
                             pos(),
                         ))
                     })?;
-                    let count = iteration.count;
-
-                    // A fallible iterator's error is positioned at the
-                    // iterable, and only if it brought none of its own
-                    // (`eval/stmt.rs:749`).
-                    let value = item.map_err(|mut err| {
-                        if err.position().is_none() {
-                            err.set_position(pos());
+                    if let Some(slot) = counter_slot {
+                        if slot as usize >= scope.len() {
+                            return Err(malformed(format!("local slot {slot} is out of scope")));
                         }
-                        err
-                    })?;
-
-                    if tag == code::tag::ITER_NEXT_INDEXED {
-                        self.stack.push(Dynamic::from(count));
+                        *place(scope.get_mut_by_index(slot as usize), "", pos())? =
+                            Dynamic::from_int(iteration.count);
                     }
+                    let value = item.map_err(|err| err.fill_position(pos()))?;
                     self.stack.push(value.flatten());
                 }
 
@@ -4440,7 +4292,7 @@ impl<'e> Vm<'e> {
                     let value = self.pop()?;
                     // Through the cell: a closure made in an earlier iteration
                     // shares this slot, and Rhai writes into it rather than
-                    // replacing it (`eval/stmt.rs:752`).
+                    // replacing it.
                     *place(scope.get_mut_by_index(index), "", pos())? = value;
                 }
 
@@ -4484,7 +4336,8 @@ impl<'e> Vm<'e> {
 #[cfg(not(feature = "no_function"))]
 mod tests {
     use super::*;
-    use crate::grain::bytecode::{assemble, Chain, Chunk, Op, Positions, Step, Strings, Tail};
+    use crate::grain::bytecode::code::assemble;
+    use crate::grain::bytecode::{Chain, Chunk, Op, Positions, Step, Strings, Tail};
     use crate::grain::format::Abi;
     use crate::grain::program::{Function, Parts};
     use crate::{CallFnOptions, Engine, Scope, INT};
@@ -4576,7 +4429,7 @@ mod tests {
         program_of(&[ops], consts)
     }
 
-    fn call(program: &Program, this: Option<&mut Dynamic>) -> Result<Dynamic, Box<EvalAltResult>> {
+    fn call(program: &Program, this: Option<&mut Dynamic>) -> RhaiResult {
         let engine = Engine::new();
         let mut options = CallFnOptions::new().eval_ast(false);
         options.this_ptr = this;
@@ -4688,9 +4541,9 @@ mod tests {
         assert_eq!(this.as_int(), Ok(9));
     }
 
-    /// A callee gets `None`, whatever its caller was holding
-    /// (`func/call.rs:669`). No conditional makes that true — every ordinary
-    /// call goes through `call_compiled`, which installs `None`.
+    /// A callee gets `None`, whatever its caller was holding.
+    /// No conditional makes that true — every ordinary call goes through
+    /// `call_compiled`, which installs `None`.
     ///
     /// Worth testing at all because the failure is invisible: a register that
     /// leaked would only show up in a callee that reads `this`, and reading a
@@ -4748,9 +4601,8 @@ mod tests {
     }
 
     /// A chain rooted at `this` whose method is a chunk of ours: the receiver
-    /// becomes the callee's `this`, which is the binding Rhai does at
-    /// `func/call.rs:649-655` and the only place a method call differs from a
-    /// plain one.
+    /// becomes the callee's `this`, which is the binding Rhai does and the only
+    /// place a method call differs from a plain one.
     #[test]
     fn a_method_step_reaching_a_chunk_binds_the_receiver() {
         let program = program_with_chains(

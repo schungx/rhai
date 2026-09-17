@@ -6,8 +6,8 @@ use std::prelude::v1::*;
 
 bitflags! {
     /// Capability flags.
-    ///
-    /// Order is the wire order and must never change; append only.
+    //
+    // Order is the wire order and must never change; append only.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Caps: u32 {
         /// The script uses floating-point numbers, which are not available under `no_float`.
@@ -22,9 +22,9 @@ bitflags! {
         const DECIMAL = 1<<4;
         /// The script defines functions, which are not available under `no_function`.
         const FUNCTION = 1<<5;
-        /// The script uses function pointers.
+        /// The script uses [function pointers][crate::FnPtr].
         const FN_PTR = 1<<6;
-        /// The script uses currying on function pointers.
+        /// The script uses currying on [function pointers][crate::FnPtr].
         const CURRYING = 1<<7;
         /// The script employs indexing, which is not available under `no_index`.
         const INDEXING = 1<<8;
@@ -36,12 +36,14 @@ bitflags! {
         const THIS = 1<<11;
         /// The script uses shared values, which is not available under `no_closure`.
         const SHARING = 1<<12;
-        /// The script uses the `import` statement to import modules, which is not available under `no_module`.
-        const IMPORT = 1<<13;
-        /// The script uses the `export` statement to export in modules, which is not available under `no_module`.
-        const EXPORT = 1<<14;
-        /// The script uses the custom syntax, which is not available under `no_custom_syntax`.
-        const CUSTOM_SYNTAX = 1<<15;
+        /// The script uses the `export` statement to export from [modules][crate::Module], which is not available under `no_module`.
+        const EXPORT = 1<<13;
+        /// The script uses the `import` statement to import [modules][crate::Module], which is not available under `no_module`.
+        const IMPORT = 1<<14;
+        /// The script accesses [modules][crate::Module] via namespace qualifiers, which is not available under `no_module`.
+        const MODULE = 1<<15;
+        /// The script uses custom syntax, which is not available under `no_custom_syntax`.
+        const CUSTOM_SYNTAX = 1<<24;
     }
 }
 
@@ -99,19 +101,23 @@ const CAP_FLAGS: &[(Caps, &'static str, bool)] = &[
 /// The value representation an artifact was written against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Abi {
-    /// `size_of::<rhai::INT>()`. Measured, so `only_i32` set on Rhai alone is
+    /// `size_of::<rhai::INT>()`.
+    ///
+    /// Measured, so `only_i32` set on Rhai alone is
     /// still caught.
     pub int_bytes: u8,
     /// `size_of::<rhai::FLOAT>()`, or 0 under `no_float`.
     pub float_bytes: u8,
-    /// current build's feature flags.
+    /// Current build's feature flags.
     pub caps: Caps,
 }
 
 /// How two fingerprints differ.
 ///
-/// Naming the difference is the whole point: "artifact was built for a
-/// different rhai" is not something a user can act on.
+/// ## Purpose
+///
+/// Naming the difference is the whole point: "artifact was created by a
+/// different Rhai build" is not something a user can act on.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AbiMismatch {
     /// A width differs, which means integers or floats would decode wrong.

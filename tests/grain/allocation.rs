@@ -27,6 +27,7 @@
 //! the published figures came from, so the whole binary is a default-build
 //! measurement — see the note above `allocation_footprint`.
 #![cfg(not(any(feature = "no_float", feature = "no_function", feature = "no_index", feature = "no_object")))]
+#![cfg(feature = "internals")]
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -254,7 +255,7 @@ fn allocation_footprint() {
     let follow_stripped = follow_program.write_stripped().expect("follow.rhai must be writable");
     let follow_artifact = follow_stripped.artifact;
     // Both halves of the sidecar are what stripping keeps off the wire.
-    let follow_table = follow_stripped.sidecar.positions.len() + follow_stripped.sidecar.chains.len();
+    let follow_table = follow_stripped.sidecar.num_positions() + follow_stripped.sidecar.num_chains();
     let follow_loaded = measure(|| rhai::grain::Program::read(&follow_artifact).expect("must load"));
 
     println!(

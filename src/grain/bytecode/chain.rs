@@ -1,5 +1,3 @@
-use crate::grain::Program;
-
 use bitflags::bitflags;
 
 #[cfg(feature = "no_std")]
@@ -86,20 +84,6 @@ pub enum Step {
 }
 
 impl Step {
-    /// Where this step is in the source.
-    ///
-    /// In the chain pool rather than the position table, because a chain is one
-    /// instruction and its single table entry cannot say which of `a.b[i].c()`
-    /// failed. Rhai blames the step for all three kinds: an index against its
-    /// index expression, a property against the property
-    /// (`eval/chaining.rs:1039`), a method against the call (`:904`).
-    #[must_use]
-    pub fn pos(&self) -> rhai::Position {
-        match self {
-            Step::Index { pos, .. } | Step::Property { pos, .. } | Step::Method { pos, .. } => *pos,
-        }
-    }
-
     /// How many source positions this step carries.
     ///
     /// Two for an index, which keeps the `[` apart from what is inside it.
@@ -112,7 +96,8 @@ impl Step {
     }
 
     /// Dump the disassembly of the step.
-    pub fn disassemble(&self, program: &Program) -> String {
+    #[cfg(feature = "internals")]
+    pub fn disassemble(&self, program: &crate::grain::Program) -> String {
         match self {
             Step::Index { operand, flags, .. } => {
                 format!(
@@ -178,7 +163,8 @@ pub enum Tail {
 
 impl Tail {
     /// Dump the disassembly of the tail.
-    pub fn disassemble(&self, program: &Program) -> String {
+    #[cfg(feature = "internals")]
+    pub fn disassemble(&self, program: &crate::grain::Program) -> String {
         match self {
             Tail::Read => String::new(),
             Tail::Assign { op } => match op {
@@ -386,22 +372,9 @@ impl Chain {
         )
     }
 
-    /// Whether walking this chain can change what it walks over.
-    ///
-    /// A read-only chain needs no write-back at all, which is worth knowing:
-    /// write-back on a temporary calls a setter, and calling one where Rhai
-    /// would not is an observable difference on a host type.
-    #[must_use]
-    pub fn mutates(&self) -> bool {
-        matches!(self.tail, Tail::Assign { .. })
-            || self
-                .steps
-                .iter()
-                .any(|step| matches!(step, Step::Method { .. }))
-    }
-
     /// Dump the disassembly of the entire chain.
-    pub fn disassemble(&self, program: &Program) -> String {
+    #[cfg(feature = "internals")]
+    pub fn disassemble(&self, program: &crate::grain::Program) -> String {
         format!(
             "{:?} {} {} {}",
             self.root,

@@ -1,5 +1,4 @@
 use crate::func::{calc_switch_value_hash, StraightHashMap};
-use crate::grain::Program;
 use crate::{eval::RangeCase, Dynamic, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -28,7 +27,8 @@ pub struct Switch {
 
 impl Switch {
     /// Dump the disassembly of the operation.
-    pub fn disassemble(&self, program: &Program) -> String {
+    #[cfg(feature = "internals")]
+    pub fn disassemble(&self, program: &crate::grain::Program) -> String {
         format!(
             "{{ {} }}",
             self.cases
@@ -61,6 +61,7 @@ pub struct SwitchRange {
 
 impl SwitchRange {
     /// Dump the disassembly of the switch range.
+    #[cfg(feature = "internals")]
     pub fn disassemble(&self) -> String {
         if self.inclusive {
             format!("range {}..={} => {}", self.from, self.to, self.target)
@@ -74,10 +75,10 @@ impl SwitchRange {
     /// Whether a subject falls in this range.    ///
     /// Delegates to Rhai's own `RangeCase` rather than comparing integers,
     /// because a range arm matches more than integers: `switch 5.5 { 0..10 =>
-    /// .. }` matches, and under the `decimal` feature so does a `Decimal`
-    /// (`ast/stmt.rs:254`). Rebuilding the case is two moves and no
-    /// allocation, and it means there is one definition of what a range arm
-    /// covers.
+    /// .. }` matches, and under the `decimal` feature so does a `Decimal`.
+    /// Rebuilding the case is two moves and no allocation, and it means
+    /// there is one definition of what a range arm covers.
+    #[inline]
     #[must_use]
     pub fn contains(&self, value: &Dynamic) -> bool {
         let case: RangeCase = if self.inclusive {

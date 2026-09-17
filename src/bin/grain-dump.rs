@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(s) => println!(
             "\nartifact {} bytes, sidecar {} positions",
             s.artifact.len(),
-            s.sidecar.positions.len()
+            s.sidecar.num_positions()
         ),
         Err(e) => println!("\nnot writable: {e:?}"),
     }

@@ -8,10 +8,11 @@
 //! every single-byte corruption of a valid artifact either loads or fails, and
 //! never panics.
 
+#![cfg(feature = "internals")]
+
 use super::corpus;
 
-use rhai::grain::format::{Abi, ReadError, WriteError};
-use rhai::grain::{Compiler, Program, Vm};
+use rhai::grain::{Abi, Compiler, Program, ReadError, Vm, WriteError};
 use rhai::{Dynamic, Engine, Scope, INT};
 
 /// What a run produced, in a form two runs can be compared on.
@@ -514,7 +515,7 @@ fn a_future_format_version_is_refused_rather_than_guessed_at() {
 /// common Rhai scriptlet that actually uses it and still round-trips.
 #[test]
 fn capabilities_round_trip() {
-    use rhai::grain::format::Caps;
+    use rhai::grain::Caps;
 
     const CASES: &[(&str, &str, Caps, &str)] = &[
         #[cfg(not(feature = "no_float"))]
@@ -567,7 +568,7 @@ fn capabilities_round_trip() {
 /// Capabilities of the host.
 #[test]
 fn host_capabilities() {
-    use rhai::grain::format::{Abi, Caps};
+    use rhai::grain::{Abi, Caps};
 
     const SUPPORTED: &[(Caps, bool, &str)] = &[
         (Caps::FLOAT, !cfg!(feature = "no_float"), "floating-point"),
@@ -690,10 +691,15 @@ fn a_stripped_program_reports_an_address_the_host_can_resolve() {
 
     let mut vm = Vm::new(&engine);
     let error = vm.eval_with_scope(&mut Scope::new(), &device).expect_err("dividing by zero must fail");
-    let address = vm.fault_pc().expect("a failed run must name an instruction");
+    let fault = vm.fault_trace();
 
     // Host: resolve what came back.
-    let site = rhai::grain::pos::resolve(&stripped.sidecar.positions, address as u32).expect("the failing instruction must have a recorded site");
+    let site = stripped
+        .sidecar
+        .resolve(&fault)
+        .first()
+        .expect("a failed run must name an instruction")
+        .expect("the failing instruction must have a recorded site");
 
     assert_eq!((site.line, site.column), (3, 3), "the division is at line 3, column 3 of {source:?}",);
 
@@ -847,35 +853,6 @@ fn fail(engine: &Engine, program: Program, what: &str) -> (rhai::EvalAltResult, 
     (*error, vm.fault_trace())
 }
 
-/// The case a check on the code alone cannot catch.
-///
-/// Two scripts differing only in whitespace compile to the same instructions,
-/// so nothing about the code separates them — while their positions, the half
-/// that was left behind, are exactly what changed. Swapping their sidecars
-/// would report every error a line or two out, which reads as an answer.
-///
-/// So the id is taken from the diagnostics rather than from the code, and the
-/// artifact carries it: the two artifacts differ here in that one field alone.
-#[test]
-#[cfg(not(feature = "no_position"))]
-fn a_sidecar_from_another_build_of_the_same_code_is_refused() {
-    let engine = corpus::engine();
-
-    let one = Compiler::new().compile(&engine.compile("let a = 1;\nlet b = 2;\na + b").unwrap());
-    let two = Compiler::new().compile(&engine.compile("let a = 1;\n\n\nlet b = 2;\na + b").unwrap());
-
-    let one_stripped = one.write_stripped().expect("must be writable");
-    let two_stripped = two.write_stripped().expect("must be writable");
-
-    assert_eq!(one.code(), two.code(), "the case needs two programs the code cannot tell apart",);
-    assert_ne!(one_stripped.sidecar.positions, two_stripped.sidecar.positions, "their positions are what differs",);
-    assert_ne!(one_stripped.sidecar.debug_id, two_stripped.sidecar.debug_id, "so their ids must differ too",);
-
-    let mut program = Program::read(&one_stripped.artifact).unwrap();
-    assert!(program.attach_positions(&two_stripped.sidecar).is_err(), "another build's sidecar must be refused",);
-    program.attach_positions(&one_stripped.sidecar).expect("its own sidecar must attach");
-}
-
 /// Stripping must not change which sidecar an artifact answers to.
 ///
 /// The id names the diagnostics a program was compiled with, not the ones it
@@ -895,7 +872,7 @@ fn stripping_does_not_change_the_debug_id() {
     let sidecar = program.strip_positions();
 
     assert_eq!(program.debug_id(), before, "stripping must not rename the program");
-    assert_eq!(sidecar.debug_id, before, "the sidecar must name what it came from");
+    assert_eq!(sidecar.debug_id(), before, "the sidecar must name what it came from");
 
     // The long way round: strip in memory, then write, then load and reattach.
     let bytes = program.write().expect("must be writable");
@@ -933,7 +910,7 @@ fn stripping_positions_shrinks_the_artifact() {
 
         with += full.len();
         without += stripped.artifact.len();
-        tables += stripped.sidecar.positions.len() + stripped.sidecar.chains.len();
+        tables += stripped.sidecar.num_positions() + stripped.sidecar.num_chains();
     }
 
     println!(

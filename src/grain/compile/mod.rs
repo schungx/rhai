@@ -1,3 +1,5 @@
+#![cfg(not(feature = "no_ast"))]
+
 mod cases;
 mod poolable;
 mod slots;
@@ -16,9 +18,10 @@ use crate::func::{ScriptFuncDef, ScriptFuncPayload};
 use crate::types::{Span, Token};
 use crate::{Dynamic, ImmutableString, Position, AST};
 
+use crate::grain::bytecode::code::{assemble, resolve_switch_targets};
 use crate::grain::bytecode::{
-    assemble, resolve_switch_targets, AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step,
-    StepFlags, Switch, SwitchRange, Tail,
+    AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step, StepFlags, Switch, SwitchRange,
+    Tail,
 };
 use crate::grain::compile::poolable::is_poolable;
 use crate::grain::compile::slots::Slots;
@@ -61,11 +64,10 @@ macro_rules! call_has_namespace {
     }};
 }
 
-/// Lowers a Rhai `AST` into a [`Program`].
+/// Lowers an [`AST`] into a [`Program`].
 ///
-/// Anything not yet lowered is kept as an AST fragment and handed back to
-/// Rhai's walker at runtime, so the output always means the same as its input.
-/// Progress is [`Program::residual_count`] falling.
+/// Anything not yet lowered is kept as an [`AST`] fragment and handed back to
+/// the interpreter at runtime, so the output always means the same as its input.
 #[derive(Debug, Default, Clone)]
 pub struct Compiler {
     _private: (),
@@ -73,12 +75,13 @@ pub struct Compiler {
 
 impl Compiler {
     /// Create a new [`Compiler`] with default options.
+    #[inline(always)]
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Lower an `AST` into a [`Program`].
+    /// Lower an [`AST`] into a [`Program`].
     #[must_use]
     pub fn compile(&self, ast: &AST) -> Program<'static> {
         let fresh = |caps| Lowering {
@@ -132,7 +135,7 @@ impl Compiler {
 
         // Jump targets and the position table were both keyed on instruction
         // index while lowering; instructions vary in length once assembled.
-        let mut positions = vec![rhai::Position::NONE; code.len()];
+        let mut positions = vec![crate::Position::NONE; code.len()];
         for (index, pos) in lowering.positions.iter().enumerate() {
             positions[offsets[index] as usize] = *pos;
         }
@@ -158,14 +161,6 @@ impl Compiler {
         // for them: a function this compiler skipped, or a fragment that could
         // call one. With neither, every call resolves in the table above and
         // the library — an `AST`'s whole function tree — can be dropped.
-        //
-        // The third case is a pointer to a `this`-taking chunk. Rhai reaches a
-        // compiled function through a registered wrapper, and a wrapper is
-        // registered at one arity — but a native calling a pointer against a
-        // receiver decides for itself how many arguments to append beside it,
-        // so no single arity is right. Rhai's own pointer carries the body and
-        // sizes the call from it, which is what its copy is kept here for. See
-        // `callback::wrappers`, which skips exactly these.
         #[cfg(not(feature = "no_function"))]
         let lib = {
             let needs_walker = skipped > 0 || !lowering.residuals.is_empty();
@@ -396,9 +391,9 @@ impl Lowering {
         // itself have evaluated into a temporary.
         //
         // `this` is deliberately not in the second class. Rhai reaches it
-        // through the caller's `&mut` (`eval/chaining.rs:528`), so a method
-        // step that mutates lands in the caller's value — walking a copy would
-        // drop the write silently. It gets a root of its own instead.
+        // through the caller's `&mut`, so a method step that mutates lands in
+        // the caller's value — walking a copy would drop the write silently.
+        // It gets a root of its own instead.
         let root_spec = match root {
             Expr::Variable(v, ..) if !has_namespace!(v) => match self.slots.resolve(&v.1) {
                 Some(slot) => Root::Local {
@@ -427,8 +422,7 @@ impl Lowering {
             // `import` — the escape hatch's job.
             Expr::Variable(..) => return false,
             _ if matches!(tail, Tail::Read) => Root::Temporary,
-            // Unreachable through the parser, which refuses `f().x = 1`
-            // outright (`eval/chaining.rs:559`).
+            // Unreachable through the parser, which refuses `f().x = 1` outright.
             _ => return false,
         };
 
@@ -447,9 +441,9 @@ impl Lowering {
         }
 
         // Index values and method arguments are evaluated first, in step
-        // order, exactly as Rhai collects them before walking
-        // (`eval/chaining.rs:568`). Evaluating one partway down would need the
-        // operand stack while a borrow of the container is live.
+        // order, exactly as Rhai collects them before walking.
+        // Evaluating one partway down would need the operand stack while
+        // a borrow of the container is live.
         let mut lowered = Vec::with_capacity(steps.len());
         let mut operands = 0u16;
 
@@ -528,13 +522,16 @@ impl Lowering {
     ///
     /// The layout is: evaluate and keep the subject, [`Op::Switch`] over
     /// hashed cases, a second [`Op::Switch`] over ranges for case misses and
-    /// declined guards, then the arm bodies and default. Every arm leaves one
-    /// value and jumps to the end, so the statement's value is the matched
-    /// arm's — or unit, which is what an absent `_` compiles to.
+    /// declined guards, then the arm bodies and default.
+    ///
+    /// Every arm leaves one value and jumps to the end, so the statement's
+    /// value is the matched arm's — or unit, which is what an absent `_`
+    /// compiles to.
     ///
     /// Guards are why the table does not simply hold bodies. Rhai tries the
     /// arms sharing a case value in source order and, when they all decline,
-    /// continues with ranges before the default (`eval/stmt.rs:546-571`).
+    /// continues with ranges before the default.
+    ///
     /// Nearly every arm anyone writes has no guard, and those cost no chain at
     /// all.
     fn switch(&mut self, subject: &Expr, sw: &SwitchCasesCollection) -> bool {
@@ -765,9 +762,9 @@ impl Lowering {
 
         for block in blocks {
             match &sw.expressions[*block].lhs {
-                // An arm without an `if` is a literal `true` in the tree
-                // (`parser.rs:1187`), so it always runs and everything after
-                // it in the group is unreachable.
+                // An arm without an `if` is a literal `true` in the tree,
+                // so it always runs and everything after it in the group
+                // is unreachable.
                 Expr::BoolConstant(true, ..) => {
                     return match entry {
                         None => Entry::Body(*block),
@@ -850,12 +847,13 @@ impl Lowering {
     /// Lower one script function's body into the same instruction list.
     ///
     /// Returns `None` if the slot model cannot account for it, in which case
-    /// Rhai keeps its own copy and calls to it go through dispatch. That is a
-    /// per-function decision: one awkward function does not cost the rest
-    /// their lowering.
+    /// Rhai keeps its own copy and calls to it go through dispatch.
     ///
-    /// The body runs in a fresh scope with the parameters already pushed
-    /// (`func/script.rs:73`), so the parameters are exactly slots 0 upwards.
+    /// That is a per-function decision: one awkward function does not cost
+    /// the rest their lowering.
+    ///
+    /// The body runs in a fresh scope with the parameters already pushed,
+    /// so the parameters are exactly slots 0 upwards.
     #[cfg(not(feature = "no_function"))]
     fn function(&mut self, def: &ScriptFuncDef) -> Option<LoweredFn> {
         let first_op = self.code.len();
@@ -887,7 +885,8 @@ impl Lowering {
         };
 
         // Rhai stops once on entering a body, before its first statement, at a
-        // synthetic node placed on the body itself (`func/script.rs:115-119`).
+        // synthetic node placed on the body itself.
+        //
         // A marker at the same place is that stop, and puts it in the chunk
         // rather than in the VM. Depth zero, like the statements it precedes:
         // it does not enclose them, so stepping from here reaches the first one.
@@ -1031,8 +1030,8 @@ impl Lowering {
             Stmt::FnCall(call, ..) if call.name == crate::engine::KEYWORD_EVAL => Lowered::Defeated,
 
             // `this` on the left. Ahead of the two variable arms because Rhai's
-            // parser puts it there too (`parser.rs:2002`), and because the
-            // chain arm below would otherwise take `this.x = 1`'s sibling.
+            // parser puts it there too, and because the chain arm below would
+            // otherwise take `this.x = 1`'s sibling.
             Stmt::Assignment(payload) if matches!(&payload.1.lhs, Expr::ThisPtr(..)) => {
                 self.caps.insert(Caps::THIS);
 
@@ -1040,9 +1039,9 @@ impl Lowering {
 
                 // Before the right-hand side, not after. Rhai checks that
                 // `this` is bound and returns before it evaluates the value
-                // (`eval/stmt.rs:300-303`) — unlike the variable arm, which
-                // evaluates first — so an unbound `this = no_such` is
-                // `ErrorUnboundThis` and not the value's own failure.
+                // — unlike the variable arm, which evaluates first — so an
+                // unbound `this = no_such` is `ErrorUnboundThis` and not the
+                // value's own failure.
                 self.emit_at(Op::RequireThis, binary.lhs.position());
 
                 self.expression(&binary.rhs);
@@ -1090,10 +1089,9 @@ impl Lowering {
                 // The variable's position, not the operator's — unlike
                 // `AssignLocal`. The errors this instruction raises itself are
                 // `ErrorAssignmentToConstant` and `ErrorVariableNotFound`, and
-                // Rhai reports both against the variable (`eval/stmt.rs:340`
-                // and `eval/stmt.rs:120`). For a local those are unreachable,
-                // because the parser rejects a constant it can see; for a name
-                // the caller supplied they are the common failures.
+                // Rhai reports both against the variable. For a local those are
+                // unreachable, because the parser rejects a constant it can see;
+                // for a name the caller supplied they are the common failures.
                 self.emit_at(Op::AssignNamed { name, op }, binary.lhs.position());
                 Lowered::Empty
             }
@@ -1129,7 +1127,7 @@ impl Lowering {
             }
 
             // Emitted by the parser ahead of the `curry` call that binds a
-            // closure's captures (`parser.rs:3707`).
+            // closure's captures.
             #[cfg(not(feature = "no_closure"))]
             Stmt::Share(names) => {
                 self.caps.insert(Caps::SHARING);
@@ -1154,11 +1152,11 @@ impl Lowering {
 
             // `try { .. } catch (e) { .. }`.
             //
-            // The catch block's value is thrown away: Rhai's whole statement
+            // The `catch`` block's value is thrown away: Rhai's whole statement
             // is the try block's value on the way through and *unit* when
-            // something was caught (`.map(|_| Dynamic::UNIT)`,
-            // `eval/stmt.rs:863`). So `try { throw 7 } catch (e) { e * 2 }` is
-            // unit, not 14.
+            // something was caught.
+            //
+            // So `try { throw 7 } catch (e) { e * 2 }` is unit, not 14.
             Stmt::TryCatch(payload, ..) => {
                 let FlowControl { expr, body, branch } = &**payload;
 
@@ -1222,9 +1220,9 @@ impl Lowering {
             // `for x in seq` / `for (x, i) in seq`.
             //
             // The loop variable and counter are pushed once and written each
-            // time round, not re-pushed — Rhai does the same (`stmt.rs:708`),
-            // and it is observable: a closure made in the body captures the
-            // cell, so every one of them sees the last value.
+            // time round, not re-pushed — Rhai does the same, and it is observable:
+            // a closure made in the body captures the cell, so every one of them
+            // sees the last value.
             Stmt::For(payload, ..) => {
                 let (var, counter, flow) = &**payload;
                 let outside = u16::try_from(self.slots.depth()).expect("slot count is bounded");
@@ -1256,22 +1254,19 @@ impl Lowering {
                 self.slots.declare(var.name.clone());
                 let var_slot = self.slots.depth() as u16 - 1;
 
+                self.emit_at(Op::Tick, flow.body.position());
+
                 let top = self.here();
                 let exit = self.code.len();
                 self.emit_at(
                     Op::IterNext {
                         exit: u32::MAX,
-                        indexed: counter_slot.is_some(),
+                        counter_slot,
                     },
                     flow.expr.position(),
                 );
-                // The item is on top, the count under it, so these pop in the
-                // order the two locals were declared.
+                // The item is on the operand stack.
                 self.emit(Op::StoreShared(var_slot));
-                if let Some(slot) = counter_slot {
-                    self.emit(Op::StoreShared(slot));
-                }
-                self.emit_at(Op::Tick, flow.body.position());
 
                 let has_break_val = flow.body.statements().iter().any(has_break_value);
                 self.begin_for(top, outside, has_break_val);
@@ -1365,14 +1360,14 @@ impl Lowering {
             }
 
             // `loop` and `while true` are the same node: Rhai marks an
-            // unconditional loop with a unit or `true` guard
-            // (`eval/stmt.rs:575-576`).
+            // unconditional loop with a unit or `true` guard.
             Stmt::While(payload, ..) => {
                 let FlowControl { expr, body, .. } = &**payload;
                 let unconditional = matches!(expr, Expr::Unit(..) | Expr::BoolConstant(true, ..));
 
-                let top = self.here();
                 self.emit_at(Op::Tick, body.position());
+
+                let top = self.here();
 
                 let exit = if unconditional {
                     None
@@ -1399,8 +1394,9 @@ impl Lowering {
                 let FlowControl { expr, body, .. } = &**payload;
                 let until = flags.contains(ASTFlags::NEGATED);
 
-                let top = self.here();
                 self.emit_at(Op::Tick, body.position());
+
+                let top = self.here();
 
                 let has_break_val = body.statements().iter().any(has_break_value);
                 self.begin_loop(top, has_break_val);
@@ -1495,7 +1491,7 @@ impl Lowering {
 
             // `throw` shares this node, flagged, and unwinds as an error
             // rather than returning. The position is the keyword's, not the
-            // expression's (`eval/stmt.rs:877`).
+            // expression's.
             Stmt::Return(value, flags, pos) if flags.contains(ASTFlags::BREAK) => {
                 match value {
                     Some(expr) => self.expression(expr),
@@ -1519,10 +1515,11 @@ impl Lowering {
             //
             // `import` declares into the imports stack rather than the scope,
             // and a fragment that rewinds truncates that stack on the way out
-            // (`eval/stmt.rs:55`) — so the alias would be gone before the next
-            // statement could name it, and a qualified call is its own
-            // fragment. Refusing the lowering hands the body to the walker
-            // whole, which is where the alias lives long enough to be used.
+            // — so the alias would be gone before the next statement could name
+            // it, and a qualified call is its own fragment.
+            //
+            // Refusing the lowering hands the body to the walker whole, which
+            // is where the alias lives long enough to be used.
             #[cfg(not(feature = "no_module"))]
             Stmt::Import(..) => {
                 self.caps.insert(Caps::IMPORT);
@@ -1662,7 +1659,7 @@ impl Lowering {
                     self.emit_at(
                         Op::CheckSize {
                             index: index as u16,
-                            map: false,
+                            is_map: false,
                         },
                         element.position(),
                     );
@@ -1673,9 +1670,10 @@ impl Lowering {
             // The other half of the same shape. Rhai keeps a map literal as a
             // template holding every key — the constant values already in
             // place, the computed ones as placeholders — plus the list of
-            // entries still to evaluate (`ast/expr.rs:283`). An all-constant
-            // map is folded into a `DynamicConstant` and never arrives here;
-            // one with a single computed value does, and used to fragment.
+            // entries still to evaluate.
+            //
+            // An all-constant map is folded into a `DynamicConstant` and never
+            // arrives here; one with a single computed value does.
             #[cfg(not(feature = "no_object"))]
             Expr::Map(entries, ..) if entries.0.len() <= u16::MAX as usize => {
                 self.caps.insert(Caps::MAP);
@@ -1696,7 +1694,7 @@ impl Lowering {
                     self.emit_at(
                         Op::CheckSize {
                             index: index as u16,
-                            map: true,
+                            is_map: true,
                         },
                         value.position(),
                     );
@@ -1706,8 +1704,8 @@ impl Lowering {
 
             // A block used for its value: `let y = if c { 1 } else { 2 }`,
             // `let y = switch ..`, `let y = { let z = 1; z }`. Rhai evaluates
-            // it with `restore_orig_state` set (`eval/expr.rs:434`), so it
-            // rewinds what it declared — which is what `block` emits.
+            // it with `restore_orig_state` set, so it rewinds what it declared
+            // — which is what `block` emits.
             Expr::Stmt(block) => {
                 if !self.block_value(block.statements()) {
                     self.defeated = true;
@@ -1743,9 +1741,9 @@ impl Lowering {
                     unreachable!("checked by the guard");
                 };
                 // `obj.call(f)` binds `obj` as the closure's `this` by
-                // reference (`func/call.rs:862`), so a write inside the closure
-                // has to reach `obj`. The value goes on the stack as it always
-                // did; the receiver says where to carry a write back to.
+                // reference, so a write inside the closure has to reach `obj`.
+                // The value goes on the stack as it always did; the receiver
+                // says where to carry a write back to.
                 //
                 // Unflattened, for the reason `unflattened` gives: a receiver
                 // that is a shared cell has to arrive *as* the cell, so a write
@@ -1764,10 +1762,10 @@ impl Lowering {
                 // The call's own position, which is what Rhai reports for
                 // everything the pointer path can raise. The one case it is
                 // not is `obj.call(x)` where `obj` is not a pointer and `x` is
-                // taken as one: Rhai blames `x` (`func/call.rs:838`). Both
-                // cannot come from one position-table entry, and using the
-                // argument's instead was measured to move the divergence onto
-                // the common path rather than remove it.
+                // taken as one: Rhai blames `x`. Both cannot come from one
+                // position-table entry, and using the argument's instead was
+                // measured to move the divergence onto the common path rather
+                // than remove it.
                 //
                 // Method style only. `curry(f, ..)` written as a call is a
                 // different path in Rhai and takes the *argument's* position —
@@ -1777,7 +1775,7 @@ impl Lowering {
                     self.emit_at(
                         Op::CallFnPtr {
                             argc,
-                            method: true,
+                            is_method: true,
                             receiver,
                         },
                         pos,
@@ -1867,22 +1865,21 @@ impl Lowering {
     }
 
     /// Where Rhai's method-call rewrite would take this call's first argument
-    /// from, if it applies at all (`func/call.rs:1434`).
+    /// from, if it applies at all.
     fn receiver(&mut self, call: &FnCallExpr) -> Option<Receiver> {
         // An operator short-circuits before the rewrite is reached, and a call
-        // that captures the enclosing scope is excluded from it outright
-        // (`func/call.rs:1387` and `:1775`).
+        // that captures the enclosing scope is excluded from it outright.
         if call.op_token.is_some() || call.capture_parent_scope {
             return None;
         }
 
         // `f(this, ..)` takes the same rewrite as a variable. Rhai also requires
-        // the receiver not to be shared and nothing to be curried
-        // (`func/call.rs:1417`), and neither is a question the compiler can
-        // answer: sharing is a run-time property, deferred to the VM as it
-        // already is for a read-only local, and a curried redirect can never
-        // reach this instruction because `call`/`curry` go through
-        // `Op::CallFnPtr` and `is_lowerable_call` refuses them here.
+        // the receiver not to be shared and nothing to be curried, and neither
+        // is a question the compiler can answer: sharing is a run-time property,
+        // deferred to the VM as it already is for a read-only local, and a
+        // curried redirect can never reach this instruction because
+        // `call`/`curry` go through `Op::CallFnPtr` and `is_lowerable_call`
+        // refuses them here.
         if let Some(Expr::ThisPtr(..)) = call.args.first() {
             self.caps.insert(Caps::THIS);
             return Some(Receiver::This);
@@ -1912,11 +1909,12 @@ impl Lowering {
         if let Some(receiver) = self.receiver(call) {
             // `this` goes on *first*, unlike either of the others. Rhai's two
             // arms disagree about when it is read: the by-reference one takes a
-            // pointer after the arguments (`func/call.rs:1417`), but the
-            // fallback a shared or unbound receiver lands in reads and flattens
-            // it before them (`:1462`). Reading first is what makes an unbound
-            // `f(this, no_such)` report `ErrorUnboundThis`, and what stops an
-            // argument that writes to `this` being seen by the value passed.
+            // pointer after the arguments, but the fallback a shared or unbound
+            // receiver lands in reads and flattens it before them.
+            //
+            // Reading first is what makes an unbound `f(this, no_such)` report
+            // `ErrorUnboundThis`, and what stops an argument that writes to
+            // `this` being seen by the value passed.
             if let Receiver::This = receiver {
                 self.emit_at(Op::LoadThis, call.args[0].position());
             }
@@ -1999,11 +1997,11 @@ impl Lowering {
     /// Read a variable without flattening it, leaving a shared cell shared.
     ///
     /// Rhai's own variable read works this way — `Target::take_or_clone` hands
-    /// back the shared value untouched (`eval/target.rs:233`) — and the places
-    /// that want the contents flatten for themselves. [`Op::LoadLocal`]
-    /// flattens instead, which is right where the value is what matters and
-    /// wrong in the two places the cell is:
+    /// back the shared value untouched — and the places that want the contents
+    /// flatten for themselves.
     ///
+    /// [`Op::LoadLocal`] flattens instead, which is right where the value is
+    /// what matters and wrong in the two places the cell is:
     /// * a closure's captured variable, where the aliasing *is* the capture;
     /// * a `switch` subject, which Rhai refuses to match on when it is not
     ///   hashable, and a shared value is not — so a shared subject falls to the
@@ -2036,10 +2034,11 @@ impl Lowering {
     /// Lower `Fn(name)`, `curry(f, ..)` or `call(f, ..)`, if this is one.
     ///
     /// Rhai resolves these three by name before dispatch, but only at the
-    /// arities it recognizes (`func/call.rs:1109-1245`); anything else is an
-    /// ordinary call that will not find a function. Matching those arities
-    /// exactly is what keeps the two agreeing on the failures as well as the
-    /// successes.
+    /// arities it recognizes; anything else is an ordinary call that will
+    /// not find a function.
+    ///
+    /// Matching those arities exactly is what keeps the two agreeing on
+    /// the failures as well as the successes.
     fn fn_ptr_call(&mut self, call: &FnCallExpr, pos: Position) -> bool {
         if call_has_namespace!(call) || call.capture_parent_scope {
             return false;
@@ -2063,8 +2062,7 @@ impl Lowering {
             // against the call: Rhai reads it, and everything it can then
             // complain about — a name that is not a string, a string that is
             // not an identifier, a first argument that is not a pointer — is
-            // filled in with the argument's position (`func/call.rs:1217`,
-            // `:1220`, `:1232`).
+            // filled in with the argument's position.
             (crate::engine::KEYWORD_FN_PTR, 1) => {
                 self.expression(&call.args[0]);
                 self.emit_at(Op::MakeFnPtr, call.args[0].position());
@@ -2091,7 +2089,7 @@ impl Lowering {
                 self.emit_at(
                     Op::CallFnPtr {
                         argc: (argc - 1) as u8,
-                        method: false,
+                        is_method: false,
                         // Call position binds no receiver at all.
                         receiver: None,
                     },
@@ -2134,7 +2132,7 @@ impl Lowering {
     ///
     /// Each operand is coerced to bool at its own position, which is why the
     /// jumps carry one — Rhai reports a non-boolean operand against the
-    /// operand, not the expression (`eval/expr.rs:367-399`).
+    /// operand, not the expression.
     fn short_circuit(&mut self, operands: &[Expr], stop_on: bool) {
         let mut decided = Vec::new();
 
@@ -2507,19 +2505,19 @@ impl Lowering {
 /// only one position-table entry between all of them.
 enum ChainStep<'a> {
     /// The index expression, and the `[` it sits behind — see [`Step::Index`].
-    Index(&'a Expr, rhai::Position, crate::grain::bytecode::StepFlags),
+    Index(&'a Expr, crate::Position, crate::grain::bytecode::StepFlags),
     Property(
         &'a (
             (ImmutableString, u64),
             (ImmutableString, u64),
             ImmutableString,
         ),
-        rhai::Position,
+        crate::Position,
         crate::grain::bytecode::StepFlags,
     ),
     Method(
         &'a FnCallExpr,
-        rhai::Position,
+        crate::Position,
         crate::grain::bytecode::StepFlags,
     ),
 }
@@ -2532,10 +2530,10 @@ enum ChainStep<'a> {
 /// level. The innermost `rhs` is the last step rather than a continuation,
 /// which is what ends the walk.
 ///
-/// `ASTFlags::BREAK` is what ends it, and it carries real information:
+/// [`ASTFlags::BREAK`] is what ends it, and it carries real information:
 /// `a[b[0]]` and `a[b][0]` have the same shape, and the flag is the only thing
 /// that says the first one's `b[0]` is an index expression rather than two
-/// steps (`eval/chaining.rs:698`).
+/// steps.
 ///
 /// Returns `None` for a dot onto anything but a property or a method.
 fn flatten_chain<'a>(
@@ -2565,8 +2563,8 @@ fn flatten_chain<'a>(
     let mut steps = Vec::new();
     // Rhai's `op_pos`, which is the position of the chain node the step is
     // being taken *inside* rather than of the step's operand, and which walks
-    // down with the recursion (`eval/chaining.rs:695`).
-    let mut bracket = expr.position();
+    // down with the recursion.
+    let mut bracket_pos = expr.position();
 
     loop {
         let mut step_flags = StepFlags::default();
@@ -2601,7 +2599,7 @@ fn flatten_chain<'a>(
             (true, _) => return None,
             (false, index) => {
                 lowering.caps.insert(Caps::INDEXING);
-                ChainStep::Index(index, bracket, step_flags)
+                ChainStep::Index(index, bracket_pos, step_flags)
             }
         });
 
@@ -2612,7 +2610,7 @@ fn flatten_chain<'a>(
                 rest = next_rest;
                 flags = next_flags;
                 dotted = next_dotted;
-                bracket = node.position();
+                bracket_pos = node.position();
             }
             None => break,
         }
@@ -2826,6 +2824,29 @@ mod tests {
                 | Step::Method { flags, .. } => flags.contains(StepFlags::SKIP_IF_UNIT),
             }),
             "all steps in `m?.a?.b` must short-circuit on unit",
+        );
+    }
+
+    /// A bare script-function name lowers to a named read and resolves to a
+    /// function pointer at run time.
+    #[test]
+    #[cfg(not(any(feature = "no_function", feature = "no_object")))]
+    fn a_script_function_name_is_not_a_variable() {
+        let engine = crate::Engine::new();
+        let ast = engine
+            .compile("fn helper() { 1 } let f = helper; f.call()")
+            .expect("must compile");
+        let program = Compiler::new().compile(&ast);
+
+        assert_eq!(
+            program.residual_count(),
+            0,
+            "a script-function name should lower without residual AST fragments",
+        );
+        assert!(
+            crate::grain::bytecode::disassemble(program.code())
+                .any(|(.., op)| matches!(op, Op::LoadNamed(..))),
+            "the lowered program should read `helper` by name",
         );
     }
 }

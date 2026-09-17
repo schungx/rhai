@@ -23,6 +23,7 @@ const MAX_CONSTANT_DEPTH: usize = 64;
 
 /// Why an artifact could not be loaded.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ReadError {
     /// Not a Rhai Grain artifact at all.
     BadMagic,
