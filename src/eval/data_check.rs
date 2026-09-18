@@ -186,20 +186,37 @@ impl Engine {
         global: &mut GlobalRuntimeState,
         pos: Position,
     ) -> RhaiResultOf<()> {
-        global.num_operations += 1;
+        let mut num_ops = None;
+
+        let mut num_operations = || {
+            *num_ops.get_or_insert_with(|| {
+                // Increment operations count
+                #[cfg(target_has_atomic = "64")]
+                return global
+                    .num_operations
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                    + 1;
+
+                #[cfg(not(target_has_atomic = "64"))]
+                {
+                    global.num_operations + 1;
+                    return global.num_operations;
+                }
+            })
+        };
 
         // Guard against too many operations
         #[cfg(not(feature = "unchecked"))]
-        if self.max_operations() > 0 && global.num_operations > self.max_operations() {
+        if self.max_operations() > 0 && num_operations() > self.max_operations() {
             return Err(ERR::ErrorTooManyOperations(pos).into());
         }
 
-        self.progress
-            .as_ref()
-            .and_then(|progress| {
-                progress(global.num_operations)
-                    .map(|token| Err(ERR::ErrorTerminated(token, pos).into()))
-            })
-            .unwrap_or(Ok(()))
+        if let Some(progress) = self.progress.as_ref() {
+            return progress(num_operations())
+                .map(|token| Err(ERR::ErrorTerminated(token, pos).into()))
+                .unwrap_or(Ok(()));
+        }
+
+        Ok(())
     }
 }

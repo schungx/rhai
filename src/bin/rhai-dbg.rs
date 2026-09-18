@@ -323,7 +323,7 @@ fn debug_callback(
                     println!();
                 }
                 ["operations"] => {
-                    println!("{}", context.global_runtime_state().num_operations)
+                    println!("{}", context.global_runtime_state().num_operations())
                 }
                 ["source"] => {
                     println!("{}", context.global_runtime_state().source().unwrap_or(""))

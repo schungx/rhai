@@ -514,9 +514,11 @@ impl<'a> NativeCallContext<'a> {
         is_ref_mut: bool,
         is_method_call: bool,
     ) -> RhaiResult {
-        let global = &mut self.global.clone();
-        global.level += 1;
+        // Create a mutable `GlobalRuntimeState`
+        let new_global = &mut self.global.clone();
+        new_global.level += 1;
 
+        // Empty caches -- cost to pay for indirect script function call from native
         let caches = &mut Caches::new();
 
         let fn_name = fn_name.as_ref();
@@ -525,51 +527,60 @@ impl<'a> NativeCallContext<'a> {
         let args_len = args.len();
         let pos = self.call_position();
 
-        if native_only {
-            if let Some(result) = self
+        let result = if native_only {
+            // Native only
+            match self
                 .engine()
-                .exec_syntactic_fn_call(global, caches, fn_name, args, pos)?
+                .exec_syntactic_fn_call(new_global, caches, fn_name, args, pos)
             {
-                return Ok(result);
+                Ok(Some(result)) => Ok(result),
+                Err(err) => Err(err),
+                Ok(None) => {
+                    let hash = calc_fn_hash(None, fn_name, args_len);
+                    self.engine()
+                        .exec_native_fn_call(
+                            new_global, caches, fn_name, op_token, hash, args, is_ref_mut, false,
+                            pos,
+                        )
+                        .map(|(r, ..)| r)
+                }
             }
-
-            let hash = calc_fn_hash(None, fn_name, args_len);
-
-            return self
-                .engine()
-                .exec_native_fn_call(
-                    global, caches, fn_name, op_token, hash, args, is_ref_mut, false, pos,
+        } else {
+            // Native or script
+            let hash = match is_method_call {
+                #[cfg(not(feature = "no_function"))]
+                true => FnCallHashes::from_script_and_native(
+                    calc_fn_hash(None, fn_name, args_len - 1),
+                    calc_fn_hash(None, fn_name, args_len),
+                ),
+                #[cfg(feature = "no_function")]
+                true => FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len)),
+                false => FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len)),
+            };
+            self.engine()
+                .exec_fn_call(
+                    new_global,
+                    caches,
+                    None,
+                    fn_name,
+                    op_token,
+                    hash,
+                    args,
+                    is_ref_mut,
+                    is_method_call,
+                    pos,
                 )
-                .map(|(r, ..)| r);
-        }
-
-        // Native or script
-
-        let hash = match is_method_call {
-            #[cfg(not(feature = "no_function"))]
-            true => FnCallHashes::from_script_and_native(
-                calc_fn_hash(None, fn_name, args_len - 1),
-                calc_fn_hash(None, fn_name, args_len),
-            ),
-            #[cfg(feature = "no_function")]
-            true => FnCallHashes::from_native_only(calc_fn_hash(None, fn_name, args_len)),
-            false => FnCallHashes::from_hash(calc_fn_hash(None, fn_name, args_len)),
+                .map(|(r, ..)| r)
         };
 
-        self.engine()
-            .exec_fn_call(
-                global,
-                caches,
-                None,
-                fn_name,
-                op_token,
-                hash,
-                args,
-                is_ref_mut,
-                is_method_call,
-                pos,
-            )
-            .map(|(r, ..)| r)
+        // Update number of operations
+        #[cfg(target_has_atomic = "64")]
+        self.global.num_operations.store(
+            new_global.num_operations(),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+
+        result
     }
 }
 

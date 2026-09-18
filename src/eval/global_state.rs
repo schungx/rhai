@@ -21,7 +21,6 @@ pub type SharedGlobalConstants =
 //
 // Most usage will be looking up a particular key from the list and then getting the module that
 // corresponds to that key.
-#[derive(Clone)]
 pub struct GlobalRuntimeState {
     /// Names of imported [modules][crate::Module].
     #[cfg(not(feature = "no_module"))]
@@ -38,6 +37,10 @@ pub struct GlobalRuntimeState {
     /// No source if the string is empty.
     pub source: Option<ImmutableString>,
     /// Number of operations performed.
+    #[cfg(target_has_atomic = "64")]
+    pub num_operations: std::sync::atomic::AtomicU64,
+    /// Number of operations performed.
+    #[cfg(not(target_has_atomic = "64"))]
     pub num_operations: u64,
     /// Number of modules loaded.
     #[cfg(not(feature = "no_module"))]
@@ -94,7 +97,7 @@ impl Engine {
             #[cfg(not(feature = "no_function"))]
             lib: crate::StaticVec::new(),
             source: None,
-            num_operations: 0,
+            num_operations: Default::default(),
             #[cfg(not(feature = "no_module"))]
             num_modules_loaded: 0,
             scope_level: 0,
@@ -117,6 +120,43 @@ impl Engine {
                 let dbg = crate::eval::Debugger::new(crate::eval::DebuggerStatus::Init);
                 (x.0)(self, dbg).into()
             }),
+        }
+    }
+}
+
+impl Clone for GlobalRuntimeState {
+    fn clone(&self) -> Self {
+        Self {
+            #[cfg(not(feature = "no_module"))]
+            imports: self.imports.clone(),
+            #[cfg(not(feature = "no_module"))]
+            modules: self.modules.clone(),
+            #[cfg(not(feature = "no_function"))]
+            lib: self.lib.clone(),
+            source: self.source.clone(),
+            #[cfg(target_has_atomic = "64")]
+            num_operations: std::sync::atomic::AtomicU64::new(self.num_operations()),
+            #[cfg(not(target_has_atomic = "64"))]
+            num_operations: self.num_operations,
+            #[cfg(not(feature = "no_module"))]
+            num_modules_loaded: self.num_modules_loaded,
+            scope_level: self.scope_level,
+            level: self.level,
+            always_search_scope: self.always_search_scope,
+            #[cfg(not(feature = "no_module"))]
+            embedded_module_resolver: self.embedded_module_resolver.clone(),
+            #[cfg(not(feature = "no_module"))]
+            #[cfg(not(feature = "no_function"))]
+            constants: self.constants.clone(),
+
+            #[cfg(feature = "grain")]
+            grain_faults: self.grain_faults.clone(),
+
+            tag: self.tag.clone(),
+
+            #[cfg(feature = "debugging")]
+            #[cfg(not(feature = "no_ast"))]
+            debugger: self.debugger.clone(),
         }
     }
 }
@@ -288,6 +328,19 @@ impl GlobalRuntimeState {
     #[allow(dead_code)]
     pub(crate) const fn source_raw(&self) -> Option<&ImmutableString> {
         self.source.as_ref()
+    }
+
+    /// Number of operations performed.
+    #[inline(always)]
+    #[must_use]
+    pub fn num_operations(&self) -> u64 {
+        #[cfg(target_has_atomic = "64")]
+        return self
+            .num_operations
+            .load(std::sync::atomic::Ordering::Relaxed);
+
+        #[cfg(not(target_has_atomic = "64"))]
+        return self.num_operations;
     }
 
     /// Return a reference to the debugging interface.

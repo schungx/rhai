@@ -457,11 +457,11 @@ impl FnPtr {
 
                 let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
-                let global = &mut global.clone();
-                global.level += 1;
+                let new_global = &mut global.clone();
+                new_global.level += 1;
 
-                return context.engine().call_script_fn(
-                    global,
+                let result = context.engine().call_script_fn(
+                    new_global,
                     &mut crate::eval::Caches::new(),
                     &mut crate::Scope::new(),
                     this_ptr,
@@ -471,6 +471,15 @@ impl FnPtr {
                     true,
                     context.call_position(),
                 );
+
+                // Update number of operations
+                #[cfg(target_has_atomic = "64")]
+                global.num_operations.store(
+                    new_global.num_operations(),
+                    std::sync::atomic::Ordering::Relaxed,
+                );
+
+                return result;
             }
             // Embedded native Rust function
             FnPtrType::Native(ref func) => {
@@ -478,8 +487,6 @@ impl FnPtr {
                 let args = &mut StaticVec::with_capacity(arg_values.len() + 1);
                 args.extend(arg_values.iter_mut());
 
-                let global = &mut global.clone();
-                global.level += 1;
                 let engine = context.engine();
                 let pos = context.call_position();
                 if let Some(this_ptr) = this_ptr {
@@ -493,7 +500,9 @@ impl FnPtr {
                     }
                 }
 
-                let context = (engine, self.fn_name(), None, &*global, pos).into();
+                // Avoid creating a clone of the `GlobalRuntimeState`,
+                // so level is not incremented here.
+                let context = (engine, self.fn_name(), None, global, pos).into();
 
                 return func(context, args)
                     .and_then(|r| engine.check_data_size(r, pos))

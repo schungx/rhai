@@ -39,7 +39,7 @@ pub enum OptimizationLevel {
 }
 
 /// Mutable state throughout an optimization pass.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct OptimizerState<'a> {
     /// Has the [`AST`] been changed during this pass?
     is_dirty: bool,

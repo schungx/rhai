@@ -7,11 +7,13 @@ Version 1.27.0
 Bug fixes
 ---------
 
-* Fixed bug in using bare function name as a variable (identified by Grain VM).
+* Using bare function name as a variable now works properly (identified by Grain VM).
 * Support bare function names as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 * (Fuzzing) Fixed missing data-race condition in native function callbacks ([`#1161`](https://github.com/rhaiscript/rhai/pull/1161)).
 * The `Engine::on_map_missing_property` callback now works properly with Rhai Grain ([`#1164`](https://github.com/rhaiscript/rhai/pull/1164)).
 * The `Engine::on_def_var` callback now works properly with Rhai Grain ([`#1170`](https://github.com/rhaiscript/rhai/pull/1170)). However, the _nesting level_ reported by `VarDefInfo` is always zero, since all nesting information is lost once the `AST` is lowered to bytecodes.
+* Errors raised during built-in binary operations (such as `100 / 0`) now contain proper `Position` information (identified by Grain VM).
+* Number of operations reported to `Engine::on_progress` now properly count scripted function calls from native Rust functions (identified by Grain VM). Previously all operation counts performed by a scripted function callback (including a closure) from a native Rust function are discarded.
 
 New features
 ------------
