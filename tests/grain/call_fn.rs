@@ -11,8 +11,7 @@
 //! what these check is that a `Vm` answers such a call the way an `Engine`
 //! does — including that a write through `this` lands in the caller's value.
 
-use rhai::grain::format::WriteError;
-use rhai::grain::{Compiler, Vm};
+use rhai::grain::{Compiler, Vm, WriteError};
 use rhai::{CallFnOptions, Dynamic, Engine, EvalAltResult, Scope, INT};
 
 /// A receiver for the methods below.
@@ -181,6 +180,6 @@ fn a_program_of_handlers_is_writable() {
     let program = Compiler::new().compile(&ast);
 
     assert_eq!(program.residual_count(), 0);
-    assert_eq!(program.functions().len(), 2);
+    assert_eq!(program.num_functions(), 2);
     assert!(program.write().is_ok(), "got {:?}", program.write());
 }

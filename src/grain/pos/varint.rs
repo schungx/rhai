@@ -49,6 +49,8 @@ pub fn u64(bytes: &[u8], at: &mut usize) -> Result<u64, Error> {
 /// # Errors
 ///
 /// As [`u64`](fn@u64).
+#[inline]
+#[allow(dead_code)]
 pub fn i64(bytes: &[u8], at: &mut usize) -> Result<i64, Error> {
     let raw = u64(bytes, at)?;
     Ok(((raw >> 1) as i64) ^ -((raw & 1) as i64))
@@ -60,6 +62,7 @@ pub fn i64(bytes: &[u8], at: &mut usize) -> Result<i64, Error> {
 ///
 /// As [`u64`](fn@u64), plus [`Error::Overflow`] if the value is too wide for
 /// the field.
+#[inline]
 pub fn u32(bytes: &[u8], at: &mut usize) -> Result<u32, Error> {
     core::convert::TryFrom::try_from(u64(bytes, at)?).map_err(|_| Error::Overflow)
 }
@@ -78,6 +81,8 @@ pub fn put_u64(out: &mut alloc::vec::Vec<u8>, mut value: u64) {
 }
 
 /// Append a zigzagged signed varint.
+#[inline(always)]
+#[allow(dead_code)]
 pub fn put_i64(out: &mut alloc::vec::Vec<u8>, value: i64) {
     put_u64(out, ((value << 1) ^ (value >> 63)) as u64);
 }

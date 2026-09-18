@@ -398,7 +398,7 @@ fn verify_chunk(
             // The one instruction whose edges differ in more than where they
             // go: falling through carries the item it pushed and still holds
             // the iterator, while the exit edge has neither.
-            Op::IterNext { exit, indexed } => {
+            Op::IterNext { exit, .. } => {
                 go(
                     exit,
                     State {
@@ -413,8 +413,8 @@ fn verify_chunk(
                 work_list.push((
                     next,
                     State {
-                        // The item, and the count under it when there is one.
-                        operands: depth + 1 + usize::from(indexed),
+                        // The item
+                        operands: depth + 1,
                         iters: state.iters,
                         handlers: state.handlers,
                     },
@@ -780,7 +780,7 @@ fn check_chain_indices(at: usize, chain: &Chain, pools: &Pools) -> Result<(), Ve
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grain::bytecode::assemble;
+    use crate::grain::bytecode::code::assemble;
     use crate::grain::format::Abi;
 
     fn pools() -> Pools<'static> {

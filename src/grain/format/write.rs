@@ -16,11 +16,12 @@ use std::ops::{Range, RangeInclusive};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
-/// Why a program cannot be written out.
+/// Why a [`Program`] cannot be written out.
 ///
 /// Every variant names the construct that blocked it. A serializer that only
 /// says "no" leaves the author guessing which line to change.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum WriteError {
     /// The program still hands fragments to Rhai's walker, and a fragment is a
     /// real `Expr` tree.
@@ -37,7 +38,7 @@ pub enum WriteError {
         pos: rhai::Position,
     },
     /// The program still carries Rhai's own function library rather than
-    /// chunks, so its functions are ASTs an artifact cannot hold.
+    /// chunks, so its functions are AST's an artifact cannot hold.
     HasScriptFunctions,
     /// A pooled constant carries something that has no meaning in another
     /// process — a custom type, a clock reading etc.
@@ -194,9 +195,8 @@ pub(super) fn write(program: &Program, positions: Positions) -> Result<Vec<u8>, 
 /// table — see [`Step::pos`]. Line zero means none, because Rhai's own line
 /// numbers start at one.
 ///
-/// Zeroed when stripping so an older reader goes on
-/// reading two varints and gets no position. The
-/// sites go to [`sites`](crate::grain::bytecode::sites) instead.
+/// Zeroed when stripping so an older reader goes on reading two varints and gets
+/// no position. The sites go to [`sites`](crate::grain::bytecode::sites) instead.
 fn put_position(out: &mut Vec<u8>, pos: rhai::Position, positions: Positions) {
     let (line, column) = match positions {
         Positions::Keep => (pos.line().unwrap_or(0), pos.position().unwrap_or(0)),

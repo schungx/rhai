@@ -86,6 +86,7 @@ fn mutated_artifacts_load_or_fail_but_never_misbehave() {
     let seeds: Vec<Vec<u8>> = corpus::CASES
         .iter()
         .filter_map(|case| {
+            println!("Compiling case '{}'...", case.name);
             let ast = writer.compile(case.source).ok()?;
             Compiler::new().compile(&ast).write().ok()
         })

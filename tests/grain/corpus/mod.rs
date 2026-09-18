@@ -147,8 +147,9 @@ const fn case(name: &'static str, source: &'static str) -> Case {
 ///
 /// Lives here rather than in one harness because every harness that walks
 /// [`CASES`] needs the same answer.
+#[rhai::expose_under_internals]
 #[must_use]
-pub fn applies_to_this_build(name: &str) -> bool {
+fn applies_to_this_build(name: &str) -> bool {
     #[cfg(feature = "no_closure")]
     if name.starts_with("closure_") || name.starts_with("is_shared") {
         return false;

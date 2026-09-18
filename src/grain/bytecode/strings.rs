@@ -76,13 +76,16 @@ impl<'a> Strings<'a> {
     }
 
     /// How many names the table holds.
+    #[inline(always)]
     #[must_use]
     pub fn len(&self) -> usize {
         self.starts.len().saturating_sub(1)
     }
 
     /// Whether the table holds no names.
+    #[inline(always)]
     #[must_use]
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -90,6 +93,7 @@ impl<'a> Strings<'a> {
     /// The name at `index`, or `None`.
     ///
     /// Never allocates: the result points into the artifact.
+    #[inline]
     #[must_use]
     pub fn get(&self, index: u32) -> Option<&str> {
         let from = *self.starts.get(index as usize)? as usize;
@@ -99,23 +103,28 @@ impl<'a> Strings<'a> {
     }
 
     /// The concatenated names, without their spans.
+    #[inline(always)]
     #[must_use]
     pub fn blob(&self) -> &[u8] {
         &self.blob
     }
 
     /// The span boundaries, one longer than [`Strings::len`].
+    #[inline(always)]
     #[must_use]
     pub fn starts(&self) -> &[u32] {
         &self.starts
     }
 
     /// Iterate the names in index order.
+    #[inline]
+    #[allow(dead_code)]
     pub fn iter(&self) -> impl Iterator<Item = &str> + '_ {
         (0..self.len() as u32).filter_map(|index| self.get(index))
     }
 
     /// Take ownership of the blob, so the table outlives the artifact.
+    #[inline]
     #[must_use]
     pub fn into_owned(self) -> Strings<'static> {
         Strings {

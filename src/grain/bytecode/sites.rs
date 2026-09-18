@@ -49,8 +49,9 @@ pub fn encode(chains: &[Chain]) -> Vec<u8> {
 /// The site recorded for `slot`, if the stream has one.
 ///
 /// `None` past the end, for a zero line, and for a malformed stream. This runs
-/// while an error is being reported and must not become the failure. [`check`]
-/// is where to find out whether a stream is sound.
+/// while an error is being reported and must not become the failure.
+//
+// [`check`] is where to find out whether a stream is sound.
 #[must_use]
 pub fn resolve(stream: &[u8], slot: u32) -> Option<Site> {
     let mut at = 0usize;
@@ -104,6 +105,8 @@ pub fn decode(stream: &[u8]) -> Result<Vec<Option<Site>>, StreamError> {
 /// # Errors
 ///
 /// As [`decode`].
+#[inline(always)]
+#[allow(dead_code)]
 pub fn check(stream: &[u8]) -> Result<(), StreamError> {
     decode(stream).map(|_| ())
 }

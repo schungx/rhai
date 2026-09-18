@@ -7,10 +7,10 @@
 //! position on every instruction is a large fraction of the artifact and is
 //! never read unless something fails.
 //!
-//! What comes back is a [`Site`]: a line and a column as plain numbers. This
-//! crate does not know what a `rhai::Position` is, and deliberately so, since
-//! the reason to keep the table on-device is to report an error without
-//! linking the compiler that produced it.
+//! What comes back is a [`Site`]: a line and a column as plain numbers.
+//! This crate does not know what a [`Position`][crate::Position] is, and
+//! deliberately so, since the reason to keep the table on-device is to report
+//! an error without linking the compiler that produced it.
 //!
 //! ## Where this sits
 //!
@@ -41,14 +41,14 @@ pub mod varint;
 
 /// A place in a source file.
 ///
-/// Both fields follow Rhai's own convention: `line` counts from 1, and
-/// `column` counts characters from 1 with 0 meaning the start of a line.
+/// Similar to [`Position`][crate::Position],  `line` counts from line 1, and
+/// `column` counts characters from position 1 with 0 meaning the start of a line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Site {
-    /// 1-based line.
+    /// 1-based line number.
     pub line: u32,
-    /// 1-based character column; 0 is the start of a line.
+    /// 1-based character column number; 0 is the start of a line.
     pub column: u32,
 }
 

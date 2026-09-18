@@ -46,7 +46,7 @@ pub(super) fn wrappers(vm: &mut Vm, program: &SharedProgram) -> Module {
             .params
             .iter()
             .map(|&index| program.name(index).unwrap_or(""))
-            .map(|name| vm.strings_interner.get(name))
+            .map(|name| vm.engine.get_interned_string(name))
             .collect();
 
         module.set_script_fn(ScriptFuncDef {
@@ -59,13 +59,13 @@ pub(super) fn wrappers(vm: &mut Vm, program: &SharedProgram) -> Module {
                     program.position(function.chunk.end() as usize),
                 ),
             },
-            name: vm.strings_interner.get(name),
+            name: vm.engine.get_interned_string(name),
             access: FnAccess::Private,
             #[cfg(not(feature = "no_object"))]
             this_type: function
                 .this_type
                 .and_then(|index| program.name(index))
-                .map(|name| vm.strings_interner.get(name)),
+                .map(|name| vm.engine.get_interned_string(name)),
             params,
             #[cfg(feature = "metadata")]
             comments: Default::default(),
