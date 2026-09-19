@@ -865,6 +865,7 @@ impl Engine {
                 // Swap source
                 let orig_source = mem::replace(&mut global.source, source);
                 defer! { global => move |g| g.source = orig_source }
+                let global = global.into();
 
                 // Execute function call
                 return if _is_method_call {

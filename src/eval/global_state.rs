@@ -410,3 +410,95 @@ impl fmt::Debug for GlobalRuntimeState {
         f.finish()
     }
 }
+
+/// _(internals)_ An enum holding either a mutable or immutable reference to a
+/// [`GlobalRuntimeState`].
+/// Exported under the `internals` feature only.
+pub enum GlobalRef<'a> {
+    /// An immutable reference to a [`GlobalRuntimeState`].
+    Ref(&'a GlobalRuntimeState, Option<Box<GlobalRuntimeState>>),
+    /// A mutable reference to a [`GlobalRuntimeState`].
+    Mut(&'a mut GlobalRuntimeState),
+}
+
+impl<'a> Into<GlobalRef<'a>> for &'a mut GlobalRuntimeState {
+    #[inline(always)]
+    fn into(self) -> GlobalRef<'a> {
+        GlobalRef::Mut(self)
+    }
+}
+
+impl<'a> Into<GlobalRef<'a>> for &'a GlobalRuntimeState {
+    #[inline(always)]
+    fn into(self) -> GlobalRef<'a> {
+        GlobalRef::Ref(self, None)
+    }
+}
+
+impl<'a> AsRef<GlobalRuntimeState> for GlobalRef<'a> {
+    #[inline(always)]
+    fn as_ref(&self) -> &GlobalRuntimeState {
+        match self {
+            GlobalRef::Ref(g, ..) => g,
+            GlobalRef::Mut(g) => g,
+        }
+    }
+}
+
+impl<'a> AsMut<GlobalRuntimeState> for GlobalRef<'a> {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut GlobalRuntimeState {
+        match self {
+            GlobalRef::Ref(_, Some(g)) => g,
+            GlobalRef::Ref(g, global_clone @ None) => {
+                *global_clone = Some(g.clone().into());
+                global_clone.as_mut().unwrap()
+            }
+            GlobalRef::Mut(g) => g,
+        }
+    }
+}
+
+impl<'a> GlobalRef<'a> {
+    /// Get a mutable reference to the underlying [`GlobalRuntimeState`], cloning it into an
+    /// owned instance if necessary.
+    ///
+    /// If a cloning takes place, the `level` is incremented.
+    pub fn as_mut_level_up(&mut self) -> &mut GlobalRuntimeState {
+        match self {
+            GlobalRef::Ref(_, Some(g)) => g,
+            GlobalRef::Ref(g, g2 @ None) => {
+                let mut global_clone = g.clone();
+                global_clone.level += 1;
+                *g2 = Some(global_clone.into());
+                g2.as_mut().unwrap()
+            }
+            GlobalRef::Mut(g) => g,
+        }
+    }
+    /// Take ownership of the owned [`GlobalRuntimeState`] instance, making a clone if necessary.
+    ///
+    /// If a cloning takes place, the `level` is incremented.
+    pub fn take_with_level_up(&mut self) -> GlobalRuntimeState {
+        match self {
+            GlobalRef::Ref(_, g @ Some(_)) => *g.take().unwrap(),
+            GlobalRef::Ref(_, None) => {
+                let _ = self.as_mut_level_up();
+                self.take_with_level_up()
+            }
+            GlobalRef::Mut(g) => g.clone(),
+        }
+    }
+
+    /// Put back the owned [`GlobalRuntimeState`] instance, replacing it if necessary.
+    ///
+    /// Returning the previous owned instance, if there was one.
+    ///
+    /// If [`Mut`][GlobalRef::Mut], the provided instance is returned.
+    pub fn put_back(&mut self, global: GlobalRuntimeState) -> Option<GlobalRuntimeState> {
+        match self {
+            GlobalRef::Ref(_, g) => std::mem::replace(g, Some(global.into())).map(|g| *g),
+            GlobalRef::Mut(_) => Some(global),
+        }
+    }
+}

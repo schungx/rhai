@@ -457,11 +457,8 @@ impl FnPtr {
 
                 let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
-                let new_global = &mut global.clone();
-                new_global.level += 1;
-
-                let result = context.engine().call_script_fn(
-                    new_global,
+                return context.engine().call_script_fn(
+                    global.into(),
                     &mut crate::eval::Caches::new(),
                     &mut crate::Scope::new(),
                     this_ptr,
@@ -471,15 +468,6 @@ impl FnPtr {
                     true,
                     context.call_position(),
                 );
-
-                // Update number of operations
-                #[cfg(target_has_atomic = "64")]
-                global.num_operations.store(
-                    new_global.num_operations(),
-                    std::sync::atomic::Ordering::Relaxed,
-                );
-
-                return result;
             }
             // Embedded native Rust function
             FnPtrType::Native(ref func) => {

@@ -203,7 +203,7 @@ impl Engine {
 
             if let Some(fn_def) = ast.shared_lib().get_script_fn(name, args.len()) {
                 self.call_script_fn(
-                    global,
+                    global.into(),
                     caches,
                     scope,
                     this_ptr.as_deref_mut(),

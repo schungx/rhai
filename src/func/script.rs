@@ -3,7 +3,7 @@
 
 use super::func_call::FnCallArgs;
 use super::FnAccess;
-use crate::eval::{Caches, GlobalRuntimeState};
+use crate::eval::{Caches, GlobalRef, GlobalRuntimeState};
 use crate::{Dynamic, Engine, FnArgsVec, ImmutableString, Position, RhaiResult, Scope, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -283,7 +283,7 @@ impl Engine {
     /// **DO NOT** reuse the argument values except for the first `&mut` argument - all others are silently replaced by `()`!
     pub(crate) fn call_script_fn(
         &self,
-        global: &mut GlobalRuntimeState,
+        mut global_ref: GlobalRef,
         caches: &mut Caches,
         scope: &mut Scope,
         mut this_ptr: Option<&mut Dynamic>,
@@ -294,6 +294,8 @@ impl Engine {
         pos: Position,
     ) -> RhaiResult {
         debug_assert_eq!(fn_def.params.len(), args.len());
+
+        let global = global_ref.as_mut_level_up();
 
         self.track_operation(global, pos)?;
 
@@ -440,23 +442,25 @@ impl Engine {
                 chunk,
                 ..
             } => {
-                let context = (self, fn_def.name.as_str(), global.source(), &*global, pos).into();
-                let mut vm = crate::grain::Vm::reentrant(&context);
+                // The Grain VM needs a whole `GlobalRuntimeState` and not a reference.
+                // So if `global_mut` is `Some`, then it needs to be cloned.
+                let global = global_ref.take_with_level_up();
+                let level = global.level;
+
+                let mut vm = crate::grain::Vm::with_global_state(self, global);
 
                 // The value in the `this` pointer is cloned
-                let this_ptr_value = this_ptr.as_deref_mut().cloned();
-
                 let (result, new_this_ptr) = vm.call_function_with_this(
                     program,
                     fn_def.name.as_str(),
                     params,
                     chunk,
                     arg_values,
-                    global.level,
+                    level,
                     scope,
                     rewind_scope,
                     pos,
-                    this_ptr_value,
+                    this_ptr.as_deref_mut().cloned(),
                 );
 
                 // Write back new value for the `this` pointer
@@ -466,9 +470,22 @@ impl Engine {
                     }
                 }
 
+                let global = vm.into_global_state();
+
+                // Update number of operations, into both potential sources
+                global_ref.as_ref().num_operations.store(
+                    global.num_operations(),
+                    std::sync::atomic::Ordering::Relaxed,
+                );
+
+                // Put back the instance
+                global_ref.put_back(global);
+
                 result
             }
         };
+
+        let global = global_ref.as_mut_level_up();
 
         #[cfg(feature = "debugging")]
         if self.is_debugger_registered() {

@@ -24,9 +24,8 @@ use crate::VarDefInfo;
 #[cfg(not(feature = "no_function"))]
 use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
-    Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString,
-    NativeCallContext, Position, RhaiResult, RhaiResultOf, Scope, SharedModule, StaticVec,
-    FUNC_TO_STRING, INT,
+    Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString, Position,
+    RhaiResult, RhaiResultOf, Scope, SharedModule, StaticVec, FUNC_TO_STRING, INT,
 };
 
 mod callback;
@@ -349,8 +348,8 @@ pub struct Vm<'e> {
     this: Option<Dynamic>,
     /// Whether this `Vm` started the run, and so may clear its trace.
     ///
-    /// False for a [`Vm::reentrant`]: a callback clearing the trace would
-    /// discard frames the run around it already recorded.
+    /// False for a [`Vm::with_global_state`]: a callback clearing the trace
+    /// would discard frames the run around it already recorded.
     owns_trace: bool,
     /// Which step the inner-most chain walk has reached.
     ///
@@ -483,10 +482,10 @@ impl<'e> Vm<'e> {
     /// inside the callback land on the clone and are lost when it drops, as
     /// they are for any re-entrant call Rhai makes.
     #[must_use]
-    pub fn reentrant(context: &'e NativeCallContext<'_>) -> Self {
+    pub fn with_global_state(engine: &'e Engine, global: GlobalRuntimeState) -> Self {
         Self {
-            engine: context.engine(),
-            global: context.global_runtime_state().clone(),
+            engine,
+            global,
             caches: Caches::new(),
             stack: Vec::new(),
             iterators: FnArgsVec::new_const(),
@@ -508,6 +507,13 @@ impl<'e> Vm<'e> {
             #[cfg(feature = "debugging")]
             pending_steps: Vec::new(),
         }
+    }
+
+    /// Extract the [`GlobalRuntimeState`] from the VM.
+    #[inline(always)]
+    #[must_use]
+    pub fn into_global_state(self) -> GlobalRuntimeState {
+        self.global
     }
 
     /// Where the last run failed, inner-most frame first.
