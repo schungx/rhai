@@ -48,7 +48,7 @@ impl fmt::Display for FnPtrType {
             Self::Normal => f.write_str("Fn"),
             #[cfg(not(feature = "no_function"))]
             Self::Script { .. } => f.write_str("Fn*"),
-            Self::Native(..) => f.write_str("Fn"),
+            Self::Native(..) => f.write_str("Fn#"),
         }
     }
 }
@@ -439,12 +439,10 @@ impl FnPtr {
         &self,
         context: &NativeCallContext,
         scope: &mut Scope,
-        this_ptr: Option<&mut Dynamic>,
-        arg_values: impl AsMut<[Dynamic]>,
+        mut this_ptr: Option<&mut Dynamic>,
+        mut arg_values: impl AsMut<[Dynamic]>,
     ) -> RhaiResult {
         let global = context.global_runtime_state();
-        let mut this_ptr = this_ptr;
-        let mut arg_values = arg_values;
         let mut arg_values = arg_values.as_mut();
         let mut args_data: FnArgsVec<_>;
 

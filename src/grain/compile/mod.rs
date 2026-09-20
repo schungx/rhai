@@ -474,11 +474,16 @@ impl Lowering {
                 }
                 ChainStep::Method(call, pos, flags) => {
                     self.caps.insert(Caps::METHOD);
-                    if !self.is_lowerable_call(call) {
-                        if value.is_some() {
-                            self.rewind(rewind_mark);
+                    match call.name.as_str() {
+                        KEYWORD_FN_PTR_CALL => self.caps.insert(Caps::FN_PTR),
+                        KEYWORD_FN_PTR_CURRY => self.caps.insert(Caps::FN_PTR | Caps::CURRYING),
+                        _ if !self.is_lowerable_call(call) => {
+                            if value.is_some() {
+                                self.rewind(rewind_mark);
+                            }
+                            return false;
                         }
-                        return false;
+                        _ => (),
                     }
                     let Ok(argc) = u8::try_from(call.args.len()) else {
                         if value.is_some() {
@@ -821,7 +826,7 @@ impl Lowering {
     }
 
     /// Lower every script function the `AST` declares, and count the ones the
-    /// slot model turned down. Sorted for reproducability.
+    /// slot model turned down. Sorted for reproducibility.
     #[cfg(not(feature = "no_function"))]
     fn functions(&mut self, ast: &AST) -> (Vec<LoweredFn>, usize) {
         let mut defs: Vec<_> = ast
@@ -1726,69 +1731,6 @@ impl Lowering {
                 self.emit(Op::InterpolateEnd);
             }
 
-            // `f.call(x)` and `f.curry(x)` are the method spellings of the two
-            // above. They arrive as chains, so they have to be taken before
-            // the chain walker sees them.
-            // An `rhs` that is a bare `MethodCall` is the whole chain: a
-            // further step would make it a `Dot` or an `Index` instead.
-            Expr::Dot(binary, ..)
-                if matches!(&binary.rhs, Expr::MethodCall(m, ..)
-                    if matches!(m.name.as_str(), KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY)
-                        && m.args.len() <= u8::MAX as usize) =>
-            {
-                self.caps.insert(Caps::METHOD);
-
-                let Expr::MethodCall(method, ..) = &binary.rhs else {
-                    unreachable!("checked by the guard");
-                };
-                // `obj.call(f)` binds `obj` as the closure's `this` by
-                // reference, so a write inside the closure has to reach `obj`.
-                // The value goes on the stack as it always did; the receiver
-                // says where to carry a write back to.
-                //
-                // Unflattened, for the reason `unflattened` gives: a receiver
-                // that is a shared cell has to arrive *as* the cell, so a write
-                // lands where every holder can see it and no write-back is
-                // needed at all.
-                let receiver = self.fn_ptr_receiver(&binary.lhs);
-                if receiver.is_some() {
-                    self.unflattened(&binary.lhs);
-                } else {
-                    self.expression(&binary.lhs);
-                }
-                for arg in method.args.iter() {
-                    self.expression(arg);
-                }
-                let argc = method.args.len() as u8;
-                // The call's own position, which is what Rhai reports for
-                // everything the pointer path can raise. The one case it is
-                // not is `obj.call(x)` where `obj` is not a pointer and `x` is
-                // taken as one: Rhai blames `x`. Both cannot come from one
-                // position-table entry, and using the argument's instead was
-                // measured to move the divergence onto the common path rather
-                // than remove it.
-                //
-                // Method style only. `curry(f, ..)` written as a call is a
-                // different path in Rhai and takes the *argument's* position —
-                // see `fn_ptr_call`. The two disagreeing is deliberate.
-                let pos = binary.rhs.position();
-                if method.name == KEYWORD_FN_PTR_CALL {
-                    self.emit_at(
-                        Op::CallFnPtr {
-                            argc,
-                            is_method: true,
-                            capture_parent_scope: false,
-                            receiver,
-                        },
-                        pos,
-                    );
-                    self.caps.insert(Caps::FN_PTR);
-                } else {
-                    self.emit_at(Op::Curry(argc), pos);
-                    self.caps.insert(Caps::FN_PTR | Caps::CURRYING);
-                }
-            }
-
             Expr::Dot(..) | Expr::Index(..) => {
                 if matches!(expr, Expr::Dot(..)) {
                     self.caps.insert(Caps::PROPERTY);
@@ -1839,30 +1781,6 @@ impl Lowering {
             | Expr::FnCall(..)
             | Expr::Array(..)
             | Expr::Map(..) => self.residual_expr(expr),
-        }
-    }
-
-    /// Where `obj.call(f)`'s receiver came from, when a write through the
-    /// closure's `this` has somewhere to land.
-    ///
-    /// `None` for anything Rhai would evaluate into a temporary — `[1, 2].call(f)`
-    /// mutates a copy in the walker too, so there is nothing to carry back.
-    fn fn_ptr_receiver(&mut self, receiver: &Expr) -> Option<Receiver> {
-        match receiver {
-            Expr::ThisPtr(..) => {
-                self.caps.insert(Caps::THIS);
-                Some(Receiver::This)
-            }
-            Expr::Variable(payload, ..) if !has_namespace!(payload) => {
-                match self.slots.resolve(&payload.1) {
-                    Some(slot) => Some(Receiver::Local(slot)),
-                    None if self.is_variable_name(false) => {
-                        Some(Receiver::Named(self.push_name(payload.1.clone())))
-                    }
-                    None => None,
-                }
-            }
-            _ => None,
         }
     }
 

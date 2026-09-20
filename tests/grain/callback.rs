@@ -73,6 +73,43 @@ fn a_bare_function_name_is_a_pointer() {
     agree("fn double(x) { x * 2 } let double = 7; double");
 }
 
+#[test]
+#[cfg(not(any(feature = "no_function", feature = "no_object")))]
+fn function_pointer_methods_lower_at_every_chain_depth() {
+    let nested_call = r#"
+        fn add(x, y) { x + y }
+        let a = #{ callback: Fn("add") };
+        a.callback.call(1, 2)
+    "#;
+    lowered(nested_call);
+    agree(nested_call);
+
+    let intermediate_call = r#"
+        fn add(x, y) { x + y }
+        let a = #{ callback: Fn("add") };
+        a.callback.call(1, 2).to_string()
+    "#;
+    lowered(intermediate_call);
+    agree(intermediate_call);
+
+    let intermediate_curry = r#"
+        fn add(x, y) { x + y }
+        let a = #{ callback: Fn("add") };
+        a.callback.curry(1).call(2)
+    "#;
+    lowered(intermediate_curry);
+    agree(intermediate_curry);
+
+    let bound_receiver = r#"
+        fn add_to_this(value) { this += value; this }
+        let a = #{ value: 1 };
+        a.value.call(Fn("add_to_this"), 2);
+        a.value
+    "#;
+    lowered(bound_receiver);
+    agree(bound_receiver);
+}
+
 /// A capture arrives, and has the right value.
 ///
 /// Multiplication commutes, so this says nothing about which *position* it

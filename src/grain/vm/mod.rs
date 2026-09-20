@@ -4,6 +4,7 @@ use std::prelude::v1::*;
 
 use rhai_codegen::expose_under_internals;
 
+use crate::engine::{KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY};
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
 use crate::eval::calc_data_sizes;
@@ -1314,6 +1315,35 @@ impl<'e> Vm<'e> {
                     return Err(malformed("chain method arguments missing".to_string()));
                 }
 
+                // Handle special method calls for function pointers
+                match name {
+                    // .call(fnptr, ...)
+                    KEYWORD_FN_PTR_CALL => {
+                        let args = &mut operands[first..first + argc];
+                        let out = self.call_chain_fn_ptr(program, target, args, step_pos)?;
+                        return self.finish_chain_method(
+                            program, chain, rest, out, operands, value, pos, last,
+                        );
+                    }
+                    // .curry(...)
+                    KEYWORD_FN_PTR_CURRY => {
+                        let args = &operands[first..first + argc];
+                        let mut pointer = target.clone().try_cast::<FnPtr>().ok_or_else(|| {
+                            self.engine
+                                .make_type_mismatch_err::<FnPtr>(target.type_name(), step_pos)
+                        })?;
+                        for arg in args {
+                            pointer.add_curry(arg.clone());
+                        }
+                        let out = pointer.into();
+                        return self.finish_chain_method(
+                            program, chain, rest, out, operands, value, pos, last,
+                        );
+                    }
+                    _ => (),
+                }
+
+                // Handle special syntax for map-based OOP calls
                 #[cfg(not(feature = "no_object"))]
                 {
                     let fn_ptr = target.as_map_mut().as_deref_mut().ok().and_then(|map| {
@@ -1321,23 +1351,13 @@ impl<'e> Vm<'e> {
                             .and_then(|value| value.read_lock::<FnPtr>().map(|ptr| ptr.clone()))
                     });
                     if let Some(fn_ptr) = fn_ptr {
-                        let mut args: FnArgsVec<Dynamic> =
-                            operands[first..first + argc].iter().cloned().collect();
-                        let mut out = self
-                            .call_map_fn_ptr_method(program, target, fn_ptr, &mut args, step_pos)?;
-
-                        return if last {
-                            if value.is_some() {
-                                Err(malformed("assignment to a method call".to_string()))
-                            } else {
-                                Ok((out, true))
-                            }
-                        } else {
-                            let result = self
-                                .walk_chain(program, chain, rest, &mut out, operands, value, pos)?
-                                .0;
-                            Ok((result, true))
-                        };
+                        let args = &mut std::iter::once(fn_ptr.into())
+                            .chain(operands[first..first + argc].iter().cloned())
+                            .collect::<FnArgsVec<_>>();
+                        let out = self.call_chain_fn_ptr(program, target, args, step_pos)?;
+                        return self.finish_chain_method(
+                            program, chain, rest, out, operands, value, pos, last,
+                        );
                     }
                 }
 
@@ -1401,22 +1421,100 @@ impl<'e> Vm<'e> {
                     )?
                 };
 
-                if last {
-                    match value {
-                        // `a.f() = x` is not something Rhai parses.
-                        Some(_) => Err(malformed("assignment to a method call".to_string())),
-                        None => Ok((out, true)),
-                    }
-                } else {
-                    let mut inner = out;
-                    let (out, _) =
-                        self.walk_chain(program, chain, rest, &mut inner, operands, value, pos)?;
-                    // Whatever the sub-chain did, it did to the method's
-                    // return value, which nothing owns.
-                    Ok((out, true))
-                }
+                self.finish_chain_method(program, chain, rest, out, operands, value, pos, last)
             }
         }
+    }
+
+    /// Finish a method step, continuing from its temporary return value.
+    #[allow(clippy::too_many_arguments)]
+    fn finish_chain_method(
+        &mut self,
+        program: &Program,
+        chain: &Chain,
+        rest: &[Step],
+        mut out: Dynamic,
+        operands: &mut [Dynamic],
+        value: Option<Dynamic>,
+        pos: Position,
+        last: bool,
+    ) -> RhaiResultOf<(Dynamic, bool)> {
+        if last {
+            return if value.is_some() {
+                Err(malformed("assignment to a method call".to_string()))
+            } else {
+                Ok((out, true))
+            };
+        }
+        self.walk_chain(program, chain, rest, &mut out, operands, value, pos)
+            .map(|(out, _)| (out, true))
+    }
+
+    /// Call a function pointer through a chain method step.
+    ///
+    /// The target stays borrowed for the full chain walk, so this is the
+    /// chain-local counterpart to [`Vm::call_fn_ptr`]. It binds a non-pointer
+    /// target as `this` when the first argument is the pointer, matching
+    /// `obj.call(f, ..)`.
+    fn call_chain_fn_ptr(
+        &mut self,
+        program: &Program,
+        target: &mut Dynamic,
+        args: &mut [Dynamic],
+        pos: Position,
+    ) -> RhaiResult {
+        let (pointer, args, mut bound, write_back, has_receiver) =
+            if let Some(pointer) = target.clone().try_cast::<FnPtr>() {
+                (pointer, args, None, false, false)
+            } else {
+                let Some((pointer, args)) = args.split_first_mut() else {
+                    return Err(self
+                        .engine
+                        .make_type_mismatch_err::<FnPtr>(target.type_name(), pos));
+                };
+                let pointer = pointer.clone().try_cast::<FnPtr>().ok_or_else(|| {
+                    self.engine
+                        .make_type_mismatch_err::<FnPtr>(pointer.type_name(), pos)
+                })?;
+                let (bound, write_back) = bind_this(target);
+                (pointer, args, Some(bound), write_back, true)
+            };
+
+        let curried = pointer.curry().len();
+        let function = program
+            .function_named(pointer.fn_name(), curried + args.len())
+            .map(|f| (f.params.clone(), f.chunk));
+
+        let result = if let Some((params, chunk)) = function {
+            let at = self.stack.len();
+            self.stack.extend(pointer.curry().iter().cloned());
+            self.stack.extend(args.iter_mut().map(|arg| arg.take()));
+            let (result, returned) = self.call_compiled_with_this(
+                program,
+                pointer.fn_name(),
+                &params,
+                chunk,
+                at,
+                &mut Scope::new(),
+                true,
+                pos,
+                bound.take(),
+            );
+            self.stack.truncate(at);
+            bound = returned;
+            result
+        } else {
+            let context = (self.engine, pointer.fn_name(), None, &self.global, pos).into();
+            pointer
+                .call_raw(&context, bound.as_mut(), args)
+                .map_err(|err| err.fill_position(pos))
+        };
+
+        if has_receiver {
+            unbind_this(target, bound, write_back);
+        }
+
+        result
     }
 
     /// One `[i]` step, taken through a reference into the container.
@@ -2158,65 +2256,6 @@ impl<'e> Vm<'e> {
         let value = outcome?;
         self.stack.truncate(base);
         Ok(value)
-    }
-
-    /// Call a `FnPtr` found in a map by method name:
-    /// `obj.foo(..)` where `foo` is a function pointer.
-    #[cfg(not(feature = "no_object"))]
-    fn call_map_fn_ptr_method(
-        &mut self,
-        program: &Program,
-        target: &mut Dynamic,
-        fn_ptr: FnPtr,
-        args: &mut [Dynamic],
-        pos: Position,
-    ) -> RhaiResult {
-        let name = fn_ptr.fn_name();
-        let argc = args.len() + fn_ptr.curry().len();
-        let function = program.function_named(name, argc);
-
-        let (this, restore) = bind_this(target);
-        let mut this = Some(this);
-
-        let result = if let Some(f) = function {
-            let at = self.stack.len();
-            self.stack.extend(fn_ptr.curry().iter().cloned());
-            self.stack.extend(args.iter_mut().map(|v| v.take()));
-            let new_scope = &mut Scope::new();
-            let (result, new_this_value) = self.call_compiled_with_this(
-                program, name, &f.params, f.chunk, at, new_scope, true, pos, this,
-            );
-            self.stack.truncate(at);
-            this = new_this_value;
-            result
-        } else {
-            let mut call_args: FnArgsVec<Dynamic> = fn_ptr
-                .curry()
-                .iter()
-                .cloned()
-                .chain(args.iter().cloned())
-                .collect();
-            let mut args: FnArgsVec<&mut Dynamic> =
-                std::iter::once(this.as_mut().expect("bound above"))
-                    .chain(call_args.iter_mut())
-                    .collect();
-
-            call_engine(
-                self.engine,
-                &mut self.global,
-                &mut self.caches,
-                &mut Scope::new(),
-                name,
-                &mut args,
-                true,
-                true,
-                pos,
-            )
-        };
-
-        unbind_this(target, this, restore);
-
-        result
     }
 
     /// Carry a write through `obj.call(f)`'s `this` back to `obj` itself.

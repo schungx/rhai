@@ -15,6 +15,7 @@ Bug fixes
 * Errors raised during built-in binary operations (such as `100 / 0`) now contain proper `Position` information (identified by Rhai Grain ).
 * Number of operations reported to `Engine::on_progress` now properly count scripted function calls from native Rust functions (identified by Rhai Grain). Previously all operation counts performed by a scripted function callback (including a closure) from a native Rust function are discarded.
 * Capturing the caller's scope via `call!(fnptr, args...)` now works properly in Rhai Grain.
+* `.call(fnptr, args...)` and `.curry(...)` method calls now work properly in any position (instead of only on a chain's root) in Rhai Grain.
 
 New features
 ------------
