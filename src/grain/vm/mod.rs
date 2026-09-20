@@ -2048,10 +2048,11 @@ impl<'e> Vm<'e> {
         &mut self,
         program: &Program,
         argc: usize,
-        method: bool,
+        is_method: bool,
         receiver: Option<Receiver>,
         scope: &mut Scope,
         frame_base: usize,
+        capture: bool,
         pos: Position,
     ) -> RhaiResult {
         let base = self
@@ -2069,7 +2070,7 @@ impl<'e> Vm<'e> {
         let mut receiver_at = None;
         let value = &self.stack[at];
 
-        if method && !value.is::<FnPtr>() {
+        if is_method && !value.is::<FnPtr>() {
             receiver_at = Some(at);
             if at + 1 >= self.stack.len() {
                 return Err(self
@@ -2112,8 +2113,14 @@ impl<'e> Vm<'e> {
             self.stack
                 .splice(first..first, pointer.curry().iter().cloned());
 
-            // A function pointer call always starts with an empty scope.
-            let new_scope = &mut Scope::new();
+            // Detach the scope with a new one if not capturing the parent's.
+            let mut detached;
+            let scope = if !capture {
+                detached = Scope::new();
+                &mut detached
+            } else {
+                &mut *scope
+            };
 
             let (result, returned) = self.call_compiled_with_this(
                 program,
@@ -2121,7 +2128,7 @@ impl<'e> Vm<'e> {
                 &params,
                 chunk,
                 first,
-                new_scope,
+                scope,
                 true,
                 pos,
                 bound.take(),
@@ -4145,12 +4152,15 @@ impl<'e> Vm<'e> {
                 }
 
                 code::tag::CALL_FN_PTR
+                | code::tag::CALL_FN_PTR_CAPTURE
                 | code::tag::CALL_FN_PTR_METHOD
                 | code::tag::CALL_FN_PTR_ON_LOCAL
                 | code::tag::CALL_FN_PTR_ON_NAMED
                 | code::tag::CALL_FN_PTR_ON_THIS => {
                     let argc = code[pc + 1] as usize;
-                    let method = tag != code::tag::CALL_FN_PTR;
+                    let is_method =
+                        tag != code::tag::CALL_FN_PTR && tag != code::tag::CALL_FN_PTR_CAPTURE;
+                    let is_capture = tag == code::tag::CALL_FN_PTR_CAPTURE;
                     let receiver = match tag {
                         code::tag::CALL_FN_PTR_ON_LOCAL => Some(Receiver::Local(small(2)?)),
                         code::tag::CALL_FN_PTR_ON_NAMED => {
@@ -4159,8 +4169,16 @@ impl<'e> Vm<'e> {
                         code::tag::CALL_FN_PTR_ON_THIS => Some(Receiver::This),
                         _ => None,
                     };
-                    let value =
-                        self.call_fn_ptr(program, argc, method, receiver, scope, base, pos())?;
+                    let value = self.call_fn_ptr(
+                        program,
+                        argc,
+                        is_method,
+                        receiver,
+                        scope,
+                        base,
+                        is_capture,
+                        pos(),
+                    )?;
                     self.stack.push(value);
                 }
 

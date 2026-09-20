@@ -1,11 +1,15 @@
 //! The `FnPtr` type.
 
+use crate::eval::Caches;
 use crate::func::{is_valid_function_name, FnCallArgs};
 use crate::types::Token;
-use crate::types::{dynamic::Variant, token::is_reserved_keyword_or_symbol};
+use crate::types::{
+    dynamic::Variant,
+    token::{is_reserved_keyword_or_symbol, is_valid_identifier},
+};
 use crate::{
     expose_under_internals, Dynamic, FnArgsVec, FuncArgs, ImmutableString, NativeCallContext,
-    Position, RhaiError, RhaiResult, RhaiResultOf, Shared, StaticVec, ThinVec, ERR, PERR,
+    Position, RhaiError, RhaiResult, RhaiResultOf, Scope, Shared, StaticVec, ThinVec, ERR, PERR,
 };
 #[cfg(not(feature = "no_ast"))]
 use crate::{Engine, AST};
@@ -421,10 +425,20 @@ impl FnPtr {
     ///
     /// Do not use the arguments after this call. If they are needed afterwards,
     /// clone them _before_ calling this function.
-    #[inline]
+    #[inline(always)]
     pub fn call_raw(
         &self,
         context: &NativeCallContext,
+        this_ptr: Option<&mut Dynamic>,
+        arg_values: impl AsMut<[Dynamic]>,
+    ) -> RhaiResult {
+        self._call_raw(context, &mut Scope::new(), this_ptr, arg_values)
+    }
+    #[inline]
+    pub(crate) fn _call_raw(
+        &self,
+        context: &NativeCallContext,
+        scope: &mut Scope,
         this_ptr: Option<&mut Dynamic>,
         arg_values: impl AsMut<[Dynamic]>,
     ) -> RhaiResult {
@@ -459,8 +473,8 @@ impl FnPtr {
 
                 return context.engine().call_script_fn(
                     global.into(),
-                    &mut crate::eval::Caches::new(),
-                    &mut crate::Scope::new(),
+                    &mut Caches::new(),
+                    scope,
                     this_ptr,
                     env.map(|e| &**e),
                     fn_def,
@@ -546,7 +560,12 @@ impl FnPtr {
             arg_values.iter_mut().collect::<FnArgsVec<_>>()
         };
 
-        context.call_fn_raw(self.fn_name(), is_method, is_method, args)
+        let name = self.fn_name();
+        let native_only = !is_valid_identifier(name);
+        #[cfg(not(feature = "no_function"))]
+        let native_only = native_only && !crate::func::is_anonymous_fn(name);
+
+        context._call_fn_raw(Some(scope), name, args, native_only, is_method, is_method)
     }
 
     /// _(internals)_ Make a call to a function pointer with either a specified number of arguments,

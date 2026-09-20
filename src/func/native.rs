@@ -9,7 +9,7 @@ use crate::types::{dynamic::Variant, token::is_valid_identifier, Token};
 use crate::VarDefInfo;
 use crate::{
     calc_fn_hash, expose_under_internals, Dynamic, Engine, EvalContext, FnArgsVec, FuncArgs,
-    Position, RhaiResult, RhaiResultOf, StaticVec, ERR,
+    Position, RhaiResult, RhaiResultOf, Scope, StaticVec, ERR,
 };
 use std::any::type_name;
 #[cfg(feature = "no_std")]
@@ -317,7 +317,7 @@ impl<'a> NativeCallContext<'a> {
 
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
-        self._call_fn_raw(fn_name, args, false, false, false)
+        self._call_fn_raw(None, fn_name, args, false, false, false)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());
@@ -352,7 +352,7 @@ impl<'a> NativeCallContext<'a> {
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
         args.insert(0, this_ptr);
 
-        self._call_fn_raw(fn_name, args, false, true, true)
+        self._call_fn_raw(None, fn_name, args, false, true, true)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());
@@ -385,7 +385,7 @@ impl<'a> NativeCallContext<'a> {
 
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
 
-        self._call_fn_raw(fn_name, args, true, false, false)
+        self._call_fn_raw(None, fn_name, args, true, false, false)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());
@@ -424,7 +424,7 @@ impl<'a> NativeCallContext<'a> {
         let args = &mut arg_values.iter_mut().collect::<FnArgsVec<_>>();
         args.insert(0, object);
 
-        self._call_fn_raw(fn_name, args, true, true, true)
+        self._call_fn_raw(None, fn_name, args, true, true, true)
             .and_then(|result| {
                 result.try_cast_result().map_err(|r| {
                     let result_type = self.engine().map_type_name(r.type_name());
@@ -473,7 +473,7 @@ impl<'a> NativeCallContext<'a> {
         #[cfg(not(feature = "no_function"))]
         let native_only = native_only && !crate::func::is_anonymous_fn(name);
 
-        self._call_fn_raw(fn_name, args, native_only, is_ref_mut, is_method_call)
+        self._call_fn_raw(None, fn_name, args, native_only, is_ref_mut, is_method_call)
     }
     /// Call a registered native Rust function inside the call context.
     ///
@@ -502,12 +502,13 @@ impl<'a> NativeCallContext<'a> {
         is_ref_mut: bool,
         args: &mut [&mut Dynamic],
     ) -> RhaiResult {
-        self._call_fn_raw(fn_name, args, true, is_ref_mut, false)
+        self._call_fn_raw(None, fn_name, args, true, is_ref_mut, false)
     }
 
     /// Call a function (native Rust or scripted) inside the call context.
-    fn _call_fn_raw(
+    pub(crate) fn _call_fn_raw(
         &self,
+        scope: Option<&mut Scope>,
         fn_name: impl AsRef<str>,
         args: &mut [&mut Dynamic],
         native_only: bool,
@@ -561,7 +562,7 @@ impl<'a> NativeCallContext<'a> {
                 .exec_fn_call(
                     new_global,
                     caches,
-                    None,
+                    scope,
                     fn_name,
                     op_token,
                     hash,

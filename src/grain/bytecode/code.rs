@@ -187,6 +187,8 @@ pub mod tag {
     pub const STATEMENT: u8 = 0x47;
     /// [`Op::StoreLocal`](super::Op::StoreLocal) as a constant.
     pub const STORE_CONST: u8 = 0x48;
+    /// [`Op::CallFnPtr`](super::Op::CallFnPtr) capturing the parent's scope.
+    pub const CALL_FN_PTR_CAPTURE: u8 = 0x49;
 }
 
 /// How wide each tag's instruction is, with 0 for the tags that are not one.
@@ -226,6 +228,7 @@ static WIDTHS: [u8; 256] = {
     widths[tag::CURRY as usize] = 2;
     widths[tag::ROTATE as usize] = 2;
     widths[tag::CALL_FN_PTR as usize] = 2;
+    widths[tag::CALL_FN_PTR_CAPTURE as usize] = 2;
     widths[tag::CALL_FN_PTR_METHOD as usize] = 2;
 
     widths[tag::SHARE as usize] = 3;
@@ -627,8 +630,9 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
             }
             Op::CallFnPtr {
                 argc,
-                is_method: method,
+                is_method,
                 receiver,
+                capture_parent_scope,
             } => {
                 // The receiver's value is on the stack whichever of these it
                 // is; the tag says where it came from, and two of them carry
@@ -639,7 +643,8 @@ pub fn assemble(ops: &[Op]) -> Result<(Vec<u8>, Vec<u32>), AssembleError> {
                         Some((tag::CALL_FN_PTR_ON_NAMED, small(*var as usize, "names")?))
                     }
                     Some(Receiver::This) => Some((tag::CALL_FN_PTR_ON_THIS, 0)),
-                    None if *method => Some((tag::CALL_FN_PTR_METHOD, 0)),
+                    None if *is_method => Some((tag::CALL_FN_PTR_METHOD, 0)),
+                    None if *capture_parent_scope => Some((tag::CALL_FN_PTR_CAPTURE, 0)),
                     None => Some((tag::CALL_FN_PTR, 0)),
                 };
                 let (tag, operand) = operand.expect("every arm answers");
@@ -983,26 +988,37 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
         tag::CALL_FN_PTR => Op::CallFnPtr {
             argc: code[at + 1],
             is_method: false,
+            capture_parent_scope: false,
+            receiver: None,
+        },
+        tag::CALL_FN_PTR_CAPTURE => Op::CallFnPtr {
+            argc: code[at + 1],
+            is_method: false,
+            capture_parent_scope: true,
             receiver: None,
         },
         tag::CALL_FN_PTR_METHOD => Op::CallFnPtr {
             argc: code[at + 1],
             is_method: true,
+            capture_parent_scope: false,
             receiver: None,
         },
         tag::CALL_FN_PTR_ON_LOCAL => Op::CallFnPtr {
             argc: code[at + 1],
             is_method: true,
+            capture_parent_scope: false,
             receiver: Some(Receiver::Local(small(2)?)),
         },
         tag::CALL_FN_PTR_ON_NAMED => Op::CallFnPtr {
             argc: code[at + 1],
             is_method: true,
+            capture_parent_scope: false,
             receiver: Some(Receiver::Named(u32::from(small(2)?))),
         },
         tag::CALL_FN_PTR_ON_THIS => Op::CallFnPtr {
             argc: code[at + 1],
             is_method: true,
+            capture_parent_scope: false,
             receiver: Some(Receiver::This),
         },
         tag::INTERPOLATE_START => Op::InterpolateStart,
@@ -1171,26 +1187,37 @@ mod tests {
             Op::CallFnPtr {
                 argc: 1,
                 is_method: false,
+                capture_parent_scope: false,
+                receiver: None,
+            },
+            Op::CallFnPtr {
+                argc: 1,
+                is_method: false,
+                capture_parent_scope: true,
                 receiver: None,
             },
             Op::CallFnPtr {
                 argc: 1,
                 is_method: true,
+                capture_parent_scope: false,
                 receiver: None,
             },
             Op::CallFnPtr {
                 argc: 1,
                 is_method: true,
+                capture_parent_scope: false,
                 receiver: Some(Receiver::Local(4)),
             },
             Op::CallFnPtr {
                 argc: 1,
                 is_method: true,
+                capture_parent_scope: false,
                 receiver: Some(Receiver::Named(5)),
             },
             Op::CallFnPtr {
                 argc: 1,
                 is_method: true,
+                capture_parent_scope: false,
                 receiver: Some(Receiver::This),
             },
             Op::LoadThis,

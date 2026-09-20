@@ -13,6 +13,7 @@ use crate::ast::{
     ASTFlags, ASTNode, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock,
     SwitchCasesCollection,
 };
+use crate::engine::{KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY};
 #[cfg(not(feature = "no_function"))]
 use crate::func::{ScriptFuncDef, ScriptFuncPayload};
 use crate::types::{Span, Token};
@@ -1732,7 +1733,7 @@ impl Lowering {
             // further step would make it a `Dot` or an `Index` instead.
             Expr::Dot(binary, ..)
                 if matches!(&binary.rhs, Expr::MethodCall(m, ..)
-                    if matches!(m.name.as_str(), "call" | "curry")
+                    if matches!(m.name.as_str(), KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY)
                         && m.args.len() <= u8::MAX as usize) =>
             {
                 self.caps.insert(Caps::METHOD);
@@ -1771,11 +1772,12 @@ impl Lowering {
                 // different path in Rhai and takes the *argument's* position —
                 // see `fn_ptr_call`. The two disagreeing is deliberate.
                 let pos = binary.rhs.position();
-                if method.name == "call" {
+                if method.name == KEYWORD_FN_PTR_CALL {
                     self.emit_at(
                         Op::CallFnPtr {
                             argc,
                             is_method: true,
+                            capture_parent_scope: false,
                             receiver,
                         },
                         pos,
@@ -2040,7 +2042,7 @@ impl Lowering {
     /// Matching those arities exactly is what keeps the two agreeing on
     /// the failures as well as the successes.
     fn fn_ptr_call(&mut self, call: &FnCallExpr, pos: Position) -> bool {
-        if call_has_namespace!(call) || call.capture_parent_scope {
+        if call_has_namespace!(call) {
             return false;
         }
         let argc = call.args.len();
@@ -2090,6 +2092,7 @@ impl Lowering {
                     Op::CallFnPtr {
                         argc: (argc - 1) as u8,
                         is_method: false,
+                        capture_parent_scope: call.capture_parent_scope,
                         // Call position binds no receiver at all.
                         receiver: None,
                     },
@@ -2738,6 +2741,18 @@ mod tests {
             program.residual_count(),
             0,
             "lowering a bare script-function name should not leave a residual AST fragment",
+        );
+    }
+
+    #[test]
+    fn a_call_with_bang_lowers() {
+        let engine = crate::Engine::new();
+        let ast = engine.compile("call!(f, 1)").expect("must compile");
+        let program = Compiler::new().compile(&ast);
+        assert_eq!(
+            program.residual_count(),
+            0,
+            "lowering a `call!` should not leave a residual AST fragment",
         );
     }
 

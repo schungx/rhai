@@ -516,6 +516,8 @@ pub enum Op {
         argc: u8,
         /// Whether the call is in method position (`f.call(x)`).
         is_method: bool,
+        /// This call captures the parent's [`Scope`][crate::Scope].
+        capture_parent_scope: bool,
         /// Where the receiver came from, when there is anywhere to put it back.
         ///
         /// `obj.call(f)` binds `obj` as the closure's `this` **by reference**
