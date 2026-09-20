@@ -75,6 +75,21 @@ fn agree_with(engine: &Engine, source: &str, build: impl Fn(&mut Scope), writabl
     assert_eq!(actual, expected, "{source:?}");
 }
 
+#[test]
+#[cfg(not(feature = "no_closure"))]
+#[cfg(not(feature = "no_index"))]
+#[cfg(not(feature = "no_object"))]
+fn is_shared_method_calls_lower_for_chain_receivers() {
+    let engine = corpus::engine();
+    for source in ["let a = 41; let f = || a; a.is_shared()", "let a = [41]; a[0].is_shared()", r#"fn "i64".check() { this.is_shared() } 41.check()"#] {
+        let ast = engine.compile(source).expect("must compile");
+        let program = Compiler::new().compile(&ast);
+        assert_eq!(program.residual_count(), 0, "{source:?} must lower, got {:?}", program.first_unsupported());
+    }
+
+    agree("let a = 41; let f = || a; a.is_shared()", |_| {}, true);
+}
+
 /// A script integer. Spelled through `INT` because `only_i32` narrows it, and
 /// a caller variable holding the wider type is a host value no operator takes.
 fn lit(value: INT) -> Dynamic {

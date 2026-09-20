@@ -13,6 +13,8 @@ use crate::ast::{
     ASTFlags, ASTNode, Expr, FlowControl, FnCallExpr, OpAssignment, Stmt, StmtBlock,
     SwitchCasesCollection,
 };
+#[cfg(not(feature = "no_closure"))]
+use crate::engine::KEYWORD_IS_SHARED;
 use crate::engine::{KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY};
 #[cfg(not(feature = "no_function"))]
 use crate::func::{ScriptFuncDef, ScriptFuncPayload};
@@ -477,6 +479,10 @@ impl Lowering {
                     match call.name.as_str() {
                         KEYWORD_FN_PTR_CALL => self.caps.insert(Caps::FN_PTR),
                         KEYWORD_FN_PTR_CURRY => self.caps.insert(Caps::FN_PTR | Caps::CURRYING),
+                        #[cfg(not(feature = "no_closure"))]
+                        KEYWORD_IS_SHARED if call.args.is_empty() => {
+                            self.caps.insert(Caps::SHARING);
+                        }
                         _ if !self.is_lowerable_call(call) => {
                             if value.is_some() {
                                 self.rewind(rewind_mark);

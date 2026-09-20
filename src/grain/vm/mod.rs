@@ -4,6 +4,8 @@ use std::prelude::v1::*;
 
 use rhai_codegen::expose_under_internals;
 
+#[cfg(not(feature = "no_closure"))]
+use crate::engine::KEYWORD_IS_SHARED;
 use crate::engine::{KEYWORD_FN_PTR_CALL, KEYWORD_FN_PTR_CURRY};
 #[cfg(not(feature = "unchecked"))]
 #[cfg(not(all(feature = "no_index", feature = "no_object")))]
@@ -1068,7 +1070,19 @@ impl<'e> Vm<'e> {
             // whose shared arm hands over the guard rather than the cell.
             // Walking the cell would take the host down, so this is a panic-safety
             // fix and not only a correctness one.
-            if is_shared!(*root.as_mut()) {
+            #[cfg(not(feature = "no_closure"))]
+            let is_shared_query = matches!(
+                chain.steps.first(),
+                Some(Step::Method {
+                    name,
+                    argc: 0,
+                    ..
+                }) if program.name(*name) == Some(KEYWORD_IS_SHARED)
+            );
+            #[cfg(feature = "no_closure")]
+            let is_shared_query = false;
+
+            if is_shared!(*root.as_mut()) && !is_shared_query {
                 let mut guard = root.as_mut().write_lock::<Dynamic>().ok_or_else(|| {
                     let name = root_name(program, chain).unwrap_or_default();
                     let msg = format!("variable '{name}'");
@@ -1317,6 +1331,13 @@ impl<'e> Vm<'e> {
 
                 // Handle special method calls for function pointers
                 match name {
+                    #[cfg(not(feature = "no_closure"))]
+                    KEYWORD_IS_SHARED if argc == 0 => {
+                        let out = target.is_shared().into();
+                        return self.finish_chain_method(
+                            program, chain, rest, out, operands, value, pos, last,
+                        );
+                    }
                     // .call(fnptr, ...)
                     KEYWORD_FN_PTR_CALL => {
                         let args = &mut operands[first..first + argc];
