@@ -725,7 +725,10 @@ fn check_indices(at: usize, code: &[u8], pools: &Pools) -> Result<(), VerifyErro
             bounded(index(1), "chain", pools.chains.len())?;
             check_chain_indices(at, &pools.chains[index(1) as usize], pools)
         }
-        tag::SWITCH => bounded(index(1), "switch", pools.switches.len()),
+        tag::SWITCH => {
+            bounded(index(1), "switch", pools.switches.len())?;
+            check_switch_indices(at, &pools.switches[index(1) as usize], pools)
+        }
         _ => Ok(()),
     }
 }
@@ -775,6 +778,29 @@ fn check_chain_indices(at: usize, chain: &Chain, pools: &Pools) -> Result<(), Ve
         Tail::Assign { op: Some(op) } => bounded(op, "op-assignment", pools.assign_ops),
         Tail::Assign { op: None } | Tail::Read => Ok(()),
     }
+}
+
+/// Check the pool references *inside* a switch record.
+///
+/// A switch is one instruction over an unbounded record, so nearly all of what
+/// it names lives in the pool rather than in the code. Bounding only the
+/// record's own index would leave most of the instruction unverified.
+fn check_switch_indices(at: usize, switch: &Switch, pools: &Pools) -> Result<(), VerifyError> {
+    let bounded = |index: u32, what: &'static str, len: usize| {
+        if index as usize >= len {
+            Err(VerifyError::BadIndex { at, what, index })
+        } else {
+            Ok(())
+        }
+    };
+
+    if let Some(cases) = &switch.cases {
+        for (_, value) in cases.values() {
+            bounded(*value, "constant", pools.consts)?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1080,6 +1106,7 @@ mod tests {
                 &[],
                 &[chunk],
                 &Pools {
+                    consts: 43,
                     switches: &good,
                     ..pools()
                 }
@@ -1098,6 +1125,7 @@ mod tests {
                     &[],
                     &[chunk],
                     &Pools {
+                        consts: 43,
                         switches: &mid,
                         ..pools()
                     }
@@ -1118,6 +1146,7 @@ mod tests {
                     &[],
                     &[chunk],
                     &Pools {
+                        consts: 43,
                         switches: &outside,
                         ..pools()
                     }
