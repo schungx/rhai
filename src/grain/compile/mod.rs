@@ -991,6 +991,9 @@ impl Lowering {
     /// The lowering itself, one arm per kind of statement.
     fn lower_statement(&mut self, stmt: &Stmt) -> Lowered {
         match stmt {
+            // A Noop evaluates to unit.
+            Stmt::Noop(..) => Lowered::Empty,
+
             Stmt::Var(payload, flags, ..) => {
                 // `export let x = ...` also binds a module alias, which the
                 // slot model does not represent.
@@ -1549,10 +1552,7 @@ impl Lowering {
             // nothing or rewinds what it declares, so the scope is the same
             // shape afterwards. That is the property to check before adding to
             // this list.
-            other @ (Stmt::Noop(..)
-            | Stmt::FnCall(..)
-            | Stmt::Assignment(..)
-            | Stmt::Return(..)) => {
+            other @ (Stmt::FnCall(..) | Stmt::Assignment(..) | Stmt::Return(..)) => {
                 let residual = self.push_residual(wrap_statements(vec![other.clone()]));
                 self.emit(Op::EvalAst {
                     residual,

@@ -2,7 +2,8 @@
 use std::prelude::v1::*;
 
 #[cfg(not(feature = "no_ast"))]
-use crate::ast::{ASTFlags, ASTNode, Expr, Stmt};
+use crate::ast::{ASTNode, Expr, Stmt};
+use crate::engine::KEYWORD_EVAL;
 #[cfg(not(feature = "no_module"))]
 use crate::module_resolvers::StaticModuleResolver;
 use crate::{expose_under_internals, types::Token, Dynamic, ImmutableString, Shared, SharedModule};
@@ -195,23 +196,19 @@ impl core::fmt::Debug for Program<'_> {
 fn unsupported_kind(node: &ASTNode) -> Option<&'static str> {
     Some(match node {
         ASTNode::Stmt(stmt) => match stmt {
-            Stmt::Switch(..) => "switch",
-            Stmt::For(..) => "for",
-            Stmt::TryCatch(..) => "try/catch",
             #[cfg(not(feature = "no_module"))]
             Stmt::Import(..) => "import",
             #[cfg(not(feature = "no_module"))]
             Stmt::Export(..) => "export",
-            #[cfg(not(feature = "no_closure"))]
-            Stmt::Share(..) => "a closure capture",
-            Stmt::Return(_, flags, ..) if flags.contains(ASTFlags::BREAK) => "throw",
+            Stmt::FnCall(call, ..) if call.name == KEYWORD_EVAL => "eval",
             _ => return None,
         },
         ASTNode::Expr(expr) => match expr {
-            Expr::InterpolatedString(..) => "string interpolation",
+            Expr::FnCall(call, ..) if call.name == KEYWORD_EVAL => "eval",
+            // Only "unsupported" when it may change the scope's shape --
+            // otherwise it lowers to `Op::CustomSyntax`, per input.
             #[cfg(not(feature = "no_custom_syntax"))]
-            Expr::Custom(..) => "custom syntax",
-            Expr::Map(..) => "a non-constant map literal",
+            Expr::Custom(custom, ..) if custom.scope_may_be_changed => "custom syntax",
             _ => return None,
         },
     })

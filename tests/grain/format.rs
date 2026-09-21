@@ -349,7 +349,7 @@ fn a_chain_rooted_at_a_name_survives_the_round_trip() {
 fn refusing_to_write_names_the_construct_responsible() {
     let engine = corpus::engine();
 
-    const SCRIPTS: &[(&str, &str)] = &[("let x = 1; eval(\"x\")", "an unlowered expression")];
+    const SCRIPTS: &[(&str, &str)] = &[("let x = 1; eval(\"x\")", "eval")];
 
     for (source, expected) in SCRIPTS {
         let ast = engine.compile(source).expect("must compile");
