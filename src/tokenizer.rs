@@ -275,7 +275,7 @@ impl From<Token> for SmartString {
 impl From<&Token> for SmartString {
     #[inline(always)]
     fn from(token: &Token) -> Self {
-        let mut buf = Self::new_const();
+        let mut buf = Self::const_new("");
         write!(&mut buf, "{token}").unwrap();
         buf
     }
@@ -403,7 +403,7 @@ pub fn parse_raw_string_literal(
     // Counts the number of '#' characters seen after a quotation mark.
     // Becomes Some(0) after a quote is seen, but resets to None if a hash doesn't follow.
     let mut seen_hashes: Option<usize> = None;
-    let mut result = SmartString::new_const();
+    let mut result = SmartString::const_new("");
 
     while let Some(next_char) = stream.get_next() {
         pos.advance();
@@ -498,8 +498,8 @@ pub fn parse_string_literal(
     allow_line_continuation: bool,
     allow_interpolation: bool,
 ) -> Result<(SmartString, bool, Position), (LexError, Position)> {
-    let mut result = SmartString::new_const();
-    let mut escape = SmartString::new_const();
+    let mut result = SmartString::const_new("");
+    let mut escape = SmartString::const_new("");
 
     let start = *pos;
     let mut first_char = Position::NONE;
@@ -894,7 +894,7 @@ fn get_next_token_inner(
         match (c, cc) {
             // digit ...
             ('0'..='9', ..) => {
-                let mut result = SmartString::new_const();
+                let mut result = SmartString::const_new("");
                 let mut radix_base: Option<u32> = None;
                 let mut valid: fn(char) -> bool = is_numeric_digit;
                 let mut _has_period = false;
@@ -1568,7 +1568,7 @@ fn parse_identifier_token(
     start_pos: Position,
     first_char: char,
 ) -> (Token, Position) {
-    let mut identifier = SmartString::new_const();
+    let mut identifier = SmartString::const_new("");
     identifier.push(first_char);
     if let Some(ref mut last) = state.last_token {
         last.clear();
@@ -1840,7 +1840,7 @@ impl Iterator for TokenIterator<'_> {
             if token != Token::EOF {
                 if let Some(ref mut compressed) = control.compressed {
                     let last_token = self.state.last_token.as_ref().unwrap();
-                    let mut buf = SmartString::new_const();
+                    let mut buf = SmartString::const_new("");
 
                     if last_token.is_empty() {
                         write!(buf, "{token}").unwrap();
@@ -1876,7 +1876,7 @@ impl Iterator for TokenIterator<'_> {
                         let need_space = if is_id(prev) && is_id(cur) {
                             true
                         } else {
-                            let mut pair = SmartString::new_const();
+                            let mut pair = SmartString::const_new("");
                             pair.push(prev);
                             pair.push(cur);
                             Token::lookup_symbol_from_syntax(&pair).is_some()

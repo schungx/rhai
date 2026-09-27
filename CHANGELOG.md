@@ -4,6 +4,16 @@ Rhai Release Notes
 Version 1.27.0
 ==============
 
+Potentially breaking changes
+----------------------------
+
+* The key type of `Map` (and `Identifier` under `internals`) is now [`CompactString`](https://crates.io/crates/compact_str) instead of `SmartString`. Code that only uses `&str`, `.into()` or `.as_str()` on map keys is unaffected; code that names `smartstring::SmartString` explicitly needs to switch to `compact_str::CompactString`.
+
+Dependencies
+------------
+
+* [`smartstring`](https://crates.io/crates/smartstring), which is archived and unmaintained ([RUSTSEC-2026-0249](https://rustsec.org/advisories/RUSTSEC-2026-0249.html), [`#816`](https://github.com/rhaiscript/rhai/issues/816)), is replaced by [`compact_str`](https://crates.io/crates/compact_str) (versions `0.9` and `0.10` are accepted; `0.9` keeps the MSRV at 1.66).
+
 Bug fixes
 ---------
 

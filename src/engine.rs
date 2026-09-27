@@ -227,7 +227,7 @@ impl Default for Engine {
 #[inline(always)]
 #[must_use]
 pub fn make_getter(id: &str) -> Identifier {
-    let mut buf = Identifier::new_const();
+    let mut buf = Identifier::const_new("");
     buf.push_str(FN_GET);
     buf.push_str(id);
     buf
@@ -238,7 +238,7 @@ pub fn make_getter(id: &str) -> Identifier {
 #[inline(always)]
 #[must_use]
 pub fn make_setter(id: &str) -> Identifier {
-    let mut buf = Identifier::new_const();
+    let mut buf = Identifier::const_new("");
     buf.push_str(FN_SET);
     buf.push_str(id);
     buf

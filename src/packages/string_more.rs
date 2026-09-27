@@ -67,21 +67,21 @@ mod string_functions {
 
     #[rhai_fn(name = "+")]
     pub fn add_append_str(string1: &str, string2: &str) -> ImmutableString {
-        let mut buf = SmartString::new_const();
+        let mut buf = SmartString::const_new("");
         buf.push_str(string1);
         buf.push_str(string2);
         buf.into()
     }
     #[rhai_fn(name = "+")]
     pub fn add_append_char(string: &str, character: char) -> ImmutableString {
-        let mut buf = SmartString::new_const();
+        let mut buf = SmartString::const_new("");
         buf.push_str(string);
         buf.push(character);
         buf.into()
     }
     #[rhai_fn(name = "+")]
     pub fn add_prepend_char(character: char, string: &str) -> ImmutableString {
-        let mut buf = SmartString::new_const();
+        let mut buf = SmartString::const_new("");
         buf.push(character);
         buf.push_str(string);
         buf.into()

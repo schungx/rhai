@@ -24,7 +24,7 @@ ahash = { version = "0.8.4", default-features = false, features = ["compile-time
 num-traits = { version = "0.2.14", default-features = false }
 once_cell = { version = "1.20.1", default-features = false, features = ["race", "portable-atomic", "alloc"] }
 bitflags = { version = "2.3.3", default-features = false }
-smartstring = { version = "1.0.0", default-features = false }
+compact_str = { version = ">=0.9, <0.11", default-features = false }
 rhai_codegen = { version = "3.2.0", path = "codegen" }
 
 no-std-compat = { git = "https://gitlab.com/jD91mZM2/no-std-compat.git", version = "0.4.1", default-features = false, features = ["alloc"], optional = true }
@@ -49,7 +49,7 @@ serde_json = { version = "1.0.45", default-features = false, features = ["alloc"
 ## Default features: `std`, uses runtime random numbers for hashing.
 default = ["std", "ahash/runtime-rng"] # ahash/runtime-rng trumps ahash/compile-time-rng
 ## Standard features: uses compile-time random number for hashing.
-std = ["once_cell/std", "ahash/std", "num-traits/std", "smartstring/std"]
+std = ["once_cell/std", "ahash/std", "num-traits/std", "compact_str/std"]
 
 #! ### Enable Special Functionalities
 

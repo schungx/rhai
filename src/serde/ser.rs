@@ -25,7 +25,7 @@ impl DynamicSerializer {
     #[must_use]
     pub const fn new(value: Dynamic) -> Self {
         Self {
-            _key: Identifier::new_const(),
+            _key: Identifier::const_new(""),
             _value: value,
         }
     }

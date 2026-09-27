@@ -253,7 +253,7 @@ impl Engine {
                 .map(Target::take_or_clone),
 
             Expr::InterpolatedString(x, _) => {
-                let mut concat = SmartString::new_const();
+                let mut concat = SmartString::const_new("");
 
                 for expr in &**x {
                     let item = &mut self

@@ -272,7 +272,7 @@ pub mod debugger {
 ///
 /// Identifiers are assumed to be all-ASCII and short with few exceptions.
 ///
-/// [`SmartString`](https://crates.io/crates/smartstring) is used as the underlying storage type
+/// [`CompactString`](https://crates.io/crates/compact_str) is used as the underlying storage type
 /// because most identifiers can be stored inline.
 #[expose_under_internals]
 type Identifier = SmartString;
@@ -319,8 +319,8 @@ pub type Blob = Vec<u8>;
 ///
 /// Not available under `no_object`.
 ///
-/// [`SmartString`](https://crates.io/crates/smartstring) is used as the key type because most
-/// property names are ASCII and short, fewer than 23 characters, so they can be stored inline.
+/// [`CompactString`](https://crates.io/crates/compact_str) is used as the key type because most
+/// property names are ASCII and short, at most 24 bytes (on 64-bit targets), so they can be stored inline.
 #[cfg(not(feature = "no_object"))]
 pub type Map = std::collections::BTreeMap<Identifier, Dynamic>;
 
@@ -480,7 +480,7 @@ type FnArgsVec<T> = smallvec::SmallVec<[T; FN_ARGS_VEC_INLINE_SIZE]>;
 #[cfg(feature = "no_closure")]
 type FnArgsVec<T> = crate::StaticVec<T>;
 
-type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+type SmartString = compact_str::CompactString;
 
 // Compiler guards against mutually-exclusive feature flags
 

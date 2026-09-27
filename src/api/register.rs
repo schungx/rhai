@@ -815,7 +815,7 @@ impl Engine {
                     mapper(crate::module::FuncInfo {
                         metadata: f,
                         #[cfg(not(feature = "no_module"))]
-                        namespace: Identifier::new_const(),
+                        namespace: Identifier::const_new(""),
                         script: func.get_script_fn_def().map(|f| (&**f).into()),
                     })
                 })
@@ -830,7 +830,7 @@ impl Engine {
                 mapper(crate::module::FuncInfo {
                     metadata: f,
                     #[cfg(not(feature = "no_module"))]
-                    namespace: Identifier::new_const(),
+                    namespace: Identifier::const_new(""),
                     #[cfg(not(feature = "no_function"))]
                     script: _func.get_script_fn_def().map(|f| (&**f).into()),
                 })
@@ -863,7 +863,7 @@ impl Engine {
 
                 module.iter_sub_modules().for_each(|(name, m)| {
                     use std::fmt::Write;
-                    let mut ns = SmartString::new_const();
+                    let mut ns = SmartString::const_new("");
                     write!(&mut ns, "{namespace}{NAMESPACE_SEPARATOR}{name}").unwrap();
                     scan_module_recursive(list, &ns, m, mapper);
                 });

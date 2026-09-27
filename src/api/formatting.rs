@@ -265,7 +265,7 @@ impl Engine {
         let (mut stream, tc) = self.lex(&scripts);
 
         tc.borrow_mut().compressed = Some(String::new());
-        stream.state.last_token = Some(SmartString::new_const());
+        stream.state.last_token = Some(SmartString::const_new(""));
 
         let input = &mut stream.peekable();
         let lib = &mut <_>::default();

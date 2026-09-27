@@ -398,7 +398,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                         let x = args[0].as_char().unwrap();
                         let y = args[1].as_char().unwrap();
 
-                        let mut result = SmartString::new_const();
+                        let mut result = SmartString::const_new("");
                         result.push(x);
                         result.push(y);
 
@@ -533,7 +533,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                         let x = args[0].as_char().unwrap();
                         let y = &*args[1].as_immutable_string_ref().unwrap();
 
-                        let mut result = SmartString::new_const();
+                        let mut result = SmartString::const_new("");
                         result.push(x);
                         result.push_str(y);
 
@@ -882,7 +882,7 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                 let y = args[1].as_char().unwrap();
                 let x = &mut *args[0].write_lock::<Dynamic>().unwrap();
 
-                let mut buf = SmartString::new_const();
+                let mut buf = SmartString::const_new("");
                 buf.push(x.as_char().unwrap());
                 buf.push(y);
 
