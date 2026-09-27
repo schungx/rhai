@@ -1871,8 +1871,9 @@ impl Engine {
         match token {
             // -expr
             Token::Minus | Token::UnaryMinus => {
-                let token = token.clone();
+                let mut token = token.clone();
                 let pos = eat_token(state.input, &token);
+                token = Token::Minus;
 
                 match self.parse_unary(state, settings.level_up()?)? {
                     // Negative integer
@@ -1907,8 +1908,9 @@ impl Engine {
             }
             // +expr
             Token::Plus | Token::UnaryPlus => {
-                let token = token.clone();
+                let mut token = token.clone();
                 let pos = eat_token(state.input, &token);
+                token = Token::Plus;
 
                 match self.parse_unary(state, settings.level_up()?)? {
                     expr @ Expr::IntegerConstant(..) => Ok(expr),

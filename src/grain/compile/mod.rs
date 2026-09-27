@@ -1874,11 +1874,7 @@ impl Lowering {
             self.expression(arg);
         }
         let name = self.push_name(call.name.clone());
-        // Only for a binary operator, which is the only shape the built-in
-        // lookup takes. Keeping a unary one would be dead weight and worse:
-        // `UnaryMinus` and `Minus` share the syntax `"-"`, so it is a token
-        // that cannot be written to an artifact at all.
-        let op = (argc == 2)
+        let op = (argc == 1 || argc == 2)
             .then(|| call.op_token.clone())
             .flatten()
             .map(|token| self.push_token(token));

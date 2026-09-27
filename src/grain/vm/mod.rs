@@ -15,20 +15,21 @@ use crate::func::{get_builtin_binary_op_fn, get_builtin_op_assignment_fn};
 use crate::packages::string_basic::print_with_func;
 use crate::types::dynamic::{AccessMode, DynamicWriteLock};
 use crate::types::fn_ptr::FnPtrType;
+use crate::types::Token;
 // `Variant` is only re-exported from the crate root under `internals`, so it
 // comes from where it is defined.
 #[cfg(not(feature = "no_ast"))]
 use crate::ast::Expr;
+use crate::calc_fn_hash;
 #[cfg(not(feature = "no_index"))]
 use crate::Array;
 #[cfg(not(feature = "no_object"))]
 use crate::Map;
-use crate::VarDefInfo;
 #[cfg(not(feature = "no_function"))]
 use crate::{types::dynamic::Variant, CallFnOptions};
 use crate::{
     Dynamic, Engine, EvalAltResult, EvalContext, FnArgsVec, FnPtr, ImmutableString, Position,
-    RhaiResult, RhaiResultOf, Scope, SharedModule, StaticVec, FUNC_TO_STRING, INT,
+    RhaiResult, RhaiResultOf, Scope, SharedModule, StaticVec, VarDefInfo, FUNC_TO_STRING, INT,
 };
 
 mod callback;
@@ -1957,23 +1958,21 @@ impl<'e> Vm<'e> {
         let op_assign_name = program
             .name(op.op_assign_name)
             .ok_or_else(|| malformed(format!("no op-assign name {}", op.op_assign_name)))?;
-        let op_name = program
-            .name(op.op_name)
-            .ok_or_else(|| malformed(format!("no operator name {}", op.op_name)))?;
 
         // The real scope may be borrowed by the target, and dispatch does not
         // read it anyway — operators resolve against the engine.
-        let result = call_engine(
-            self.engine,
+        let result = self.engine.exec_native_fn_call(
             &mut self.global,
             &mut self.caches,
-            &mut Scope::new(),
             op_assign_name,
+            Some(&op.op_assign),
+            calc_fn_hash(None, op_assign_name, 2),
             &mut [target, &mut rhs],
-            true,
+            false,
             false,
             pos,
         );
+
         match result {
             Ok(_) => Ok(()),
             Err(err)
@@ -1981,14 +1980,17 @@ impl<'e> Vm<'e> {
                     EvalAltResult::ErrorFunctionNotFound(name, ..)
                         if name.starts_with(op_assign_name)) =>
             {
-                let value = call_engine(
-                    self.engine,
+                let op_name = program
+                    .name(op.op_name)
+                    .ok_or_else(|| malformed(format!("no operator name {}", op.op_name)))?;
+                let (value, _) = self.engine.exec_native_fn_call(
                     &mut self.global,
                     &mut self.caches,
-                    &mut Scope::new(),
                     op_name,
+                    Some(&op.op),
+                    calc_fn_hash(None, op_name, 2),
                     &mut [target, &mut rhs],
-                    true,
+                    false,
                     false,
                     pos,
                 )?;
@@ -3897,23 +3899,13 @@ impl<'e> Vm<'e> {
                     }
                 }
 
-                code::tag::CALL | code::tag::CALL_CAPTURE | code::tag::CALL_OP => {
+                code::tag::CALL | code::tag::CALL_CAPTURE => {
                     let name_index = u32::from(small(1)?);
                     let name = program
                         .name(name_index)
                         .ok_or_else(|| malformed(format!("no name {name_index}")))?;
                     let capture = tag == code::tag::CALL_CAPTURE;
                     let argc = code[pc + 3] as usize;
-                    let op = if tag == code::tag::CALL_OP {
-                        let index = u32::from(small(4)?);
-                        Some(
-                            program
-                                .token(index)
-                                .ok_or_else(|| malformed(format!("no operator {index}")))?,
-                        )
-                    } else {
-                        None
-                    };
 
                     let first = self
                         .stack
@@ -3921,14 +3913,82 @@ impl<'e> Vm<'e> {
                         .checked_sub(argc)
                         .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
 
-                    // Reach the same built-in the walker reaches.
+                    let value = self.call_syntactic_or_stacked(
+                        program,
+                        name_index,
+                        name,
+                        argc,
+                        first,
+                        scope,
+                        capture,
+                        pos(),
+                    )?;
+                    self.stack.truncate(first);
+                    self.stack.push(value);
+                }
+
+                code::tag::CALL_OP => {
+                    let argc = code[pc + 3] as usize;
+                    let index = u32::from(small(4)?);
+                    let op = program
+                        .token(index)
+                        .ok_or_else(|| malformed(format!("no operator {index}")))?;
+                    let first = self
+                        .stack
+                        .len()
+                        .checked_sub(argc)
+                        .ok_or_else(|| malformed("call with too few arguments".to_string()))?;
+
+                    // Check for fast paths - the same built-in the walker reaches.
                     //
                     // Gated on Rhai's own `fast_operators()` so an `Engine`
                     // that turns it off gets the dispatch path on both sides,
                     // and one that leaves it on gets the same answer —
                     // including by-passing a user-registered operator on a
                     // primitive, which Rhai's fast path also by-passes.
-                    if let (Some(token), 2, true) = (op, argc, self.engine.fast_operators()) {
+
+                    // Check for fast-path boolean negation
+                    if argc == 1 && self.engine.fast_operators() {
+                        let lhs = &self.stack[first];
+                        if matches!(op, Token::Bang) {
+                            if let Ok(value) = lhs.as_bool() {
+                                self.stack.truncate(first);
+                                self.stack.push((!value).into());
+                                pc += width;
+                                continue;
+                            }
+                        }
+                        if matches!(op, Token::Minus | Token::UnaryMinus) {
+                            if let Ok(value) = lhs.as_int() {
+                                self.stack.truncate(first);
+                                self.stack.push((-value).into());
+                                pc += width;
+                                continue;
+                            }
+                            #[cfg(not(feature = "no_float"))]
+                            if let Ok(value) = lhs.as_float() {
+                                self.stack.truncate(first);
+                                self.stack.push((-value).into());
+                                pc += width;
+                                continue;
+                            }
+                            #[cfg(feature = "decimal")]
+                            if let Ok(value) = lhs.as_decimal() {
+                                self.stack.truncate(first);
+                                self.stack.push((-value).into());
+                                pc += width;
+                                continue;
+                            }
+                        }
+                    }
+
+                    let name_index = u32::from(small(1)?);
+                    let name = program
+                        .name(name_index)
+                        .ok_or_else(|| malformed(format!("no name {name_index}")))?;
+
+                    // Check for fast-path operator calls
+                    if argc == 2 && self.engine.fast_operators() {
                         let (lhs, rhs) = self.stack.split_at_mut(first + 1);
                         let lhs = &mut lhs[first];
                         let rhs = &mut rhs[0];
@@ -3936,7 +3996,7 @@ impl<'e> Vm<'e> {
                         // Custom types go to dispatch first, so a registered
                         // function still wins for them.
                         let builtin = (!lhs.is_variant() && !rhs.is_variant())
-                            .then(|| get_builtin_binary_op_fn(token, lhs, rhs))
+                            .then(|| get_builtin_binary_op_fn(op, lhs, rhs))
                             .flatten();
                         if let Some((func, need_context)) = builtin {
                             let context = need_context
@@ -3950,17 +4010,18 @@ impl<'e> Vm<'e> {
                         }
                     }
 
-                    // Check if it is a built-in syntactic function.
-                    let value = self.call_syntactic_or_stacked(
-                        program,
-                        name_index,
+                    let (value, _) = self.engine.exec_native_fn_call(
+                        &mut self.global,
+                        &mut self.caches,
                         name,
-                        argc,
-                        first,
-                        scope,
-                        capture,
+                        Some(op),
+                        calc_fn_hash(None, name, argc),
+                        &mut self.stack[first..].iter_mut().collect::<FnArgsVec<_>>(),
+                        false,
+                        false,
                         pos(),
                     )?;
+
                     self.stack.truncate(first);
                     self.stack.push(value);
                 }

@@ -6,7 +6,6 @@ use crate::ast::{
 };
 use crate::func::{calc_switch_value_hash, get_builtin_op_assignment_fn};
 use crate::types::dynamic::{AccessMode, Union};
-use crate::types::Token;
 use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, VarDefInfo, ERR, INT};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -123,99 +122,28 @@ impl Engine {
         let pos = op_info.position();
 
         if let Some((hash_x, hash, op_x, op_x_str, op, op_str)) = op_info.get_op_assignment_info() {
-            let mut lock_guard = target.as_mut().write_lock::<Dynamic>().unwrap();
+            let lock_guard = &mut *target.as_mut().write_lock::<Dynamic>().unwrap();
             let mut done = false;
 
             // Short-circuit built-in op-assignments if under Fast Operators mode
             if self.fast_operators() {
-                #[allow(clippy::wildcard_imports)]
-                use Token::*;
+                if let Some((func, need_context)) =
+                    get_builtin_op_assignment_fn(op_x, lock_guard, &new_val)
+                {
+                    // We may not need to bump the level because built-in's do not need it.
+                    //defer! { let orig_level = global.level; global.level += 1 }
 
-                done = true;
-
-                // For extremely simple primary data operations, do it directly
-                // to avoid the overhead of calling a function.
-                match (&mut lock_guard.0, &mut new_val.0) {
-                    (Union::Bool(b1, ..), Union::Bool(b2, ..)) => match op_x {
-                        AndAssign => *b1 = *b1 && *b2,
-                        OrAssign => *b1 = *b1 || *b2,
-                        XOrAssign => *b1 ^= *b2,
-                        _ => done = false,
-                    },
-                    (Union::Int(n1, ..), Union::Int(n2, ..)) => {
-                        #[cfg(not(feature = "unchecked"))]
-                        #[allow(clippy::wildcard_imports)]
-                        use crate::packages::arithmetic::arith_basic::INT::functions::*;
-
-                        #[cfg(not(feature = "unchecked"))]
-                        match op_x {
-                            PlusAssign => {
-                                *n1 = add(*n1, *n2).map_err(|err| err.fill_position(pos))?
-                            }
-                            MinusAssign => {
-                                *n1 = subtract(*n1, *n2).map_err(|err| err.fill_position(pos))?
-                            }
-                            MultiplyAssign => {
-                                *n1 = multiply(*n1, *n2).map_err(|err| err.fill_position(pos))?
-                            }
-                            DivideAssign => {
-                                *n1 = divide(*n1, *n2).map_err(|err| err.fill_position(pos))?
-                            }
-                            ModuloAssign => {
-                                *n1 = modulo(*n1, *n2).map_err(|err| err.fill_position(pos))?
-                            }
-                            _ => done = false,
-                        }
-                        #[cfg(feature = "unchecked")]
-                        match op_x {
-                            PlusAssign => *n1 += *n2,
-                            MinusAssign => *n1 -= *n2,
-                            MultiplyAssign => *n1 *= *n2,
-                            DivideAssign => *n1 /= *n2,
-                            ModuloAssign => *n1 %= *n2,
-                            _ => done = false,
-                        }
-                    }
-                    #[cfg(not(feature = "no_float"))]
-                    (Union::Float(f1, ..), Union::Float(f2, ..)) => match op_x {
-                        PlusAssign => **f1 += **f2,
-                        MinusAssign => **f1 -= **f2,
-                        MultiplyAssign => **f1 *= **f2,
-                        DivideAssign => **f1 /= **f2,
-                        ModuloAssign => **f1 %= **f2,
-                        _ => done = false,
-                    },
-                    #[cfg(not(feature = "no_float"))]
-                    (Union::Float(f1, ..), Union::Int(n2, ..)) => match op_x {
-                        PlusAssign => **f1 += *n2 as crate::FLOAT,
-                        MinusAssign => **f1 -= *n2 as crate::FLOAT,
-                        MultiplyAssign => **f1 *= *n2 as crate::FLOAT,
-                        DivideAssign => **f1 /= *n2 as crate::FLOAT,
-                        ModuloAssign => **f1 %= *n2 as crate::FLOAT,
-                        _ => done = false,
-                    },
-                    _ => done = false,
-                }
-
-                if !done {
-                    if let Some((func, need_context)) =
-                        get_builtin_op_assignment_fn(op_x, &lock_guard, &new_val)
-                    {
-                        // We may not need to bump the level because built-in's do not need it.
-                        //defer! { let orig_level = global.level; global.level += 1 }
-
-                        let args = &mut [&mut *lock_guard, &mut new_val];
-                        let context = need_context
-                            .then(|| (self, op_x_str, global.source(), &*global, pos).into());
-                        let _ = func(context, args).map_err(|err| err.fill_position(pos))?;
-                        done = true;
-                    }
+                    let args = &mut [&mut *lock_guard, &mut new_val];
+                    let context = need_context
+                        .then(|| (self, op_x_str, global.source(), &*global, pos).into());
+                    let _ = func(context, args).map_err(|err| err.fill_position(pos))?;
+                    done = true;
                 }
             }
 
             if !done {
                 let opx = Some(op_x);
-                let args = &mut [&mut *lock_guard, &mut new_val];
+                let args = &mut [lock_guard, &mut new_val];
 
                 match self.exec_native_fn_call(
                     global, caches, op_x_str, opx, hash_x, args, true, false, pos,

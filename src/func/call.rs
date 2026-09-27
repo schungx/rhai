@@ -1035,21 +1035,41 @@ impl Engine {
         let op_token = op_token.as_ref();
 
         // Short-circuit native unary operator call if under Fast Operators mode
-        if self.fast_operators() && args.len() == 1 && op_token == Some(&Token::Bang) {
-            let mut value = self
-                .get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), &args[0])?
-                .0
-                .flatten();
+        if self.fast_operators() && args.len() == 1 {
+            if let Some(op_token) = op_token {
+                let mut value = self
+                    .get_arg_value(global, caches, scope, this_ptr.as_deref_mut(), &args[0])?
+                    .0
+                    .flatten();
 
-            return if let Union::Bool(b, ..) = value.0 {
-                Ok((!b).into())
-            } else {
+                if matches!(op_token, &Token::Bang) {
+                    if let Union::Bool(b, ..) = &value.0 {
+                        return Ok((!b).into());
+                    }
+                }
+                if matches!(op_token, &Token::Minus | &Token::UnaryMinus) {
+                    if let Union::Int(n, ..) = &value.0 {
+                        return Ok((-n).into());
+                    }
+                    #[cfg(not(feature = "no_float"))]
+                    if let Union::Float(n, ..) = &value.0 {
+                        return Ok((-(**n)).into());
+                    }
+                    #[cfg(feature = "decimal")]
+                    if let Union::Decimal(n, ..) = &value.0 {
+                        return Ok((-(**n)).into());
+                    }
+                }
+
                 let operand = &mut [&mut value];
-                self.exec_fn_call(
-                    global, caches, None, name, op_token, *hashes, operand, false, false, pos,
-                )
-                .map(|(v, ..)| v)
-            };
+                let op_token = Some(op_token);
+
+                return self
+                    .exec_fn_call(
+                        global, caches, None, name, op_token, *hashes, operand, false, false, pos,
+                    )
+                    .map(|(v, ..)| v);
+            }
         }
 
         // Short-circuit native binary operator call if under Fast Operators mode
