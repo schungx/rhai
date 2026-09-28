@@ -59,7 +59,7 @@ sync = ["no-std-compat?/compat_sync", "rhai_codegen/sync"]
 ## Add support for the [`Decimal`](https://crates.io/crates/rust_decimal) data type (acts as the system floating-point type under `no_float`).
 decimal = ["rust_decimal"]
 ## Enable serialization/deserialization of Rhai data types via [`serde`](https://crates.io/crates/serde).
-serde = ["dep:serde", "smallvec/serde"]
+serde = ["dep:serde", "smallvec/serde", "compact_str?/serde"]
 ## Allow [Unicode Standard Annex #31](https://unicode.org/reports/tr31/) for identifiers.
 unicode-xid-ident = ["unicode-xid"]
 ## Enable functions metadata (including doc-comments); implies [`serde`](#feature-serde).

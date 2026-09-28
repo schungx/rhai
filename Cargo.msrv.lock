@@ -96,6 +96,7 @@ dependencies = [
  "itoa 1.0.15",
  "rustversion",
  "ryu",
+ "serde",
  "static_assertions",
 ]
 

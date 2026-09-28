@@ -502,6 +502,22 @@ const fn new_smart_string() -> SmartString {
     SmartString::const_new("")
 }
 
+/// String type used inside `serde`-serializable structures.
+///
+/// `smartstring`'s `serde` feature pulls in `std` (it does not set `default-features = false`),
+/// which breaks `no-std` builds with `serde`. Therefore this is a plain [`String`] by default and
+/// [`SmartString`] only under the `compact_str` feature, whose `serde` feature is `no-std`-safe.
+#[cfg(feature = "serde")]
+#[cfg(not(feature = "compact_str"))]
+type SerdeString = String;
+/// String type used inside `serde`-serializable structures.
+///
+/// Under the `compact_str` feature, [`SmartString`] serializes without pulling in `std`,
+/// so it is used directly to keep short strings inline.
+#[cfg(feature = "serde")]
+#[cfg(feature = "compact_str")]
+type SerdeString = SmartString;
+
 // Compiler guards against mutually-exclusive feature flags
 
 #[cfg(feature = "no_float")]

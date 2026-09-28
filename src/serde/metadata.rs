@@ -2,8 +2,11 @@
 //!
 //! # Note
 //!
-//! `ThinVec` and `SmartString` are not used because their `serde` feature flags do not have `default-features = false` set.
+//! `ThinVec` and `SmartString` (under the default `smartstring` backend) are not used because their
+//! `serde` feature flags do not have `default-features = false` set.
 //! Therefore, they pull in `std` and breaks `no-std` builds.
+//!
+//! [`SerdeString`] is `String` by default and `SmartString` under the `compact_str` feature.
 #![cfg(feature = "metadata")]
 
 use crate::api::formatting::format_param_type_for_display;
@@ -12,7 +15,7 @@ use crate::module::{calc_native_fn_hash, FuncMetadata};
 use crate::types::custom_types::CustomTypeInfo;
 #[cfg(not(feature = "no_ast"))]
 use crate::AST;
-use crate::{calc_fn_hash, Engine, FnAccess};
+use crate::{calc_fn_hash, Engine, FnAccess, SerdeString};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -89,7 +92,7 @@ struct FnMetadata<'a> {
     pub params: Vec<FnParam<'a>>,
     #[serde(default, skip_serializing_if = "str::is_empty")]
     pub return_type: Cow<'a, str>,
-    pub signature: String,
+    pub signature: SerdeString,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub doc_comments: Vec<&'a str>,
 }
