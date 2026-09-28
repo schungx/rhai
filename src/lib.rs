@@ -272,8 +272,9 @@ pub mod debugger {
 ///
 /// Identifiers are assumed to be all-ASCII and short with few exceptions.
 ///
-/// [`CompactString`](https://crates.io/crates/compact_str) is used as the underlying storage type
-/// because most identifiers can be stored inline.
+/// A small-string type is used as the underlying storage type because most identifiers can be
+/// stored inline: [`SmartString`](https://crates.io/crates/smartstring) by default, or
+/// [`CompactString`](https://crates.io/crates/compact_str) under the `compact_str` feature.
 #[expose_under_internals]
 type Identifier = SmartString;
 
@@ -319,8 +320,9 @@ pub type Blob = Vec<u8>;
 ///
 /// Not available under `no_object`.
 ///
-/// [`CompactString`](https://crates.io/crates/compact_str) is used as the key type because most
-/// property names are ASCII and short, at most 24 bytes (on 64-bit targets), so they can be stored inline.
+/// A small-string type is used as the key type because most property names are ASCII and short,
+/// so they can be stored inline: [`SmartString`](https://crates.io/crates/smartstring) by default,
+/// or [`CompactString`](https://crates.io/crates/compact_str) under the `compact_str` feature.
 #[cfg(not(feature = "no_object"))]
 pub type Map = std::collections::BTreeMap<Identifier, Dynamic>;
 
@@ -480,7 +482,25 @@ type FnArgsVec<T> = smallvec::SmallVec<[T; FN_ARGS_VEC_INLINE_SIZE]>;
 #[cfg(feature = "no_closure")]
 type FnArgsVec<T> = crate::StaticVec<T>;
 
+#[cfg(not(feature = "compact_str"))]
+type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+#[cfg(feature = "compact_str")]
 type SmartString = compact_str::CompactString;
+
+/// Create a new, empty [`SmartString`] (usable in `const` contexts).
+#[cfg(not(feature = "compact_str"))]
+#[inline(always)]
+#[must_use]
+const fn new_smart_string() -> SmartString {
+    SmartString::new_const()
+}
+/// Create a new, empty [`SmartString`] (usable in `const` contexts).
+#[cfg(feature = "compact_str")]
+#[inline(always)]
+#[must_use]
+const fn new_smart_string() -> SmartString {
+    SmartString::const_new("")
+}
 
 // Compiler guards against mutually-exclusive feature flags
 

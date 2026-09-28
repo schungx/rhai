@@ -4,16 +4,6 @@ Rhai Release Notes
 Version 1.27.0
 ==============
 
-Potentially breaking changes
-----------------------------
-
-* The key type of `Map` (and `Identifier` under `internals`) is now [`CompactString`](https://crates.io/crates/compact_str) instead of `SmartString`. Code that only uses `&str`, `.into()` or `.as_str()` on map keys is unaffected; code that names `smartstring::SmartString` explicitly needs to switch to `compact_str::CompactString`.
-
-Dependencies
-------------
-
-* [`smartstring`](https://crates.io/crates/smartstring), which is archived and unmaintained ([RUSTSEC-2026-0249](https://rustsec.org/advisories/RUSTSEC-2026-0249.html), [`#816`](https://github.com/rhaiscript/rhai/issues/816)), is replaced by [`compact_str`](https://crates.io/crates/compact_str) (versions `0.9` and `0.10` are accepted; `0.9` keeps the MSRV at 1.66).
-
 Bug fixes
 ---------
 
@@ -32,6 +22,7 @@ New features
 ------------
 
 * New `no_ast` feature that excludes the `AST`, its interpreter, the tokenizer, parser and optimizer for a minimized build.  Under this feature flag, the Rhai Grain VM is the only venue to evaluate a script.
+* New `compact_str` feature that uses [`compact_str`](https://crates.io/crates/compact_str) instead of [`smartstring`](https://crates.io/crates/smartstring) for identifiers and object map keys ([`#816`](https://github.com/rhaiscript/rhai/issues/816)). `smartstring` is archived and unmaintained ([RUSTSEC-2026-0249](https://rustsec.org/advisories/RUSTSEC-2026-0249.html)) and licensed under `MPL-2.0+` ([`#897`](https://github.com/rhaiscript/rhai/issues/897)), while `compact_str` is licensed under `MIT`. Under this feature, the key type of `Map` (and `Identifier` under `internals`) is `CompactString` instead of `SmartString`. It is intended to become the default in version 2.0.
 
 Enhancements
 ------------

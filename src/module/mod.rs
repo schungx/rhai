@@ -781,7 +781,7 @@ impl Module {
         Self {
             id: None,
             #[cfg(feature = "metadata")]
-            doc: SmartString::const_new(""),
+            doc: crate::new_smart_string(),
             custom_types: CustomTypesCollection::new(),
             modules: BTreeMap::new(),
             variables: BTreeMap::new(),
@@ -1513,7 +1513,7 @@ impl Module {
                 let return_type = params_info.pop().unwrap();
                 (params_info, return_type)
             } else {
-                (params_info, crate::SmartString::const_new(""))
+                (params_info, crate::new_smart_string())
             };
             f.params_info = params_info;
             f.return_type = return_type_name;

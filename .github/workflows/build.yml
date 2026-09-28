@@ -69,6 +69,7 @@ jobs:
           - "--features testing-environ,no_module,serde,metadata,internals,debugging,grain"
           - "--features testing-environ,no_time,serde,metadata,internals,debugging,grain"
           - "--features testing-environ,no_closure,serde,metadata,internals,debugging,grain"
+          - "--features testing-environ,compact_str,serde,metadata,internals,debugging,grain"
           - "--features testing-environ,sync,no_time,no_function,no_float,no_position,no_optimize,no_module,no_closure,no_custom_syntax,metadata,serde,unchecked,debugging,grain"
           - "--features testing-environ,no_time,no_function,no_float,no_position,no_index,no_object,no_optimize,no_module,no_closure,no_custom_syntax,unchecked,grain"
           - "--tests --features testing-environ,f32_float,only_i32,serde,metadata,internals,debugging,grain"

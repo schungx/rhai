@@ -3,7 +3,6 @@ use crate::packages::iter_basic::{BitRange, CharsStream, StepRange};
 #[cfg(not(feature = "no_ast"))]
 use crate::parser::{ParseResult, ParseState};
 #[cfg(not(feature = "no_ast"))]
-use crate::SmartString;
 use crate::{
     Engine, ExclusiveRange, FnPtr, ImmutableString, InclusiveRange, Position, RhaiError, ERR,
 };
@@ -265,7 +264,7 @@ impl Engine {
         let (mut stream, tc) = self.lex(&scripts);
 
         tc.borrow_mut().compressed = Some(String::new());
-        stream.state.last_token = Some(SmartString::const_new(""));
+        stream.state.last_token = Some(crate::new_smart_string());
 
         let input = &mut stream.peekable();
         let lib = &mut <_>::default();

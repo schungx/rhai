@@ -713,7 +713,7 @@ impl ImmutableString {
     #[inline(always)]
     #[must_use]
     pub fn new() -> Self {
-        Self(SmartString::const_new("").into())
+        Self(crate::new_smart_string().into())
     }
     /// Get the string slice.
     #[inline(always)]
