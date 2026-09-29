@@ -387,7 +387,10 @@ pub use ast::{
 pub use ast::CustomExpr;
 
 #[cfg(feature = "internals")]
-pub use eval::{Caches, GlobalRef, GlobalRuntimeState, RangeCase, Target};
+#[cfg(not(feature = "no_function"))]
+pub use eval::GlobalRef;
+#[cfg(feature = "internals")]
+pub use eval::{Caches, GlobalRuntimeState, RangeCase, Target};
 #[cfg(not(feature = "no_ast"))]
 pub use eval::{FnResolutionCache, FnResolutionCacheEntry};
 
