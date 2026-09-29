@@ -8,8 +8,7 @@ use crate::types::dynamic::Union;
 #[allow(clippy::enum_glob_use)]
 use crate::types::{Token, Token::*};
 use crate::{
-    Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, NativeCallContext, RhaiResult,
-    SmartString, INT,
+    Dynamic, ExclusiveRange, ImmutableString, InclusiveRange, NativeCallContext, RhaiResult, INT,
 };
 use std::any::TypeId;
 #[cfg(feature = "no_std")]
@@ -398,7 +397,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                         let x = args[0].as_char().unwrap();
                         let y = args[1].as_char().unwrap();
 
-                        let mut result = SmartString::new_const();
+                        let mut result = crate::new_smart_string();
                         result.push(x);
                         result.push(y);
 
@@ -533,7 +532,7 @@ pub fn get_builtin_binary_op_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Option<
                         let x = args[0].as_char().unwrap();
                         let y = &*args[1].as_immutable_string_ref().unwrap();
 
-                        let mut result = SmartString::new_const();
+                        let mut result = crate::new_smart_string();
                         result.push(x);
                         result.push_str(y);
 
@@ -882,7 +881,7 @@ pub fn get_builtin_op_assignment_fn(op: &Token, x: &Dynamic, y: &Dynamic) -> Opt
                 let y = args[1].as_char().unwrap();
                 let x = &mut *args[0].write_lock::<Dynamic>().unwrap();
 
-                let mut buf = SmartString::new_const();
+                let mut buf = crate::new_smart_string();
                 buf.push(x.as_char().unwrap());
                 buf.push(y);
 

@@ -87,7 +87,7 @@ impl AST {
         Self {
             source: None,
             #[cfg(feature = "metadata")]
-            doc: crate::SmartString::new_const(),
+            doc: crate::new_smart_string(),
             body: statements.into_iter().collect(),
             #[cfg(not(feature = "no_function"))]
             lib: functions.into(),
@@ -134,7 +134,7 @@ impl AST {
         Self {
             source: None,
             #[cfg(feature = "metadata")]
-            doc: crate::SmartString::new_const(),
+            doc: crate::new_smart_string(),
             body: <_>::default(),
             #[cfg(not(feature = "no_function"))]
             lib: crate::Module::new().into(),

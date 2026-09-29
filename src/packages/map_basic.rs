@@ -533,6 +533,10 @@ mod map_functions {
     #[rhai_fn(pure)]
     pub fn to_json(map: &mut Map) -> String {
         #[cfg(feature = "metadata")]
+        #[cfg(feature = "compact_str")]
+        return serde_json::to_string(map).unwrap_or_else(|_| "ERROR".into());
+        #[cfg(feature = "metadata")]
+        #[cfg(not(feature = "compact_str"))]
         return serde_json::to_string(
             &map.iter()
                 .map(|(k, v)| (k.as_str(), v))

@@ -272,8 +272,9 @@ pub mod debugger {
 ///
 /// Identifiers are assumed to be all-ASCII and short with few exceptions.
 ///
-/// [`SmartString`](https://crates.io/crates/smartstring) is used as the underlying storage type
-/// because most identifiers can be stored inline.
+/// A small-string type is used as the underlying storage type because most identifiers can be
+/// stored inline: [`SmartString`](https://crates.io/crates/smartstring) by default, or
+/// [`CompactString`](https://crates.io/crates/compact_str) under the `compact_str` feature.
 #[expose_under_internals]
 type Identifier = SmartString;
 
@@ -319,8 +320,9 @@ pub type Blob = Vec<u8>;
 ///
 /// Not available under `no_object`.
 ///
-/// [`SmartString`](https://crates.io/crates/smartstring) is used as the key type because most
-/// property names are ASCII and short, fewer than 23 characters, so they can be stored inline.
+/// A small-string type is used as the key type because most property names are ASCII and short,
+/// so they can be stored inline: [`SmartString`](https://crates.io/crates/smartstring) by default,
+/// or [`CompactString`](https://crates.io/crates/compact_str) under the `compact_str` feature.
 #[cfg(not(feature = "no_object"))]
 pub type Map = std::collections::BTreeMap<Identifier, Dynamic>;
 
@@ -480,7 +482,41 @@ type FnArgsVec<T> = smallvec::SmallVec<[T; FN_ARGS_VEC_INLINE_SIZE]>;
 #[cfg(feature = "no_closure")]
 type FnArgsVec<T> = crate::StaticVec<T>;
 
+#[cfg(not(feature = "compact_str"))]
 type SmartString = smartstring::SmartString<smartstring::LazyCompact>;
+#[cfg(feature = "compact_str")]
+type SmartString = compact_str::CompactString;
+
+/// Create a new, empty [`SmartString`] (usable in `const` contexts).
+#[cfg(not(feature = "compact_str"))]
+#[inline(always)]
+#[must_use]
+const fn new_smart_string() -> SmartString {
+    SmartString::new_const()
+}
+/// Create a new, empty [`SmartString`] (usable in `const` contexts).
+#[cfg(feature = "compact_str")]
+#[inline(always)]
+#[must_use]
+const fn new_smart_string() -> SmartString {
+    SmartString::const_new("")
+}
+
+/// String type used inside `serde`-serializable structures.
+///
+/// `smartstring`'s `serde` feature pulls in `std` (it does not set `default-features = false`),
+/// which breaks `no-std` builds with `serde`. Therefore this is a plain [`String`] by default and
+/// [`SmartString`] only under the `compact_str` feature, whose `serde` feature is `no-std`-safe.
+#[cfg(feature = "serde")]
+#[cfg(not(feature = "compact_str"))]
+type SerdeString = String;
+/// String type used inside `serde`-serializable structures.
+///
+/// Under the `compact_str` feature, [`SmartString`] serializes without pulling in `std`,
+/// so it is used directly to keep short strings inline.
+#[cfg(feature = "serde")]
+#[cfg(feature = "compact_str")]
+type SerdeString = SmartString;
 
 // Compiler guards against mutually-exclusive feature flags
 
