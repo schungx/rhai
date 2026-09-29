@@ -815,7 +815,7 @@ impl Engine {
                     mapper(crate::module::FuncInfo {
                         metadata: f,
                         #[cfg(not(feature = "no_module"))]
-                        namespace: Identifier::new_const(),
+                        namespace: crate::new_smart_string(),
                         script: func.get_script_fn_def().map(|f| (&**f).into()),
                     })
                 })
@@ -830,7 +830,7 @@ impl Engine {
                 mapper(crate::module::FuncInfo {
                     metadata: f,
                     #[cfg(not(feature = "no_module"))]
-                    namespace: Identifier::new_const(),
+                    namespace: crate::new_smart_string(),
                     #[cfg(not(feature = "no_function"))]
                     script: _func.get_script_fn_def().map(|f| (&**f).into()),
                 })
@@ -847,7 +847,6 @@ impl Engine {
                 mapper: impl Fn(crate::module::FuncInfo) -> Option<T> + Copy,
             ) {
                 use crate::engine::NAMESPACE_SEPARATOR;
-                use crate::SmartString;
 
                 module
                     .iter_fn()
@@ -863,7 +862,7 @@ impl Engine {
 
                 module.iter_sub_modules().for_each(|(name, m)| {
                     use std::fmt::Write;
-                    let mut ns = SmartString::new_const();
+                    let mut ns = crate::new_smart_string();
                     write!(&mut ns, "{namespace}{NAMESPACE_SEPARATOR}{name}").unwrap();
                     scan_module_recursive(list, &ns, m, mapper);
                 });

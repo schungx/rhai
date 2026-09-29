@@ -6,8 +6,8 @@ use crate::eval::GlobalRuntimeState;
 use crate::func::FnCallHashes;
 use crate::types::{dynamic::Union, Ident, Token};
 use crate::{
-    calc_fn_hash, Dynamic, FnArgsVec, FnPtr, Identifier, ImmutableString, Position, SmartString,
-    StaticVec, ThinVec, INT,
+    calc_fn_hash, Dynamic, FnArgsVec, FnPtr, Identifier, ImmutableString, Position, StaticVec,
+    ThinVec, INT,
 };
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
@@ -388,7 +388,7 @@ impl Expr {
 
             // Interpolated string
             Self::InterpolatedString(x, ..) if self.is_constant() => {
-                let mut s = SmartString::new_const();
+                let mut s = crate::new_smart_string();
                 for segment in x {
                     let v = segment.get_literal_value(global).unwrap();
                     write!(&mut s, "{v}").unwrap();

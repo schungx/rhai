@@ -4,7 +4,7 @@ use super::{Caches, EvalContext, GlobalRuntimeState, Target};
 use crate::ast::Expr;
 use crate::packages::string_basic::{print_with_func, FUNC_TO_STRING};
 use crate::types::dynamic::AccessMode;
-use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, SmartString, ERR};
+use crate::{Dynamic, Engine, RhaiResult, RhaiResultOf, Scope, ERR};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 use std::{convert::TryInto, fmt::Write, num::NonZeroUsize};
@@ -253,7 +253,7 @@ impl Engine {
                 .map(Target::take_or_clone),
 
             Expr::InterpolatedString(x, _) => {
-                let mut concat = SmartString::new_const();
+                let mut concat = crate::new_smart_string();
 
                 for expr in &**x {
                     let item = &mut self
