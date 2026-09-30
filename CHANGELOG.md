@@ -27,7 +27,7 @@ New features
 Enhancements
 ------------
 
-* Added an `AGENTS.md` file.
+* Added `AGENTS.md` files.
 * Rhai Grain is no longer _experimental_.
 * Rhai Grain bytecodes transpilation is optimized (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1156`](https://github.com/rhaiscript/rhai/pull/1156)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts index assignments ([`#1163`](https://github.com/rhaiscript/rhai/pull/1163)).

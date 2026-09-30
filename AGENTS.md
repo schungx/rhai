@@ -18,6 +18,8 @@ them in the Grain VM.
 * Tutorial and user guide: [_The Rhai Book_](https://rhai.rs/book)
 * [_The Rhai Book_ source](https://github.com/rhaiscript/book)
 
+* [Rhai Grain `AGENTS.md`](src/grain/AGENTS.md)
+
 # Repository structure
 
 * `src` - main crate source
@@ -40,8 +42,6 @@ them in the Grain VM.
 * `scripts` - sample Rhai scripts; these do not cover all language features
 * `tests` - integration tests
 * `tests/grain` - Grain tests, including comparisons with the AST walker
-* `tests/grain/corpus` - generated and fixed scripts used by Grain tests
-* `tests/grain/fixtures` - fixtures for Grain bytecode format/version checks
 * `build.rs` - build-time support, including a known hashing seed
 * `CHANGELOG.md` - project change log
 
@@ -52,9 +52,6 @@ them in the Grain VM.
 * Some public APIs are explicitly documented as volatile (and may be marked `#[deprecated]` for that reason). They can change, but prefer not to change them without a good reason.
 * Check relevant feature-flag combinations. Conditional features can expose missing imports or other build failures that are not visible with default features.
 * Avoid introducing panics. A panic outside the `unchecked` feature is considered a bug.
-* Keep Grain behavior equivalent to the AST walker for the same AST; add or update differential tests when changing behavior that affects Grain.
-* Avoid creating new Grain Opcode. Prefer surgical changes.
-* Avoid fragmenting any non-lowerable AST nodes into residuals; seek instructions.
 
 # Checks and tests
 
@@ -62,7 +59,6 @@ them in the Grain VM.
 * Run the relevant tests:
   `cargo test` runs the default test suite;
   `cargo test --features bin-features` also enables the CLI/debugging-related features used by the documented test suite.
-* For changes that may affect Grain, run tests with `--features grain` and include the Grain integration tests.
 * For changes to procedural macros, test both codegen crates:
   `cd codegen && cargo test --features metadata`.
 * For `no-std` changes, use the nightly compiler to build and test the sample:
@@ -73,6 +69,7 @@ them in the Grain VM.
 # Coding style
 
 * Use default `cargo fmt` formatting.
+* Comments and naming variables should be clear and descriptive, but do not over-explain. No need to spend resources because they can be manually refactored later on.
 * Warnings in tests are acceptable when they are unused imports caused by feature flags.
 * Eliminate dead-code and unused-import warnings in the main crate by using appropriate feature gates.
 * When a type is not used in all feature combinations, prefer fully qualified paths (for example, `crate::ImmutableString`) at call sites over feature-gating a `use` statement.
