@@ -304,8 +304,9 @@ jobs:
 
   # The operations count is a plain `u64` on targets without 64-bit atomics,
   # and no other job builds for one. `RHAI_NO_ATOMIC64` forces that path on the
-  # host. A count that stops advancing hangs the loop tests rather than failing
-  # them, hence the timeout.
+  # host, but the host still has `AtomicU64`, so a real target is built as well
+  # to catch a 64-bit atomic used anywhere without a gate. A count that stops
+  # advancing hangs the loop tests rather than failing them, hence the timeout.
   no_atomic64:
     name: Test without 64-bit atomics
     runs-on: ubuntu-latest
@@ -316,6 +317,12 @@ jobs:
         with:
           toolchain: stable
           override: true
+          target: riscv32imac-unknown-none-elf
+      - name: Build for a target without 64-bit atomics
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --lib --target riscv32imac-unknown-none-elf --no-default-features --features no_std,grain,sync
       - name: Test
         uses: actions-rs/cargo@v1
         env:
