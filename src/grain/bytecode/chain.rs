@@ -15,32 +15,36 @@ bitflags! {
 /// One step along `a.b[i].c(x)`.
 ///
 /// Steps live in the program's chain pool rather than in the instruction
-/// stream, because a chain is walked by one instruction rather than several.
+/// stream, because a chain is walked by _one_ instruction rather than several.
+///
 /// It has to be: the walk holds a `&mut` into the container at every level, and
-/// a borrow cannot survive a trip round the dispatch loop. That is also what
-/// makes it correct — Rhai holds the same references, so a mutation partway
-/// down a chain lands in the same place rather than in a copy.
+/// a borrow cannot survive a trip round the dispatch loop.
+///
+/// That is also what makes it correct — Rhai holds the same references, so a
+/// mutation partway down a chain lands in the same place rather than in a copy.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
     /// `[i]`, where the index was evaluated onto the operand stack before the
     /// chain instruction ran, at `operand` from the first of them.
     ///
     /// Pre-evaluating mirrors Rhai, which collects every index in a chain into
-    /// `idx_values` before walking it (`eval/chaining.rs:568`). It has to
-    /// happen first: evaluating an index halfway down would need the operand
-    /// stack while a borrow of the container is live.
+    /// an array before walking it. It has to happen first: evaluating an index
+    /// halfway down would need the operand stack while a borrow of it is live.
+    ///
+    /// ## Position
     ///
     /// Rhai reports `a[10]` out of bounds against the `10` rather than against
-    /// the chain (`eval/chaining.rs:694`).
+    /// the chain.
     ///
     /// `bracket` is the other position Rhai keeps for a step, and the two are
     /// not interchangeable: `pos` is where the index expression starts and
-    /// `bracket` is the `[` in front of it (`op_pos`, `eval/chaining.rs:695`).
+    /// `bracket` is the `[` in front of it.
+    ///
     /// An out-of-bounds index is blamed on the first and indexing something
     /// that cannot be indexed on the second, so `a[0][5]` where `a[0]` is not
-    /// indexable names the *second* `[` — the step that failed — and a chain
-    /// carrying one position between it and its neighbours would name the
-    /// wrong one.
+    /// indexable names the *second* `[` — the step that failed.
+    ///
+    /// A chain carrying only one position would name the wrong one.
     Index {
         /// Where the index sits on the operand stack.
         operand: u16,
@@ -53,8 +57,7 @@ pub enum Step {
     },
 
     /// `.name`, which is a key lookup on a map and a getter call on anything
-    /// else — the distinction Rhai makes at runtime, not at parse time
-    /// (`eval/chaining.rs:898`).
+    /// else — the distinction Rhai makes at runtime, not at parse time.
     Property {
         /// The bare name, for a map key and for error messages.
         name: u32,
@@ -178,9 +181,10 @@ impl Tail {
 /// Where a chain starts.
 ///
 /// The distinction is whether the root has an identity to write back into.
+///
 /// Rhai draws the same line and in the same place: a variable root becomes a
 /// `Target` into the scope entry, and anything else is evaluated into a
-/// temporary and walked there (`eval/chaining.rs:547-571`).
+/// temporary and walked there.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Root {
     /// A local, by slot.
@@ -195,21 +199,24 @@ pub enum Root {
         name: u32,
     },
 
-    /// A variable no slot addresses: one the caller put in the `Scope`, one a
-    /// resolver answers for, or a module's constant.
+    /// A variable no slot addresses, which can be:
+    ///
+    /// * variable the caller puts in the `Scope`
+    /// * resolver return result
+    /// * an exported constant from a module
     ///
     /// Whether it can be written through is not known until it is looked up,
     /// which is the whole difference from [`Root::Local`]. Rhai decides the
-    /// same way and at the same moment: `search_namespace` hands back a
-    /// `Target`, and a scope entry becomes a reference where a resolver's
-    /// answer or a module's constant becomes a read-only temporary
-    /// (`eval/expr.rs:120-155`).
+    /// same way and at the same moment.
+    ///
+    /// ## Position
     ///
     /// Carries its own position because the lookup can fail and
-    /// `ErrorVariableNotFound` is reported against the variable, not the
-    /// chain. That costs nothing extra: chain positions already live in this
-    /// pool rather than in the stripping table, for the reason [`Step::pos`]
-    /// gives.
+    /// [`ErrorVariableNotFound`][rhai::EvalAltResult::ErrorVariableNotFound]
+    /// is reported against the variable, not the chain.
+    ///
+    /// This costs nothing extra: chain positions already live in this pool
+    /// rather than in the stripping table, for the reason [`Step::pos`] gives.
     Named {
         /// The name of the variable
         name: u32,
@@ -219,15 +226,17 @@ pub enum Root {
 
     /// The frame's receiver.
     ///
-    /// Grouped with the two above rather than with [`Root::Temporary`], and the
-    /// distinction is the whole reason this variant exists: `this.push(1)` has
-    /// to mutate the caller's value, and a temporary would walk a copy and drop
-    /// the mutation silently.
+    /// `this.push(1)` has to mutate the caller's value, while a temporary would
+    /// walk a copy and drop the mutation silently.
+    ///
+    /// ## Position
     ///
     /// Carries its own position because the chain instruction's table entry is
-    /// the `.` or the `[`, while `ErrorUnboundThis` is reported against the
-    /// `this` (`eval/chaining.rs:519-527`) — two positions one instruction
-    /// cannot give. [`Root::Named`] carries one for the same reason.
+    /// the `.` or the `[`, while
+    /// [`ErrorUnboundThis`][rhai::EvalAltResult::ErrorUnboundThis] is reported
+    /// against the `this`.
+    ///
+    /// [`Root::Named`] carries one for the same reason.
     This {
         /// Where the `this` is in the source.
         pos: rhai::Position,
@@ -236,10 +245,15 @@ pub enum Root {
     /// A value the instruction takes off the operand stack, pushed above the
     /// step operands.
     ///
-    /// `[1, 2, 3].len()`, `f().x`, `(a + b).to_string()`. Nothing is written
-    /// back, because there is nowhere to write it back to — and nothing can be
-    /// assigned to one, because Rhai's parser refuses `f().x = 1` before this
-    /// ever sees it (`eval/chaining.rs:559`).
+    /// ## Example
+    ///
+    /// `[1, 2, 3].len()`, `f().x`, `(a + b).to_string()`.
+    ///
+    /// ## Mutability
+    ///
+    /// Nothing is written back, because there is nowhere to write it back to —
+    /// and nothing can be assigned to one, because Rhai's parser refuses
+    /// `f().x = 1` before this ever sees it.
     Temporary,
 }
 
@@ -293,12 +307,15 @@ impl Chain {
         }
     }
 
-    /// Everything the instruction takes off the operand stack.
+    /// Everything the instruction takes off the operand stack, pushed in order:
     ///
-    /// Pushed in that order — step operands, then the root, then the value
-    /// being assigned — which is Rhai's evaluation order and not the reading
-    /// order: it collects a chain's indices and arguments *before* it evaluates
-    /// what they are being applied to (`eval/chaining.rs:498-524` then `:562`).
+    /// 1) step operands,
+    /// 2) the root,
+    /// 3) the value being assigned
+    ///
+    /// which is Rhai's evaluation order and not the normal reading order:
+    /// it collects a chain's indices and arguments *before* it evaluates what
+    /// they are being applied to.
     #[must_use]
     pub fn consumes(&self) -> usize {
         self.operands as usize + usize::from(self.roots_on_stack()) + usize::from(self.assigns())

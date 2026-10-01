@@ -8,7 +8,7 @@ The tokenizer turns script text into tokens, the parser builds an AST, and the o
 optimizes the AST before the default recursive AST walker evaluates it.
 
 With the `grain` feature enabled, Rhai can also compile ASTs to Grain bytecode and execute
-them in the Grain VM.
+them in the Grain VM. See the [Grain `AGENTS.md`](src/grain/AGENTS.md).
 
 # References
 
@@ -17,8 +17,6 @@ them in the Grain VM.
 * Main site: [rhai.rs](https://rhai.rs)
 * Tutorial and user guide: [_The Rhai Book_](https://rhai.rs/book)
 * [_The Rhai Book_ source](https://github.com/rhaiscript/book)
-
-* [Rhai Grain `AGENTS.md`](src/grain/AGENTS.md)
 
 # Repository structure
 
@@ -64,7 +62,8 @@ them in the Grain VM.
 * For `no-std` changes, use the nightly compiler to build and test the sample:
   `cd no_std/no_std_test && cargo +nightly run`.
 * Check additional feature combinations related to the change, especially combinations involving `no_index` `no_object`, `no_float`, `no_closure`, `no_std`, `no_ast`, `grain`, and optional APIs. The CI workflows contain broader feature matrices.
-* Use `cargo test --tests` to avoid running doc-tests unless it is relevant to the change; doc-tests take a long time to complete.
+* Use the `internals` feature when running Grain tests as many of them depend on internal APIs.
+* Avoid running doc-tests as much as possible - doc-tests take a long time to complete - run `cargo test --tests` to skip them unless it is relevant to the change.
 
 # Coding style
 

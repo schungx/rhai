@@ -91,10 +91,14 @@ impl SwitchRange {
 }
 
 impl Switch {
-    /// Where a subject sends control.
+    /// Where a `switch` subject sends control.
     ///
-    /// The order is Rhai's table order (`eval/stmt.rs:517-564`): reject
-    /// non-hashable subjects, then try hashed cases, then ranges, then default.
+    /// The order mirrors Rhai:
+    ///
+    /// 1) reject non-hashable subjects,
+    /// 2) try hashed cases,
+    /// 3) try ranges,
+    /// 4) return default.
     #[must_use]
     pub fn dispatch(&self, subject: &Dynamic) -> u32 {
         // Hashing an non-hashable value panics, so this is a guard and not an

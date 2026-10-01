@@ -1066,10 +1066,13 @@ pub fn decode(code: &[u8], at: usize) -> Option<Op> {
     })
 }
 
-/// Every instruction in a chunk, paired with its address.
+/// _(internals)_ Every instruction in a chunk, paired with its address.
+/// Exported under the `internals` feature only.
 ///
 /// Stops at the first thing it cannot decode, so it is safe to point at
-/// anything. For a chunk that verified, it reaches the end.
+/// anything.
+///
+/// For a chunk that verified, it reaches the end.
 #[crate::expose_under_internals]
 fn disassemble(code: &[u8]) -> impl Iterator<Item = (usize, Op)> + '_ {
     let mut at = 0usize;

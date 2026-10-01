@@ -29,6 +29,7 @@ It uses an `Engine` for configuration, functions registration/dispatch, and othe
 
 # Checks and tests
 
-* For changes that may affect Grain, run tests with `--features grain` and include the Grain integration tests.
-* `cargo test --features grain --test grain` runs the Grain test suite.
+* The `internals` feature flag is necessary as many Grain tests rely on internal APIs.
+* For changes that may affect Grain, run tests with `--features internals,grain`.
+* `cargo test --features internals,grain --test grain` runs only the Grain test suite.
 * Regenerate the `GOLDEN` artifact if necessary to handle wire format changes.
