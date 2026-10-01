@@ -302,6 +302,28 @@ jobs:
           command: build
           args: --target aarch64-unknown-linux-gnu --features testing-environ,serde,metadata,internals,debugging
 
+  # The operations count is a plain `u64` on targets without 64-bit atomics,
+  # and no other job builds for one. `RHAI_NO_ATOMIC64` forces that path on the
+  # host. A count that stops advancing hangs the loop tests rather than failing
+  # them, hence the timeout.
+  no_atomic64:
+    name: Test without 64-bit atomics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Test
+        uses: actions-rs/cargo@v1
+        env:
+          RHAI_NO_ATOMIC64: 1
+        with:
+          command: test
+          args: --tests --features internals,grain
+
   miri:
     name: MIRI
     if: false

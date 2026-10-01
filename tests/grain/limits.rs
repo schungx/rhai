@@ -13,8 +13,7 @@
 
 #![cfg(feature = "internals")]
 
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use rhai::grain::bytecode::Op;
 use rhai::grain::{Compiler, Vm};
@@ -49,12 +48,14 @@ fn compiled_loop_hits_the_operation_limit() {
 
 #[test]
 fn compiled_loop_honours_the_progress_interrupt() {
-    let ticks = Arc::new(AtomicU64::new(0));
+    // A `Mutex` rather than an `AtomicU64`, so this file builds on targets
+    // without 64-bit atomics.
+    let ticks = Arc::new(Mutex::new(0));
     let seen = ticks.clone();
 
     let mut engine = Engine::new();
     engine.on_progress(move |count| {
-        seen.store(count, Ordering::SeqCst);
+        *seen.lock().unwrap() = count;
         // Stand-in for a host's abort flag.
         (count >= 500).then(|| Dynamic::from("terminated"))
     });
@@ -62,7 +63,7 @@ fn compiled_loop_honours_the_progress_interrupt() {
     let err = run_vm(&engine, SPIN).expect_err("the interrupt must stop the loop");
 
     assert!(matches!(*err, EvalAltResult::ErrorTerminated(..)), "expected ErrorTerminated, got {err:?}",);
-    assert!(ticks.load(Ordering::SeqCst) >= 500, "on_progress should have been called on every back-edge",);
+    assert!(*ticks.lock().unwrap() >= 500, "on_progress should have been called on every back-edge",);
 }
 
 /// The walker and the VM must agree that the script *fails*, even though they
@@ -120,4 +121,85 @@ fn ticking_does_not_disturb_a_bounded_loop() {
     let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).expect("bounded loop must finish under Rhai too");
 
     assert_eq!(format!("{vm:?}"), format!("{walker:?}"));
+}
+
+/// A closure that never returns, handed to a native. The native calls it back
+/// through `call_script_fn`, which runs the chunk in a nested VM and hands the
+/// operation count back to the caller afterwards.
+const SPIN_IN_CALLBACK: &str = "let a = [1, 2, 3]; a.map(|x| { loop { } })";
+
+/// Stop a run after this many `on_progress` calls, whatever the count says.
+///
+/// Without it, a counter that never advances turns these tests into hangs.
+const BACKSTOP_CALLS: u64 = 100_000;
+
+/// Compile `SPIN_IN_CALLBACK` and run it with the callback wrappers installed.
+fn run_callback(engine: &Engine) -> Result<Dynamic, Box<EvalAltResult>> {
+    let ast = engine.compile(SPIN_IN_CALLBACK).expect("must compile");
+    let program = Compiler::new().compile(&ast);
+
+    assert_eq!(program.residual_count(), 0, "must be lowered, or this tests Rhai rather than the VM");
+    assert!(program.makes_fn_pointers(), "the closure must reach `map` as a pointer to a compiled chunk");
+
+    Vm::new(engine).eval_with_callbacks(&mut Scope::new(), &program.into_shared())
+}
+
+/// The error a callback raised, with the `ErrorInFunctionCall` layers Rhai
+/// wraps it in removed.
+fn innermost(err: &EvalAltResult) -> &EvalAltResult {
+    match err {
+        EvalAltResult::ErrorInFunctionCall(.., inner, _) => innermost(inner),
+        err => err,
+    }
+}
+
+/// The limit must fire inside a compiled function a native calls back.
+///
+/// On targets without 64-bit atomics the count is a plain `u64` and both the
+/// increment and the hand-back take separate code paths, which only a
+/// no-atomic target compiles. A counter that never advances would never trip
+/// the limit and would reach the backstop instead.
+#[test]
+fn a_callback_hits_the_operation_limit() {
+    let calls = Arc::new(Mutex::new(0_u64));
+    let counted = calls.clone();
+
+    let mut engine = Engine::new();
+    engine.set_max_operations(10_000);
+    engine.on_progress(move |_| {
+        let mut calls = counted.lock().unwrap();
+        *calls += 1;
+        (*calls >= BACKSTOP_CALLS).then(|| Dynamic::from("backstop"))
+    });
+
+    let err = run_callback(&engine).expect_err("an unbounded callback must be stopped");
+
+    assert!(matches!(innermost(&err), EvalAltResult::ErrorTooManyOperations(..)), "expected ErrorTooManyOperations, got {err:?}");
+}
+
+/// `on_progress` must see the count advance inside a callback, by one per
+/// operation.
+///
+/// Only the steady state inside the callback is checked. On the way in, a
+/// native's first attempt at the call runs against a clone of the global state,
+/// and without 64-bit atomics its count cannot be written back through the
+/// shared reference the native holds, so the count may repeat once there.
+#[test]
+fn a_callback_advances_the_progress_count() {
+    let counts = Arc::new(Mutex::new(Vec::new()));
+    let seen = counts.clone();
+
+    let mut engine = Engine::new();
+    engine.on_progress(move |count| {
+        let mut counts = seen.lock().unwrap();
+        counts.push(count);
+        (counts.len() >= 1_000).then(|| Dynamic::from("stopped"))
+    });
+
+    let err = run_callback(&engine).expect_err("the interrupt must stop the callback");
+    assert!(matches!(innermost(&err), EvalAltResult::ErrorTerminated(..)), "expected ErrorTerminated, got {err:?}");
+
+    let counts = counts.lock().unwrap();
+    let tail = &counts[counts.len() - 100..];
+    assert!(tail.windows(2).all(|w| w[1] == w[0] + 1), "the count did not advance by one per operation: {tail:?}");
 }

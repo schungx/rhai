@@ -37,10 +37,10 @@ pub struct GlobalRuntimeState {
     /// No source if the string is empty.
     pub source: Option<ImmutableString>,
     /// Number of operations performed.
-    #[cfg(target_has_atomic = "64")]
+    #[cfg(atomic_ops_count)]
     pub num_operations: std::sync::atomic::AtomicU64,
     /// Number of operations performed.
-    #[cfg(not(target_has_atomic = "64"))]
+    #[cfg(not(atomic_ops_count))]
     pub num_operations: u64,
     /// Number of modules loaded.
     #[cfg(not(feature = "no_module"))]
@@ -134,9 +134,9 @@ impl Clone for GlobalRuntimeState {
             #[cfg(not(feature = "no_function"))]
             lib: self.lib.clone(),
             source: self.source.clone(),
-            #[cfg(target_has_atomic = "64")]
+            #[cfg(atomic_ops_count)]
             num_operations: std::sync::atomic::AtomicU64::new(self.num_operations()),
-            #[cfg(not(target_has_atomic = "64"))]
+            #[cfg(not(atomic_ops_count))]
             num_operations: self.num_operations,
             #[cfg(not(feature = "no_module"))]
             num_modules_loaded: self.num_modules_loaded,
@@ -334,12 +334,12 @@ impl GlobalRuntimeState {
     #[inline(always)]
     #[must_use]
     pub fn num_operations(&self) -> u64 {
-        #[cfg(target_has_atomic = "64")]
+        #[cfg(atomic_ops_count)]
         return self
             .num_operations
             .load(std::sync::atomic::Ordering::Relaxed);
 
-        #[cfg(not(target_has_atomic = "64"))]
+        #[cfg(not(atomic_ops_count))]
         return self.num_operations;
     }
 
