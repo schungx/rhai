@@ -126,14 +126,17 @@ fn ticking_does_not_disturb_a_bounded_loop() {
 /// A closure that never returns, handed to a native. The native calls it back
 /// through `call_script_fn`, which runs the chunk in a nested VM and hands the
 /// operation count back to the caller afterwards.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 const SPIN_IN_CALLBACK: &str = "let a = [1, 2, 3]; a.map(|x| { loop { } })";
 
 /// Stop a run after this many `on_progress` calls, whatever the count says.
 ///
 /// Without it, a counter that never advances turns these tests into hangs.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 const BACKSTOP_CALLS: u64 = 100_000;
 
 /// Compile `SPIN_IN_CALLBACK` and run it with the callback wrappers installed.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 fn run_callback(engine: &Engine) -> Result<Dynamic, Box<EvalAltResult>> {
     let ast = engine.compile(SPIN_IN_CALLBACK).expect("must compile");
     let program = Compiler::new().compile(&ast);
@@ -146,6 +149,7 @@ fn run_callback(engine: &Engine) -> Result<Dynamic, Box<EvalAltResult>> {
 
 /// The error a callback raised, with the `ErrorInFunctionCall` layers Rhai
 /// wraps it in removed.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 fn innermost(err: &EvalAltResult) -> &EvalAltResult {
     match err {
         EvalAltResult::ErrorInFunctionCall(.., inner, _) => innermost(inner),
@@ -159,6 +163,7 @@ fn innermost(err: &EvalAltResult) -> &EvalAltResult {
 /// increment and the hand-back take separate code paths, which only a
 /// no-atomic target compiles. A counter that never advances would never trip
 /// the limit and would reach the backstop instead.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 #[test]
 fn a_callback_hits_the_operation_limit() {
     let calls = Arc::new(Mutex::new(0_u64));
@@ -184,6 +189,7 @@ fn a_callback_hits_the_operation_limit() {
 /// native's first attempt at the call runs against a clone of the global state,
 /// and without 64-bit atomics its count cannot be written back through the
 /// shared reference the native holds, so the count may repeat once there.
+#[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 #[test]
 fn a_callback_advances_the_progress_count() {
     let counts = Arc::new(Mutex::new(Vec::new()));
