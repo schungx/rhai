@@ -575,7 +575,7 @@ impl<'a> NativeCallContext<'a> {
         };
 
         // Update number of operations
-        #[cfg(target_has_atomic = "64")]
+        #[cfg(atomic_ops_count)]
         self.global.num_operations.store(
             new_global.num_operations(),
             std::sync::atomic::Ordering::Relaxed,

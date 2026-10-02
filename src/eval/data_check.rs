@@ -191,15 +191,15 @@ impl Engine {
         let mut num_operations = || {
             *num_ops.get_or_insert_with(|| {
                 // Increment operations count
-                #[cfg(target_has_atomic = "64")]
+                #[cfg(atomic_ops_count)]
                 return global
                     .num_operations
                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
                     + 1;
 
-                #[cfg(not(target_has_atomic = "64"))]
+                #[cfg(not(atomic_ops_count))]
                 {
-                    global.num_operations + 1;
+                    global.num_operations += 1;
                     return global.num_operations;
                 }
             })

@@ -473,10 +473,17 @@ impl Engine {
                 let global = vm.into_global_state();
 
                 // Update number of operations, into both potential sources
+                #[cfg(atomic_ops_count)]
                 global_ref.as_ref().num_operations.store(
                     global.num_operations(),
                     std::sync::atomic::Ordering::Relaxed,
                 );
+                // Without 64-bit atomics only a mutable original can be updated.
+                // An immutable one gets the count through the owned instance put back below.
+                #[cfg(not(atomic_ops_count))]
+                if let GlobalRef::Mut(g) = &mut global_ref {
+                    g.num_operations = global.num_operations();
+                }
 
                 // Put back the instance
                 global_ref.put_back(global);
