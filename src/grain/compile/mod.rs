@@ -23,8 +23,8 @@ use crate::grain::bytecode::code::{assemble, resolve_switch_targets};
 #[cfg(not(feature = "no_custom_syntax"))]
 use crate::grain::bytecode::CustomSyntaxSite;
 use crate::grain::bytecode::{
-    AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step, StepFlags, Switch, SwitchRange,
-    Tail,
+    constant_caps, AssignOp, Chain, Chunk, Op, Positions, Receiver, Root, Step, StepFlags, Switch,
+    SwitchRange, Tail,
 };
 use crate::grain::compile::poolable::is_poolable;
 use crate::grain::compile::slots::Slots;
@@ -1146,12 +1146,6 @@ impl Lowering {
             Stmt::Assignment(payload)
                 if matches!(&payload.1.lhs, Expr::Dot(..) | Expr::Index(..)) =>
             {
-                if matches!(&payload.1.lhs, Expr::Dot(..)) {
-                    self.caps.insert(Caps::PROPERTY);
-                } else {
-                    self.caps.insert(Caps::INDEXING);
-                }
-
                 let (op_info, binary) = &**payload;
                 let op = self.op_assignment(op_info);
 
@@ -1609,37 +1603,16 @@ impl Lowering {
             Expr::BoolConstant(value, ..) => self.emit(Op::Bool(*value)),
             Expr::Unit(..) => self.emit(Op::Unit),
 
-            Expr::IntegerConstant(value, ..) => self.constant(Dynamic::from(*value)),
-            Expr::CharConstant(value, ..) => self.constant(Dynamic::from(*value)),
+            Expr::IntegerConstant(value, ..) => self.constant(Dynamic::from_int(*value)),
+            Expr::CharConstant(value, ..) => self.constant(Dynamic::from_char(*value)),
             Expr::StringConstant(value, ..) => self.constant(Dynamic::from(value.clone())),
-            // Rhai has no float literal to parse under `no_float`, so there is
-            // no variant to match.
             #[cfg(not(feature = "no_float"))]
             Expr::FloatConstant(value, ..) => {
                 self.caps.insert(Caps::FLOAT);
-                self.constant(Dynamic::from(**value))
+                self.constant(Dynamic::from_float(**value))
             }
 
             Expr::DynamicConstant(value, ..) if is_poolable(value) => {
-                #[cfg(not(feature = "no_index"))]
-                if value.is_array() {
-                    self.caps.insert(Caps::ARRAY);
-                }
-                #[cfg(not(feature = "no_index"))]
-                if value.is_blob() {
-                    self.caps.insert(Caps::BLOB);
-                }
-                #[cfg(not(feature = "no_object"))]
-                if value.is_map() {
-                    self.caps.insert(Caps::MAP);
-                }
-                #[cfg(feature = "decimal")]
-                if value.is_decimal() {
-                    self.caps.insert(Caps::DECIMAL);
-                }
-                if value.is_fnptr() {
-                    self.caps.insert(Caps::FN_PTR);
-                }
                 self.constant((**value).clone());
             }
 
@@ -1767,12 +1740,6 @@ impl Lowering {
             }
 
             Expr::Dot(..) | Expr::Index(..) => {
-                if matches!(expr, Expr::Dot(..)) {
-                    self.caps.insert(Caps::PROPERTY);
-                } else {
-                    self.caps.insert(Caps::INDEXING);
-                }
-
                 // A chain emits its own operands, so a failed attempt has to
                 // leave nothing behind.
                 let mark = self.mark();
@@ -2388,6 +2355,9 @@ impl Lowering {
     }
 
     fn push_const(&mut self, value: Dynamic) -> u32 {
+        if let Some(required_caps) = constant_caps(&value) {
+            self.caps.insert(required_caps);
+        }
         // Programs at this scale make a linear scan cheaper than a hash map,
         // and it keeps the pool in emission order for readable disassembly.
         let rendered = format!("{value:?}");

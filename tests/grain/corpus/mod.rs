@@ -170,7 +170,7 @@ fn applies_to_this_build(name: &str) -> bool {
     #[cfg(feature = "no_float")]
     if matches!(
         name,
-        "float_arithmetic" | "mixed_numeric" | "interpolation_of_every_type" | "switch_float_in_range" | "error_operator_undefined_for_types" | "error_op_assign_undefined_for_types"
+        "float_arithmetic" | "mixed_numeric" | "interpolation_of_every_type" | "switch_float_literal" | "switch_float_in_range" | "error_operator_undefined_for_types" | "error_op_assign_undefined_for_types"
     ) {
         return false;
     }
@@ -450,6 +450,8 @@ pub const CASES: &[Case] = &[
     case("for_over_captured_array", "let a = [1, 2, 3]; { let f = || a; } let s = 0; for x in a { s += x; } s"),
     // --- switch -----------------------------------------------------------
     case("switch_literal", "let x = 2; switch x { 1 => \"one\", 2 => \"two\", _ => \"other\" }"),
+    // A literal case is stored as a constant, so it requires the `FLOAT` cap.
+    case("switch_float_literal", " let x = 2; switch x { 1.5 => 1, _=> 0 }"),
     case("switch_range", "let x = 42; switch x { 0..=9 => \"small\", 10..=99 => \"medium\", _ => \"large\" }"),
     // A failing guard must fall through to the next matching case, not to the
     // default, so both single-digit arms are needed to tell those apart.
