@@ -17,6 +17,7 @@ Bug fixes
 * Capturing the caller's scope via `call!(fnptr, args...)` now works properly in Rhai Grain.
 * `.call(fnptr, args...)` and `.curry(...)` method calls now work properly in any position (instead of only on a chain's root) in Rhai Grain.
 * `.shared()` method calls now work property in Rhai Grain.
+* Missing capabilities in scripts related to some constants (especially in `switch` cases, arrays and object maps) now work properly in Rhai Grain (thanks [`@yinho999`](https://github.com/yinho999) [`#1182`](https://github.com/rhaiscript/rhai/pull/1182)).
 
 New features
 ------------

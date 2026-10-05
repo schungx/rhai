@@ -21,7 +21,7 @@ pub(crate) use positions::site_to_position;
 pub(crate) use positions::{Positions, TableError};
 pub(crate) use strings::{BadTable, Strings};
 pub(crate) use switch::{Switch, SwitchRange};
-pub(crate) use verify::{verify, Pools, VerifyError};
+pub(crate) use verify::{constant_caps, verify, Pools, VerifyError};
 
 #[crate::expose_under_internals]
 use chunk::Chunk;

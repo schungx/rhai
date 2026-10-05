@@ -4,7 +4,8 @@ use crate::grain::bytecode::{
 };
 use crate::grain::format::Caps;
 use crate::grain::program::Function;
-use crate::Dynamic;
+use crate::{Dynamic, INT};
+use std::ops::{Range, RangeInclusive};
 #[cfg(feature = "no_std")]
 use std::prelude::v1::*;
 
@@ -142,6 +143,66 @@ pub enum VerifyError {
     },
 }
 
+/// Recursively determine the capabilities required by a constant
+/// [`Dynamic`] value.
+///
+/// Returns `None` if the value is not a constant (e.g. a shared value).
+pub fn constant_caps(value: &Dynamic) -> Option<Caps> {
+    let mut caps = Caps::empty();
+
+    #[cfg(not(feature = "no_closure"))]
+    if value.is_shared() {
+        return None;
+    }
+    if value.is_unit() || value.is_bool() || value.is_int() || value.is_char() || value.is_string()
+    {
+        return Some(caps);
+    }
+    if value.is::<Range<INT>>() || value.is::<RangeInclusive<INT>>() {
+        return Some(caps);
+    }
+    #[cfg(not(feature = "no_float"))]
+    if value.is_float() {
+        caps.insert(Caps::FLOAT);
+        return Some(caps);
+    }
+    #[cfg(feature = "decimal")]
+    if value.is_decimal() {
+        caps.insert(Caps::DECIMAL);
+        return Some(caps);
+    }
+    #[cfg(not(feature = "no_index"))]
+    if let Some(arr) = value.downcast_ref::<crate::Array>() {
+        caps.insert(Caps::ARRAY);
+        for value in arr.iter() {
+            caps.insert(constant_caps(value)?);
+        }
+        return Some(caps);
+    }
+    #[cfg(not(feature = "no_index"))]
+    if value.is_blob() {
+        caps.insert(Caps::BLOB);
+        return Some(caps);
+    }
+    #[cfg(not(feature = "no_object"))]
+    if let Some(map) = value.downcast_ref::<crate::Map>() {
+        caps.insert(Caps::MAP);
+        for value in map.values() {
+            caps.insert(constant_caps(value)?);
+        }
+        return Some(caps);
+    }
+    if let Some(fnptr) = value.downcast_ref::<crate::FnPtr>() {
+        caps.insert(Caps::FN_PTR);
+        for value in fnptr.curry() {
+            caps.insert(constant_caps(value)?);
+        }
+        return Some(caps);
+    }
+
+    None
+}
+
 /// Check that a chunk is internally consistent before running it.
 ///
 /// Two passes. The first decodes straight through, recording where each
@@ -176,29 +237,15 @@ pub fn verify(
 ) -> Result<Vec<u16>, VerifyError> {
     // Before we start, check whether we need caps to handle constants.
     for v in consts {
-        fn check_caps(do_check: bool, host: Caps, required: Caps) -> Result<(), VerifyError> {
-            if do_check && !host.contains(required) {
-                Err(VerifyError::MissingCaps {
-                    at: 0,
-                    artifact: host.to_string(),
-                    missing: required.to_string(),
-                })
-            } else {
-                Ok(())
-            }
-        }
-
-        #[cfg(not(feature = "no_float"))]
-        check_caps(v.is_float(), caps, Caps::FLOAT)?;
-        #[cfg(feature = "decimal")]
-        check_caps(v.is_decimal(), caps, Caps::DECIMAL)?;
-        #[cfg(not(feature = "no_index"))]
-        check_caps(v.is_array(), caps, Caps::ARRAY)?;
-        #[cfg(not(feature = "no_index"))]
-        check_caps(v.is_blob(), caps, Caps::BLOB)?;
-        #[cfg(not(feature = "no_object"))]
-        check_caps(v.is_map(), caps, Caps::MAP)?;
-        check_caps(v.is_fnptr(), caps, Caps::FN_PTR)?;
+        match constant_caps(v) {
+            Some(required_caps) if caps.contains(required_caps) => Ok(()),
+            Some(required_caps) => Err(VerifyError::MissingCaps {
+                at: 0,
+                artifact: caps.to_string(),
+                missing: required_caps.to_string(),
+            }),
+            None => Ok(()),
+        }?;
     }
 
     // Pass one: where do instructions start?

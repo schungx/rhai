@@ -520,10 +520,27 @@ fn capabilities_round_trip() {
     const CASES: &[(&str, &str, Caps, &str)] = &[
         #[cfg(not(feature = "no_float"))]
         ("float", "let x = 3.5; x + 1.5", Caps::FLOAT, "floating-point"),
+        #[cfg(not(feature = "no_float"))]
+        ("switch-float", "let x = 42; switch x { 1.5 => 1, _ => 0 }", Caps::FLOAT, "floating-point"),
         #[cfg(not(feature = "no_index"))]
         ("array", "let a = [1, 2, 3]; a[1] + a[2]", Caps::ARRAY.union(Caps::INDEXING), "arrays"),
+        #[cfg(not(feature = "no_index"))]
+        #[cfg(not(feature = "no_float"))]
+        ("array-with-float", "let a = [1, 2.0, 3]; a[1] + a[2]", Caps::ARRAY.union(Caps::INDEXING).union(Caps::FLOAT), "arrays with float values"),
         #[cfg(not(feature = "no_object"))]
-        ("map", "let m = #{ answer: 42 }; m.answer", Caps::MAP.union(Caps::PROPERTY), "object maps"),
+        ("map", "let m = #{ answer: 42 }; m.answer", Caps::MAP.union(Caps::PROPERTY).union(Caps::METHOD), "object maps"),
+        #[cfg(not(feature = "no_object"))]
+        #[cfg(not(feature = "no_float"))]
+        ("map-with-float", "let m = #{ answer: 42.0 }; m.answer", Caps::MAP.union(Caps::PROPERTY).union(Caps::METHOD).union(Caps::FLOAT), "object maps with float values"),
+        #[cfg(not(feature = "no_object"))]
+        #[cfg(not(feature = "no_index"))]
+        #[cfg(not(feature = "no_float"))]
+        (
+            "map-with-array",
+            "let m = #{ answer: [1, 2, 42.0] }; m.answer",
+            Caps::MAP.union(Caps::ARRAY).union(Caps::PROPERTY).union(Caps::METHOD).union(Caps::FLOAT),
+            "object maps with float values",
+        ),
         // #[cfg(feature = "decimal")]
         // ("decimal", "let d = 1e1000; d + 1", Caps::DECIMAL, "decimal numbers"),
         #[cfg(not(feature = "no_object"))]
@@ -535,33 +552,35 @@ fn capabilities_round_trip() {
         #[cfg(not(feature = "no_function"))]
         #[cfg(not(feature = "no_closure"))]
         #[cfg(not(feature = "no_object"))]
-        ("sharing", "let x = 40; let f = || x + 2; f.call()", Caps::SHARING.union(Caps::FUNCTION).union(Caps::METHOD), "shared values"),
+        ("sharing", "let x = 40; let f = || x + 2; f.call()", Caps::SHARING.union(Caps::FUNCTION).union(Caps::CURRYING).union(Caps::FN_PTR).union(Caps::METHOD), "shared values"),
         #[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_closure")))]
         (
-            "combined_features",
+            "combined-features",
             "let items = [1, 2, 3]; let map = #{ answer: 42 }; let f = || items[0] + map.answer; f.call()",
-            Caps::ARRAY.union(Caps::INDEXING).union(Caps::MAP).union(Caps::PROPERTY).union(Caps::SHARING).union(Caps::METHOD),
+            Caps::ARRAY
+                .union(Caps::INDEXING)
+                .union(Caps::MAP)
+                .union(Caps::FUNCTION)
+                .union(Caps::FN_PTR)
+                .union(Caps::CURRYING)
+                .union(Caps::PROPERTY)
+                .union(Caps::SHARING)
+                .union(Caps::METHOD),
             "shared values",
         ),
     ];
 
     let engine = corpus::engine();
 
-    for (name, source, expected, expected_text) in CASES {
+    for (name, source, expected, _) in CASES {
         let ast = engine.compile(source).unwrap_or_else(|err| panic!("{name} must compile: {err}"));
         let program = Compiler::new().compile(&ast);
 
-        for cap in Caps::all() {
-            if expected.contains(cap) {
-                assert!(program.caps().contains(cap), "{name} is missing {:?}", cap);
-            }
-        }
+        assert!(program.caps() == *expected, "`{name}`:\n  {expected}\nbut caps:\n  {}", program.caps());
 
         let bytes = program.write().expect("scriptlet must serialize");
         let loaded = Program::read(&bytes).expect("scriptlet must survive a round trip");
-        assert!(loaded.caps().contains(*expected), "{name} lost {expected:?} on read-back");
-        let caps_string = loaded.caps().to_string();
-        assert!(caps_string.contains(expected_text), "{name} caps string did not mention `{expected_text}`: {caps_string}");
+        assert!(loaded.caps() == *expected, "loaded `{name}`:\n  {expected}\nbut caps:\n  {}", loaded.caps());
     }
 }
 
