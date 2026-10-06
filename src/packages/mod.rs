@@ -2,6 +2,14 @@
 
 use crate::{Engine, Module, SharedModule};
 
+/// Combine a plugin module defined via `#[export_module(manifest)]` into a package, flattening
+/// all sub-modules, so that its functions are looked up only when called.
+macro_rules! combine_with_exported_manifest {
+    ($lib:expr, $id:expr, $($path:tt)+) => {
+        $lib.combine_manifest(&$($path)+::RHAI_MANIFEST)
+    };
+}
+
 pub(crate) mod arithmetic;
 pub(crate) mod array_basic;
 pub(crate) mod bit_field;
@@ -169,9 +177,27 @@ macro_rules! def_package {
 
         impl $package {
             #[doc=concat!("Create a new `", stringify!($package), "`")]
+            ///
+            /// All functions are registered up-front.
             #[inline]
             #[must_use]
             pub fn new() -> Self {
+                let mut module = $crate::Module::new();
+                <Self as $crate::packages::Package>::init(&mut module);
+                module.register_lazy_functions();
+                module.build_index();
+                Self(module.into())
+            }
+            #[doc=concat!("Create a new `", stringify!($package), "` that loads functions lazily.")]
+            ///
+            /// Functions in plugin modules (combined via their manifests) are not registered, but
+            /// looked up only when called. This uses much less memory, at the cost of slower function
+            /// resolution the first time each function is called in an evaluation.
+            ///
+            /// Use with [`Engine::new_raw`][crate::Engine::new_raw] for memory-constrained targets.
+            #[inline]
+            #[must_use]
+            pub fn new_lazy() -> Self {
                 let mut module = $crate::Module::new();
                 <Self as $crate::packages::Package>::init(&mut module);
                 module.build_index();
@@ -212,6 +238,7 @@ macro_rules! def_package {
             pub fn new() -> Self {
                 let mut module = $root::Module::new();
                 <Self as $root::packages::Package>::init(&mut module);
+                module.register_lazy_functions();
                 module.build_index();
                 Self(module.into())
             }
@@ -251,6 +278,7 @@ macro_rules! def_package {
             pub fn new() -> Self {
                 let mut module = $root::Module::new();
                 <Self as $root::packages::Package>::init(&mut module);
+                module.register_lazy_functions();
                 module.build_index();
                 Self(module.into())
             }

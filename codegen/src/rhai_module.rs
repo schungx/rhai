@@ -34,8 +34,11 @@ pub fn generate_body(
     sub_modules: &mut [Module],
     parent_scope: &ExportScope,
     root: &Path,
+    manifest: bool,
 ) -> TokenStream {
     let mut set_fn_statements = Vec::new();
+    let mut manifest_fns = Vec::new();
+    let mut manifest_sub_modules = Vec::new();
     let mut set_const_statements = Vec::new();
     let mut add_mod_blocks = Vec::new();
     let mut set_flattened_mod_blocks = Vec::new();
@@ -113,6 +116,12 @@ pub fn generate_body(
             #(#cfg_attrs)*
             self::#module_name::rhai_generate_into_module(_m, _flatten);
         });
+        if manifest {
+            manifest_sub_modules.push(quote! {
+                #(#cfg_attrs)*
+                (#exported_name, &self::#module_name::RHAI_MANIFEST)
+            });
+        }
     }
 
     // NB: these are token streams, because re-parsing messes up "> >" vs ">>"
@@ -193,6 +202,24 @@ pub fn generate_body(
                 .set_into_module_raw(_m, &#fn_token_name::param_types(), #fn_token_name().into());
             });
 
+            if manifest {
+                let fn_namespace = match namespace {
+                    FnNamespaceAccess::Global => quote! { #root::FnNamespace::Global },
+                    _ => quote! { #root::FnNamespace::Internal },
+                };
+
+                manifest_fns.push(quote! {
+                    #(#cfg_attrs)*
+                    #root::plugin::FnManifestEntry {
+                        name: #fn_literal,
+                        namespace: #fn_namespace,
+                        func: &#fn_token_name(),
+                        param_types: |f| f(&#fn_token_name::param_types()),
+                        register: |_m| { #tokens },
+                    }
+                });
+            }
+
             set_fn_statements.push(syn::parse2::<syn::Stmt>(tokens).unwrap());
         }
 
@@ -251,9 +278,21 @@ pub fn generate_body(
 
     let (.., generate_call_content) = generate_fn_call.content.take().unwrap();
 
+    let manifest = manifest.then(|| {
+        quote! {
+            /// Manifest of all functions exported by this plugin module.
+            pub static RHAI_MANIFEST: #root::plugin::ModuleManifest = #root::plugin::ModuleManifest {
+                functions: &[#(#manifest_fns),*],
+                sub_modules: &[#(#manifest_sub_modules),*],
+                init_eager: |_m| { #(#set_const_statements)* },
+            };
+        }
+    });
+
     quote! {
         #(#generate_call_content)*
         #(#gen_fn_tokens)*
+        #manifest
     }
 }
 

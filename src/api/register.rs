@@ -731,6 +731,10 @@ impl Engine {
     /// 2) Functions in registered sub-modules
     /// 3) Functions in registered packages
     /// 4) Functions in standard packages (optional)
+    ///
+    /// Modules with functions that are looked up only when called (see
+    /// [`Module::from_manifest`][crate::Module::from_manifest]) are cloned and have those
+    /// functions registered first, which may be expensive.
     #[cfg(feature = "metadata")]
     #[inline]
     #[must_use]
@@ -739,25 +743,32 @@ impl Engine {
 
         if let Some(global_namespace) = self.global_modules.first() {
             signatures.extend(
-                global_namespace.gen_fn_signatures_with_mapper(|s| self.format_param_type(s)),
+                global_namespace
+                    .materialized()
+                    .gen_fn_signatures_with_mapper(|s| self.format_param_type(s)),
             );
         }
 
         #[cfg(not(feature = "no_module"))]
         for (name, m) in &self.global_sub_modules {
             signatures.extend(
-                m.gen_fn_signatures_with_mapper(|s| self.format_param_type(s))
+                m.materialized()
+                    .gen_fn_signatures_with_mapper(|s| self.format_param_type(s))
                     .map(|f| format!("{name}::{f}")),
             );
         }
 
-        signatures.extend(
-            self.global_modules
-                .iter()
-                .skip(1)
-                .filter(|m| include_standard_packages || !m.is_standard_lib())
-                .flat_map(|m| m.gen_fn_signatures_with_mapper(|s| self.format_param_type(s))),
-        );
+        for m in self
+            .global_modules
+            .iter()
+            .skip(1)
+            .filter(|m| include_standard_packages || !m.is_standard_lib())
+        {
+            signatures.extend(
+                m.materialized()
+                    .gen_fn_signatures_with_mapper(|s| self.format_param_type(s)),
+            );
+        }
 
         signatures
     }
@@ -822,20 +833,24 @@ impl Engine {
                 .for_each(|v| list.push(v));
         }
 
-        self.global_modules
+        for m in self
+            .global_modules
             .iter()
             .filter(|m| include_standard_packages || !m.is_standard_lib())
-            .flat_map(|m| m.iter_fn())
-            .filter_map(|(_func, f)| {
-                mapper(crate::module::FuncInfo {
-                    metadata: f,
-                    #[cfg(not(feature = "no_module"))]
-                    namespace: crate::new_smart_string(),
-                    #[cfg(not(feature = "no_function"))]
-                    script: _func.get_script_fn_def().map(|f| (&**f).into()),
+        {
+            m.materialized()
+                .iter_fn()
+                .filter_map(|(_func, f)| {
+                    mapper(crate::module::FuncInfo {
+                        metadata: f,
+                        #[cfg(not(feature = "no_module"))]
+                        namespace: crate::new_smart_string(),
+                        #[cfg(not(feature = "no_function"))]
+                        script: _func.get_script_fn_def().map(|f| (&**f).into()),
+                    })
                 })
-            })
-            .for_each(|v| list.push(v));
+                .for_each(|v| list.push(v));
+        }
 
         #[cfg(not(feature = "no_module"))]
         {
@@ -847,6 +862,8 @@ impl Engine {
                 mapper: impl Fn(crate::module::FuncInfo) -> Option<T> + Copy,
             ) {
                 use crate::engine::NAMESPACE_SEPARATOR;
+
+                let module = &*module.materialized();
 
                 module
                     .iter_fn()

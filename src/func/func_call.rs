@@ -410,7 +410,7 @@ impl Engine {
                     if let Some((f, s)) = func {
                         // Specific version found
                         let new_entry = FnResolutionCacheEntry {
-                            func: f.clone(),
+                            func: f.into_owned(),
                             source: s.cloned(),
                         };
                         return if cache.bloom_filter.is_absent_and_set(hash) {
@@ -606,6 +606,7 @@ impl Engine {
                     Err(ERR::ErrorNonPureMethodCallOnConstant(name.to_string(), pos).into())
                 }
                 RhaiFunc::Plugin { func } => func.call(context, args),
+                RhaiFunc::StaticPlugin { func } => func.call(context, args),
                 RhaiFunc::Pure { func, .. } | RhaiFunc::Method { func, .. } => func(context, args),
                 _ => unreachable!("non-native function"),
             }
@@ -1015,7 +1016,7 @@ impl Engine {
         }
 
         // Clone first argument if the function is not a method after-all
-        if !func.map_or(true, RhaiFunc::is_method) {
+        if !func.as_deref().map_or(true, RhaiFunc::is_method) {
             if let Some(first) = first_arg {
                 *first = args[0].clone();
                 args[0] = first;
@@ -1024,7 +1025,7 @@ impl Engine {
 
         defer! { let orig_level = global.level; global.level += 1 }
 
-        match func {
+        match func.as_deref() {
             #[cfg(not(feature = "no_function"))]
             Some(RhaiFunc::Script { fn_def, env }) => {
                 let env = env.as_deref();
@@ -1041,7 +1042,8 @@ impl Engine {
                 Err(ERR::ErrorNonPureMethodCallOnConstant(fn_name.to_string(), pos).into())
             }
 
-            Some(RhaiFunc::Plugin { func }) => {
+            Some(f @ (RhaiFunc::Plugin { .. } | RhaiFunc::StaticPlugin { .. })) => {
+                let func = f.get_plugin_fn().unwrap();
                 let context = func
                     .has_context()
                     .then(|| (self, fn_name, module.id(), &*global, pos).into());

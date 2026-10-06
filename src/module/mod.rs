@@ -1,5 +1,6 @@
 //! Module defining external-loaded modules for Rhai.
 
+mod lazy;
 mod namespace;
 /// Module containing all built-in [module resolvers][ModuleResolver].
 pub mod resolvers;
@@ -30,6 +31,7 @@ use std::collections::hash_map::Entry;
 use std::prelude::v1::*;
 use std::{
     any::{type_name, TypeId},
+    borrow::Cow,
     collections::BTreeMap,
     fmt,
     ops::{Add, AddAssign},
@@ -626,6 +628,8 @@ bitflags! {
         const INDEXED = 0b0000_0100;
         /// Does the [`Module`] contain indexed functions that have been exposed to the global namespace?
         const INDEXED_GLOBAL_FUNCTIONS = 0b0000_1000;
+        /// Does the [`Module`] (including sub-modules) contain functions in plugin module manifests?
+        const HAS_LAZY_FUNCTIONS = 0b0001_0000;
     }
 }
 
@@ -661,6 +665,8 @@ pub struct Module {
     all_type_iterators: BTreeMap<TypeId, Shared<FnIterator>>,
     /// Flags.
     flags: ModuleFlags,
+    /// Functions in plugin module manifests, looked up only when called. Never empty if [`Some`].
+    lazy_functions: Option<lazy::LazyFunctions>,
 }
 
 impl Default for Module {
@@ -792,6 +798,7 @@ impl Module {
             type_iterators: BTreeMap::new(),
             all_type_iterators: BTreeMap::new(),
             flags: ModuleFlags::INDEXED,
+            lazy_functions: None,
         }
     }
 
@@ -926,6 +933,7 @@ impl Module {
         self.dynamic_functions_filter.clear();
         self.type_iterators.clear();
         self.all_type_iterators.clear();
+        self.lazy_functions = None;
         self.flags
             .remove(ModuleFlags::INDEXED | ModuleFlags::INDEXED_GLOBAL_FUNCTIONS);
     }
@@ -1112,6 +1120,7 @@ impl Module {
                 .as_ref()
                 .map_or(true, StraightHashMap::is_empty)
             && self.all_type_iterators.is_empty()
+            && self.lazy_functions.is_none()
     }
 
     /// Is the [`Module`] indexed?
@@ -1165,6 +1174,10 @@ impl Module {
 
     /// _(metadata)_ Generate signatures for all the non-private functions in the [`Module`].
     /// Exported under the `metadata` feature only.
+    ///
+    /// Functions in plugin module manifests (see [`Module::from_manifest`]) are not included until
+    /// they are registered via [`Module::register_lazy_functions`].
+    /// [`Engine::gen_fn_signatures`] includes them.
     #[cfg(feature = "metadata")]
     #[inline]
     pub fn gen_fn_signatures_with_mapper<'a>(
@@ -1483,6 +1496,7 @@ impl Module {
         self.functions
             .as_ref()
             .map_or(false, |m| m.contains_key(&hash_fn))
+            || self.get_lazy_fn(hash_fn).is_some()
     }
 
     /// _(metadata)_ Update the metadata (parameter names/types, return type and doc-comments) of a registered function.
@@ -1555,7 +1569,7 @@ impl Module {
     /// Remap type ID.
     #[inline]
     #[must_use]
-    fn map_type(map: bool, type_id: TypeId) -> TypeId {
+    pub(crate) fn map_type(map: bool, type_id: TypeId) -> TypeId {
         if !map {
             return type_id;
         }
@@ -1948,11 +1962,12 @@ impl Module {
     /// Look up a native Rust function by hash.
     #[inline]
     #[must_use]
-    pub(crate) fn get_fn(&self, hash_native: u64) -> Option<&RhaiFunc> {
+    pub(crate) fn get_fn(&self, hash_native: u64) -> Option<Cow<'_, RhaiFunc>> {
         self.functions
             .as_ref()
             .and_then(|m| m.get(&hash_native))
-            .map(|(f, _)| f)
+            .map(|(f, _)| Cow::Borrowed(f))
+            .or_else(|| self.get_lazy_fn(hash_native).map(Cow::Owned))
     }
 
     /// Can the particular function with [`Dynamic`] parameter(s) exist in the [`Module`]?
@@ -1973,6 +1988,7 @@ impl Module {
         self.all_functions
             .as_ref()
             .map_or(false, |m| m.contains_key(&hash_fn))
+            || self.get_lazy_qualified_fn(hash_fn).is_some()
     }
 
     /// Get a namespace-qualified function.
@@ -1981,16 +1997,24 @@ impl Module {
     #[cfg(not(feature = "no_module"))]
     #[inline]
     #[must_use]
-    pub(crate) fn get_qualified_fn(&self, hash_qualified_fn: u64) -> Option<&RhaiFunc> {
+    pub(crate) fn get_qualified_fn(&self, hash_qualified_fn: u64) -> Option<Cow<'_, RhaiFunc>> {
         self.all_functions
             .as_ref()
             .and_then(|m| m.get(&hash_qualified_fn))
+            .map(Cow::Borrowed)
+            .or_else(|| {
+                self.get_lazy_qualified_fn(hash_qualified_fn)
+                    .map(Cow::Owned)
+            })
     }
 
     /// Combine another [`Module`] into this [`Module`].
     /// The other [`Module`] is _consumed_ to merge into this [`Module`].
     #[inline]
     pub fn combine(&mut self, other: Self) -> &mut Self {
+        if let Some(lazy_functions) = other.lazy_functions {
+            self.push_manifests(lazy_functions.manifests.into_vec());
+        }
         self.modules.extend(other.modules);
         self.variables.extend(other.variables);
         match self.functions {
@@ -2025,6 +2049,9 @@ impl Module {
         for m in other.modules.into_values() {
             self.combine_flatten(shared_take_or_clone(m));
         }
+        if let Some(lazy_functions) = other.lazy_functions {
+            self.push_manifests(lazy_functions.manifests.into_vec());
+        }
         self.variables.extend(other.variables);
         match self.functions {
             Some(ref mut m) if other.functions.is_some() => m.extend(other.functions.unwrap()),
@@ -2054,6 +2081,12 @@ impl Module {
     /// Only items not existing in this [`Module`] are added.
     #[inline]
     pub fn fill_with(&mut self, other: &Self) -> &mut Self {
+        // Existing manifests take precedence, so these go before them
+        if let Some(ref lazy_functions) = other.lazy_functions {
+            let existing = self.lazy_functions.take().map(|f| f.manifests.into_vec());
+            self.push_manifests(lazy_functions.manifests.iter().copied());
+            self.push_manifests(existing.into_iter().flatten());
+        }
         for (k, v) in &other.modules {
             if !self.modules.contains_key(k) {
                 self.modules.insert(k.clone(), v.clone());
@@ -2119,6 +2152,21 @@ impl Module {
 
         self.variables.extend(other.variables.clone());
 
+        // Functions in manifests must be registered to be filtered
+        if let Some(ref lazy_functions) = other.lazy_functions {
+            lazy_functions.for_each_fn(&mut |f| {
+                if _filter(
+                    f.namespace(),
+                    FnAccess::Public,
+                    false,
+                    f.name(),
+                    f.num_params(),
+                ) {
+                    f.register_into(self);
+                }
+            });
+        }
+
         if let Some(ref functions) = other.functions {
             match self.functions {
                 Some(ref mut m) => m.extend(
@@ -2172,6 +2220,7 @@ impl Module {
                 .collect()
         });
 
+        self.lazy_functions = None;
         self.dynamic_functions_filter.clear();
         self.all_functions = None;
         self.all_variables = None;
@@ -2685,6 +2734,15 @@ impl Module {
                 type_iterators.insert(type_id, func.clone());
             }
 
+            // Functions in manifests are indexed on first lookup, but may be in the global namespace
+            if let Some(ref lazy_functions) = module.lazy_functions {
+                lazy_functions.for_each_fn(&mut |f| {
+                    if f.namespace() == FnNamespace::Global {
+                        contains_indexed_global_functions = true;
+                    }
+                });
+            }
+
             // Index all functions
             for (&hash, (f, m)) in module.functions.iter().flatten() {
                 match m.namespace {
@@ -2778,6 +2836,9 @@ impl Module {
             self.all_variables = (!variables.is_empty()).then_some(variables);
             self.all_functions = (!functions.is_empty()).then_some(functions);
             self.all_type_iterators = type_iterators;
+
+            self.flags
+                .set(ModuleFlags::HAS_LAZY_FUNCTIONS, self.has_lazy_functions());
 
             self.flags |= ModuleFlags::INDEXED;
         }

@@ -27,9 +27,9 @@ def_package! {
     pub BasicStringPackage(lib) {
         lib.set_standard_lib(true);
 
-        combine_with_exported_module!(lib, "print_debug", print_debug_functions);
-        combine_with_exported_module!(lib, "number_formatting", number_formatting);
-        combine_with_exported_module!(lib, "char", char_functions);
+        combine_with_exported_manifest!(lib, "print_debug", print_debug_functions);
+        combine_with_exported_manifest!(lib, "number_formatting", number_formatting);
+        combine_with_exported_manifest!(lib, "char", char_functions);
 
         // Register characters iterator
         lib.set_iterator::<CharsStream>();
@@ -106,7 +106,7 @@ fn printed_value(
     }
 }
 
-#[export_module]
+#[export_module(manifest)]
 mod print_debug_functions {
     /// Convert the value of the `item` into a string.
     #[rhai_fn(name = "print", pure)]
@@ -291,7 +291,7 @@ mod print_debug_functions {
     }
 }
 
-#[export_module]
+#[export_module(manifest)]
 mod number_formatting {
     fn to_hex<T: LowerHex>(value: T) -> ImmutableString {
         let mut buf = crate::new_smart_string();
@@ -485,7 +485,7 @@ mod number_formatting {
     }
 }
 
-#[export_module]
+#[export_module(manifest)]
 mod char_functions {
     /// Convert the Unicode character into a 32-bit integer value.
     pub const fn to_int(ch: char) -> INT {
