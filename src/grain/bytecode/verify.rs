@@ -593,9 +593,10 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
         Op::Import { .. } => Caps::IMPORT,
         Op::LoadNamed(name) => {
             #[cfg(not(feature = "no_module"))]
-            let is_qualified = pools.names.get(*name).map_or(false, |name| {
-                name.contains(crate::engine::NAMESPACE_SEPARATOR)
-            });
+            let is_qualified = pools
+                .names
+                .get(*name)
+                .map_or(false, |name| super::names::split_qualified(name).is_some());
             #[cfg(feature = "no_module")]
             let is_qualified = {
                 let _ = name;
@@ -613,7 +614,7 @@ fn required_caps(op: &Op, pools: &Pools) -> Caps {
             let is_qualified = pools
                 .names
                 .get(*name)
-                .map_or(false, |name| name.contains(':'));
+                .map_or(false, |name| super::names::split_qualified(name).is_some());
             #[cfg(feature = "no_module")]
             let is_qualified = {
                 let _ = name;

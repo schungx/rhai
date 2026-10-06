@@ -36,7 +36,9 @@ mod callback;
 #[cfg(not(feature = "no_module"))]
 pub(crate) use callback::wrappers as callback_wrappers;
 
-use crate::grain::bytecode::{code, AssignOp, Chain, Chunk, Receiver, Root, Step, StepFlags, Tail};
+use crate::grain::bytecode::{
+    code, names, AssignOp, Chain, Chunk, Receiver, Root, Step, StepFlags, Tail,
+};
 use crate::grain::program::{Program, SharedProgram};
 
 /// Whether a value is a shared cell.
@@ -2111,9 +2113,8 @@ impl<'e> Vm<'e> {
                 return Ok(target);
             }
 
-            let sep = crate::engine::NAMESPACE_SEPARATOR;
             return Err(Box::new(EvalAltResult::ErrorVariableNotFound(
-                format!("{namespace}{sep}{name}"),
+                names::qualify(namespace, name),
                 pos,
             )));
         }
@@ -2128,9 +2129,8 @@ impl<'e> Vm<'e> {
                 }
             }
 
-            let sep = crate::engine::NAMESPACE_SEPARATOR;
             return Err(Box::new(EvalAltResult::ErrorVariableNotFound(
-                format!("{namespace}{sep}{name}"),
+                names::qualify(namespace, name),
                 pos,
             )));
         }
@@ -3802,16 +3802,13 @@ impl<'e> Vm<'e> {
                         .name(index)
                         .ok_or_else(|| malformed(format!("no name {index}")))?;
                     let flatten = tag == code::tag::LOAD_NAMED;
-                    #[cfg(not(feature = "no_module"))]
-                    let value = if let Some((namespace, name)) =
-                        name.rsplit_once(crate::engine::NAMESPACE_SEPARATOR)
-                    {
-                        self.load_qualified_named(namespace, name, pos())?
-                    } else {
-                        self.load_named(program, name, scope, flatten, pos())?
+                    let value = match names::split_qualified(name) {
+                        #[cfg(not(feature = "no_module"))]
+                        Some((namespace, name)) => {
+                            self.load_qualified_named(namespace, name, pos())?
+                        }
+                        _ => self.load_named(program, name, scope, flatten, pos())?,
                     };
-                    #[cfg(feature = "no_module")]
-                    let value = self.load_named(program, name, scope, flatten, pos())?;
                     self.stack.push(value);
                 }
 
@@ -4237,68 +4234,50 @@ impl<'e> Vm<'e> {
                         name = &name[..name.len() - 1];
                     }
 
-                    #[cfg(not(feature = "no_module"))]
-                    let value = if let Some((namespace, fn_name)) = name.rsplit_once(':') {
-                        if namespace.is_empty() || fn_name.is_empty() {
-                            return Err(malformed(format!(
-                                "invalid qualified function name {name}"
-                            )));
+                    let value = match names::split_qualified(name) {
+                        #[cfg(not(feature = "no_module"))]
+                        Some((namespace, fn_name)) => {
+                            let mut arg_values: FnArgsVec<Dynamic> =
+                                self.stack.drain(first..).map(Dynamic::flatten).collect();
+                            let mut args: FnArgsVec<&mut Dynamic> = arg_values.iter_mut().collect();
+                            let hash = crate::calc_fn_hash(
+                                namespace.split(crate::engine::NAMESPACE_SEPARATOR),
+                                fn_name,
+                                args.len(),
+                            );
+                            self.engine.exec_qualified_fn_call(
+                                &mut self.global,
+                                &mut self.caches,
+                                namespace,
+                                fn_name,
+                                None,
+                                &mut args,
+                                hash,
+                                pos(),
+                            )?
                         }
-                        let mut arg_values: FnArgsVec<Dynamic> =
-                            self.stack.drain(first..).map(Dynamic::flatten).collect();
-                        let mut args: FnArgsVec<&mut Dynamic> = arg_values.iter_mut().collect();
-                        let hash = crate::calc_fn_hash(
-                            namespace.split(crate::engine::NAMESPACE_SEPARATOR),
-                            fn_name,
-                            args.len(),
-                        );
-                        self.engine.exec_qualified_fn_call(
-                            &mut self.global,
-                            &mut self.caches,
-                            namespace,
-                            fn_name,
-                            None,
-                            &mut args,
-                            hash,
-                            pos(),
-                        )?
-                    } else {
-                        if capture {
-                            name_index =
-                                program.function_name_index(name, argc).unwrap_or(u32::MAX);
+                        #[cfg(feature = "no_module")]
+                        Some(..) => {
+                            return Err(malformed(
+                                "qualified function call not allowed under `no_module`".into(),
+                            ))
                         }
-                        self.call_syntactic_or_stacked(
-                            program,
-                            name_index,
-                            name,
-                            argc,
-                            first,
-                            scope,
-                            capture,
-                            pos(),
-                        )?
-                    };
-                    #[cfg(feature = "no_module")]
-                    let value = {
-                        if name.contains(':') {
-                            return Err(malformed(format!(
-                                "qualified function call not allowed under `no_module`"
-                            )));
+                        None => {
+                            if capture {
+                                name_index =
+                                    program.function_name_index(name, argc).unwrap_or(u32::MAX);
+                            }
+                            self.call_syntactic_or_stacked(
+                                program,
+                                name_index,
+                                name,
+                                argc,
+                                first,
+                                scope,
+                                capture,
+                                pos(),
+                            )?
                         }
-                        if capture {
-                            name_index =
-                                program.function_name_index(name, argc).unwrap_or(u32::MAX);
-                        }
-                        self.call_syntactic_or_stacked(
-                            program,
-                            name_index,
-                            name,
-                            argc,
-                            first,
-                            scope,
-                            capture,
-                            pos(),
-                        )?
                     };
                     self.stack.truncate(first);
                     self.stack.push(value);
@@ -4427,22 +4406,15 @@ impl<'e> Vm<'e> {
                         name = &name[..name.len() - 1];
                     }
 
-                    #[cfg(not(feature = "no_module"))]
-                    let namespace = name.rsplit_once(':').map(|(namespace, fn_name)| {
-                        if namespace.is_empty() || fn_name.is_empty() {
-                            None
-                        } else {
-                            Some((namespace, fn_name))
+                    let (namespace, name) = match names::split_qualified(name) {
+                        #[cfg(not(feature = "no_module"))]
+                        Some((namespace, fn_name)) => (Some(namespace), fn_name),
+                        #[cfg(feature = "no_module")]
+                        Some(..) => {
+                            return Err(malformed(
+                                "qualified function call not allowed under `no_module`".into(),
+                            ))
                         }
-                    });
-                    #[cfg(not(feature = "no_module"))]
-                    let (namespace, name) = match namespace {
-                        Some(None) => {
-                            return Err(malformed(format!(
-                                "invalid qualified function name {name}"
-                            )))
-                        }
-                        Some(Some((namespace, fn_name))) => (Some(namespace), fn_name),
                         None => {
                             if capture {
                                 name_index =
@@ -4451,23 +4423,10 @@ impl<'e> Vm<'e> {
                             (None, name)
                         }
                     };
-                    #[cfg(feature = "no_module")]
-                    if name.contains(':') {
-                        return Err(malformed(
-                            "qualified function call not allowed under `no_module`".into(),
-                        ));
-                    }
-                    #[cfg(feature = "no_module")]
-                    if capture {
-                        name_index = program.function_name_index(name, argc).unwrap_or(u32::MAX);
-                    }
 
                     let value = self.call_by_reference(
                         program,
-                        #[cfg(not(feature = "no_module"))]
                         namespace,
-                        #[cfg(feature = "no_module")]
-                        None,
                         name_index,
                         name,
                         argc,

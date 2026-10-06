@@ -1654,13 +1654,7 @@ impl Lowering {
                     #[cfg(not(feature = "no_module"))]
                     _ => {
                         let name = self.push_name(
-                            format!(
-                                "{}{}{}",
-                                payload.2,
-                                crate::engine::NAMESPACE_SEPARATOR,
-                                payload.1
-                            )
-                            .into(),
+                            crate::grain::bytecode::names::qualify(&payload.2, &payload.1).into(),
                         );
                         self.emit_at(Op::LoadNamed(name), payload.2.position());
                         self.caps.insert(Caps::MODULE);
@@ -1866,11 +1860,10 @@ impl Lowering {
         #[cfg(not(feature = "no_module"))]
         if !call.namespace.is_empty() {
             self.caps.insert(Caps::MODULE);
-            let name = if capture_parent_scope {
-                format!("{}:{}!", call.namespace, call.name)
-            } else {
-                format!("{}:{}", call.namespace, call.name)
-            };
+            let mut name = crate::grain::bytecode::names::qualify(&call.namespace, &call.name);
+            if capture_parent_scope {
+                name.push('!');
+            }
             let name = self.push_name(name.into());
 
             // `ns::f(x, ..)` -> `ns::f(&mut x, ..)`

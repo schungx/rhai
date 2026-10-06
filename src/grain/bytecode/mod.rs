@@ -6,6 +6,7 @@ mod chain;
 mod chunk;
 pub(crate) mod code;
 mod custom_syntax;
+pub(crate) mod names;
 mod op;
 mod positions;
 pub(crate) mod sites;

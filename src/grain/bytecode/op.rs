@@ -177,6 +177,8 @@ pub enum Op {
     ///
     /// For unqualified names, a reverse scan of the [`Scope`][crate::Scope] is
     /// needed — only emitted for a name that cannot be resolved.
+    //
+    // (See [`names`][super::names]).
     LoadNamed(u32),
 
     /// Export variable `name` with alias `alias`.
@@ -291,7 +293,8 @@ pub enum Op {
     ///
     /// Dispatch goes through Rhai, so every registered function, operator and
     /// script function resolves identically to Rhai.
-    /// A namespace-qualified function is encoded as `namespace:name`.
+    /// A namespace-qualified function is encoded as `namespace::name`.
+    //  (See [`names`][super::names]).
     ///
     /// ## Syntactic Function Calls
     ///
