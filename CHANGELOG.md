@@ -30,6 +30,9 @@ Enhancements
 ------------
 
 * Added `AGENTS.md` files.
+* Failed function resolutions are cached again for calls with other than two arguments (a regression from version 1.10), so e.g. checking for a script-defined function before calling a native one in a loop no longer searches all modules on every iteration.
+* A function resolution cache is now kept for the rest of an evaluation when the first one is created inside a block. Previously, a loop body evaluated with no cache yet would resolve every function call again on each iteration.
+* String interpolation now resolves `to_string` with the evaluation's function resolution caches, instead of creating a new `NativeCallContext` (which cloned the global runtime state) for each interpolated value.
 * Rhai Grain is no longer _experimental_.
 * Rhai Grain bytecodes transpilation is optimized (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1156`](https://github.com/rhaiscript/rhai/pull/1156)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts index assignments ([`#1163`](https://github.com/rhaiscript/rhai/pull/1163)).
