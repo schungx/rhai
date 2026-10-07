@@ -11,6 +11,7 @@
 | [`definitions`](./definitions)                            | shows how to generate definition files for use with the [Rhai Language Server](https://github.com/rhaiscript/lsp) (requires the `metadata` feature) |
 | [`grain_bench`](grain_bench.rs)                           | comparison benchmarks for Rhai Grain bytecodes VM                                                                                                   |
 | [`hello`](hello.rs)                                       | simple example that evaluates an expression and prints the result                                                                                   |
+| [`lazy_bench`](lazy_bench.rs)                             | comparison benchmarks for lazy-loading                                                                                                              |
 | [`pause_and_resume`](pause_and_resume.rs)                 | shows how to pause/resume/stop an `Engine` running in a separate thread via an MPSC channel                                                         |
 | [`reuse_scope`](reuse_scope.rs)                           | evaluates two pieces of code in separate runs, but using a common `Scope`                                                                           |
 | [`serde`](serde.rs)                                       | example to serialize and deserialize Rust types with [`serde`](https://crates.io/crates/serde) (requires the `serde` feature)                       |

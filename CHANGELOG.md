@@ -7,43 +7,61 @@ Version 1.27.0
 Bug fixes
 ---------
 
-* Using bare function name as a variable now works properly (identified by Rhai Grain ).
-* Support bare function names as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 * (Fuzzing) Fixed missing data-race condition in native function callbacks ([`#1161`](https://github.com/rhaiscript/rhai/pull/1161)).
-* The `Engine::on_map_missing_property` callback now works properly with Rhai Grain ([`#1164`](https://github.com/rhaiscript/rhai/pull/1164)).
-* The `Engine::on_def_var` callback now works properly with Rhai Grain ([`#1170`](https://github.com/rhaiscript/rhai/pull/1170)). However, the _nesting level_ reported by `VarDefInfo` is always zero, since all nesting information is lost once the `AST` is lowered to bytecodes.
 * Errors raised during built-in binary operations (such as `100 / 0`) now contain proper `Position` information (identified by Rhai Grain ).
 * Number of operations reported to `Engine::on_progress` now properly count scripted function calls from native Rust functions (identified by Rhai Grain). Previously all operation counts performed by a scripted function callback (including a closure) from a native Rust function are discarded.
 * Capturing the caller's scope via `call!(fnptr, args...)` now works properly in Rhai Grain.
-* `.call(fnptr, args...)` and `.curry(...)` method calls now work properly in any position (instead of only on a chain's root) in Rhai Grain.
 * `.shared()` method calls now work property in Rhai Grain.
 * Missing capabilities in scripts related to some constants (especially in `switch` cases, arrays and object maps) now work properly in Rhai Grain (thanks [`@yinho999`](https://github.com/yinho999) [`#1182`](https://github.com/rhaiscript/rhai/pull/1182)).
+* Failed function resolutions are now cached properly for calls with other than two arguments - a regression from version 1.10 (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
+* A function resolution cache is now created (if none exists) when entering a block. Previously, a loop body evaluated with no cache yet would resolve every function call again on each iteration (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
 
-New features
-------------
+Rhai Grain is now at feature parity with the AST interpreter
+------------------------------------------------------------
 
-* New `compact_str` feature that uses [`compact_str`](https://crates.io/crates/compact_str) instead of [`smartstring`](https://crates.io/crates/smartstring) for identifiers and object map keys (thanks [`@hoppworks`](https://github.com/hoppworks) [`#1175`](https://github.com/rhaiscript/rhai/pull/1175)). `smartstring` is archived and unmaintained ([RUSTSEC-2026-0249](https://rustsec.org/advisories/RUSTSEC-2026-0249.html)) and licensed under `MPL-2.0+` ([`#897`](https://github.com/rhaiscript/rhai/issues/897)), while`compact_str` is licensed under `MIT`. Under this feature, the key type of `Map` (and `Identifier` under `internals`) is `CompactString` instead of `SmartString`, and `serde`-serializable types use it directly instead of `String` (the `serde` feature of `compact_str` is `no-std`-safe, unlike that of `smartstring`). `compact_str` is intended to become the default in version 2.0.
-* Functions in plugin modules can now be resolved lazily: a `Module` can hold static manifests of plugin modules (generated via `#[export_module(manifest)]` and `exported_manifest!`) alongside its normal functions, and functions in manifests are not registered but looked up only when called (by calculating the hash of each function in turn), in both the `AST` interpreter and Rhai Grain. Use `Module::from_manifest` (the lazy `exported_module!`) or `Module::combine_manifest` (the lazy `combine_with_exported_module!`). `Module::register_lazy_functions` registers all of them up-front instead, for the same speed as before. The `rhai_codegen` crate dependency is bumped to `3.3.0` or later.
-* New `no_ast` feature that excludes the `AST`, its interpreter, the tokenizer, parser and optimizer for a minimized build.  Under this feature flag, the Rhai Grain VM is the only venue to evaluate a script.
+* Rhai Grain is no longer _experimental_.
+* New `no_ast` feature added that excludes the `AST`, its interpreter, the tokenizer, parser and optimizer for a minimized build ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).  Under this feature flag, the Rhai Grain VM is the only venue to evaluate a script.
+* Bare function names are now supported as variables in Rhai Grain ([`#1158`](https://github.com/rhaiscript/rhai/pull/1158)).
 * Custom syntax that does not modify the `scope` is now fully supported in Rhai Grain ([`#1173`](https://github.com/rhaiscript/rhai/pull/1173)). Custom syntax that modifies the `scope` remains non-lowerable fragments.
 * Importing modules, the `global::` namespace, the `export` and `import` statements are all supported by Rhai Grain ([`#1179`](https://github.com/rhaiscript/rhai/pull/1179)).
-
-Enhancements
-------------
-
-* Added `AGENTS.md` files.
-* Every package defined via `def_package!` now has a `new_lazy` constructor that keeps the functions of plugin modules in their manifests, looking them up only when called. For example, `Engine::new_raw()` with `StandardPackage::new_lazy()` uses about 16x less heap than `Engine::new()`, and builds the standard library about 8x faster, at the cost of slower function resolution the first time a function is called in each evaluation. `new` is unchanged and registers every function up-front.
-* Failed function resolutions are cached again for calls with other than two arguments (a regression from version 1.10), so e.g. checking for a script-defined function before calling a native one in a loop no longer searches all modules on every iteration.
-* A function resolution cache is now kept for the rest of an evaluation when the first one is created inside a block. Previously, a loop body evaluated with no cache yet would resolve every function call again on each iteration.
-* String interpolation now resolves `to_string` with the evaluation's function resolution caches, instead of creating a new `NativeCallContext` (which cloned the global runtime state) for each interpolated value.
-* Rhai Grain is no longer _experimental_.
+* The `Engine::on_map_missing_property` callback now works with Rhai Grain ([`#1164`](https://github.com/rhaiscript/rhai/pull/1164)).
+* The `Engine::on_def_var` callback now works with Rhai Grain ([`#1170`](https://github.com/rhaiscript/rhai/pull/1170)). However, the _nesting level_ reported by `VarDefInfo` is always zero, since all nesting information is lost once the `AST` is lowered to bytecodes.
+* `.call(fnptr, args...)` and `.curry(...)` method calls now work in any position (instead of only on a chain's root) in Rhai Grain.
 * Rhai Grain bytecodes transpilation is optimized (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1156`](https://github.com/rhaiscript/rhai/pull/1156)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts index assignments ([`#1163`](https://github.com/rhaiscript/rhai/pull/1163)).
 * Rhai Grain VM is now at par or faster than the AST interpreter for scripts with callbacks ([`#1159`](https://github.com/rhaiscript/rhai/pull/1159)).
 * Rhai Grain VM is now 1.8-2x faster than the AST interpreter when running `switch` statements ([`#1162`](https://github.com/rhaiscript/rhai/pull/1162), [`#1165`](https://github.com/rhaiscript/rhai/pull/1165)).
+* Rhai Grain VM is now 2x faster than the AST interpreter when running `!<bool>` expressions.
 * `rhai-run` now supports loading and executing Rhai Grain bytecode files if the `grain` feature is enabled ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).
 * The example `grain_dump` is now split into two CLI tools in `bin`: `grain-compile`, which compiles a Rhai script into Rhai Grain bytecodes, and `grain-dump` which dissembles a Rhai Grain bytecodes files ([`#1160`](https://github.com/rhaiscript/rhai/pull/1160)).
 * `grain-dump` now disassembles Rhai Grain bytecodes files with more complete information ([`#1168`](https://github.com/rhaiscript/rhai/pull/1168)).
+
+Lazy loading of plugin module functions
+---------------------------------------
+
+* Contributed by [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1178`](https://github.com/rhaiscript/rhai/pull/1178).
+* Functions in plugin modules can now be resolved lazily: a `Module` can hold static manifests of plugin modules (generated via `#[export_module(manifest)]` and `exported_manifest!`) alongside its normal functions, and functions in manifests are not registered but looked up only when called.
+* Lazy-loading is opt-in.
+* Every package defined via `def_package!` now has a `new_lazy` constructor that keeps the functions of plugin modules within their manifests, looking them up only when called. For example, `Engine::new_raw()` with `StandardPackage::new_lazy()` uses about 16x less heap than `Engine::new()`, and builds the standard library about 8x faster, at the cost of slower function resolution the first time a function is called.
+* Lazy-load plugin's are supported by both the `AST` interpreter and Rhai Grain.
+* Use the new `Module::from_manifest` (the lazy `exported_module!`) or `Module::combine_manifest` (the lazy `combine_with_exported_module!`) API to create a lazy-loaded module or add the manifest of lazy-loaded functions to a module.
+* `Module::register_lazy_functions` registers all lazy-loaded functions up-front instead, for the same speed as before.
+
+Feature flag to replace `smartstring` with `compact_str`
+--------------------------------------------------------
+
+* Contributed by [`@hoppworks`](https://github.com/hoppworks) [`#1175`](https://github.com/rhaiscript/rhai/pull/1175).
+* A new `compact_str` feature that uses [`compact_str`](https://crates.io/crates/compact_str) instead of [`smartstring`](https://crates.io/crates/smartstring) for identifiers and object map keys
+* `smartstring` is archived and unmaintained ([RUSTSEC-2026-0249](https://rustsec.org/advisories/RUSTSEC-2026-0249.html)) and licensed under `MPL-2.0+` ([`#897`](https://github.com/rhaiscript/rhai/issues/897)), while`compact_str` is licensed under the more permissive `MIT`.
+* Under `compact_str`, the key type of `Map` (and `Identifier` under `internals`) is `CompactString` instead of `SmartString`.
+* Under `compact_str`, `serde`-serializable types use `CompactString` directly instead of `String` since the `serde` feature of `compact_str` is `no-std`-safe, unlike that of `smartstring`.
+* `compact_str` is intended to become the default in version 2.0.
+
+Enhancements
+------------
+
+* Added `AGENTS.md` files and a language reference cheat-sheet for AI (`RHAI_CHEATSHEET.md`).
+* String interpolation now resolves `to_string` with the evaluation's function resolution caches, instead of creating a new `NativeCallContext` (which cloned the global runtime state) for each interpolated value (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
 
 
 Version 1.26.1

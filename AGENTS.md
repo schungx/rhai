@@ -17,6 +17,7 @@ them in the Grain VM. See the [Grain `AGENTS.md`](src/grain/AGENTS.md).
 * Main site: [rhai.rs](https://rhai.rs)
 * Tutorial and user guide: [_The Rhai Book_](https://rhai.rs/book)
 * [_The Rhai Book_ source](https://github.com/rhaiscript/book)
+* [Rhai language cheat sheet for agents](RHAI-CHEATSHEET.md) - quick syntax reference and high-impact semantic gotchas
 
 # Repository structure
 
