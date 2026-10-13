@@ -570,6 +570,68 @@ fn test_module_environ() {
     );
 }
 
+#[cfg(not(feature = "no_function"))]
+#[test]
+fn text_module_constant_store() {
+    let mut engine = Engine::new();
+
+    assert_eq!(
+        engine
+            .eval::<INT>("const LOCK = 60; fn tick() { let value = 0; value = global::LOCK; value -= 1; value } tick()")
+            .unwrap(),
+        59
+    );
+
+    let error = engine.eval::<INT>("const LOCK = 60; fn tick() { global::LOCK = 0; } tick()").unwrap_err();
+    assert!(matches!(
+        &*error,
+        EvalAltResult::ErrorInFunctionCall(_, _, inner, ..)
+            if matches!(inner.as_ref(), EvalAltResult::ErrorAssignmentToConstant(..))
+    ));
+
+    #[cfg(not(feature = "no_object"))]
+    {
+        for script in [
+            "const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock -= 1; state.lock } tick(#{})",
+            "const LOCK = 60; fn tick() { this.a = #{ x: global::LOCK }; this.a.x -= 1; this.a.x } let m = #{}; m.tick()",
+        ] {
+            assert_eq!(engine.eval::<INT>(script).unwrap(), 59, "{script}");
+        }
+
+        assert_eq!(
+            engine
+                .eval::<INT>("const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock -= 1; global::LOCK } tick(#{})")
+                .unwrap(),
+            60
+        );
+
+        assert_eq!(
+            engine
+                .eval::<INT>("const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock = 0; state.lock } tick(#{})")
+                .unwrap(),
+            0
+        );
+    }
+
+    #[cfg(not(feature = "no_index"))]
+    assert_eq!(
+        engine
+            .eval::<INT>("const LOCK = 60; fn tick(state) { state[0] = global::LOCK; state[0] -= 1; state[0] } tick([0])")
+            .unwrap(),
+        59
+    );
+
+    #[cfg(not(feature = "no_object"))]
+    {
+        let mut module = Module::new();
+        module.set_var("LOCK", 60 as INT);
+
+        engine.register_static_module("config", module.into());
+
+        assert_eq!(engine.eval::<INT>("fn tick(state) { state.lock = config::LOCK; state.lock -= 1; state.lock } tick(#{})").unwrap(), 59);
+    }
+}
+
 #[test]
 fn test_module_dynamic() {
     fn test_fn(input: Dynamic, x: INT) -> Result<INT, Box<EvalAltResult>> {

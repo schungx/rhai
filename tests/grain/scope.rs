@@ -414,6 +414,41 @@ fn a_script_function_reads_global_constants() {
     agree("fn answer() { global::ANSWER } { const ANSWER = 42; answer() }", |_| {}, true);
 }
 
+#[test]
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_object"))]
+fn qualified_constants_stored_in_map_properties_become_writable() {
+    for source in [
+        "const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock -= 1; state.lock } tick(#{})",
+        "const LOCK = 60; fn tick() { this.a = #{ x: global::LOCK }; this.a.x -= 1; this.a.x } let m = #{}; m.tick()",
+        "const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock = 0; state.lock } tick(#{})",
+    ] {
+        agree(source, |_| {}, true);
+    }
+}
+
+#[test]
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_index"))]
+fn qualified_constants_stored_in_array_slots_become_writable() {
+    agree("const LOCK = 60; fn tick(state) { state[0] = global::LOCK; state[0] -= 1; state[0] } tick([0])", |_| {}, true);
+}
+
+#[test]
+#[cfg(not(feature = "no_function"))]
+#[cfg(not(feature = "no_module"))]
+#[cfg(not(feature = "no_object"))]
+fn imported_constants_stored_in_map_properties_become_writable() {
+    let mut engine = corpus::engine();
+    let mut module = Module::new();
+    module.set_var("LOCK", 60 as INT);
+    engine.register_static_module("config", module.into());
+
+    agree_with(&engine, "fn tick(state) { state.lock = config::LOCK; state.lock -= 1; state.lock } tick(#{})", |_| {}, true);
+}
+
 // The module the `import` resolves to is itself a script function.
 #[test]
 #[cfg(not(feature = "no_module"))]

@@ -15,6 +15,7 @@ Bug fixes
 * Missing capabilities in scripts related to some constants (especially in `switch` cases, arrays and object maps) now work properly in Rhai Grain (thanks [`@yinho999`](https://github.com/yinho999) [`#1182`](https://github.com/rhaiscript/rhai/pull/1182)).
 * Failed function resolutions are now cached properly for calls with other than two arguments - a regression from version 1.10 (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
 * A function resolution cache is now created (if none exists) when entering a block. Previously, a loop body evaluated with no cache yet would resolve every function call again on each iteration (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
+* Assigning a constant into a container variable (array, map etc.) now works properly without making the value read-only (thanks [`@cuervolu`](https://github.com/cuervolu) [`#1187`](https://github.com/rhaiscript/rhai/pull/1187)).
 
 Rhai Grain is now at feature parity with the AST interpreter
 ------------------------------------------------------------

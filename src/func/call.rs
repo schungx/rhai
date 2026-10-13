@@ -946,7 +946,14 @@ impl Engine {
                 }
                 if matches!(op_token, &Token::Minus | &Token::UnaryMinus) {
                     if let Union::Int(n, ..) = &value.0 {
-                        return Ok((-n).into());
+                        #[cfg(not(feature = "unchecked"))]
+                        let value = n.checked_neg().ok_or_else(|| {
+                            Box::new(ERR::ErrorArithmetic("integer overflow".into(), pos))
+                        })?;
+                        #[cfg(feature = "unchecked")]
+                        let value = -n;
+
+                        return Ok(value.into());
                     }
                     #[cfg(not(feature = "no_float"))]
                     if let Union::Float(n, ..) = &value.0 {
