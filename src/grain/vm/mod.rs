@@ -1976,6 +1976,8 @@ impl<'e> Vm<'e> {
         pos: Position,
     ) -> RhaiResultOf<()> {
         let Some(op) = op else {
+            // Match the AST walker: read-only belongs to the source binding.
+            rhs.set_access_mode(AccessMode::ReadWrite);
             *target = rhs;
             return Ok(());
         };

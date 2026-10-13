@@ -174,6 +174,8 @@ impl Engine {
             }
         } else {
             // Normal assignment
+            // Read-only belongs to the source binding, not its copied value.
+            new_val.set_access_mode(AccessMode::ReadWrite);
             match target {
                 // Lock it again just in case it is shared
                 Target::RefMut(_) | Target::TempValue(_) => {
