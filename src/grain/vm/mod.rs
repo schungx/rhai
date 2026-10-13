@@ -4319,7 +4319,13 @@ impl<'e> Vm<'e> {
                         if matches!(op, Token::Minus | Token::UnaryMinus) {
                             if let Ok(value) = lhs.as_int() {
                                 self.stack.truncate(first);
-                                self.stack.push((-value).into());
+                                let value = value.checked_neg().ok_or_else(|| {
+                                    Box::new(EvalAltResult::ErrorArithmetic(
+                                        "integer overflow".to_string(),
+                                        pos(),
+                                    ))
+                                })?;
+                                self.stack.push(value.into());
                                 pc += width;
                                 continue;
                             }
