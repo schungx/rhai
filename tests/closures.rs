@@ -348,6 +348,25 @@ fn test_closures_data_race() {
     ));
 }
 
+/// A method call on a shared variable locks it for write for the whole call. A closure argument
+/// that captures the same variable must then be reported as a data race before the native
+/// function is resolved, under `sync` as well as without it. Under `sync` the check used to treat
+/// every shared value as unlocked, so resolving the function read the locked value's type and
+/// panicked.
+#[test]
+#[cfg(not(feature = "no_closure"))] // the closure must capture `t` to share it
+#[cfg(not(feature = "no_object"))] // the method-call syntax `t.with_arg(…)` needs the dot
+#[cfg(not(feature = "unchecked"))] // under `sync` + `unchecked` access blocks rather than gives up
+fn test_closures_capturing_locked_method_receiver() {
+    let mut engine = Engine::new();
+    engine.register_fn("with_arg", |ctx: rhai::NativeCallContext, t: INT, f: FnPtr| -> Result<Dynamic, Box<EvalAltResult>> { f.call_within_context(&ctx, (t,)) });
+
+    // The closure takes no argument but `with_arg` passes one, so the call goes on to resolve
+    // another function, which reads the type of every argument, the locked `t` among them.
+    let err = engine.eval::<Dynamic>("let t = 7; t.with_arg(|| t + 1)").unwrap_err();
+    assert!(matches!(*err, EvalAltResult::ErrorDataRace(..)), "{err}");
+}
+
 type TestStruct = Rc<RefCell<INT>>;
 
 #[test]
