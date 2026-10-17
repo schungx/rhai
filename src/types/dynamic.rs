@@ -1758,9 +1758,12 @@ impl Dynamic {
     ///
     /// ## Note
     ///
-    /// Under the `sync` feature, shared values use [`RwLock`][std::sync::RwLock] and they are never locked.
-    /// Access just waits until the [`RwLock`][std::sync::RwLock] is released.
-    /// So this method always returns [`false`] under [`Sync`].
+    /// Under the `sync` feature, shared values use [`RwLock`][std::sync::RwLock], and access waits a
+    /// short while for the [`RwLock`][std::sync::RwLock] to be released. This method returns
+    /// [`true`] when that wait would give up, which is always the case when the current thread
+    /// itself holds the value locked for write (for example, a method call on a shared variable
+    /// whose closure argument captures the same variable). Under `sync` together with `unchecked`,
+    /// access blocks instead of giving up, so this method returns [`false`].
     #[cfg(not(feature = "no_closure"))]
     #[inline]
     #[must_use]
@@ -1776,6 +1779,10 @@ impl Dynamic {
                 #[cfg(not(feature = "sync"))]
                 return _cell.try_borrow().is_err();
                 #[cfg(feature = "sync")]
+                #[cfg(not(feature = "unchecked"))]
+                return crate::func::locked_read(_cell).is_none();
+                #[cfg(feature = "sync")]
+                #[cfg(feature = "unchecked")]
                 return false;
             }
             _ => (),

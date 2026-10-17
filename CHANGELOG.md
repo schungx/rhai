@@ -16,6 +16,7 @@ Bug fixes
 * Failed function resolutions are now cached properly for calls with other than two arguments - a regression from version 1.10 (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
 * A function resolution cache is now created (if none exists) when entering a block. Previously, a loop body evaluated with no cache yet would resolve every function call again on each iteration (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1183`](https://github.com/rhaiscript/rhai/pull/1183)).
 * Assigning a constant into a container variable (array, map etc.) now works properly without making the value read-only (thanks [`@cuervolu`](https://github.com/cuervolu) [`#1187`](https://github.com/rhaiscript/rhai/pull/1187)).
+* Under `sync`, a method call on a shared variable with a closure argument that captures the same variable now raises `ErrorDataRace`, as it does without `sync`, instead of panicking while resolving the function. `Dynamic::is_locked` now returns `true` under `sync` when the value cannot be read, which includes being locked for write by the current thread (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1190`](https://github.com/rhaiscript/rhai/pull/1190)).
 
 Rhai Grain is now at feature parity with the AST interpreter
 ------------------------------------------------------------
