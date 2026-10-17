@@ -3,7 +3,9 @@
 
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, abort_immediate)]
+#![feature(alloc_error_handler, abort_immediate, lang_items)]
+// `lang_items` is the only way to declare the personality routine (see below).
+#![allow(internal_features)]
 
 extern crate alloc;
 extern crate wee_alloc;
@@ -42,8 +44,21 @@ fn rust_begin_panic(_: &core::panic::PanicInfo) -> ! {
 #[no_mangle]
 extern "C" fn _rust_eh_personality() {}
 
-#[no_mangle]
-extern "C" fn rust_eh_personality() {}
+// The personality routine is referenced by the pre-built `core`/`alloc` even though every profile
+// here sets `panic = "abort"`, so it is never called. Since rust-lang/rust#148413 (nightly
+// 2026-10-16) the compiler mangles its symbol like the other std-internal symbols, so a
+// `#[no_mangle]` function named `rust_eh_personality` no longer satisfies the linker; declaring it
+// as the lang item lets the compiler emit the name it expects, on every nightly.
+#[lang = "eh_personality"]
+extern "C" fn rust_eh_personality(
+    _version: i32,
+    _actions: i32,
+    _exception_class: u64,
+    _exception_object: *mut (),
+    _context: *mut (),
+) -> i32 {
+    core::process::abort_immediate()
+}
 
 #[no_mangle]
 extern "C" fn rust_eh_register_frames() {}
