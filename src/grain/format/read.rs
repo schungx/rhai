@@ -573,7 +573,13 @@ fn get_constant(
                     })
                 }
             };
-            Dynamic::from(FnPtr { name, curry, typ })
+            Dynamic::from(FnPtr {
+                name,
+                curry,
+                #[cfg(not(feature = "no_function"))]
+                env: None,
+                typ,
+            })
         }
 
         #[cfg(not(feature = "no_index"))]

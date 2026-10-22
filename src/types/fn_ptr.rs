@@ -91,6 +91,9 @@ pub struct FnPtr {
     pub(crate) name: ImmutableString,
     /// Curried arguments.
     pub(crate) curry: ThinVec<Dynamic>,
+    /// Encapsulated environment.
+    #[cfg(not(feature = "no_function"))]
+    pub(crate) env: Option<Shared<crate::func::EncapsulatedEnviron>>,
     /// Type of function pointer.
     pub(crate) typ: FnPtrType,
 }
@@ -470,7 +473,7 @@ impl FnPtr {
                     &mut crate::eval::Caches::new(),
                     scope,
                     this_ptr,
-                    env.map(|e| &**e),
+                    self.env.as_ref().or(env).map(|e| &**e),
                     fn_def,
                     &mut arg_values.iter_mut().collect::<FnArgsVec<_>>(),
                     true,
@@ -669,6 +672,8 @@ impl TryFrom<ImmutableString> for FnPtr {
             Ok(Self {
                 name: value,
                 curry: ThinVec::new(),
+                #[cfg(not(feature = "no_function"))]
+                env: None,
                 typ: FnPtrType::Normal,
             })
         } else if is_reserved_keyword_or_symbol(&value).0
@@ -690,6 +695,7 @@ impl<T: Into<Shared<crate::func::ScriptFuncDef>>> From<T> for FnPtr {
         Self {
             name: fn_def.name.clone(),
             curry: ThinVec::new(),
+            env: None,
             typ: FnPtrType::Script {
                 num_params: fn_def.params.len(),
                 hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),

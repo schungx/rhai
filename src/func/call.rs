@@ -85,7 +85,7 @@ impl Engine {
                 let linked_script = fn_ptr
                     .typ
                     .get_linked_script(global, args.len())
-                    .map(|(fn_def, env)| (fn_def.clone(), env.cloned()));
+                    .map(|(fn_def, env)| (fn_def.clone(), fn_ptr.env.as_ref().or(env).cloned()));
 
                 match fn_ptr.typ {
                     // Linked to scripted function - short-circuit
@@ -163,7 +163,13 @@ impl Engine {
                 #[cfg(not(feature = "no_function"))]
                 let _is_anon = fn_ptr.is_anonymous();
 
-                let FnPtr { name, curry, typ } = fn_ptr;
+                let FnPtr {
+                    name,
+                    curry,
+                    #[cfg(not(feature = "no_function"))]
+                        env: fn_env,
+                    typ,
+                } = fn_ptr;
 
                 // Adding the curried arguments and the remaining arguments
                 let curry = &mut curry.into_iter().collect::<FnArgsVec<_>>();
@@ -174,7 +180,7 @@ impl Engine {
                 #[cfg(not(feature = "no_function"))]
                 let linked_script = typ
                     .get_linked_script(global, args.len())
-                    .map(|(fn_def, env)| (fn_def.clone(), env.cloned()));
+                    .map(|(fn_def, env)| (fn_def.clone(), fn_env.or_else(|| env.cloned())));
 
                 match typ {
                     // Linked to scripted function - short-circuit
@@ -311,7 +317,11 @@ impl Engine {
                                     let Some((fn_def, env)) = linked_script else {
                                         unreachable!()
                                     };
-                                    _linked = Some((Some(fn_def.clone()), None, env.clone()))
+                                    _linked = Some((
+                                        Some(fn_def.clone()),
+                                        None,
+                                        fn_ptr.env.clone().or_else(|| env.cloned()),
+                                    ))
                                 }
                                 FnPtrType::Native(ref func) => {
                                     _linked = Some((
@@ -364,7 +374,6 @@ impl Engine {
                     #[cfg(not(feature = "no_function"))]
                     Some((Some(fn_def), None, env)) => {
                         let scope = &mut Scope::new();
-                        let env = env.cloned();
                         let env = env.as_deref();
                         let this_ptr = Some(target.as_mut());
                         let args = &mut call_args.iter_mut().collect::<FnArgsVec<_>>();
@@ -465,6 +474,8 @@ impl Engine {
                 let FnPtr {
                     name,
                     curry: extra_curry,
+                    #[cfg(not(feature = "no_function"))]
+                        env: fn_env,
                     typ,
                 } = fn_ptr;
 
@@ -474,7 +485,7 @@ impl Engine {
                 #[cfg(not(feature = "no_function"))]
                 let linked_script = typ
                     .get_linked_script(global, curry.len() + args_expr.len())
-                    .map(|(f, e)| (f.clone(), e.cloned()));
+                    .map(|(f, e)| (f.clone(), fn_env.or_else(|| e.cloned())));
 
                 match typ {
                     // Linked to scripted function - short-circuit

@@ -4606,6 +4606,8 @@ impl<'e> Vm<'e> {
                         FnPtr {
                             name: self.engine.get_interned_string(name),
                             curry: Default::default(),
+                            #[cfg(not(feature = "no_function"))]
+                            env: None,
                             typ: FnPtrType::Normal,
                         }
                         .into(),
