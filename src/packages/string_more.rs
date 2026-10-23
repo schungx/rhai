@@ -1328,7 +1328,7 @@ mod string_functions {
     }
     /// Pad the string to at least the specified number of characters with the specified string.
     ///
-    /// If `len` ≤ length of string, no padding is done.
+    /// If `len` ≤ length of string, or `padding` is empty, no padding is done.
     ///
     /// # Example
     ///
@@ -1350,7 +1350,7 @@ mod string_functions {
         len: INT,
         padding: &str,
     ) -> RhaiResultOf<()> {
-        if len <= 0 {
+        if len <= 0 || padding.is_empty() {
             return Ok(());
         }
         let Ok(len) = usize::try_from(len) else {
