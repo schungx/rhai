@@ -229,3 +229,36 @@ fn without_the_wrappers_the_pointer_does_not_resolve() {
         assert!(format!("{err:?}").contains("ErrorFunctionNotFound"), "{source}: {err}");
     }
 }
+
+#[test]
+#[cfg(not(any(feature = "no_function", feature = "no_module", feature = "no_closure")))]
+fn a_kept_closure_keeps_the_imports_of_its_script() {
+    use rhai::module_resolvers::StaticModuleResolver;
+    use rhai::{FnPtr, Module};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    let mut engine = corpus::engine();
+
+    let ast = engine.compile(r#"fn who() { "from m" }"#).unwrap();
+    let mut resolver = StaticModuleResolver::new();
+    resolver.insert("m", Module::eval_ast_as_new(Scope::new(), &ast, &engine).unwrap());
+    engine.set_module_resolver(resolver);
+
+    let saved = Rc::new(RefCell::new(None::<FnPtr>));
+    let s = saved.clone();
+    engine.register_fn("keep", move |f: FnPtr| *s.borrow_mut() = Some(f));
+
+    let ast = engine.compile(r#"import "m" as m; keep(|| m::who());"#).unwrap();
+
+    let program = Compiler::new().compile(&ast).into_shared();
+    Vm::new(&engine).run_with_scope(&mut Scope::new(), &program).unwrap();
+    let f = saved.borrow().clone().unwrap();
+    assert_eq!(f.call::<String>(&engine, &ast, ()).unwrap(), "from m");
+
+    // The walker, for reference.
+    *saved.borrow_mut() = None;
+    engine.run_ast(&ast).unwrap();
+    let f = saved.borrow().clone().unwrap();
+    assert_eq!(f.call::<String>(&engine, &ast, ()).unwrap(), "from m");
+}
