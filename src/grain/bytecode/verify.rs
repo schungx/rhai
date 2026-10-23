@@ -193,6 +193,13 @@ pub fn constant_caps(value: &Dynamic) -> Option<Caps> {
         return Some(caps);
     }
     if let Some(fnptr) = value.downcast_ref::<crate::FnPtr>() {
+        // An environment is a live host object, which an artifact cannot carry.
+        // The compiler leaves such a constant to the walker, which builds the
+        // environment again where the constant is evaluated.
+        #[cfg(not(feature = "no_function"))]
+        if fnptr.env.is_some() {
+            return None;
+        }
         caps.insert(Caps::FN_PTR);
         for value in fnptr.curry() {
             caps.insert(constant_caps(value)?);
@@ -1347,6 +1354,22 @@ mod tests {
             Ok(vec![3]),
             "with the third operand there it is in range, and nothing moves",
         );
+    }
+
+    /// A pointer that carries an environment is not a constant an artifact can
+    /// hold: the environment would be lost on the way out.
+    #[test]
+    #[cfg(not(any(feature = "no_function", feature = "no_closure")))]
+    fn a_pointer_with_an_environment_is_not_a_constant() {
+        let engine = crate::Engine::new();
+        let mut fn_ptr = engine.eval::<crate::FnPtr>("|| 42").unwrap();
+
+        // Evaluating a closure literal gives it its environment.
+        assert!(fn_ptr.env.is_some());
+        assert!(constant_caps(&Dynamic::from(fn_ptr.clone())).is_none());
+
+        fn_ptr.env = None;
+        assert!(constant_caps(&Dynamic::from(fn_ptr)).is_some());
     }
 
     #[test]

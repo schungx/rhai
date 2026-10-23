@@ -122,6 +122,8 @@ impl Engine {
             let val: Dynamic = crate::FnPtr {
                 name: var_name.clone(),
                 curry: <_>::default(),
+                #[cfg(not(feature = "no_function"))]
+                env: None,
                 typ: crate::types::fn_ptr::FnPtrType::Script {
                     num_params: fn_def.params.len(),
                     hash: crate::calc_fn_hash(None, &fn_def.name, fn_def.params.len()),

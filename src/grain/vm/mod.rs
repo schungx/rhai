@@ -3762,7 +3762,20 @@ impl<'e> Vm<'e> {
                     let value = program
                         .constant(index)
                         .ok_or_else(|| malformed(format!("no constant {index}")))?;
-                    self.stack.push(value.clone());
+                    #[allow(unused_mut)]
+                    let mut value = value.clone();
+
+                    // A closure literal keeps the imports in scope where it is
+                    // evaluated, as the walker's `get_literal_value` does for it,
+                    // so a host that calls it after this run still finds them.
+                    #[cfg(not(feature = "no_function"))]
+                    if program.caps().contains(crate::grain::Caps::FN_PTR) {
+                        if let Some(mut fn_ptr) = value.write_lock::<FnPtr>() {
+                            fn_ptr.env = Some(crate::Shared::new((&self.global).into()));
+                        }
+                    }
+
+                    self.stack.push(value);
                 }
 
                 code::tag::UNIT => self.stack.push(Dynamic::UNIT),
@@ -4606,6 +4619,8 @@ impl<'e> Vm<'e> {
                         FnPtr {
                             name: self.engine.get_interned_string(name),
                             curry: Default::default(),
+                            #[cfg(not(feature = "no_function"))]
+                            env: None,
                             typ: FnPtrType::Normal,
                         }
                         .into(),
