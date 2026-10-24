@@ -1,6 +1,16 @@
 Rhai Release Notes
 ==================
 
+Version 1.27.1
+==============
+
+Bug fixes
+---------
+
+* Fixes regression with missing encapsulated environment in function pointers (thanks [`@luispedro`](https://github.com/luispedro) [`#1193`](https://github.com/rhaiscript/rhai/pull/1193)).
+* Fixes bug in `pad` method for strings that hangs when the padding string is empty (thanks [`@b84330808`](https://github.com/b84330808) [`#1195`](https://github.com/rhaiscript/rhai/pull/1195)).
+
+
 Version 1.27.0
 ==============
 

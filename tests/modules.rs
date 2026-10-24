@@ -751,7 +751,7 @@ fn test_module_from_grain() {
 #[cfg(not(feature = "no_std"))]
 #[cfg(any(not(target_family = "wasm"), not(target_os = "unknown")))]
 #[cfg(not(feature = "no_function"))]
-fn test_grain_file_module_resolver() {
+fn test_module_grain() {
     use rhai::grain::Compiler;
     use rhai::module_resolvers::FileModuleResolver;
 
@@ -814,7 +814,7 @@ fn test_grain_file_module_resolver() {
 #[test]
 #[cfg(feature = "grain")]
 #[cfg(not(feature = "no_function"))]
-fn test_grain_vm_export_and_import() {
+fn test_module_grain_vm_export_and_import() {
     use rhai::grain::{Compiler, Vm};
 
     let mut engine = Engine::new();

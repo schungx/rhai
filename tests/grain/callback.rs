@@ -234,8 +234,7 @@ fn without_the_wrappers_the_pointer_does_not_resolve() {
 #[cfg(not(any(feature = "no_function", feature = "no_module", feature = "no_closure")))]
 fn a_kept_closure_keeps_the_imports_of_its_script() {
     use rhai::module_resolvers::StaticModuleResolver;
-    use rhai::{FnPtr, Module};
-    use std::sync::{Arc, Mutex};
+    use rhai::{FnPtr, Locked, Module, Shared};
 
     let mut engine = corpus::engine();
 
@@ -244,20 +243,43 @@ fn a_kept_closure_keeps_the_imports_of_its_script() {
     resolver.insert("m", Module::eval_ast_as_new(Scope::new(), &ast, &engine).unwrap());
     engine.set_module_resolver(resolver);
 
-    let saved = Arc::new(Mutex::new(None::<FnPtr>));
+    let saved = Shared::new(Locked::new(None::<FnPtr>));
     let s = saved.clone();
-    engine.register_fn("keep", move |f: FnPtr| *s.lock().unwrap() = Some(f));
+
+    #[cfg(not(feature = "sync"))]
+    engine.register_fn("keep", move |f: FnPtr| *s.borrow_mut() = Some(f));
+    #[cfg(feature = "sync")]
+    engine.register_fn("keep", move |f: FnPtr| *s.write().unwrap() = Some(f));
 
     let ast = engine.compile(r#"import "m" as m; keep(|| m::who());"#).unwrap();
 
     let program = Compiler::new().compile(&ast).into_shared();
     Vm::new(&engine).run_with_scope(&mut Scope::new(), &program).unwrap();
-    let f = saved.lock().unwrap().clone().unwrap();
+
+    #[cfg(not(feature = "sync"))]
+    let f = saved.borrow().clone().unwrap();
+    #[cfg(feature = "sync")]
+    let f = saved.read().unwrap().clone().unwrap();
+
     assert_eq!(f.call::<String>(&engine, &ast, ()).unwrap(), "from m");
 
     // The walker, for reference.
-    *saved.lock().unwrap() = None;
+
+    #[cfg(not(feature = "sync"))]
+    {
+        *saved.borrow_mut() = None;
+    }
+    #[cfg(feature = "sync")]
+    {
+        *saved.write().unwrap() = None;
+    }
+
     engine.run_ast(&ast).unwrap();
-    let f = saved.lock().unwrap().clone().unwrap();
+
+    #[cfg(not(feature = "sync"))]
+    let f = saved.borrow().clone().unwrap();
+    #[cfg(feature = "sync")]
+    let f = saved.read().unwrap().clone().unwrap();
+
     assert_eq!(f.call::<String>(&engine, &ast, ()).unwrap(), "from m");
 }
