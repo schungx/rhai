@@ -237,6 +237,16 @@ fn test_string_substring() {
     assert_eq!(engine.eval::<INT>(r#"let x = "\u2764\u2764\u2764 hello! \u2764\u2764\u2764"; x.index_of('x')"#).unwrap(), -1);
 }
 
+#[test]
+fn test_string_pad() {
+    let engine = Engine::new();
+
+    assert_eq!(engine.eval::<String>(r#"let x = "hello"; pad(x, 8, '!'); x"#).unwrap(), "hello!!!");
+    assert_eq!(engine.eval::<String>(r#"let x = "hello"; pad(x, 11, "(!)"); x"#).unwrap(), "hello(!)(!)");
+    // An empty padding string cannot lengthen the string, so nothing is done
+    assert_eq!(engine.eval::<String>(r#"let x = "hello"; pad(x, 10, ""); x"#).unwrap(), "hello");
+}
+
 #[cfg(not(feature = "no_object"))]
 #[test]
 fn test_string_format() {
