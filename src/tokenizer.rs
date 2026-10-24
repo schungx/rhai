@@ -21,7 +21,7 @@ use std::{
 };
 
 /// _(internals)_ A type containing commands to control the tokenizer.
-#[derive(Debug, Clone, Eq, PartialEq, Default, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct TokenizerControlBlock {
     /// Is the current tokenizer position within an interpolated text string?
     ///
@@ -30,6 +30,10 @@ pub struct TokenizerControlBlock {
     /// Return the next character in the input stream instead of the next token?
     #[cfg(not(feature = "no_custom_syntax"))]
     pub in_char_mode: bool,
+    /// Exclusive end of the most recently scanned non-comment, non-EOF source token.
+    pub last_token_end: Position,
+    /// Insertion position preceding the most recently scanned token.
+    pub previous_token_end: Position,
     /// Global comments.
     #[cfg(feature = "metadata")]
     pub global_comments: String,
@@ -48,10 +52,30 @@ impl TokenizerControlBlock {
             is_within_text: false,
             #[cfg(not(feature = "no_custom_syntax"))]
             in_char_mode: false,
+            last_token_end: Position::START,
+            previous_token_end: Position::START,
             #[cfg(feature = "metadata")]
             global_comments: String::new(),
             compressed: None,
         }
+    }
+
+    /// Record source boundaries before token remapping or further look-ahead.
+    #[inline]
+    fn record_token(&mut self, token: &Token, mut pos: Position) {
+        self.previous_token_end = self.last_token_end;
+
+        if !matches!(token, Token::Comment(..) | Token::EOF) {
+            pos.advance();
+            self.last_token_end = pos;
+        }
+    }
+}
+
+impl Default for TokenizerControlBlock {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -817,6 +841,11 @@ pub fn get_next_token(
     pos: &mut Position,
 ) -> (Token, Position) {
     let result = get_next_token_inner(stream, state, pos);
+
+    state
+        .tokenizer_control
+        .borrow_mut()
+        .record_token(&result.0, *pos);
 
     // Save the last token's state
     state.next_token_cannot_be_unary = !result.0.is_next_unary();
@@ -1727,6 +1756,13 @@ impl Iterator for TokenIterator<'_> {
                     '\n' => self.pos.new_line(),
                     _ => self.pos.advance(),
                 }
+
+                let token = Token::UnprocessedRawChar(ch);
+                self.state
+                    .tokenizer_control
+                    .borrow_mut()
+                    .record_token(&token, self.pos);
+
                 // Compacting support for `$raw$` custom syntax: append the
                 // consumed raw character verbatim to the compressed buffer.
                 // Raw characters are not produced by `get_next_token` and
@@ -1742,7 +1778,7 @@ impl Iterator for TokenIterator<'_> {
                         compressed.push(ch);
                     }
                 }
-                return Some((Token::UnprocessedRawChar(ch), pos));
+                return Some((token, pos));
             }
         }
 

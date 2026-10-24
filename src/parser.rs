@@ -115,6 +115,32 @@ impl fmt::Debug for ParseState<'_, '_, '_> {
 }
 
 impl<'a, 't, 'f> ParseState<'a, 't, 'f> {
+    /// Insertion position before the token just read with `peek` or `next`.
+    #[inline]
+    fn insertion_position(&self) -> Position {
+        self.tokenizer_control.borrow().previous_token_end
+    }
+
+    /// Keep lexical failures on the offending token even when wrapped in an expectation error.
+    #[inline]
+    fn expected_position(&self, token: &Token, pos: Position) -> Position {
+        if matches!(token, Token::LexError(..)) {
+            pos
+        } else {
+            self.insertion_position()
+        }
+    }
+
+    #[inline]
+    fn peek_expected_position(&mut self) -> Position {
+        let (token, pos) = self.input.peek().unwrap();
+        if matches!(token, Token::LexError(..)) {
+            *pos
+        } else {
+            self.insertion_position()
+        }
+    }
+
     /// Create a new [`ParseState`].
     #[inline]
     #[must_use]
@@ -421,8 +447,8 @@ fn unindent_block_comment(comment: String, pos: usize) -> String {
 }
 
 /// Parse a variable name.
-fn parse_var_name(input: &mut TokenStream) -> ParseResult<(SmartString, Position)> {
-    match input.next().unwrap() {
+fn parse_var_name(state: &mut ParseState) -> ParseResult<(SmartString, Position)> {
+    match state.input.next().unwrap() {
         // Variable name
         (Token::Identifier(s), pos) => Ok((*s, pos)),
         // Reserved keyword
@@ -432,7 +458,7 @@ fn parse_var_name(input: &mut TokenStream) -> ParseResult<(SmartString, Position
         // Bad identifier
         (Token::LexError(err), pos) => Err(err.into_err(pos)),
         // Not a variable name
-        (.., pos) => Err(PERR::VariableExpected.into_err(pos)),
+        _ => Err(PERR::VariableExpected.into_err(state.insertion_position())),
     }
 }
 
@@ -607,7 +633,7 @@ impl Engine {
                     Token::RightParen.into(),
                     format!("to close the arguments list of this function call '{id}'"),
                 )
-                .into_err(*token_pos))
+                .into_err(state.insertion_position()))
             }
             // id( <error>
             Token::LexError(err) => return Err(err.clone().into_err(*token_pos)),
@@ -739,22 +765,22 @@ impl Engine {
                     eat_token(state.input, &Token::Comma);
                 }
                 // id(...args <EOF>
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(PERR::MissingToken(
                         Token::RightParen.into(),
                         format!("to close the arguments list of this function call '{id}'"),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
                 // id(...args <error>
                 (Token::LexError(err), pos) => return Err(err.clone().into_err(*pos)),
                 // id(...args ???
-                (.., pos) => {
+                _ => {
                     return Err(PERR::MissingToken(
                         Token::Comma.into(),
                         format!("to separate the arguments to function call '{id}'"),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
             }
         }
@@ -898,11 +924,11 @@ impl Engine {
                 }
             }
             (Token::LexError(err), pos) => Err(err.clone().into_err(*pos)),
-            (.., pos) => Err(PERR::MissingToken(
+            _ => Err(PERR::MissingToken(
                 Token::RightBracket.into(),
                 "for a matching [ in this index expression".into(),
             )
-            .into_err(*pos)),
+            .into_err(state.insertion_position())),
         }
     }
 
@@ -935,12 +961,12 @@ impl Engine {
                     eat_token(state.input, &Token::RightBracket);
                     break;
                 }
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(PERR::MissingToken(
                         Token::RightBracket.into(),
                         MISSING_RBRACKET.into(),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
                 _ => array.push(self.parse_expr(state, settings.level_up()?)?),
             }
@@ -950,20 +976,20 @@ impl Engine {
                     eat_token(state.input, &Token::Comma);
                 }
                 (Token::RightBracket, ..) => (),
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(PERR::MissingToken(
                         Token::RightBracket.into(),
                         MISSING_RBRACKET.into(),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
                 (Token::LexError(err), pos) => return Err(err.clone().into_err(*pos)),
-                (.., pos) => {
+                _ => {
                     return Err(PERR::MissingToken(
                         Token::Comma.into(),
                         "to separate the items of this array literal".into(),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
             }
         }
@@ -994,10 +1020,10 @@ impl Engine {
                     eat_token(state.input, &Token::RightBrace);
                     break;
                 }
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(
                         PERR::MissingToken(Token::RightBrace.into(), MISSING_RBRACE.into())
-                            .into_err(*pos),
+                            .into_err(state.insertion_position()),
                     )
                 }
                 _ => (),
@@ -1022,32 +1048,32 @@ impl Engine {
                     return Err(PERR::Reserved(s.to_string()).into_err(pos));
                 }
                 (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(PERR::MissingToken(
                         Token::RightBrace.into(),
                         MISSING_RBRACE.into(),
                     )
-                    .into_err(pos));
+                    .into_err(state.insertion_position()));
                 }
-                (.., pos) if map.is_empty() => {
+                _ if map.is_empty() => {
                     return Err(PERR::MissingToken(
                         Token::RightBrace.into(),
                         MISSING_RBRACE.into(),
                     )
-                    .into_err(pos));
+                    .into_err(state.insertion_position()));
                 }
-                (.., pos) => return Err(PERR::PropertyExpected.into_err(pos)),
+                _ => return Err(PERR::PropertyExpected.into_err(state.insertion_position())),
             };
 
             match state.input.next().unwrap() {
                 (Token::Colon, ..) => (),
                 (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                (.., pos) => {
+                _ => {
                     return Err(PERR::MissingToken(
                         Token::Colon.into(),
                         format!("to follow the property '{name}' in this object map literal"),
                     )
-                    .into_err(pos))
+                    .into_err(state.insertion_position()))
                 }
             }
 
@@ -1071,18 +1097,18 @@ impl Engine {
                     eat_token(state.input, &Token::Comma);
                 }
                 (Token::RightBrace, ..) => (),
-                (Token::Identifier(..), pos) => {
+                (Token::Identifier(..), _) => {
                     return Err(PERR::MissingToken(
                         Token::Comma.into(),
                         "to separate the items of this object map literal".into(),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
                 (Token::LexError(err), pos) => return Err(err.clone().into_err(*pos)),
-                (.., pos) => {
+                _ => {
                     return Err(
                         PERR::MissingToken(Token::RightBrace.into(), MISSING_RBRACE.into())
-                            .into_err(*pos),
+                            .into_err(state.insertion_position()),
                     )
                 }
             }
@@ -1103,12 +1129,12 @@ impl Engine {
         match state.input.next().unwrap() {
             (Token::LeftBrace, ..) => (),
             (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-            (.., pos) => {
+            _ => {
                 return Err(PERR::MissingToken(
                     Token::LeftBrace.into(),
                     "to start a switch block".into(),
                 )
-                .into_err(pos))
+                .into_err(state.insertion_position()))
             }
         }
 
@@ -1126,10 +1152,10 @@ impl Engine {
                     eat_token(state.input, &Token::RightBrace);
                     break;
                 }
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(
                         PERR::MissingToken(Token::RightBrace.into(), MISSING_RBRACE.into())
-                            .into_err(*pos),
+                            .into_err(state.insertion_position()),
                     )
                 }
                 (Token::Underscore, pos) if def_case.is_none() => {
@@ -1187,12 +1213,12 @@ impl Engine {
             match state.input.next().unwrap() {
                 (Token::DoubleArrow, ..) => (),
                 (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                (.., pos) => {
+                _ => {
                     return Err(PERR::MissingToken(
                         Token::DoubleArrow.into(),
                         "in this switch case".into(),
                     )
-                    .into_err(pos))
+                    .into_err(state.insertion_position()))
                 }
             }
 
@@ -1272,19 +1298,19 @@ impl Engine {
                     eat_token(state.input, &Token::Comma);
                 }
                 (Token::RightBrace, ..) => (),
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(
                         PERR::MissingToken(Token::RightParen.into(), MISSING_RBRACE.into())
-                            .into_err(*pos),
+                            .into_err(state.insertion_position()),
                     )
                 }
                 (Token::LexError(err), pos) => return Err(err.clone().into_err(*pos)),
-                (.., pos) if need_comma => {
+                _ if need_comma => {
                     return Err(PERR::MissingToken(
                         Token::Comma.into(),
                         "to separate the items in this switch block".into(),
                     )
-                    .into_err(*pos))
+                    .into_err(state.insertion_position()))
                 }
                 _ => (),
             }
@@ -1317,10 +1343,12 @@ impl Engine {
 
         let root_expr = match next_token {
             _ if !(state.expr_filter)(next_token) => {
-                return Err(LexError::UnexpectedInput(next_token.to_string()).into_err(settings.pos))
+                return Err(
+                    LexError::UnexpectedInput(next_token.to_string()).into_err(settings.pos)
+                );
             }
 
-            Token::EOF => return Err(PERR::UnexpectedEOF.into_err(settings.pos)),
+            Token::EOF => return Err(PERR::UnexpectedEOF.into_err(state.insertion_position())),
 
             Token::Unit => {
                 state.input.next();
@@ -1375,12 +1403,12 @@ impl Engine {
                     // ( <error>
                     (Token::LexError(err), pos) => return Err(err.into_err(pos)),
                     // ( ... ???
-                    (.., pos) => {
+                    _ => {
                         return Err(PERR::MissingToken(
                             Token::RightParen.into(),
                             "for a matching ( in this expression".into(),
                         )
-                        .into_err(pos))
+                        .into_err(state.insertion_position()))
                     }
                 }
             }
@@ -1630,7 +1658,9 @@ impl Engine {
             },
 
             _ => {
-                return Err(LexError::UnexpectedInput(next_token.to_string()).into_err(settings.pos))
+                return Err(
+                    LexError::UnexpectedInput(next_token.to_string()).into_err(settings.pos)
+                );
             }
         };
 
@@ -1682,12 +1712,12 @@ impl Engine {
                 (Expr::Variable(x, .., pos), Token::Bang) => {
                     match state.input.peek().unwrap() {
                         (Token::LeftParen | Token::Unit, ..) => (),
-                        (_, pos) => {
+                        _ => {
                             return Err(PERR::MissingToken(
                                 Token::LeftParen.into(),
                                 "to start arguments list of function call".into(),
                             )
-                            .into_err(*pos))
+                            .into_err(state.peek_expected_position()))
                         }
                     }
 
@@ -1744,7 +1774,7 @@ impl Engine {
                 // module access
                 #[cfg(not(feature = "no_module"))]
                 (Expr::Variable(x, .., pos), Token::DoubleColon) => {
-                    let (id2, pos2) = parse_var_name(state.input)?;
+                    let (id2, pos2) = parse_var_name(state)?;
                     let (_, name, mut namespace, ..) = *x;
                     let var_name_def = Ident { name, pos };
 
@@ -1778,7 +1808,12 @@ impl Engine {
                         (Token::Reserved(s), pos) => {
                             return Err(PERR::Reserved(s.to_string()).into_err(*pos))
                         }
-                        (.., pos) => return Err(PERR::PropertyExpected.into_err(*pos)),
+                        (Token::LexError(..), pos) => {
+                            return Err(PERR::PropertyExpected.into_err(*pos))
+                        }
+                        _ => {
+                            return Err(PERR::PropertyExpected.into_err(state.insertion_position()))
+                        }
                     }
 
                     let op_flags = match op {
@@ -1950,7 +1985,7 @@ impl Engine {
                 .into_fn_call_expr(pos))
             }
             // <EOF>
-            Token::EOF => Err(PERR::UnexpectedEOF.into_err(settings.pos)),
+            Token::EOF => Err(PERR::UnexpectedEOF.into_err(state.insertion_position())),
             // All other tokens
             _ => self.parse_primary(state, settings, ChainingFlags::empty()),
         }
@@ -2519,7 +2554,7 @@ impl Engine {
                     }
                 }
                 CUSTOM_SYNTAX_MARKER_IDENT => {
-                    let (name, pos) = parse_var_name(state.input)?;
+                    let (name, pos) = parse_var_name(state)?;
                     let name = self.get_interned_string(name);
 
                     segments.push(name.clone());
@@ -2535,20 +2570,22 @@ impl Engine {
                     ));
                 }
                 CUSTOM_SYNTAX_MARKER_SYMBOL => {
-                    let (symbol, pos) = match state.input.next().unwrap() {
-                        // Standard symbol
-                        (token, pos) if token.is_standard_symbol() => {
-                            Ok((token.literal_syntax().into(), pos))
-                        }
-                        // Reserved symbol
-                        (Token::Reserved(s), pos) if !is_valid_identifier(s.as_str()) => {
-                            Ok((*s, pos))
-                        }
-                        // Bad symbol
-                        (Token::LexError(err), pos) => Err(err.into_err(pos)),
-                        // Not a symbol
-                        (.., pos) => Err(PERR::MissingSymbol(String::new()).into_err(pos)),
-                    }?;
+                    let (symbol, pos) =
+                        match state.input.next().unwrap() {
+                            // Standard symbol
+                            (token, pos) if token.is_standard_symbol() => {
+                                Ok((token.literal_syntax().into(), pos))
+                            }
+                            // Reserved symbol
+                            (Token::Reserved(s), pos) if !is_valid_identifier(s.as_str()) => {
+                                Ok((*s, pos))
+                            }
+                            // Bad symbol
+                            (Token::LexError(err), pos) => Err(err.into_err(pos)),
+                            // Not a symbol
+                            _ => Err(PERR::MissingSymbol(String::new())
+                                .into_err(state.insertion_position())),
+                        }?;
                     let symbol = self.get_interned_string(symbol);
                     segments.push(symbol.clone());
                     tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_SYMBOL));
@@ -2595,10 +2632,9 @@ impl Engine {
                     let skip = match state.input.peek().unwrap() {
                         (Token::Or | Token::Pipe, _) => false,
                         (Token::LeftBrace, _) => true,
-                        (_, pos) => {
-                            return Err(
-                                PERR::MissingSymbol("Expecting '{' or '|'".into()).into_err(*pos)
-                            )
+                        _ => {
+                            return Err(PERR::MissingSymbol("Expecting '{' or '|'".into())
+                                .into_err(state.peek_expected_position()))
                         }
                     };
                     inputs.push(self.parse_anon_fn(state, settings, skip)?);
@@ -2612,10 +2648,9 @@ impl Engine {
                         segments.push(self.get_interned_string(b.literal_syntax()));
                         tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_BOOL));
                     }
-                    (.., pos) => {
-                        return Err(
-                            PERR::MissingSymbol("Expecting 'true' or 'false'".into()).into_err(pos)
-                        )
+                    (token, pos) => {
+                        return Err(PERR::MissingSymbol("Expecting 'true' or 'false'".into())
+                            .into_err(state.expected_position(&token, pos)))
                     }
                 },
                 CUSTOM_SYNTAX_MARKER_INT => match state.input.next().unwrap() {
@@ -2624,10 +2659,9 @@ impl Engine {
                         segments.push(i.to_string().into());
                         tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_INT));
                     }
-                    (.., pos) => {
-                        return Err(
-                            PERR::MissingSymbol("Expecting an integer number".into()).into_err(pos)
-                        )
+                    (token, pos) => {
+                        return Err(PERR::MissingSymbol("Expecting an integer number".into())
+                            .into_err(state.expected_position(&token, pos)))
                     }
                 },
                 #[cfg(not(feature = "no_float"))]
@@ -2637,10 +2671,10 @@ impl Engine {
                         segments.push(f.1.into());
                         tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_FLOAT));
                     }
-                    (.., pos) => {
+                    (token, pos) => {
                         return Err(
                             PERR::MissingSymbol("Expecting a floating-point number".into())
-                                .into_err(pos),
+                                .into_err(state.expected_position(&token, pos)),
                         )
                     }
                 },
@@ -2651,8 +2685,9 @@ impl Engine {
                         segments.push(s);
                         tokens.push(self.get_interned_string(CUSTOM_SYNTAX_MARKER_STRING));
                     }
-                    (.., pos) => {
-                        return Err(PERR::MissingSymbol("Expecting a string".into()).into_err(pos))
+                    (token, pos) => {
+                        return Err(PERR::MissingSymbol("Expecting a string".into())
+                            .into_err(state.expected_position(&token, pos)))
                     }
                 },
                 s => match state.input.next().unwrap() {
@@ -2667,12 +2702,12 @@ impl Engine {
                         segments.push(required_token.clone());
                         tokens.push(required_token.clone());
                     }
-                    (.., pos) => {
+                    _ => {
                         return Err(PERR::MissingToken(
                             s.into(),
                             format!("for '{}' expression", segments[0]),
                         )
-                        .into_err(pos))
+                        .into_err(state.insertion_position()))
                     }
                 },
             }
@@ -2791,10 +2826,10 @@ impl Engine {
         let negated = match state.input.next().unwrap() {
             (Token::While, ..) => ASTFlags::empty(),
             (Token::Until, ..) => ASTFlags::NEGATED,
-            (.., pos) => {
+            (token, pos) => {
                 return Err(
                     PERR::MissingToken(Token::While.into(), "for the do statement".into())
-                        .into_err(pos),
+                        .into_err(state.expected_position(&token, pos)),
                 )
             }
         };
@@ -2825,33 +2860,33 @@ impl Engine {
         let (name, name_pos, counter_name, counter_pos) =
             if match_token(state.input, &Token::LeftParen).0 {
                 // ( name, counter )
-                let (name, name_pos) = parse_var_name(state.input)?;
-                let (has_comma, pos) = match_token(state.input, &Token::Comma);
+                let (name, name_pos) = parse_var_name(state)?;
+                let (has_comma, _) = match_token(state.input, &Token::Comma);
                 if !has_comma {
                     return Err(PERR::MissingToken(
                         Token::Comma.into(),
                         "after the iteration variable name".into(),
                     )
-                    .into_err(pos));
+                    .into_err(state.peek_expected_position()));
                 }
-                let (counter_name, counter_pos) = parse_var_name(state.input)?;
+                let (counter_name, counter_pos) = parse_var_name(state)?;
 
                 if counter_name == name {
                     return Err(PERR::DuplicatedVariable(counter_name.into()).into_err(counter_pos));
                 }
 
-                let (has_close_paren, pos) = match_token(state.input, &Token::RightParen);
+                let (has_close_paren, _) = match_token(state.input, &Token::RightParen);
                 if !has_close_paren {
                     return Err(PERR::MissingToken(
                         Token::RightParen.into(),
                         "to close the iteration variable".into(),
                     )
-                    .into_err(pos));
+                    .into_err(state.peek_expected_position()));
                 }
                 (name, name_pos, Some(counter_name), counter_pos)
             } else {
                 // name
-                let (name, name_pos) = parse_var_name(state.input)?;
+                let (name, name_pos) = parse_var_name(state)?;
                 (name, name_pos, None, Position::NONE)
             };
 
@@ -2859,12 +2894,12 @@ impl Engine {
         match state.input.next().unwrap() {
             (Token::In, ..) => (),
             (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-            (.., pos) => {
+            _ => {
                 return Err(PERR::MissingToken(
                     Token::In.into(),
                     "after the iteration variable".into(),
                 )
-                .into_err(pos))
+                .into_err(state.insertion_position()))
             }
         }
 
@@ -2918,7 +2953,7 @@ impl Engine {
         settings.pos = state.input.next().unwrap().1;
 
         // let name ...
-        let (name, pos) = parse_var_name(state.input)?;
+        let (name, pos) = parse_var_name(state)?;
 
         if !self.allow_shadowing() && state.stack.get(&name).is_some() {
             return Err(PERR::VariableExists(name.into()).into_err(pos));
@@ -3016,7 +3051,7 @@ impl Engine {
 
         let export = if match_token(state.input, &Token::As).0 {
             // import expr as name ...
-            let (name, pos) = parse_var_name(state.input)?;
+            let (name, pos) = parse_var_name(state)?;
             Ident {
                 name: self.get_interned_string(name),
                 pos,
@@ -3061,10 +3096,10 @@ impl Engine {
             _ => (),
         }
 
-        let (id, id_pos) = parse_var_name(state.input)?;
+        let (id, id_pos) = parse_var_name(state)?;
 
         let (alias, alias_pos) = if match_token(state.input, &Token::As).0 {
-            parse_var_name(state.input).map(|(name, pos)| (self.get_interned_string(name), pos))?
+            parse_var_name(state).map(|(name, pos)| (self.get_interned_string(name), pos))?
         } else {
             (self.get_interned_string(""), Position::NONE)
         };
@@ -3105,12 +3140,12 @@ impl Engine {
             match state.input.next().unwrap() {
                 (Token::LeftBrace, pos) => pos,
                 (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                (.., pos) => {
+                _ => {
                     return Err(PERR::MissingToken(
                         Token::LeftBrace.into(),
                         "to start a statement block".into(),
                     )
-                    .into_err(pos))
+                    .into_err(state.insertion_position()))
                 }
             }
         };
@@ -3128,11 +3163,11 @@ impl Engine {
                     Ok(Stmt::Block(StmtBlock::new(block, settings.pos, pos).into()))
                 }
                 (Token::LexError(err), pos) => Err(err.into_err(pos)),
-                (.., pos) => Err(PERR::MissingToken(
+                _ => Err(PERR::MissingToken(
                     Token::LeftBrace.into(),
                     "to start a statement block".into(),
                 )
-                .into_err(pos)),
+                .into_err(state.insertion_position())),
             };
         }
 
@@ -3146,12 +3181,12 @@ impl Engine {
             // Terminated?
             match state.input.peek().unwrap() {
                 (Token::RightBrace, ..) => break eat_token(state.input, &Token::RightBrace),
-                (Token::EOF, pos) => {
+                (Token::EOF, _) => {
                     return Err(PERR::MissingToken(
                         Token::RightBrace.into(),
                         "to terminate this block".into(),
                     )
-                    .into_err(*pos));
+                    .into_err(state.insertion_position()));
                 }
                 _ => (),
             }
@@ -3186,13 +3221,13 @@ impl Engine {
                 // { ... stmt <error>
                 (Token::LexError(err), err_pos) => return Err(err.clone().into_err(*err_pos)),
                 // { ... stmt ???
-                (.., pos) => {
+                _ => {
                     // Semicolons are not optional between statements
                     return Err(PERR::MissingToken(
                         Token::SemiColon.into(),
                         "to terminate this statement".into(),
                     )
-                    .into_err(*pos));
+                    .into_err(state.insertion_position()));
                 }
             }
         };
@@ -3399,11 +3434,11 @@ impl Engine {
                         Ok(Stmt::Noop(pos))
                     }
 
-                    (.., pos) => Err(PERR::MissingToken(
+                    (token, pos) => Err(PERR::MissingToken(
                         Token::Fn.into(),
                         format!("following '{}'", Token::Private),
                     )
-                    .into_err(pos)),
+                    .into_err(state.expected_position(&token, pos))),
                 }
             }
 
@@ -3507,26 +3542,26 @@ impl Engine {
         let body = self.parse_block(state, settings, false)?.into();
 
         // try { try_block } catch
-        let (matched, catch_pos) = match_token(state.input, &Token::Catch);
+        let (matched, _) = match_token(state.input, &Token::Catch);
 
         if !matched {
             return Err(
                 PERR::MissingToken(Token::Catch.into(), "for the 'try' statement".into())
-                    .into_err(catch_pos),
+                    .into_err(state.peek_expected_position()),
             );
         }
 
         // try { try_block } catch (
         let catch_var = if match_token(state.input, &Token::LeftParen).0 {
-            let (name, pos) = parse_var_name(state.input)?;
-            let (matched, err_pos) = match_token(state.input, &Token::RightParen);
+            let (name, pos) = parse_var_name(state)?;
+            let (matched, _) = match_token(state.input, &Token::RightParen);
 
             if !matched {
                 return Err(PERR::MissingToken(
                     Token::RightParen.into(),
                     "to enclose the catch variable".into(),
                 )
-                .into_err(err_pos));
+                .into_err(state.peek_expected_position()));
             }
 
             let name = self.get_interned_string(name);
@@ -3576,11 +3611,12 @@ impl Engine {
         let settings = settings.level_up()?;
 
         let (token, pos) = state.input.next().unwrap();
+        let name_pos = state.expected_position(&token, pos);
 
         // Parse type for `this` pointer
         #[cfg(not(feature = "no_object"))]
-        let ((token, pos), this_type) = {
-            let (next_token, next_pos) = state.input.peek().unwrap();
+        let ((token, pos), name_pos, this_type) = {
+            let (next_token, _) = state.input.peek().unwrap();
 
             match token {
                 Token::StringConstant(s) if next_token == &Token::Period => {
@@ -3591,14 +3627,16 @@ impl Engine {
                         "float" => self.get_interned_string(std::any::type_name::<crate::FLOAT>()),
                         _ => self.get_interned_string(*s),
                     };
-                    (state.input.next().unwrap(), Some(s))
+                    let token = state.input.next().unwrap();
+                    let name_pos = state.expected_position(&token.0, token.1);
+                    (token, name_pos, Some(s))
                 }
                 Token::StringConstant(..) => {
                     return Err(PERR::MissingToken(
                         Token::Period.into(),
                         "after the type name for 'this'".into(),
                     )
-                    .into_err(*next_pos))
+                    .into_err(state.peek_expected_position()))
                 }
                 Token::Identifier(s) if next_token == &Token::Period => {
                     eat_token(state.input, &Token::Period);
@@ -3608,9 +3646,11 @@ impl Engine {
                         "float" => self.get_interned_string(std::any::type_name::<crate::FLOAT>()),
                         _ => self.get_interned_string(*s),
                     };
-                    (state.input.next().unwrap(), Some(s))
+                    let token = state.input.next().unwrap();
+                    let name_pos = state.expected_position(&token.0, token.1);
+                    (token, name_pos, Some(s))
                 }
-                _ => ((token, pos), None),
+                _ => ((token, pos), name_pos, None),
             }
         };
 
@@ -3619,7 +3659,7 @@ impl Engine {
             Token::Custom(s) if is_valid_function_name(&s) => *s,
             Token::Identifier(s) if is_valid_function_name(&s) => *s,
             Token::Reserved(s) => return Err(PERR::Reserved(s.to_string()).into_err(pos)),
-            _ => return Err(PERR::FnMissingName.into_err(pos)),
+            _ => return Err(PERR::FnMissingName.into_err(name_pos)),
         };
 
         let no_params = match state.input.peek().unwrap() {
@@ -3631,7 +3671,11 @@ impl Engine {
                 eat_token(state.input, &Token::Unit);
                 true
             }
-            (.., pos) => return Err(PERR::FnMissingParams(name.into()).into_err(*pos)),
+            _ => {
+                return Err(
+                    PERR::FnMissingParams(name.into()).into_err(state.peek_expected_position())
+                )
+            }
         };
 
         let mut params = StaticVec::<(ImmutableString, _)>::new_const();
@@ -3660,12 +3704,12 @@ impl Engine {
                     (token, pos) if token.is_standard_keyword() => {
                         return Err(PERR::VariableExpected.into_err(pos))
                     }
-                    (.., pos) => {
+                    _ => {
                         return Err(PERR::MissingToken(
                             Token::RightParen.into(),
                             format!("to close the parameters list of function '{name}'"),
                         )
-                        .into_err(pos))
+                        .into_err(state.insertion_position()))
                     }
                 }
 
@@ -3673,8 +3717,9 @@ impl Engine {
                     (Token::RightParen, ..) => break,
                     (Token::Comma, ..) => (),
                     (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                    (.., pos) => {
-                        return Err(PERR::MissingToken(Token::Comma.into(), sep_err).into_err(pos))
+                    _ => {
+                        return Err(PERR::MissingToken(Token::Comma.into(), sep_err)
+                            .into_err(state.insertion_position()))
                     }
                 }
             }
@@ -3683,7 +3728,11 @@ impl Engine {
         // Parse function body
         let body = match state.input.peek().unwrap() {
             (Token::LeftBrace, ..) => self.parse_block(state, settings, false)?,
-            (.., pos) => return Err(PERR::FnMissingBody(name.into()).into_err(*pos)),
+            _ => {
+                return Err(
+                    PERR::FnMissingBody(name.into()).into_err(state.peek_expected_position())
+                )
+            }
         }
         .into();
 
@@ -3828,12 +3877,12 @@ impl Engine {
                     (token, pos) if token.is_standard_keyword() => {
                         return Err(PERR::VariableExpected.into_err(pos))
                     }
-                    (.., pos) => {
+                    _ => {
                         return Err(PERR::MissingToken(
                             Token::Pipe.into(),
                             "to close the parameters list of anonymous function or closure".into(),
                         )
-                        .into_err(pos))
+                        .into_err(new_state.insertion_position()))
                     }
                 }
 
@@ -3841,12 +3890,12 @@ impl Engine {
                     (Token::Pipe, ..) => break,
                     (Token::Comma, ..) => (),
                     (Token::LexError(err), pos) => return Err(err.into_err(pos)),
-                    (.., pos) => {
+                    _ => {
                         return Err(PERR::MissingToken(
                             Token::Comma.into(),
                             "to separate the parameters of anonymous function".into(),
                         )
-                        .into_err(pos))
+                        .into_err(new_state.insertion_position()))
                     }
                 }
             }
@@ -4049,13 +4098,13 @@ impl Engine {
                 // stmt <error>
                 (Token::LexError(err), pos) => return Err(err.clone().into_err(*pos)),
                 // stmt ???
-                (.., pos) => {
+                _ => {
                     // Semicolons are not optional between statements
                     return Err(PERR::MissingToken(
                         Token::SemiColon.into(),
                         "to terminate this statement".into(),
                     )
-                    .into_err(*pos));
+                    .into_err(state.insertion_position()));
                 }
             }
         }
