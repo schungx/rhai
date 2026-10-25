@@ -261,7 +261,31 @@ impl Engine {
     ///
     /// These are functions (e.g. `type_of`, `is_shared`) that are not registered as normal
     /// functions but provided by Rhai.
+    ///
+    /// Every call of a function runs this, and almost none names a syntactic function, so the
+    /// names are tested inline, and only a syntactic name goes on to the full match.
+    #[inline(always)]
     pub(crate) fn exec_syntactic_fn_call(
+        &self,
+        global: &mut GlobalRuntimeState,
+        caches: &mut Caches,
+        fn_name: &str,
+        args: &FnCallArgs,
+        pos: Position,
+    ) -> RhaiResultOf<Option<Dynamic>> {
+        // A superset of the names the full match handles: any other name gives `None` there.
+        match fn_name {
+            KEYWORD_TYPE_OF | "is_shared" | "is_def_fn" | KEYWORD_IS_DEF_VAR | KEYWORD_FN_PTR
+            | KEYWORD_EVAL | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY => {
+                self.exec_syntactic_fn_call_raw(global, caches, fn_name, args, pos)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// The full match of [`exec_syntactic_fn_call`][Self::exec_syntactic_fn_call].
+    #[inline(never)]
+    fn exec_syntactic_fn_call_raw(
         &self,
         _global: &mut GlobalRuntimeState,
         _caches: &mut Caches,
