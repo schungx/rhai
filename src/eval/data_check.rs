@@ -190,12 +190,15 @@ impl Engine {
 
         let mut num_operations = || {
             *num_ops.get_or_insert_with(|| {
-                // Increment operations count
+                // Increment operations count. `global` is borrowed exclusively, so a plain add
+                // through `get_mut` counts the same as an atomic one, without its locked
+                // instruction on every operation.
                 #[cfg(atomic_ops_count)]
-                return global
-                    .num_operations
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-                    + 1;
+                {
+                    let count = global.num_operations.get_mut();
+                    *count += 1;
+                    return *count;
+                }
 
                 #[cfg(not(atomic_ops_count))]
                 {
