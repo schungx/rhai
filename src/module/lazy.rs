@@ -25,6 +25,13 @@ impl LazyFunctions {
         }
     }
     /// Find the function in the manifests with the highest precedence that matches a predicate.
+    /// Look up a function in the manifests by hash, calculating the hash of each function in turn.
+    #[inline(never)]
+    #[must_use]
+    fn get_fn(&self, hash_native: u64) -> Option<RhaiFunc> {
+        self.find_fn(&mut |f| f.calc_hash(&[]) == hash_native)
+            .map(|f| RhaiFunc::StaticPlugin { func: f.func() })
+    }
     fn find_fn(
         &self,
         f: &mut dyn FnMut(&FnManifestEntry) -> bool,
@@ -39,12 +46,13 @@ impl LazyFunctions {
 impl Module {
     /// Look up a function in plugin module manifests by hash, calculating the hash of each
     /// function in turn.
+    ///
+    /// A module without manifests, as every package built with `new`, returns at once: the test
+    /// is inline, and only the search of the manifests is out of line.
+    #[inline(always)]
     #[must_use]
     pub(super) fn get_lazy_fn(&self, hash_native: u64) -> Option<RhaiFunc> {
-        self.lazy_functions
-            .as_ref()?
-            .find_fn(&mut |f| f.calc_hash(&[]) == hash_native)
-            .map(|f| RhaiFunc::StaticPlugin { func: f.func() })
+        self.lazy_functions.as_ref()?.get_fn(hash_native)
     }
     /// Create a new [`Module`] from a plugin module's [manifest][crate::plugin::ModuleManifest].
     ///
