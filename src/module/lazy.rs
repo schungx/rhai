@@ -24,7 +24,6 @@ impl LazyFunctions {
             manifest.for_each_fn(flatten, f);
         }
     }
-    /// Find the function in the manifests with the highest precedence that matches a predicate.
     /// Look up a function in the manifests by hash, calculating the hash of each function in turn.
     #[inline(never)]
     #[must_use]
@@ -32,6 +31,7 @@ impl LazyFunctions {
         self.find_fn(&mut |f| f.calc_hash(&[]) == hash_native)
             .map(|f| RhaiFunc::StaticPlugin { func: f.func() })
     }
+    /// Find the function in the manifests with the highest precedence that matches a predicate.
     fn find_fn(
         &self,
         f: &mut dyn FnMut(&FnManifestEntry) -> bool,

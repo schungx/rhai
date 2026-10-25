@@ -11,8 +11,8 @@ use crate::eval::EvalContext;
 use crate::eval::{Caches, FnResolutionCacheEntry, GlobalRuntimeState};
 use crate::types::Token;
 use crate::{
-    calc_fn_hash_full, Dynamic, Engine, FnArgsVec, ImmutableString, Position, RhaiResultOf, Scope,
-    Shared, ERR,
+    calc_fn_hash_full, Dynamic, Engine, FnArgsVec, ImmutableString, Position, RhaiResult,
+    RhaiResultOf, Scope, Shared, ERR,
 };
 #[cfg(feature = "no_std")]
 use hashbrown::hash_map::Entry;
@@ -27,6 +27,36 @@ use std::{
 
 /// Arguments to a function call, which is a list of [`&mut Dynamic`][Dynamic].
 pub type FnCallArgs<'a> = [&'a mut Dynamic];
+
+/// A function that Rhai provides itself rather than by registration.
+#[derive(Debug, Clone, Copy)]
+enum SyntacticFn {
+    TypeOf,
+    #[cfg(not(feature = "no_closure"))]
+    IsShared,
+    #[cfg(not(feature = "no_function"))]
+    IsDefFn,
+    /// `is_def_var`, `Fn`, `eval`, `call` or `curry`, which is never found as a function.
+    Other,
+}
+
+impl SyntacticFn {
+    /// The syntactic function of a name, or [`None`] for a normal function.
+    #[inline(always)]
+    #[must_use]
+    fn from_name(name: &str) -> Option<Self> {
+        match name {
+            KEYWORD_TYPE_OF => Some(Self::TypeOf),
+            #[cfg(not(feature = "no_closure"))]
+            crate::engine::KEYWORD_IS_SHARED => Some(Self::IsShared),
+            #[cfg(not(feature = "no_function"))]
+            crate::engine::KEYWORD_IS_DEF_FN => Some(Self::IsDefFn),
+            KEYWORD_IS_DEF_VAR | KEYWORD_FN_PTR | KEYWORD_EVAL | KEYWORD_FN_PTR_CALL
+            | KEYWORD_FN_PTR_CURRY => Some(Self::Other),
+            _ => None,
+        }
+    }
+}
 
 /// _(internals)_ A set of function call hashes. Exported under the `internals` feature only.
 ///
@@ -263,7 +293,7 @@ impl Engine {
     /// functions but provided by Rhai.
     ///
     /// Every call of a function runs this, and almost none names a syntactic function, so the
-    /// names are tested inline, and only a syntactic name goes on to the full match.
+    /// name is tested inline, and only a syntactic function's call is out of line.
     #[inline(always)]
     pub(crate) fn exec_syntactic_fn_call(
         &self,
@@ -273,45 +303,43 @@ impl Engine {
         args: &FnCallArgs,
         pos: Position,
     ) -> RhaiResultOf<Option<Dynamic>> {
-        // A superset of the names the full match handles: any other name gives `None` there.
-        match fn_name {
-            KEYWORD_TYPE_OF | "is_shared" | "is_def_fn" | KEYWORD_IS_DEF_VAR | KEYWORD_FN_PTR
-            | KEYWORD_EVAL | KEYWORD_FN_PTR_CALL | KEYWORD_FN_PTR_CURRY => {
-                self.exec_syntactic_fn_call_raw(global, caches, fn_name, args, pos)
-            }
-            _ => Ok(None),
+        match SyntacticFn::from_name(fn_name) {
+            Some(syntactic) => self
+                .exec_syntactic_fn(global, caches, syntactic, fn_name, args, pos)
+                .map(Some),
+            None => Ok(None),
         }
     }
 
-    /// The full match of [`exec_syntactic_fn_call`][Self::exec_syntactic_fn_call].
+    /// Call a syntactic function, out of line from the test of its name in
+    /// [`exec_syntactic_fn_call`][Self::exec_syntactic_fn_call].
     #[inline(never)]
-    fn exec_syntactic_fn_call_raw(
+    fn exec_syntactic_fn(
         &self,
         _global: &mut GlobalRuntimeState,
         _caches: &mut Caches,
+        syntactic: SyntacticFn,
         fn_name: &str,
         args: &FnCallArgs,
         pos: Position,
-    ) -> RhaiResultOf<Option<Dynamic>> {
-        match fn_name {
+    ) -> RhaiResult {
+        match syntactic {
             // Handle type_of()
-            KEYWORD_TYPE_OF if args.len() == 1 => {
+            SyntacticFn::TypeOf if args.len() == 1 => {
                 let typ = self.get_interned_string(self.map_type_name(args[0].type_name()));
-                return Ok(Some(typ.into()));
+                return Ok(typ.into());
             }
-            KEYWORD_TYPE_OF => (),
+            SyntacticFn::TypeOf => (),
 
             // Handle is_shared()
             #[cfg(not(feature = "no_closure"))]
-            crate::engine::KEYWORD_IS_SHARED if args.len() == 1 => {
-                return Ok(Some(args[0].is_shared().into()))
-            }
+            SyntacticFn::IsShared if args.len() == 1 => return Ok(args[0].is_shared().into()),
             #[cfg(not(feature = "no_closure"))]
-            crate::engine::KEYWORD_IS_SHARED => (),
+            SyntacticFn::IsShared => (),
 
             // Handle is_def_fn()
             #[cfg(not(feature = "no_function"))]
-            crate::engine::KEYWORD_IS_DEF_FN if args.len() == 2 => {
+            SyntacticFn::IsDefFn if args.len() == 2 => {
                 use std::convert::TryFrom;
 
                 let fn_name = args[0]
@@ -321,18 +349,16 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, pos))?;
 
-                return Ok(Some(
-                    usize::try_from(num_params)
-                        .map(|num_params| {
-                            let hash_script = crate::calc_fn_hash(None, &fn_name, num_params);
-                            self.has_script_fn(_global, _caches, hash_script).into()
-                        })
-                        .unwrap_or(Dynamic::FALSE),
-                ));
+                return Ok(usize::try_from(num_params)
+                    .map(|num_params| {
+                        let hash_script = crate::calc_fn_hash(None, &fn_name, num_params);
+                        self.has_script_fn(_global, _caches, hash_script).into()
+                    })
+                    .unwrap_or(Dynamic::FALSE));
             }
             #[cfg(not(feature = "no_function"))]
             #[cfg(not(feature = "no_object"))]
-            crate::engine::KEYWORD_IS_DEF_FN if args.len() == 3 => {
+            SyntacticFn::IsDefFn if args.len() == 3 => {
                 let this_type = args[0]
                     .as_immutable_string_ref()
                     .map_err(|typ| self.make_type_mismatch_err::<ImmutableString>(typ, pos))?;
@@ -343,27 +369,20 @@ impl Engine {
                     .as_int()
                     .map_err(|typ| self.make_type_mismatch_err::<crate::INT>(typ, pos))?;
 
-                return Ok(Some(
-                    usize::try_from(num_params)
-                        .map(|num_params| {
-                            let hash_script = crate::calc_typed_method_hash(
-                                crate::calc_fn_hash(None, &fn_name, num_params),
-                                &this_type,
-                            );
-                            self.has_script_fn(_global, _caches, hash_script).into()
-                        })
-                        .unwrap_or(Dynamic::FALSE),
-                ));
+                return Ok(usize::try_from(num_params)
+                    .map(|num_params| {
+                        let hash_script = crate::calc_typed_method_hash(
+                            crate::calc_fn_hash(None, &fn_name, num_params),
+                            &this_type,
+                        );
+                        self.has_script_fn(_global, _caches, hash_script).into()
+                    })
+                    .unwrap_or(Dynamic::FALSE));
             }
             #[cfg(not(feature = "no_function"))]
-            crate::engine::KEYWORD_IS_DEF_FN => (),
+            SyntacticFn::IsDefFn => (),
 
-            // Other syntactic functions
-            KEYWORD_IS_DEF_VAR | KEYWORD_FN_PTR | KEYWORD_EVAL | KEYWORD_FN_PTR_CALL
-            | KEYWORD_FN_PTR_CURRY => (),
-
-            // Normal functions
-            _ => return Ok(None),
+            SyntacticFn::Other => (),
         }
 
         Err(ERR::ErrorFunctionNotFound(self.gen_fn_call_signature(fn_name, args), pos).into())
