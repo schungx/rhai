@@ -33,6 +33,7 @@ Bug fixes
 * Assigning a constant into a container variable (array, map etc.) now works properly without making the value read-only (thanks [`@cuervolu`](https://github.com/cuervolu) [`#1187`](https://github.com/rhaiscript/rhai/pull/1187)).
 * Under `sync`, a method call on a shared variable with a closure argument that captures the same variable now raises `ErrorDataRace`, as it does without `sync`, instead of panicking while resolving the function. `Dynamic::is_locked` now returns `true` under `sync` when the value cannot be read, which includes being locked for write by the current thread (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1190`](https://github.com/rhaiscript/rhai/pull/1190)).
 * A panic inside a native Rust function that takes its first argument by value, called with a variable first argument, now unwinds normally and can be caught by `catch_unwind`. Previously the copied first argument was restored only on the normal-return path, so the unwind tripped an internal assertion and the process aborted (thanks [`@yuvalrakavy`](https://github.com/yuvalrakavy) [`#1189`](https://github.com/rhaiscript/rhai/pull/1189)).
+* `AST::clone_functions_only_filtered` now applies its filter, as does `AST::merge_filtered` when the first `AST` has no functions. Previously every function was kept (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1192`](https://github.com/rhaiscript/rhai/pull/1192)).
 
 Rhai Grain is now at feature parity with the AST interpreter
 ------------------------------------------------------------
@@ -64,6 +65,7 @@ Lazy loading of plugin module functions
 * Lazy-load plugin's are supported by both the `AST` interpreter and Rhai Grain.
 * Use the new `Module::from_manifest` (the lazy `exported_module!`) or `Module::combine_manifest` (the lazy `combine_with_exported_module!`) API to create a lazy-loaded module or add the manifest of lazy-loaded functions to a module.
 * `Module::register_lazy_functions` registers all lazy-loaded functions up-front instead, for the same speed as before.
+* A `Module` created by `Module::eval_grain_as_new` now looks up the functions of the Rhai Grain program only when called. The new `Vm::eval_with_lazy_callbacks` does the same for functions called back from native Rust functions, while `Vm::eval_with_callbacks` still registers every function up-front ([`#1192`](https://github.com/rhaiscript/rhai/pull/1192)).
 
 Feature flag to replace `smartstring` with `compact_str`
 --------------------------------------------------------
