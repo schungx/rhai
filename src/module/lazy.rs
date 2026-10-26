@@ -44,6 +44,19 @@ impl LazyFunctions {
             }
         }
     }
+    /// Look up a function in the manifests, or among the functions of a Grain program, by hash,
+    /// calculating the hash of each function in turn.
+    #[cold]
+    #[inline(never)]
+    #[must_use]
+    fn get_fn(&self, hash_native: u64) -> Option<RhaiFunc> {
+        self.find_fn(
+            &mut |f| f.calc_hash(&[]) == hash_native,
+            #[cfg(feature = "grain")]
+            #[cfg(not(feature = "no_function"))]
+            &mut |g| g.get(hash_native),
+        )
+    }
     /// The Grain functions, from the lowest precedence to the highest.
     #[cfg(feature = "grain")]
     #[cfg(not(feature = "no_function"))]
@@ -101,16 +114,13 @@ impl LazyFunctions {
 impl Module {
     /// Look up a function in plugin module manifests, or among the functions of a Grain program,
     /// by hash, calculating the hash of each function in turn.
+    ///
+    /// A module without lazy functions, as every package built with `new`, returns at once: the
+    /// test is inline, and only the search of the sources is out of line.
+    #[inline(always)]
     #[must_use]
     pub(super) fn get_lazy_fn(&self, hash_native: u64) -> Option<RhaiFunc> {
-        self.lazy_functions.as_ref().and_then(|f| {
-            f.find_fn(
-                &mut |f| f.calc_hash(&[]) == hash_native,
-                #[cfg(feature = "grain")]
-                #[cfg(not(feature = "no_function"))]
-                &mut |g| g.get(hash_native),
-            )
-        })
+        self.lazy_functions.as_ref()?.get_fn(hash_native)
     }
     /// Create a new [`Module`] from a plugin module's [manifest][crate::plugin::ModuleManifest].
     ///
