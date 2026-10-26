@@ -313,6 +313,7 @@ impl Engine {
 
     /// Call a syntactic function, out of line from the test of its name in
     /// [`exec_syntactic_fn_call`][Self::exec_syntactic_fn_call].
+    #[cold]
     #[inline(never)]
     fn exec_syntactic_fn(
         &self,

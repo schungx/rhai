@@ -25,6 +25,7 @@ impl LazyFunctions {
         }
     }
     /// Look up a function in the manifests by hash, calculating the hash of each function in turn.
+    #[cold]
     #[inline(never)]
     #[must_use]
     fn get_fn(&self, hash_native: u64) -> Option<RhaiFunc> {
