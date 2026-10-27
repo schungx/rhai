@@ -1,6 +1,38 @@
 #![cfg(not(feature = "unchecked"))]
 use rhai::{Engine, EvalAltResult, INT};
 
+#[cfg(all(feature = "internals", not(feature = "sync")))]
+#[test]
+fn test_operations_shared_state() {
+    let engine = Engine::new();
+    let global = engine.new_global_runtime_state();
+    let shared = &global;
+    assert_eq!(shared.num_operations(), 0);
+    shared.num_operations.set(42);
+    assert_eq!(shared.num_operations(), 42);
+
+    let cloned = shared.clone();
+    assert_eq!(cloned.num_operations(), 42);
+    cloned.num_operations.set(100);
+    assert_eq!(shared.num_operations(), 42);
+    assert_eq!(cloned.num_operations(), 100);
+}
+
+#[cfg(all(feature = "internals", not(feature = "no_function"), any(not(feature = "sync"), atomic_ops_count)))]
+#[test]
+fn test_operations_native_reentry() {
+    let mut engine = Engine::new();
+    engine.set_max_operations(1000);
+    engine.register_fn("reenter", |context: rhai::NativeCallContext| -> Result<(), Box<EvalAltResult>> {
+        let before = context.global_runtime_state().num_operations();
+        assert_eq!(context.call_fn::<INT>("work", ())?, 45);
+        assert!(context.global_runtime_state().num_operations() > before);
+        Ok(())
+    });
+
+    engine.run("fn work() { let sum = 0; for x in 0..10 { sum += x; } sum } reenter();").unwrap();
+}
+
 #[test]
 fn test_max_operations() {
     let mut engine = Engine::new();

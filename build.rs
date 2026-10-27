@@ -11,13 +11,16 @@ fn main() {
     println!("cargo:rerun-if-env-changed=RHAI_HASHING_SEED");
     println!("cargo:rerun-if-env-changed=RHAI_NO_ATOMIC64");
 
-    // The operations count is an `AtomicU64` where the target has 64-bit atomics,
-    // and a plain `u64` otherwise. Setting `RHAI_NO_ATOMIC64` forces the plain
-    // `u64` so that path can be built and tested on any host.
+    // The operations count is a `Cell<u64>` without `sync`. With `sync`, it is an
+    // `AtomicU64` where the target has 64-bit atomics, and a plain `u64` otherwise.
+    // Setting `RHAI_NO_ATOMIC64` forces the plain `u64` fallback for `sync` builds.
     println!("cargo:rustc-check-cfg=cfg(atomic_ops_count)");
     let has_atomic64 =
         env::var("CARGO_CFG_TARGET_HAS_ATOMIC").map_or(false, |v| v.split(',').any(|w| w == "64"));
-    if has_atomic64 && env::var_os("RHAI_NO_ATOMIC64").is_none() {
+    if env::var_os("CARGO_FEATURE_SYNC").is_some()
+        && has_atomic64
+        && env::var_os("RHAI_NO_ATOMIC64").is_none()
+    {
         println!("cargo:rustc-cfg=atomic_ops_count");
     }
 

@@ -580,6 +580,8 @@ impl<'a> NativeCallContext<'a> {
             new_global.num_operations(),
             std::sync::atomic::Ordering::Relaxed,
         );
+        #[cfg(not(feature = "sync"))]
+        self.global.num_operations.set(new_global.num_operations());
 
         result
     }
