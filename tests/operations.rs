@@ -25,12 +25,12 @@ fn test_operations_native_reentry() {
     engine.set_max_operations(1000);
     engine.register_fn("reenter", |context: rhai::NativeCallContext| -> Result<(), Box<EvalAltResult>> {
         let before = context.global_runtime_state().num_operations();
-        context.call_fn::<()>("work", ())?;
+        assert_eq!(context.call_fn::<INT>("work", ())?, 45);
         assert!(context.global_runtime_state().num_operations() > before);
         Ok(())
     });
 
-    engine.run("fn work() { for x in 0..10 {} } reenter();").unwrap();
+    engine.run("fn work() { let sum = 0; for x in 0..10 { sum += x; } sum } reenter();").unwrap();
 }
 
 #[test]
