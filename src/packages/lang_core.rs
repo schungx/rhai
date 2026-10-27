@@ -136,14 +136,15 @@ mod core_functions {
     #[cfg(not(feature = "no_std"))]
     #[rhai_fn(name = "sleep", volatile)]
     pub fn sleep_float(seconds: FLOAT) {
-        if !seconds.is_normal() || seconds.is_sign_negative() {
-            return;
-        }
-
+        // Negative, NaN, infinite and too-large values cannot be converted into a `Duration`.
         #[cfg(not(feature = "f32_float"))]
-        std::thread::sleep(std::time::Duration::from_secs_f64(seconds));
+        let duration = std::time::Duration::try_from_secs_f64(seconds);
         #[cfg(feature = "f32_float")]
-        std::thread::sleep(std::time::Duration::from_secs_f32(seconds));
+        let duration = std::time::Duration::try_from_secs_f32(seconds);
+
+        if let Ok(duration) = duration {
+            std::thread::sleep(duration);
+        }
     }
     /// Block the current thread for a particular number of `seconds`.
     ///

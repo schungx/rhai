@@ -121,3 +121,15 @@ fn test_timestamp_op() {
     #[cfg(not(feature = "unchecked"))]
     let _ = engine.run("timestamp()-24>>-60");
 }
+
+#[test]
+#[cfg(not(feature = "no_float"))]
+fn test_sleep_float_out_of_range() {
+    let engine = Engine::new();
+
+    // Values that cannot be converted into a `Duration` must not panic.
+    engine.run("sleep(1e30)").unwrap();
+    engine.run("sleep(-1.0)").unwrap();
+    engine.run("sleep(0.0/0.0)").unwrap();
+    engine.run("sleep(1.0/0.0)").unwrap();
+}
