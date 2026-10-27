@@ -193,14 +193,14 @@ impl Engine {
                 // Increment operations count. `global` is borrowed exclusively, so a plain add
                 // through `get_mut` counts the same as an atomic one, without its locked
                 // instruction on every operation.
-                #[cfg(atomic_ops_count)]
+                #[cfg(any(not(feature = "sync"), atomic_ops_count))]
                 {
                     let count = global.num_operations.get_mut();
                     *count += 1;
                     return *count;
                 }
 
-                #[cfg(not(atomic_ops_count))]
+                #[cfg(all(feature = "sync", not(atomic_ops_count)))]
                 {
                     global.num_operations += 1;
                     return global.num_operations;

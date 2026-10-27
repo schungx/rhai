@@ -159,10 +159,9 @@ fn innermost(err: &EvalAltResult) -> &EvalAltResult {
 
 /// The limit must fire inside a compiled function a native calls back.
 ///
-/// On targets without 64-bit atomics the count is a plain `u64` and both the
-/// increment and the hand-back take separate code paths, which only a
-/// no-atomic target compiles. A counter that never advances would never trip
-/// the limit and would reach the backstop instead.
+/// With `sync` but without 64-bit atomics the count is a plain `u64`, with
+/// separate increment and hand-back paths. A counter that never advances would
+/// never trip the limit and would reach the backstop instead.
 #[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 #[test]
 fn a_callback_hits_the_operation_limit() {
@@ -185,10 +184,10 @@ fn a_callback_hits_the_operation_limit() {
 /// `on_progress` must see the count advance inside a callback, by one per
 /// operation.
 ///
-/// Only the steady state inside the callback is checked. On the way in, a
-/// native's first attempt at the call runs against a clone of the global state,
-/// and without 64-bit atomics its count cannot be written back through the
-/// shared reference the native holds, so the count may repeat once there.
+/// With `sync` but without 64-bit atomics, only the steady state inside the
+/// callback is checked. A native's first attempt runs against a clone of the
+/// global state whose count cannot be written back through a shared reference,
+/// so the count may repeat once there.
 #[cfg(not(any(feature = "no_index", feature = "no_object", feature = "no_function")))]
 #[test]
 fn a_callback_advances_the_progress_count() {
@@ -206,6 +205,6 @@ fn a_callback_advances_the_progress_count() {
     assert!(matches!(innermost(&err), EvalAltResult::ErrorTerminated(..)), "expected ErrorTerminated, got {err:?}");
 
     let counts = counts.lock().unwrap();
-    let tail = &counts[counts.len() - 100..];
-    assert!(tail.windows(2).all(|w| w[1] == w[0] + 1), "the count did not advance by one per operation: {tail:?}");
+    let counts = if cfg!(any(not(feature = "sync"), atomic_ops_count)) { counts.as_slice() } else { &counts[counts.len() - 100..] };
+    assert!(counts.windows(2).all(|w| w[1] == w[0] + 1), "the count did not advance by one per operation: {counts:?}");
 }

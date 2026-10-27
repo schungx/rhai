@@ -40,8 +40,11 @@ pub struct GlobalRuntimeState {
     #[cfg(atomic_ops_count)]
     pub num_operations: std::sync::atomic::AtomicU64,
     /// Number of operations performed.
-    #[cfg(not(atomic_ops_count))]
+    #[cfg(all(feature = "sync", not(atomic_ops_count)))]
     pub num_operations: u64,
+    /// Number of operations performed.
+    #[cfg(not(feature = "sync"))]
+    pub num_operations: std::cell::Cell<u64>,
     /// Number of modules loaded.
     #[cfg(not(feature = "no_module"))]
     pub num_modules_loaded: usize,
@@ -134,10 +137,7 @@ impl Clone for GlobalRuntimeState {
             #[cfg(not(feature = "no_function"))]
             lib: self.lib.clone(),
             source: self.source.clone(),
-            #[cfg(atomic_ops_count)]
-            num_operations: std::sync::atomic::AtomicU64::new(self.num_operations()),
-            #[cfg(not(atomic_ops_count))]
-            num_operations: self.num_operations,
+            num_operations: self.num_operations().into(),
             #[cfg(not(feature = "no_module"))]
             num_modules_loaded: self.num_modules_loaded,
             scope_level: self.scope_level,
@@ -342,7 +342,10 @@ impl GlobalRuntimeState {
             .num_operations
             .load(std::sync::atomic::Ordering::Relaxed);
 
-        #[cfg(not(atomic_ops_count))]
+        #[cfg(not(feature = "sync"))]
+        return self.num_operations.get();
+
+        #[cfg(all(feature = "sync", not(atomic_ops_count)))]
         return self.num_operations;
     }
 

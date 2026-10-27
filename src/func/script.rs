@@ -478,9 +478,14 @@ impl Engine {
                     global.num_operations(),
                     std::sync::atomic::Ordering::Relaxed,
                 );
-                // Without 64-bit atomics only a mutable original can be updated.
+                #[cfg(not(feature = "sync"))]
+                global_ref
+                    .as_ref()
+                    .num_operations
+                    .set(global.num_operations());
+                // Under `sync` without 64-bit atomics only a mutable original can be updated.
                 // An immutable one gets the count through the owned instance put back below.
-                #[cfg(not(atomic_ops_count))]
+                #[cfg(all(feature = "sync", not(atomic_ops_count)))]
                 if let GlobalRef::Mut(g) = &mut global_ref {
                     g.num_operations = global.num_operations();
                 }
