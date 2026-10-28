@@ -350,7 +350,7 @@ impl Engine {
                         let value = if start == 0 && end >= count - 1 {
                             s.clone().into()
                         } else {
-                            let take = if end > start { end - start + 1 } else { 0 };
+                            let take = if end >= start { end - start + 1 } else { 0 };
                             s.chars().skip(start).take(take).collect::<String>().into()
                         };
 

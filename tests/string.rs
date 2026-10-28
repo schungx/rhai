@@ -131,8 +131,12 @@ fn test_string_index() {
     // 1..=4
     assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[1..=-1]"#).unwrap(), "ello");
     // 1..=1
-    assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[1..=-4]"#).unwrap(), "");
+    assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[1..=-4]"#).unwrap(), "e");
+    assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[1..=1]"#).unwrap(), "e");
+    // 4..=4
+    assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[-1..=-1]"#).unwrap(), "o");
     // 2..=1
+    assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[2..=1]"#).unwrap(), "");
     assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[2..-4]"#).unwrap(), "");
     // overflow index
     assert_eq!(engine.eval::<String>(r#"let y = "hello"; y[0..18]"#).unwrap(), "hello");

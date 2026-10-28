@@ -9,6 +9,7 @@ Bug fixes
 
 * Fixes regression with missing encapsulated environment in function pointers (thanks [`@luispedro`](https://github.com/luispedro) [`#1193`](https://github.com/rhaiscript/rhai/pull/1193)).
 * Fixes bug in `pad` method for strings that hangs when the padding string is empty (thanks [`@b84330808`](https://github.com/b84330808) [`#1195`](https://github.com/rhaiscript/rhai/pull/1195)).
+* Fixes string indexing with a single-character inclusive range (e.g. `s[1..=1]`) returning an empty string.
 
 Enhancements
 ------------
