@@ -13,6 +13,7 @@ Bug fixes
 * `sleep` no longer panics when called with a float number that is too large (thanks [`@Rockyrok77`](https://github.com/Rockyrok77) [`#1205`](https://github.com/rhaiscript/rhai/pull/1205)).
 * Fixes string indexing bug with a single-character inclusive range (e.g. `s[1..=1]`) returning an empty string (thanks [`@youdie006`](https://github.com/youdie006) [`#1204`](https://github.com/rhaiscript/rhai/pull/1204)).
 * `tan` no longer panics on a decimal number when the result overflows - e.g. `tan(π/2)` (thanks [`@Rockyrok77`](https://github.com/Rockyrok77) [`#1203`](https://github.com/rhaiscript/rhai/pull/1203)).
+* Native functions that call back into the engine (e.g. `==` or `to_string` on arrays) now count towards `max_call_levels`, so comparing or printing a deeply-nested array returns `ErrorStackOverflow` instead of overflowing the stack and aborting the process (thanks [`@Rockyrok77`](https://github.com/Rockyrok77)).
 
 Enhancements
 ------------
