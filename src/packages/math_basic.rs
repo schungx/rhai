@@ -385,8 +385,10 @@ mod decimal_functions {
         x.cos()
     }
     /// Return the tangent of the decimal number in radians.
-    pub fn tan(x: Decimal) -> Decimal {
-        x.tan()
+    #[rhai_fn(return_raw)]
+    pub fn tan(x: Decimal) -> RhaiResultOf<Decimal> {
+        x.checked_tan()
+            .ok_or_else(|| make_err(format!("Error taking the tangent of {x}")))
     }
     /// Return the square root of the decimal number.
     #[rhai_fn(return_raw)]

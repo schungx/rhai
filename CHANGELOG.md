@@ -12,6 +12,7 @@ Bug fixes
 * `AST::clone_functions_only_filtered` now applies its filter, as does `AST::merge_filtered` when the first `AST` has no functions. Previously every function was kept (thanks [`@ImTheSquid`](https://github.com/ImTheSquid) [`#1192`](https://github.com/rhaiscript/rhai/pull/1192)).
 * `sleep` no longer panics when called with a float number that is too large (thanks [`@Rockyrok77`](https://github.com/Rockyrok77) [`#1205`](https://github.com/rhaiscript/rhai/pull/1205)).
 * Fixes string indexing bug with a single-character inclusive range (e.g. `s[1..=1]`) returning an empty string (thanks [`@youdie006`](https://github.com/youdie006) [`#1204`](https://github.com/rhaiscript/rhai/pull/1204)).
+* `tan` no longer panics on a decimal number when the result overflows - e.g. `tan(π/2)` (thanks [`@Rockyrok77`](https://github.com/Rockyrok77) [`#1203`](https://github.com/rhaiscript/rhai/pull/1203)).
 
 Enhancements
 ------------
