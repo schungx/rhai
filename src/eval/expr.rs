@@ -306,11 +306,18 @@ impl Engine {
             }
 
             #[cfg(not(feature = "no_object"))]
-            Expr::Map(x, ..) => {
+            Expr::Map(x, _pos) => {
                 let mut map = x.1.clone();
 
                 #[cfg(not(feature = "unchecked"))]
-                let mut total_data_sizes = (0, 0, 0);
+                let mut total_data_sizes = if self.has_data_size_limit() {
+                    let sizes = crate::eval::data_check::calc_map_sizes(&map);
+                    self.throw_on_size(sizes)
+                        .map_err(|err| err.fill_position(*_pos))?;
+                    sizes
+                } else {
+                    (0, 0, 0)
+                };
 
                 for (key, value_expr) in &x.0 {
                     let value = self
@@ -322,7 +329,7 @@ impl Engine {
                         let delta = crate::eval::calc_data_sizes(&value, true);
                         total_data_sizes = (
                             total_data_sizes.0 + delta.0,
-                            total_data_sizes.1 + delta.1 + 1,
+                            total_data_sizes.1 + delta.1,
                             total_data_sizes.2 + delta.2,
                         );
                         self.throw_on_size(total_data_sizes)

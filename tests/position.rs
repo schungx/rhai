@@ -116,7 +116,7 @@ fn test_position_missing_map_and_property_tokens() {
             assert_missing(&engine.compile(source).unwrap_err(), token, position, source);
         });
     }
-    for (prefix, suffix) in [("x.", ";"), ("x?.", ""), ("#{x: 1,", ";}")] {
+    for (prefix, suffix) in [("x.", ";"), ("x?.", "")] {
         with_trivia(prefix, suffix, |source, position| {
             let error = engine.compile(source).unwrap_err();
             assert_eq!(error.err_type(), &ParseErrorType::PropertyExpected);

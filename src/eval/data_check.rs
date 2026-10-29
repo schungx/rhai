@@ -30,7 +30,7 @@ pub fn calc_array_sizes(array: &crate::Array) -> (usize, usize, usize) {
                 mx += m;
                 sx += s;
             }
-            Union::Blob(ref a, ..) => ax += 1 + a.len(),
+            Union::Blob(ref a, ..) => ax += a.len(),
             #[cfg(not(feature = "no_object"))]
             Union::Map(ref m, ..) => {
                 let (a, m, s) = calc_map_sizes(m);
@@ -59,11 +59,9 @@ pub fn calc_array_sizes(array: &crate::Array) -> (usize, usize, usize) {
 #[cfg(not(feature = "no_object"))]
 #[inline]
 pub fn calc_map_sizes(map: &crate::Map) -> (usize, usize, usize) {
-    let (mut ax, mut mx, mut sx) = (0, 0, 0);
+    let (mut ax, mut mx, mut sx) = (0, map.len(), 0);
 
     for value in map.values() {
-        mx += 1;
-
         match value.0 {
             #[cfg(not(feature = "no_index"))]
             Union::Array(ref a, ..) => {
@@ -73,7 +71,7 @@ pub fn calc_map_sizes(map: &crate::Map) -> (usize, usize, usize) {
                 sx += s;
             }
             #[cfg(not(feature = "no_index"))]
-            Union::Blob(ref a, ..) => ax += 1 + a.len(),
+            Union::Blob(ref a, ..) => ax += a.len(),
             Union::Map(ref m, ..) => {
                 let (a, m, s) = calc_map_sizes(m);
                 ax += a;

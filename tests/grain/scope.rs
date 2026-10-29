@@ -422,6 +422,8 @@ fn qualified_constants_stored_in_map_properties_become_writable() {
     for source in [
         "const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock -= 1; state.lock } tick(#{})",
         "const LOCK = 60; fn tick() { this.a = #{ x: global::LOCK }; this.a.x -= 1; this.a.x } let m = #{}; m.tick()",
+        "const LOCK = 60; fn tick() { this.a = #{ fixed: 1, x: global::LOCK }; this.a.x -= 1; this.a.x } let m = #{}; m.tick()",
+        "const LOCK = 60; fn tick() { this.a = #{ outer: #{ x: global::LOCK }, empty: #{} }; this.a.outer.x -= 1; this.a.outer.x } let m = #{}; m.tick()",
         "const LOCK = 60; fn tick(state) { state.lock = global::LOCK; state.lock = 0; state.lock } tick(#{})",
     ] {
         agree(source, |_| {}, true);

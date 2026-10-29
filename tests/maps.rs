@@ -1,6 +1,164 @@
 #![cfg(not(feature = "no_object"))]
 use rhai::{Engine, EvalAltResult, Map, ParseErrorType, Scope, INT};
 
+fn map_template_engines() -> Vec<Engine> {
+    #[cfg(feature = "no_optimize")]
+    return vec![Engine::new()];
+
+    #[cfg(not(feature = "no_optimize"))]
+    [rhai::OptimizationLevel::None, rhai::OptimizationLevel::Simple, rhai::OptimizationLevel::Full]
+        .into_iter()
+        .map(|level| {
+            let mut engine = Engine::new();
+            engine.set_optimization_level(level);
+            engine
+        })
+        .collect()
+}
+
+#[test]
+#[cfg(feature = "internals")]
+fn test_map_template_contents() {
+    for engine in map_template_engines() {
+        let ast = engine
+            .compile(
+                "
+                    const FOLDED = 40;
+
+                    #{
+                        literal: 1,
+                        unit: (),
+                        nested: #{ x: 2 },
+                        folded: FOLDED + 2,
+                        computed: input
+                    }
+                ",
+            )
+            .unwrap();
+        let mut found = false;
+        ast.walk(&mut |nodes| {
+            if let Some(rhai::ASTNode::Expr(rhai::Expr::Map(x, ..))) = nodes.last() {
+                if x.1.contains_key("computed") {
+                    found = true;
+                    assert!(x.0.len() <= 2);
+                    assert!(x.0.len() >= 1);
+                    assert_eq!(x.1["literal"].as_int().unwrap(), 1);
+                    assert!(x.1["unit"].is_unit());
+                    assert!(x.1["computed"].is_unit());
+                    assert_eq!(x.1["nested"].clone_cast::<Map>()["x"].as_int().unwrap(), 2);
+                    #[cfg(not(feature = "no_optimize"))]
+                    if engine.optimization_level() != rhai::OptimizationLevel::None {
+                        assert_eq!(x.1["folded"].as_int().unwrap(), 42);
+                    }
+                }
+            }
+            true
+        });
+        assert!(found, "the mixed map must retain its ordered expressions and template");
+        let mut scope = Scope::new();
+        scope.push("input", 9 as INT);
+        let result = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+        assert_eq!(result["folded"].as_int().unwrap(), 42);
+        assert_eq!(result["computed"].as_int().unwrap(), 9);
+    }
+}
+
+#[test]
+fn test_map_template_evaluation_and_isolation() {
+    for engine in map_template_engines() {
+        let ast = engine.compile("#{ nested: #{ value: 1 }, unit: (), computed: input }").unwrap();
+
+        let mut scope = Scope::new();
+        scope.push("input", 42 as INT);
+
+        let mut first = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+        first.get_mut("nested").unwrap().write_lock::<Map>().unwrap().insert("value".into(), (99 as INT).into());
+
+        let second = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+
+        assert_eq!(second["nested"].clone_cast::<Map>()["value"].as_int().unwrap(), 1);
+        assert!(second["unit"].is_unit());
+        assert_eq!(second["computed"].as_int().unwrap(), 42);
+
+        assert_eq!(
+            engine
+                .eval::<INT>(
+                    "
+                        let n = 0;
+                        let m = #{
+                            a: 1,
+                            b: { n += 1; n },
+                            c: (),
+                            d: { n *= 10; n }
+                        };
+                        m.b + m.d + n
+                    "
+                )
+                .unwrap(),
+            21
+        );
+
+        assert_eq!(engine.eval::<INT>("#{ a: 42, b: () }.a").unwrap(), 42);
+        assert_eq!(engine.eval_with_scope::<INT>(&mut scope, "#{ a: 42, b: input }.a").unwrap(), 42);
+
+        #[cfg(not(feature = "no_index"))]
+        {
+            assert_eq!(engine.eval::<INT>(r#"#{ a: 42, b: () }["a"]"#).unwrap(), 42);
+            assert_eq!(engine.eval_with_scope::<INT>(&mut scope, r#"#{ a: 42, b: input }["a"]"#).unwrap(), 42);
+
+            let ast = engine.compile("#{ values: [#{ x: 1 }], computed: input }").unwrap();
+
+            let mut first = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+
+            first.get_mut("values").unwrap().write_lock::<rhai::Array>().unwrap()[0]
+                .write_lock::<Map>()
+                .unwrap()
+                .insert("x".into(), (99 as INT).into());
+
+            let second = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+
+            assert_eq!(second["values"].clone_cast::<rhai::Array>()[0].clone_cast::<Map>()["x"].as_int().unwrap(), 1);
+        }
+    }
+}
+
+#[test]
+#[cfg(not(any(feature = "no_function", feature = "no_module")))]
+fn test_map_template_function_pointer_environment() {
+    for mut engine in map_template_engines() {
+        let module_ast = engine.compile("fn answer() { 42 }").unwrap();
+        let mut resolver = rhai::module_resolvers::StaticModuleResolver::new();
+        resolver.insert("answers", rhai::Module::eval_ast_as_new(Scope::new(), &module_ast, &engine).unwrap());
+        engine.set_module_resolver(resolver);
+
+        let mut scope = Scope::new();
+        scope.push("input", 1 as INT);
+
+        let ast = engine
+            .compile(
+                r#"
+                    import "answers" as answers;
+                    
+                    #{
+                        f: || answers::answer(),
+                        nested: #{
+                            f: || answers::answer(),
+                            computed: input
+                        },
+                        computed: input
+                    }
+                "#,
+            )
+            .unwrap();
+
+        let result = engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap();
+
+        for pointer in [result["f"].clone_cast::<rhai::FnPtr>(), result["nested"].clone_cast::<Map>()["f"].clone_cast::<rhai::FnPtr>()] {
+            assert_eq!(pointer.call::<INT>(&engine, &ast, ()).unwrap(), 42);
+        }
+    }
+}
+
 #[test]
 fn test_map_indexing() {
     let engine = Engine::new();

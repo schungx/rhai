@@ -3466,8 +3466,8 @@ impl<'e> Vm<'e> {
     /// Worth being exact about what is *not* counted: a map's total starts at
     /// zero and only the entries with computed values are added to it, because
     /// Rhai's loop runs over those alone and the constant ones are already
-    /// sitting in the template. A literal that is entirely constant never
-    /// reaches here at all — the optimizer folded it long before.
+    /// sitting in the template. `MakeMap` checks the completed map separately
+    /// so template constants also contribute to the limits.
     ///
     /// Out of line: it is a handful of instructions in the common case and a
     /// call to Rhai in the rare one, and the dispatch loop is measurably
@@ -3478,6 +3478,8 @@ impl<'e> Vm<'e> {
         if index == 0 {
             self.sizes.push((0, 0, 0));
         }
+
+        let _ = (map, pos);
 
         // `unchecked` removes every limit this could reject against, so the
         // running total is never read and measuring it is pure cost. The push
@@ -3492,7 +3494,6 @@ impl<'e> Vm<'e> {
             all(feature = "no_index", feature = "no_object")
         ))]
         {
-            let _ = (map, pos);
             Ok(())
         }
 
@@ -3523,11 +3524,7 @@ impl<'e> Vm<'e> {
                 .last_mut()
                 .ok_or_else(|| malformed("size check outside a literal".to_string()))?;
 
-            *total = (
-                total.0 + delta.0 + usize::from(!map),
-                total.1 + delta.1 + usize::from(map),
-                total.2 + delta.2,
-            );
+            *total = (total.0 + delta.0, total.1 + delta.1, total.2 + delta.2);
 
             self.engine
                 .throw_on_size(*total)
@@ -4554,9 +4551,7 @@ impl<'e> Vm<'e> {
                     // with no computed entries, so nothing may be popped.
                     #[cfg(not(feature = "unchecked"))]
                     #[cfg(not(all(feature = "no_index", feature = "no_object")))]
-                    if len > 0 {
-                        self.sizes.pop();
-                    }
+                    self.sizes.pop();
 
                     let mut parts = self.stack.drain(first..);
                     let template = parts.next().expect("checked above");
