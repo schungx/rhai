@@ -8,6 +8,43 @@ use rhai::Array;
 use rhai::Map;
 
 #[test]
+#[cfg(not(feature = "no_object"))]
+fn test_map_template_size() {
+    let mut engine = Engine::new();
+    #[cfg(not(feature = "no_optimize"))]
+    engine.set_optimization_level(rhai::OptimizationLevel::None);
+
+    let mut scope = rhai::Scope::new();
+    scope.push("input", "abc");
+    for source in [r#"#{ a: "abc", b: "def" }"#, r#"#{ a: "abc", b: input }"#, "#{ a: input, b: input }"] {
+        let ast = engine.compile(source).unwrap();
+        engine.set_max_string_size(6);
+        assert_eq!(engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap().len(), 2);
+        engine.set_max_string_size(5);
+        assert!(matches!(*engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap_err(), EvalAltResult::ErrorDataTooLarge(..)));
+        engine.set_max_string_size(0);
+    }
+
+    let ast = engine.compile("#{ a: #{ x: 1 }, b: input }").unwrap();
+    scope.set_value("input", Map::new());
+    engine.set_max_map_size(3);
+    assert_eq!(engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap().len(), 2);
+    engine.set_max_map_size(2);
+    assert!(matches!(*engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap_err(), EvalAltResult::ErrorDataTooLarge(..)));
+
+    #[cfg(not(feature = "no_index"))]
+    {
+        engine.set_max_map_size(0);
+        let ast = engine.compile("#{ a: [1, 2], b: input }").unwrap();
+        scope.set_value("input", vec![rhai::Dynamic::from_int(3), rhai::Dynamic::from_int(4)]);
+        engine.set_max_array_size(4);
+        assert_eq!(engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap().len(), 2);
+        engine.set_max_array_size(3);
+        assert!(matches!(*engine.eval_ast_with_scope::<Map>(&mut scope, &ast).unwrap_err(), EvalAltResult::ErrorDataTooLarge(..)));
+    }
+}
+
+#[test]
 fn test_max_string_size() {
     let mut engine = Engine::new();
     engine.set_max_string_size(10);

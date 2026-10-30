@@ -23,6 +23,7 @@ Enhancements
 * Function call dispatches now run faster due to optimization inlining a fast path (thanks [`@xorza`](https://github.com/xorza) [`#1199`](https://github.com/rhaiscript/rhai/pull/1199)).
 * Operations counting is optimized to run fast by avoiding atomics when not building under `sync` (thanks [`@xorza`](https://github.com/xorza) [`#1198`](https://github.com/rhaiscript/rhai/pull/1198)).
 * `Engine::set_max_call_levels` and `Engine::max_call_levels` are now available under `no_function`, since native functions calling back into the engine are also bound by this limit (thanks [`@Rockyrok77`](https://github.com/Rockyrok77) [`#1208`](https://github.com/rhaiscript/rhai/pull/1208)).
+* Large object map literals now run faster by storing constant property values in their templates, only computed properties are evaluated at runtime.
 
 
 Version 1.27.0

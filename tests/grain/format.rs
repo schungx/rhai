@@ -530,6 +530,13 @@ fn capabilities_round_trip() {
         #[cfg(not(feature = "no_float"))]
         ("map-with-float", "let m = #{ answer: 42.0 }; m.answer", Caps::MAP.union(Caps::PROPERTY).union(Caps::METHOD).union(Caps::FLOAT), "object maps with float values"),
         #[cfg(not(feature = "no_object"))]
+        #[cfg(not(feature = "no_float"))]
+        ("mixed-map-with-float", "let v = 7; #{ answer: 42.0, computed: v }", Caps::MAP.union(Caps::FLOAT), "mixed map templates with float values"),
+        #[cfg(not(feature = "no_object"))]
+        #[cfg(not(feature = "no_index"))]
+        #[cfg(not(feature = "no_float"))]
+        ("mixed-map-with-float-array", "let v = 7; #{ answer: [1, 2.0], computed: v }", Caps::MAP.union(Caps::ARRAY).union(Caps::FLOAT), "mixed map templates with float arrays"),
+        #[cfg(not(feature = "no_object"))]
         #[cfg(not(feature = "no_index"))]
         #[cfg(not(feature = "no_float"))]
         (

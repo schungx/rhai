@@ -619,16 +619,19 @@ pub enum Op {
     /// ## Purpose
     ///
     /// An entirely constant map never reaches here: the optimizer has already
-    /// folded it into the template alone.
+    /// folded it into the template alone, unless under no optimizations in
+    /// which case the operand stack holds only the template.
     ///
     /// ## Note
     ///
     /// The operand stack holds `[template, k0, v0, .., k(.0-1), v(.0-1)]`.
     ///
-    /// The template is a constant `HashMap` that already carries every key
-    /// the literal mentions, with the computed ones holding a placeholder.
+    /// The _template_ is a constant map that already carries every key and
+    /// all template-safe constant values, with computed values holding `()` as
+    /// a placeholder.
     ///
-    /// Keys ride on the operand stack as string constants.
+    /// Keys ride on the operand stack as string constants. The completed map
+    /// is checked against data-size limits, including template constants.
     MakeMap(u16),
 
     /// Measure the value on top of the operand stack into the array or map
@@ -638,7 +641,7 @@ pub enum Op {
     ///
     /// ## Note
     ///
-    /// The operand is the element's index within its literal: zero starts a
+    /// The operand is the computed element's index within its literal: zero starts a
     /// fresh total, and [`Op::MakeArray`] / [`Op::MakeMap`] discards it.
     ///
     /// That is what keeps `[a, [b, c], d]` straight — the inner literal's total
@@ -654,7 +657,7 @@ pub enum Op {
     /// keeps those positions strippable, which matters more for a literal than
     /// for a chain: an array or map can have any number of elements.
     CheckSize {
-        /// The element's index within its literal
+        /// The computed element's index within its literal.
         index: u16,
         /// Whether the element counts towards the map limit rather than the
         /// array one.
