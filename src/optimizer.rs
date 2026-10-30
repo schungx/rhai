@@ -911,7 +911,7 @@ fn optimize_stmt(stmt: &mut Stmt, state: &mut OptimizerState, preserve_result: b
     }
 }
 
-// Convert a constant argument into [`Expr::DynamicConstant`].
+// Convert a constant [`Dynamic`] argument value into a constant [`Expr`].
 fn move_constant_arg(arg_expr: &mut Expr) -> bool {
     match arg_expr {
         Expr::DynamicConstant(..)
@@ -924,7 +924,7 @@ fn move_constant_arg(arg_expr: &mut Expr) -> bool {
         Expr::FloatConstant(..) => false,
 
         _ => arg_expr.get_literal_value(None).map_or(false, |value| {
-            *arg_expr = Expr::DynamicConstant(value.into(), arg_expr.start_position());
+            *arg_expr = Expr::from_dynamic(value.into(), arg_expr.start_position());
             true
         }),
     }
@@ -975,7 +975,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 if m.1.contains_key(p.2.as_str()) {
                     // Constant map literal property
                     state.set_dirty();
-                    *expr = Expr::DynamicConstant(mem::take(m.1.get_mut(p.2.as_str()).unwrap()).into(), *pos);
+                    *expr = Expr::from_dynamic(mem::take(m.1.get_mut(p.2.as_str()).unwrap()).into(), *pos);
                 } else {
                     // Map literal where everything is pure - promote the indexed item.
                     // All other items can be thrown away.
@@ -1048,7 +1048,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                 if m.1.contains_key(s.as_str()) {
                     // Constant map literal property
                     state.set_dirty();
-                    *expr = Expr::DynamicConstant(mem::take(m.1.get_mut(s.as_str()).unwrap()).into(), *pos);
+                    *expr = Expr::from_dynamic(mem::take(m.1.get_mut(s.as_str()).unwrap()).into(), *pos);
                 } else {
                     // Map literal where everything is pure - promote the indexed item.
                     // All other items can be thrown away.
@@ -1057,6 +1057,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
                                 .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
                 }
             }
+            // map[string] - constant
             #[cfg(not(feature = "no_object"))]
             (Expr::DynamicConstant(cst, pos ), Expr::StringConstant(s, ..)) if cst.is_map() => {
                 // Constant map - promote the indexed item.
@@ -1142,7 +1143,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_index"))]
         Expr::Array(..) if expr.is_constant() => {
             state.set_dirty();
-            *expr = Expr::DynamicConstant(expr.get_literal_value(None).unwrap().into(), expr.position());
+            *expr = Expr::from_dynamic(expr.get_literal_value(None).unwrap().into(), expr.position());
         }
         // [ items .. ]
         #[cfg(not(feature = "no_index"))]
@@ -1151,7 +1152,7 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_object"))]
         Expr::Map(..) if expr.is_constant() => {
             state.set_dirty();
-            *expr = Expr::DynamicConstant(expr.get_literal_value(None).unwrap().into(), expr.position());
+            *expr = Expr::from_dynamic(expr.get_literal_value(None).unwrap().into(), expr.position());
         }
         // #{ key:value, .. }
         #[cfg(not(feature = "no_object"))]
@@ -1288,7 +1289,6 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         #[cfg(not(feature = "no_module"))]
         Expr::FnCall(x, ..) if x.is_qualified() => x.args.iter_mut().for_each(|arg_expr| {
             optimize_expr(arg_expr, state, false);
-
             if move_constant_arg(arg_expr) {
                 state.set_dirty();
             }

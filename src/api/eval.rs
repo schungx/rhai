@@ -297,9 +297,9 @@ impl Engine {
         rhs: impl Into<Dynamic>,
     ) -> RhaiResultOf<T> {
         let lhs = lhs.into();
-        let lhs = Expr::DynamicConstant(lhs.into(), Position::NONE);
+        let lhs = Expr::from_dynamic(lhs.into(), Position::NONE);
         let rhs = rhs.into();
-        let rhs = Expr::DynamicConstant(rhs.into(), Position::NONE);
+        let rhs = Expr::from_dynamic(rhs.into(), Position::NONE);
 
         let op = op.as_ref();
 
