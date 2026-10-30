@@ -524,7 +524,6 @@ impl<'a> NativeCallContext<'a> {
         // Native functions calling back into the engine (e.g. `==` or `to_string` on nested arrays)
         // recurse on the Rust stack, so they are bound by the same limit as script function calls.
         #[cfg(not(feature = "unchecked"))]
-        #[cfg(not(feature = "no_function"))]
         if new_global.level > self.engine().max_call_levels() {
             return Err(ERR::ErrorStackOverflow(pos).into());
         }

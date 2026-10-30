@@ -171,7 +171,6 @@ fn test_stack_overflow_ref_loop() {
 }
 
 #[test]
-#[cfg(not(feature = "no_function"))]
 #[cfg(not(feature = "no_index"))]
 fn test_stack_overflow_nested_native_calls() {
     let engine = Engine::new();
