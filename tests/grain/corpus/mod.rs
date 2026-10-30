@@ -206,6 +206,8 @@ fn applies_to_this_build(name: &str) -> bool {
                 | "fnptr_call_captures_parent_scope"
                 | "is_def_fn"
                 | "map_computed_order"
+                | "map_template_clone_isolation"
+                | "map_template_pointer_environment"
                 | "map_read_of_absent_key_is_not_visible_to_a_closure"
                 | "oop_style_calling"
                 | "switch_on_a_shared_subject_matches"
@@ -281,6 +283,7 @@ fn applies_to_this_build(name: &str) -> bool {
             | "interpolation_of_containers"
             | "is_shared_after_capture"
             | "map_computed_in_array"
+            | "map_template_nested_size_totals"
             | "map_read_absent_through_a_chain"
             | "map_read_of_absent_key_does_not_create_it"
             | "map_read_of_absent_key_is_not_visible_to_a_closure"
@@ -407,6 +410,14 @@ pub const CASES: &[Case] = &[
     // holding every key and fills the computed ones in afterwards.
     case("map_computed_value", "let v = 7; let m = #{ a: v, b: 2 }; m.a + m.b"),
     case("map_all_computed", "let v = 7; let w = 8; #{ a: v, b: w }"),
+    case("map_template_unit_and_constants", "let v = 7; #{ a: 1, b: (), c: true, d: v, e: #{ x: 2 } }"),
+    case("map_template_computed_order", "let n = 0; let m = #{ a: 1, b: { n += 1; n }, c: (), d: { n *= 10; n } }; m.b + m.d + n"),
+    case("map_template_clone_isolation", "fn make(v) { #{ nested: #{ value: 1 }, computed: v } } let a = make(7); a.nested.value = 99; make(8).nested.value"),
+    case(
+        "map_template_pointer_environment",
+        "fn answer() { 42 } let v = 7; let m = #{ f: || answer(), nested: #{ f: || answer(), computed: v }, computed: v }; m.f.call() + m.nested.f.call()",
+    ),
+    case("map_template_nested_size_totals", "let v = 7; [v, #{ a: 1, b: v, c: #{ x: 2 }, d: #{ x: v }, e: (), f: v }, v]"),
     case("map_computed_nested", "let v = 7; #{ outer: #{ inner: v } }.outer.inner"),
     case("map_computed_in_array", "let v = 7; [#{ a: v }, #{ a: 2 }]"),
     // An empty literal inside one that is not. It contributes no size check of

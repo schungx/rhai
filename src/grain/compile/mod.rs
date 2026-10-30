@@ -1711,17 +1711,18 @@ impl Lowering {
 
             // The other half of the same shape. Rhai keeps a map literal as a
             // template holding every key — the constant values already in
-            // place, the computed ones as placeholders — plus the list of
-            // entries still to evaluate.
+            // place, the computed ones as `()` placeholders — plus the list of
+            // all entries in source order. Only computed entries need to emit
+            // operands.
             //
-            // An all-constant map is folded into a `DynamicConstant` and never
-            // arrives here; one with a single computed value does.
+            // With optimization disabled, even an all-constant map arrives here.
             #[cfg(not(feature = "no_object"))]
-            Expr::Map(entries, ..) if entries.0.len() <= u16::MAX as usize => {
+            Expr::Map(entries, pos) if entries.0.len() <= u16::MAX as usize => {
                 self.caps.insert(Caps::MAP);
 
-                let (computed, template) = &**entries;
+                let (properties, template) = &**entries;
                 let template = Dynamic::from_map(template.clone());
+
                 // A template whose constants the pool cannot hold is a program
                 // that could not be written to an artifact anyway.
                 if !is_poolable(&template) {
@@ -1730,18 +1731,28 @@ impl Lowering {
                 }
 
                 self.constant(template);
-                for (index, (key, value)) in computed.iter().enumerate() {
+                self.emit_at(
+                    Op::CheckSize {
+                        index: 0,
+                        is_map: true,
+                    },
+                    *pos,
+                );
+
+                let mut count = 1;
+                for (key, value) in properties {
                     self.constant(key.name.clone().into());
                     self.expression(value);
                     self.emit_at(
                         Op::CheckSize {
-                            index: index as u16,
+                            index: count,
                             is_map: true,
                         },
                         value.position(),
                     );
+                    count += 1;
                 }
-                self.emit_at(Op::MakeMap(computed.len() as u16), expr.position());
+                self.emit_at(Op::MakeMap(count - 1), expr.position());
             }
 
             // A block used for its value: `let y = if c { 1 } else { 2 }`,

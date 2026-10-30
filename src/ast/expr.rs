@@ -691,6 +691,31 @@ impl Expr {
             _ => false,
         }
     }
+    /// Can this constant be cloned from a map template without runtime evaluation?
+    #[cfg(not(feature = "no_object"))]
+    #[inline]
+    #[must_use]
+    pub(crate) fn is_template_constant(&self) -> bool {
+        match self {
+            // Function pointers bind the current environment during evaluation;
+            // shared values must be flattened at runtime, not while compiling.
+            Self::DynamicConstant(value, ..) => {
+                #[cfg(not(feature = "no_closure"))]
+                if value.is_shared() {
+                    return false;
+                }
+                !value.is_fnptr()
+            }
+            Self::Array(items, ..) | Self::InterpolatedString(items, ..) => {
+                items.iter().all(Self::is_template_constant)
+            }
+            Self::Map(entries, ..) => entries
+                .0
+                .iter()
+                .all(|(_, value)| value.is_template_constant()),
+            _ => self.is_constant(),
+        }
+    }
     /// Is a particular [token][Token] allowed as a postfix operator to this expression?
     #[inline]
     #[must_use]

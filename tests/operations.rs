@@ -69,11 +69,13 @@ fn test_max_operations_literal() {
     #[cfg(not(feature = "no_index"))]
     assert!(matches!(*engine.run("[1, 2, 3, 4, 5, 6, 7, 8, 9]").unwrap_err(), EvalAltResult::ErrorTooManyOperations(..)));
 
-    #[cfg(not(feature = "no_object"))]
-    engine.run("#{a:1, b:2, c:3, d:4, e:5, f:6, g:7}").unwrap();
+    engine.set_max_operations(25);
 
     #[cfg(not(feature = "no_object"))]
-    assert!(matches!(*engine.run("#{a:1, b:2, c:3, d:4, e:5, f:6, g:7, h:8, i:9}").unwrap_err(), EvalAltResult::ErrorTooManyOperations(..)));
+    engine.run("let x = 0; #{a:x+1, b:x+2, c:x+3, d:x+4, e:x+5, f:x+6, g:x+7}").unwrap();
+
+    #[cfg(not(feature = "no_object"))]
+    assert!(matches!(*engine.run("let x = 0; #{a:x+1, b:x+2, c:x+3, d:x+4, e:x+5, f:x+6, g:x+7, h:x+8, i:x+9}").unwrap_err(), EvalAltResult::ErrorTooManyOperations(..)));
 }
 
 #[test]

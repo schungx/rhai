@@ -972,11 +972,17 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         Expr::Dot(x, ..) if !_chaining => match (&mut x.lhs, &mut x.rhs) {
             // map.string
             (Expr::Map(m, pos), Expr::Property(p, ..)) if m.0.iter().all(|(.., x)| x.is_pure()) => {
-                // Map literal where everything is pure - promote the indexed item.
-                // All other items can be thrown away.
-                state.set_dirty();
-                *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == p.2)
-                            .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
+                if m.1.contains_key(p.2.as_str()) {
+                    // Constant map literal property
+                    state.set_dirty();
+                    *expr = Expr::DynamicConstant(mem::take(m.1.get_mut(p.2.as_str()).unwrap()).into(), *pos);
+                } else {
+                    // Map literal where everything is pure - promote the indexed item.
+                    // All other items can be thrown away.
+                    state.set_dirty();
+                    *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == p.2)
+                                .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
+                }
             }
             // var.property where var is a constant map
             (Expr::Variable(v, _, pos) , Expr::Property(p, ..))  if state.propagate_constants && state.find_literal_constant(&v.1).map_or(false,Dynamic::is_map) => {
@@ -1039,11 +1045,17 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
             }
             // map[string]
             (Expr::Map(m, pos), Expr::StringConstant(s, ..)) if m.0.iter().all(|(.., x)| x.is_pure()) => {
-                // Map literal where everything is pure - promote the indexed item.
-                // All other items can be thrown away.
-                state.set_dirty();
-                *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == s)
-                            .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
+                if m.1.contains_key(s.as_str()) {
+                    // Constant map literal property
+                    state.set_dirty();
+                    *expr = Expr::DynamicConstant(mem::take(m.1.get_mut(s.as_str()).unwrap()).into(), *pos);
+                } else {
+                    // Map literal where everything is pure - promote the indexed item.
+                    // All other items can be thrown away.
+                    state.set_dirty();
+                    *expr = mem::take(&mut m.0).into_iter().find(|(x, ..)| x.name == s)
+                                .map_or_else(|| Expr::Unit(*pos), |(.., mut expr)| { expr.set_position(*pos); expr });
+                }
             }
             #[cfg(not(feature = "no_object"))]
             (Expr::DynamicConstant(cst, pos ), Expr::StringConstant(s, ..)) if cst.is_map() => {
@@ -1143,7 +1155,22 @@ fn optimize_expr(expr: &mut Expr, state: &mut OptimizerState, _chaining: bool) {
         }
         // #{ key:value, .. }
         #[cfg(not(feature = "no_object"))]
-        Expr::Map(x, ..) => x.0.iter_mut().for_each(|(.., expr)| optimize_expr(expr, state, false)),
+        Expr::Map(x, ..) => {
+            for (key, expr) in &mut x.0 {
+                optimize_expr(expr, state, false);
+
+                if expr.is_template_constant() {
+                    state.set_dirty();
+                    // Extract the constant expression, leaving `()`
+                    *x.1.get_mut(key.as_str()).unwrap() = expr.take().get_literal_value(None).unwrap();
+                }
+            }
+            if state.is_dirty() {
+                // Remove any expression that is `()` - it must have started a template constant.
+                x.0.retain(|(_, expr)| !expr.is_unit());
+                x.0.shrink_to_fit();
+            }
+        }
         // lhs && rhs
         Expr::And(x, ..) => {
             let mut is_false = None;

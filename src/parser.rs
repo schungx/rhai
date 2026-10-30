@@ -1036,7 +1036,9 @@ impl Engine {
                     return Err(PERR::PropertyExpected.into_err(pos))
                 }
                 (Token::Identifier(s) | Token::StringConstant(s), pos) => {
-                    if map.iter().any(|(p, ..)| p.as_str() == s.as_str()) {
+                    if template.contains_key(s.as_str())
+                        || map.iter().any(|(p, ..)| p.as_str() == s.as_str())
+                    {
                         return Err(PERR::DuplicatedProperty(s.to_string()).into_err(pos));
                     }
                     (*s, pos)
@@ -1078,7 +1080,7 @@ impl Engine {
             }
 
             #[cfg(not(feature = "unchecked"))]
-            if self.max_map_size() > 0 && map.len() >= self.max_map_size() {
+            if self.max_map_size() > 0 && template.len() >= self.max_map_size() {
                 return Err(PERR::LiteralTooLarge(
                     "Number of properties in object map literal".into(),
                     self.max_map_size(),
@@ -1087,10 +1089,21 @@ impl Engine {
             }
 
             let expr = self.parse_expr(state, settings.level_up()?)?;
-            template.insert(name.clone(), crate::Dynamic::UNIT);
-
-            let name = self.get_interned_string(name);
-            map.push((Ident { name, pos }, expr));
+            template.insert(
+                name.clone(),
+                if expr.is_template_constant() {
+                    expr.get_literal_value(None).unwrap()
+                } else {
+                    map.push((
+                        Ident {
+                            name: self.get_interned_string(name),
+                            pos,
+                        },
+                        expr,
+                    ));
+                    crate::Dynamic::UNIT
+                },
+            );
 
             match state.input.peek().unwrap() {
                 (Token::Comma, ..) => {

@@ -19,6 +19,113 @@ use rhai::grain::bytecode::Op;
 use rhai::grain::{Compiler, Vm};
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 
+#[test]
+#[cfg(not(feature = "no_object"))]
+fn map_templates_only_emit_computed_properties() {
+    let mut engine = Engine::new();
+    #[cfg(not(feature = "no_optimize"))]
+    engine.set_optimization_level(rhai::OptimizationLevel::None);
+    let ast = engine.compile("#{ a: 1, b: true, c: (), nested: #{ x: 2 }, computed: input }").unwrap();
+    let program = Compiler::new().compile(&ast);
+    assert_eq!(program.residual_count(), 0);
+    let ops: Vec<_> = program.main().ops(program.code()).map(|(_, op)| op).collect();
+    assert_eq!(ops.iter().filter(|op| matches!(op, Op::MakeMap(_))).collect::<Vec<_>>(), vec![&Op::MakeMap(1)]);
+    assert_eq!(ops.iter().filter(|op| matches!(op, Op::CheckSize { .. })).collect::<Vec<_>>(), vec![&Op::CheckSize { index: 0, is_map: true }, &Op::CheckSize { index: 1, is_map: true }]);
+    let constants: Vec<_> = ops.iter().filter(|op| matches!(op, Op::Const(_))).collect();
+    assert_eq!(constants.len(), 2, "only the template and computed key need constants: {ops:?}");
+    let template = engine.eval::<Dynamic>("#{ a: 1, b: true, c: (), nested: #{ x: 2 }, computed: () }").unwrap();
+    assert_eq!(constants[0].disassemble(&program), format!("{:?} = {template}", constants[0]));
+    let mut scope = Scope::new();
+    scope.push("input", 42 as rhai::INT);
+    let expected = engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast).unwrap();
+    let actual = Vm::new(&engine).eval_with_scope(&mut scope, &program).unwrap();
+    assert_eq!(format!("{actual:?}"), format!("{expected:?}"));
+
+    let bytes = program.write().unwrap();
+    let loaded = rhai::grain::Program::read(&bytes).unwrap();
+    let actual = Vm::new(&engine).eval_with_scope(&mut scope, &loaded).unwrap();
+    assert_eq!(format!("{actual:?}"), format!("{expected:?}"));
+
+    for (source, count) in [("#{ a: 1, b: () }", 0), ("#{ a: input, b: input }", 2)] {
+        let ast = engine.compile(source).unwrap();
+        let program = Compiler::new().compile(&ast);
+        assert!(program.main().ops(program.code()).any(|(_, op)| op == Op::MakeMap(count)));
+        assert_eq!(format!("{:?}", Vm::new(&engine).eval_with_scope(&mut scope, &program).unwrap()), format!("{:?}", engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast).unwrap()));
+    }
+
+    #[cfg(not(feature = "no_optimize"))]
+    for level in [rhai::OptimizationLevel::Simple, rhai::OptimizationLevel::Full] {
+        engine.set_optimization_level(level);
+        let ast = engine.compile("const FOLDED = 40; #{ a: FOLDED + 2, computed: input }").unwrap();
+        let program = Compiler::new().compile(&ast);
+        assert_eq!(program.residual_count(), 0);
+        assert!(program.main().ops(program.code()).any(|(_, op)| op == Op::MakeMap(1)));
+        assert_eq!(format!("{:?}", Vm::new(&engine).eval_with_scope(&mut scope, &program).unwrap()), format!("{:?}", engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast).unwrap()));
+    }
+}
+
+#[test]
+#[cfg(not(feature = "no_object"))]
+fn map_template_limits_include_constants() {
+    let mut engine = Engine::new();
+    #[cfg(not(feature = "no_optimize"))]
+    engine.set_optimization_level(rhai::OptimizationLevel::None);
+    for source in [r#"#{ a: "abc", b: "def" }"#, r#"let input="def"; #{ a: "abc", b: input }"#, r#"let input="def"; #{ a: input, b: input }"#] {
+        let ast = engine.compile(source).unwrap();
+        let program = Compiler::new().compile(&ast);
+        assert_eq!(program.residual_count(), 0);
+        for limit in [6, 5] {
+            engine.set_max_string_size(limit);
+            let walker = engine.eval_ast::<Dynamic>(&ast);
+            let vm = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &program);
+            assert_eq!(format!("{vm:?}"), format!("{walker:?}"), "{source}, limit {limit}");
+            if limit == 5 {
+                assert!(matches!(*vm.unwrap_err(), EvalAltResult::ErrorDataTooLarge(..)));
+            } else {
+                assert!(vm.is_ok());
+            }
+        }
+        engine.set_max_string_size(0);
+    }
+
+    let ast = engine.compile("#{ a: #{ x: 1 }, b: input }").unwrap();
+    let program = Compiler::new().compile(&ast);
+    for limit in [3, 2] {
+        engine.set_max_map_size(limit);
+        let mut scope = Scope::new();
+        scope.push("input", rhai::Map::new());
+        let walker = engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast);
+        let vm = Vm::new(&engine).eval_with_scope(&mut scope, &program);
+        assert_eq!(vm.is_ok(), limit == 3);
+        assert_eq!(format!("{vm:?}"), format!("{walker:?}"));
+    }
+
+    #[cfg(not(feature = "no_index"))]
+    {
+        engine.set_max_map_size(0);
+        let ast = engine.compile("#{ a: [1, 2], b: input }").unwrap();
+        let program = Compiler::new().compile(&ast);
+        for limit in [4, 3] {
+            engine.set_max_array_size(limit);
+            let mut scope = Scope::new();
+            scope.push("input", vec![Dynamic::from_int(3), Dynamic::from_int(4)]);
+            let walker = engine.eval_ast_with_scope::<Dynamic>(&mut scope, &ast);
+            let vm = Vm::new(&engine).eval_with_scope(&mut scope, &program);
+            assert_eq!(format!("{vm:?}"), format!("{walker:?}"));
+            assert_eq!(vm.is_ok(), limit == 4);
+        }
+
+        engine.set_max_array_size(20);
+        let source = "let v = 7; [v, #{ a: 1, b: v, c: #{ x: 2 }, d: #{ x: v }, e: (), f: v }, v]";
+        let ast = engine.compile(source).unwrap();
+        let program = Compiler::new().compile(&ast);
+        assert_eq!(program.residual_count(), 0);
+        let walker = engine.eval_ast_with_scope::<Dynamic>(&mut Scope::new(), &ast).unwrap();
+        let vm = Vm::new(&engine).eval_with_scope(&mut Scope::new(), &program).unwrap();
+        assert_eq!(format!("{vm:?}"), format!("{walker:?}"));
+    }
+}
+
 /// A bare infinite loop, which the compiler lowers with nothing left over —
 /// asserted below, so this cannot silently become a test of the fallback.
 const SPIN: &str = "loop { }";
